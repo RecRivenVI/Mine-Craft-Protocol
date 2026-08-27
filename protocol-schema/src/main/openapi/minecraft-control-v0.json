@@ -1,0 +1,2987 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mine-Craft-Protocol V0",
+    "version": "0.0.1-phase8",
+    "description": "Unstable, evidence-based Phase 8 V1 release-hardening contract with an independent MCP Companion. This is not a frozen Wire Protocol v1.",
+    "x-stability": "unstable"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:{port}",
+      "variables": {
+        "port": {
+          "default": "25581"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v0/session": {
+      "get": {
+        "operationId": "getSession",
+        "responses": {
+          "200": {
+            "description": "Current Minecraft session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v0/capabilities": {
+      "get": {
+        "operationId": "getCapabilities",
+        "responses": {
+          "200": {
+            "description": "Declared target capabilities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/readiness": {
+      "get": {
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "Runtime-verified hook readiness",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/trace": {
+      "get": {
+        "operationId": "getTrace",
+        "responses": {
+          "200": {
+            "description": "Minimal causal trace counters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/audit": {
+      "get": {
+        "operationId": "getAudit",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256,
+              "default": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded in-memory request audit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/diagnostics/thread": {
+      "get": {
+        "operationId": "probeThreadAffinity",
+        "parameters": [
+          {
+            "name": "affinity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["client", "render", "server"],
+              "default": "client"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detached evidence produced on the requested owner thread",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadProbeResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Requested owner thread is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/diagnostics/hooks": {
+      "get": {
+        "operationId": "getHookManifest",
+        "description": "Target-owned Hook mechanisms, compatibility policy and runtime self-test state.",
+        "responses": {
+          "200": {
+            "description": "Hook compatibility and degradation manifest",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HookManifestResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/diagnostics/ui/test-screen": {
+      "post": {
+        "operationId": "openAutomationProbeScreen",
+        "description": "Probe-only Arrange fixture. Results produced after this call are evidence-contaminated until the screen is closed.",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opened an extended standard Widget-based Mod screen with EditBox, disabled, duplicate and dynamic controls",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UiFixtureResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/security/context": {
+      "get": {
+        "operationId": "getSecurityContext",
+        "responses": {
+          "200": {
+            "description": "Effective authentication and scope context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityContextResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/operations": {
+      "get": {
+        "operationId": "getOperationDescriptors",
+        "responses": {
+          "200": {
+            "description": "Operation-specific control and scheduling declarations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationDescriptorsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/operations/wait/screen": {
+      "post": {
+        "operationId": "startWaitForScreen",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ProtocolVersion"
+          },
+          {
+            "$ref": "#/components/parameters/Deadline"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaitScreenOperationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created cancellable wait operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/operations/{operationId}": {
+      "parameters": [
+        {
+          "name": "operationId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getOperation",
+        "responses": {
+          "200": {
+            "description": "Operation status and optional result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelOperation",
+        "responses": {
+          "200": {
+            "description": "Cancelled operation status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/control/status": {
+      "get": {
+        "operationId": "getControlLeaseStatus",
+        "responses": {
+          "200": {
+            "description": "Current single-writer lease availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlLeaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/control/acquire": {
+      "post": {
+        "operationId": "acquireControlLease",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseTtlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acquired single-writer control lease",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlLeaseResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/v0/control/renew": {
+      "post": {
+        "operationId": "renewControlLease",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ControlLease"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseTtlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Renewed lease",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlLeaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/control/release": {
+      "post": {
+        "operationId": "releaseControlLease",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ControlLease"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Released lease and scheduled input cleanup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlLeaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/control/emergency-release": {
+      "post": {
+        "operationId": "emergencyReleaseControl",
+        "responses": {
+          "200": {
+            "description": "Unconditionally clears the lease and schedules input cleanup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlLeaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/input/state": {
+      "get": {
+        "operationId": "getInputState",
+        "responses": {
+          "200": {
+            "description": "Runtime-owned virtual input state for cleanup verification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/ui/tree": {
+      "get": {
+        "operationId": "getUiTree",
+        "responses": {
+          "200": {
+            "description": "Current screen interaction tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UiTreeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/ui/resolve": {
+      "post": {
+        "operationId": "resolveUiNode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UiSelector" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolved current-tree node and generated interaction point",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UiResolveResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/ui/action": {
+      "post": {
+        "operationId": "performUiAction",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
+          { "$ref": "#/components/parameters/ExpectedScreenRevision" },
+          { "$ref": "#/components/parameters/ExpectedMenuRevision" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UiActionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GAME_ROUTED action targeted by tree or explicit vision coordinates",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UiActionResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/ui/vision/context": {
+      "get": {
+        "operationId": "getUiVisionContext",
+        "responses": {
+          "200": {
+            "description": "Screenshot/vision coordinate fallback contract for the current screen",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UiVisionContextResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/render/facts": {
+      "get": {
+        "operationId": "getRenderFacts",
+        "responses": {
+          "200": {
+            "description": "Capability-gated primitive render facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderFactsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/input/mouse/move": {
+      "post": {
+        "operationId": "moveMouse",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
+          { "$ref": "#/components/parameters/ExpectedScreenRevision" },
+          { "$ref": "#/components/parameters/ExpectedMenuRevision" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MouseMoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InputResult"
+          }
+        }
+      }
+    },
+    "/v0/input/mouse/button": {
+      "post": {
+        "operationId": "mouseButton",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
+          { "$ref": "#/components/parameters/ExpectedScreenRevision" },
+          { "$ref": "#/components/parameters/ExpectedMenuRevision" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MouseButtonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InputResult"
+          }
+        }
+      }
+    },
+    "/v0/input/mouse/scroll": {
+      "post": {
+        "operationId": "scrollMouse",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
+          { "$ref": "#/components/parameters/ExpectedScreenRevision" },
+          { "$ref": "#/components/parameters/ExpectedMenuRevision" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MouseScrollRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InputResult"
+          }
+        }
+      }
+    },
+    "/v0/input/key": {
+      "post": {
+        "operationId": "keyInput",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
+          { "$ref": "#/components/parameters/ExpectedScreenRevision" },
+          { "$ref": "#/components/parameters/ExpectedMenuRevision" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InputResult"
+          }
+        }
+      }
+    },
+    "/v0/player": {
+      "get": {
+        "operationId": "getPlayerState",
+        "responses": {
+          "200": {
+            "description": "Client-known player state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/server/peer": {
+      "get": {
+        "operationId": "getServerPeerStatus",
+        "responses": {
+          "200": {
+            "description": "Client-side optional Dedicated Server Peer negotiation status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServerPeerStatusResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/server/peer/probe": {
+      "post": {
+        "operationId": "probeServerPeer",
+        "responses": {
+          "200": {
+            "description": "Server-authoritative capabilities returned through a peer-v0 custom payload round trip",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServerPeerCapabilitiesResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/server/player": {
+      "get": {
+        "operationId": "getServerPlayerState",
+        "responses": {
+          "200": {
+            "description": "Integrated Server or negotiated Dedicated Server Peer authoritative live player state",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerStateResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/world/block": {
+      "get": {
+        "operationId": "getBlockState",
+        "parameters": [
+          {
+            "name": "x",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "z",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loaded client-known block state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockStateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/world/entities": {
+      "get": {
+        "operationId": "queryEntities",
+        "parameters": [
+          {
+            "name": "radius",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "default": 16.0,
+              "minimum": 0.0,
+              "maximum": 128.0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loaded client-known entities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityQueryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/server/world/block": {
+      "get": {
+        "operationId": "getServerBlockState",
+        "parameters": [
+          { "name": "x", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "y", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "z", "in": "query", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loaded server-authoritative block without chunk loading, from Integrated Server or negotiated Peer",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BlockStateResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/server/world/entities": {
+      "get": {
+        "operationId": "queryServerEntities",
+        "parameters": [
+          {
+            "name": "radius",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "number", "format": "double", "minimum": 0, "maximum": 128, "default": 16 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loaded server-authoritative entities from Integrated Server or negotiated Peer",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EntityQueryResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/providers": {
+      "get": {
+        "operationId": "getReadProviders",
+        "responses": {
+          "200": {
+            "description": "Built-in and explicitly registered LIVE read providers",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProviderDescriptorsResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/providers/read": {
+      "post": {
+        "operationId": "readProvider",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProviderReadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detached LIVE provider result with trust and source metadata",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProviderReadResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v0/state/frames": {
+      "post": {
+        "operationId": "captureStateFrame",
+        "parameters": [
+          { "$ref": "#/components/parameters/Deadline" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/StateFrameRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Coordinated best-effort LIVE state frame",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StateFrameResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/capture/info": {
+      "get": {
+        "operationId": "getCaptureInfo",
+        "responses": {
+          "200": {
+            "description": "Actual graphics backend and capture readiness",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CaptureInfoResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/world/fingerprint": {
+      "get": {
+        "operationId": "getWorldFingerprint",
+        "responses": {
+          "200": {
+            "description": "Session-bound Integrated Server world fingerprint",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorldFingerprintResponse" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/debug/status": {
+      "get": {
+        "operationId": "getDebugArmStatus",
+        "responses": {
+          "200": {
+            "description": "Current Debug Arm state",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/arm": {
+      "post": {
+        "operationId": "armDebug",
+        "parameters": [ { "$ref": "#/components/parameters/ControlLease" } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Armed Debug privileges for one world fingerprint",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmResponse" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/debug/renew": {
+      "post": {
+        "operationId": "renewDebugArm",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/DebugArm" }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LeaseTtlRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Renewed Debug Arm",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/disarm": {
+      "post": {
+        "operationId": "disarmDebug",
+        "parameters": [ { "$ref": "#/components/parameters/ControlLease" } ],
+        "responses": {
+          "200": {
+            "description": "Disarmed Debug privileges",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/fixture/player/teleport": {
+      "post": {
+        "operationId": "fixtureTeleportPlayer",
+        "parameters": [ { "$ref": "#/components/parameters/ControlLease" } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TeleportRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Fixture Arrange teleport with contamination evidence",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MutationEvidenceResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/player/health": {
+      "post": {
+        "operationId": "debugSetPlayerHealth",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/DebugArm" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugHealthRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed direct health mutation",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MutationEvidenceResponse" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/debug/world/block": {
+      "post": {
+        "operationId": "debugSetBlock",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/DebugArm" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugBlockRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed loaded-world block mutation",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MutationEvidenceResponse" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/recordings": {
+      "get": {
+        "operationId": "listRecordings",
+        "responses": {
+          "200": {
+            "description": "Recording Sessions",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordingListResponse" } } }
+          }
+        }
+      },
+      "post": {
+        "operationId": "startRecording",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordingRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Started bounded Recording Session",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordingStatusResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/recordings/{recordingId}": {
+      "parameters": [
+        { "name": "recordingId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": {
+        "operationId": "getRecording",
+        "responses": {
+          "200": {
+            "description": "Recording status",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordingStatusResponse" } } }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "stopRecording",
+        "responses": {
+          "200": {
+            "description": "Recording finalization requested",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordingStatusResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/recordings/{recordingId}/artifact": {
+      "parameters": [
+        { "name": "recordingId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": {
+        "operationId": "downloadRecordingArtifact",
+        "responses": {
+          "200": {
+            "description": "Versioned Artifact Bundle ZIP",
+            "content": { "application/zip": { "schema": { "type": "string", "format": "binary" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/capture": {
+      "get": {
+        "operationId": "captureComposite",
+        "responses": {
+          "200": {
+            "description": "Composite PNG capture",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/wait/screen": {
+      "get": {
+        "operationId": "waitForScreen",
+        "parameters": [
+          {
+            "name": "classContains",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeoutMs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 5000,
+              "minimum": 1,
+              "maximum": 60000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Satisfied screen condition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/wait/until": {
+      "post": {
+        "operationId": "waitUntil",
+        "parameters": [
+          { "$ref": "#/components/parameters/Deadline" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WaitUntilRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Runtime-evaluated condition became true",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AssertResponse" }
+              }
+            }
+          },
+          "408": {
+            "description": "Condition did not become true before timeout",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/assert": {
+      "post": {
+        "operationId": "assertCondition",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssertRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Condition is true in the current owner-thread snapshot",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AssertResponse" }
+              }
+            }
+          },
+          "412": {
+            "description": "Assertion failed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/pipelines": {
+      "post": {
+        "operationId": "startInputPipeline",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PipelineRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Started cancellable input pipeline operation",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationResponse" }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "parameters": {
+      "RequestId": {
+        "name": "X-MCP-Request-Id",
+        "in": "header",
+        "required": false,
+        "description": "Caller correlation ID; generated when absent.",
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "ProtocolVersion": {
+        "name": "X-MCP-Protocol-Version",
+        "in": "header",
+        "required": false,
+        "description": "Negotiated unstable protocol version. Defaults to v0.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "v0"
+          ]
+        }
+      },
+      "Deadline": {
+        "name": "X-MCP-Deadline-Ms",
+        "in": "header",
+        "required": false,
+        "description": "Relative request deadline in milliseconds.",
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "ControlLease": {
+        "name": "X-MCP-Control-Lease",
+        "in": "header",
+        "required": true,
+        "description": "Active single-writer control lease ID.",
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "IdempotencyKey": {
+        "name": "X-MCP-Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "description": "Operation-local idempotency key.",
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "ExpectedScreenRevision": {
+        "name": "X-MCP-Expected-Screen-Revision",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "ExpectedMenuRevision": {
+        "name": "X-MCP-Expected-Menu-Revision",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "DebugArm": {
+        "name": "X-MCP-Debug-Arm",
+        "in": "header",
+        "required": true,
+        "description": "Active world-bound Debug Arm ID.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InputResult": {
+        "description": "Observed input path result",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/InputResult"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Control lease or resource precondition conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Requested semantic resource was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "RequestEnvelope": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "protocolVersion"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string",
+            "example": "v0"
+          },
+          "deadlineMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "traceOptions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "MutationContext": {
+        "type": "object",
+        "description": "Operation-specific context; not part of ordinary read requests.",
+        "properties": {
+          "leaseId": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "preconditions": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LongOperationContext": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supportsCancellation": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BaseResponse": {
+        "type": "object",
+        "required": [
+          "type",
+          "target",
+          "clientTick",
+          "requestId",
+          "protocolVersion"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "clientTick": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string",
+            "enum": [
+              "v0"
+            ]
+          }
+        }
+      },
+      "SessionResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "minecraft",
+              "loader",
+              "inWorld",
+              "screenClass",
+              "screenRevision",
+              "menuRevision",
+              "thread"
+            ],
+            "properties": {
+              "minecraft": {
+                "type": "string"
+              },
+              "loader": {
+                "type": "string"
+              },
+              "inWorld": {
+                "type": "boolean"
+              },
+              "screenClass": {
+                "type": "string"
+              },
+              "screenRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "thread": {
+                "type": "string"
+              },
+              "condition": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "CapabilitiesResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "capabilities"
+            ],
+            "properties": {
+              "capabilities": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "serverPeer": {
+                "$ref": "#/components/schemas/ServerPeerStatus"
+              }
+            }
+          }
+        ]
+      },
+      "ReadinessResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "overall",
+              "hooks"
+            ],
+            "properties": {
+              "overall": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "degraded"
+                ]
+              },
+              "hooks": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "HookDescriptor": {
+        "type": "object",
+        "required": [
+          "id", "mechanism", "target", "injectionPoint", "behavior",
+          "cancellable", "overwrite", "thirdPartyTarget", "runtimeStatus",
+          "failureMode", "failureCapability"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "mechanism": {
+            "type": "string",
+            "enum": ["MIXIN_INJECT", "MIXIN_INVOKER", "MIXIN_ACCESSOR", "PUBLIC_METHOD", "RUNTIME_CALLBACK", "UNAVAILABLE"]
+          },
+          "target": { "type": "string" },
+          "injectionPoint": { "type": "string" },
+          "behavior": { "type": "string" },
+          "cancellable": { "type": "boolean" },
+          "overwrite": { "type": "boolean" },
+          "thirdPartyTarget": { "type": "boolean" },
+          "runtimeStatus": { "type": "string" },
+          "failureMode": { "type": "string" },
+          "failureCapability": { "type": "string" }
+        }
+      },
+      "HookManifestResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": [
+              "policy", "overwriteCount", "cancellableInjectionCount",
+              "thirdPartyTargetCount", "runtimeSelfTest", "overall", "hooks"
+            ],
+            "properties": {
+              "policy": { "type": "string", "enum": ["capability_fidelity_first"] },
+              "overwriteCount": { "type": "integer", "minimum": 0 },
+              "cancellableInjectionCount": { "type": "integer", "minimum": 0 },
+              "thirdPartyTargetCount": { "type": "integer", "minimum": 0 },
+              "runtimeSelfTest": { "type": "boolean" },
+              "overall": { "type": "string", "enum": ["ready", "degraded"] },
+              "hooks": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/HookDescriptor" }
+              }
+            }
+          }
+        ]
+      },
+      "TraceResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "screenRevision",
+              "menuRevision"
+            ],
+            "properties": {
+              "screenSlotClickSequence": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuDispatchSequence": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "containerPacketSequence": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "serverContainerPacketSequence": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "lastDetail": {
+                "type": "string"
+              },
+              "lastServerThread": {
+                "type": "string"
+              },
+              "screenRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuRevision": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          }
+        ]
+      },
+      "UiTreeResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "screenClass",
+              "screenRevision",
+              "menuRevision",
+              "children"
+            ],
+            "properties": {
+              "screenClass": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "screenRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuId": {
+                "type": "integer"
+              },
+              "coverage": {
+                "type": "string",
+                "enum": ["semantic_native", "semantic_instrumented", "semantic_inferred", "render_primitives", "vision_only", "unsupported"]
+              },
+              "fallbacks": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UiNode"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UiNode": {
+        "type": "object",
+        "required": [
+          "nodeId",
+          "role",
+          "class"
+        ],
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "nodeRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "x": {
+            "type": "integer"
+          },
+          "y": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "interactionX": {
+            "type": "number",
+            "format": "double"
+          },
+          "interactionY": {
+            "type": "number",
+            "format": "double"
+          },
+          "actions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "slot": {
+            "type": "integer"
+          },
+          "item": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "UiSelector": {
+        "type": "object",
+        "description": "Current-tree selector. Multiple matches require nth; selectors are re-resolved before actions.",
+        "properties": {
+          "nodeId": { "type": "string" },
+          "role": { "type": "string" },
+          "label": { "type": "string" },
+          "labelContains": { "type": "string" },
+          "class": { "type": "string" },
+          "classContains": { "type": "string" },
+          "slot": { "type": "integer" },
+          "nth": { "type": "integer", "minimum": 0 },
+          "caseSensitive": { "type": "boolean", "default": false },
+          "visibleOnly": { "type": "boolean", "default": true },
+          "activeOnly": { "type": "boolean", "default": false }
+        },
+        "minProperties": 1
+      },
+      "InteractionPoint": {
+        "type": "object",
+        "required": ["x", "y", "source"],
+        "properties": {
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" },
+          "source": { "type": "string", "enum": ["bounds_center"] }
+        }
+      },
+      "UiResolveResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["screenRevision", "menuRevision", "matchCount", "selectedIndex", "node", "interactionPoint"],
+            "properties": {
+              "screenClass": { "type": "string" },
+              "screenRevision": { "type": "integer", "format": "int64" },
+              "menuRevision": { "type": "integer", "format": "int64" },
+              "matchCount": { "type": "integer", "minimum": 1 },
+              "selectedIndex": { "type": "integer", "minimum": 0 },
+              "node": { "$ref": "#/components/schemas/UiNode" },
+              "interactionPoint": { "$ref": "#/components/schemas/InteractionPoint" }
+            }
+          }
+        ]
+      },
+      "UiCoordinates": {
+        "type": "object",
+        "required": ["x", "y"],
+        "properties": {
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" }
+        }
+      },
+      "UiActionRequest": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "selector": { "$ref": "#/components/schemas/UiSelector" },
+          "coordinates": { "$ref": "#/components/schemas/UiCoordinates" },
+          "source": {
+            "type": "string",
+            "enum": ["explicit_coordinate", "vision", "vision_coordinate"]
+          },
+          "action": {
+            "type": "string",
+            "enum": ["click", "double_click", "mouse_down", "mouse_up", "scroll"]
+          },
+          "button": { "type": "integer", "default": 0 },
+          "modifiers": { "type": "integer", "default": 0 },
+          "holdMs": { "type": "integer", "format": "int64", "minimum": 0, "maximum": 5000, "default": 40 },
+          "xOffset": { "type": "number", "format": "double", "default": 0 },
+          "yOffset": { "type": "number", "format": "double", "default": 0 }
+        },
+        "description": "Exactly one of selector or coordinates is required by the Runtime."
+      },
+      "UiActionResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/InputResult" },
+          {
+            "type": "object",
+            "required": ["action", "targetingSource", "x", "y"],
+            "properties": {
+              "action": { "type": "string" },
+              "targetingSource": {
+                "type": "string",
+                "enum": ["interaction_tree", "explicit_coordinate", "vision", "vision_coordinate"]
+              },
+              "x": { "type": "number", "format": "double" },
+              "y": { "type": "number", "format": "double" },
+              "resolvedNode": { "$ref": "#/components/schemas/UiNode" }
+            }
+          }
+        ]
+      },
+      "UiVisionContextResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["screenRevision", "menuRevision", "treeCoverage", "semanticNodeCount", "coordinateSpace", "captureEndpoint", "coordinateActionEndpoint", "visionFallbackAvailable"],
+            "properties": {
+              "screenClass": { "type": "string" },
+              "screenRevision": { "type": "integer", "format": "int64" },
+              "menuRevision": { "type": "integer", "format": "int64" },
+              "width": { "type": "integer" },
+              "height": { "type": "integer" },
+              "treeCoverage": { "type": "string" },
+              "semanticNodeCount": { "type": "integer", "minimum": 0 },
+              "coordinateSpace": { "type": "string", "enum": ["gui_scaled"] },
+              "captureEndpoint": { "type": "string" },
+              "coordinateActionEndpoint": { "type": "string" },
+              "visionFallbackAvailable": { "type": "boolean" }
+            }
+          }
+        ]
+      },
+      "UiFixtureResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["screenClass", "mechanism", "perspective", "evidenceContaminated"],
+            "properties": {
+              "screenClass": { "type": "string" },
+              "mechanism": { "type": "string", "enum": ["DIRECT"] },
+              "perspective": { "type": "string", "enum": ["fixture"] },
+              "evidenceContaminated": { "type": "boolean", "enum": [true] }
+            }
+          }
+        ]
+      },
+      "MouseMoveRequest": {
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MouseButtonRequest": {
+        "type": "object",
+        "required": [
+          "button",
+          "action"
+        ],
+        "properties": {
+          "button": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "modifiers": {
+            "type": "integer",
+            "default": 0
+          }
+        }
+      },
+      "MouseScrollRequest": {
+        "type": "object",
+        "properties": {
+          "xOffset": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          },
+          "yOffset": {
+            "type": "number",
+            "format": "double",
+            "default": 0.0
+          }
+        }
+      },
+      "KeyRequest": {
+        "type": "object",
+        "required": [
+          "key",
+          "action"
+        ],
+        "properties": {
+          "key": {
+            "type": "integer"
+          },
+          "scanCode": {
+            "type": "integer",
+            "default": 0
+          },
+          "action": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "modifiers": {
+            "type": "integer",
+            "default": 0
+          }
+        }
+      },
+      "InputResult": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "entryLayer",
+              "screenObserved",
+              "menuObserved",
+              "normalPacketObserved",
+              "serverValidationObserved",
+              "directBusinessCallUsed",
+              "directMutationUsed",
+              "screenRevision",
+              "menuRevision"
+            ],
+            "properties": {
+              "entryLayer": {
+                "type": "string",
+                "enum": [
+                  "GAME_ROUTED_RAW",
+                  "GAME_ROUTED_SCREEN",
+                  "GAME_ROUTED_KEYMAPPING",
+                  "NORMAL_NETWORK",
+                  "DIRECT"
+                ]
+              },
+              "screenObserved": {
+                "type": "boolean"
+              },
+              "menuObserved": {
+                "type": "boolean"
+              },
+              "normalMenuProcessingObserved": {
+                "type": "boolean"
+              },
+              "normalPacketObserved": {
+                "type": "boolean"
+              },
+              "serverValidationObserved": {
+                "type": "boolean"
+              },
+              "keyMappingPath": {
+                "type": "boolean"
+              },
+              "directBusinessCallUsed": {
+                "type": "boolean"
+              },
+              "directMutationUsed": {
+                "type": "boolean"
+              },
+              "screenRevision": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "menuRevision": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          }
+        ]
+      },
+      "ServerPeerStatus": {
+        "type": "object",
+        "required": ["connected", "protocol", "pendingRequests"],
+        "properties": {
+          "connected": { "type": "boolean" },
+          "protocol": { "type": "string", "enum": ["peer-v0"] },
+          "lastHelloMillis": { "type": "integer", "format": "int64" },
+          "lastResponseMillis": { "type": "integer", "format": "int64" },
+          "lastServerTick": { "type": "integer", "format": "int64" },
+          "pendingRequests": { "type": "integer", "minimum": 0 },
+          "lastError": { "type": "string" }
+        }
+      },
+      "ServerPeerStatusResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          { "$ref": "#/components/schemas/ServerPeerStatus" }
+        ]
+      },
+      "ServerPeerCapabilitiesResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["read", "fixture", "debug", "operator", "source", "dataSource", "peerAuthenticated"],
+            "properties": {
+              "read": { "type": "boolean" },
+              "fixture": { "type": "boolean" },
+              "debug": { "type": "boolean" },
+              "operator": { "type": "boolean" },
+              "source": { "type": "string", "enum": ["dedicated_server_peer"] },
+              "dataSource": { "type": "string", "enum": ["LIVE"] },
+              "storageAccessed": { "type": "boolean" },
+              "peerAuthenticated": { "type": "boolean" },
+              "serverTick": { "type": "integer", "format": "int64" }
+            }
+          }
+        ]
+      },
+      "PlayerStateResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "available"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "uuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "x": {
+                "type": "number",
+                "format": "double"
+              },
+              "y": {
+                "type": "number",
+                "format": "double"
+              },
+              "z": {
+                "type": "number",
+                "format": "double"
+              },
+              "yaw": {
+                "type": "number",
+                "format": "float"
+              },
+              "pitch": {
+                "type": "number",
+                "format": "float"
+              },
+              "health": {
+                "type": "number",
+                "format": "float"
+              },
+              "maxHealth": { "type": "number", "format": "float" },
+              "absorption": { "type": "number", "format": "float" },
+              "food": { "type": "integer" },
+              "air": { "type": "integer" },
+              "velocityX": { "type": "number", "format": "double" },
+              "velocityY": { "type": "number", "format": "double" },
+              "velocityZ": { "type": "number", "format": "double" },
+              "selectedSlot": {
+                "type": "integer"
+              },
+              "dimension": {
+                "type": "string"
+              },
+              "perspective": {
+                "type": "string"
+              },
+              "source": { "type": "string" },
+              "authority": { "type": "string" },
+              "dataSource": { "type": "string", "enum": ["LIVE"] },
+              "storageAccessed": { "type": "boolean" },
+              "stalePossible": { "type": "boolean" },
+              "serverTick": { "type": "integer", "format": "int64" },
+              "thread": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "BlockStateResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "available"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "block": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "x": { "type": "integer" },
+              "y": { "type": "integer" },
+              "z": { "type": "integer" },
+              "dimension": { "type": "string" },
+              "source": { "type": "string" },
+              "authority": { "type": "string" },
+              "dataSource": { "type": "string", "enum": ["LIVE"] },
+              "storageAccessed": { "type": "boolean" },
+              "stalePossible": { "type": "boolean" },
+              "chunkLoadRequested": { "type": "boolean" },
+              "serverTick": { "type": "integer", "format": "int64" },
+              "perspective": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "EntityQueryResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "entities",
+              "perspective"
+            ],
+            "properties": {
+              "entities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntityState"
+                }
+              },
+              "perspective": {
+                "type": "string"
+              },
+              "source": { "type": "string" },
+              "authority": { "type": "string" },
+              "dataSource": { "type": "string", "enum": ["LIVE"] },
+              "storageAccessed": { "type": "boolean" },
+              "stalePossible": { "type": "boolean" },
+              "dimension": { "type": "string" },
+              "radius": { "type": "number", "format": "double" },
+              "serverTick": { "type": "integer", "format": "int64" }
+            }
+          }
+        ]
+      },
+      "EntityState": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "type",
+          "x",
+          "y",
+          "z"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "z": {
+            "type": "number",
+            "format": "double"
+          },
+          "velocityX": {
+            "type": "number",
+            "format": "double"
+          },
+          "velocityY": {
+            "type": "number",
+            "format": "double"
+          },
+          "velocityZ": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "RenderFactsResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "coverage"
+            ],
+            "properties": {
+              "elements": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "texts": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "pictures": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "lastFact": {
+                "type": "string"
+              },
+              "coverage": {
+                "type": "string",
+                "enum": [
+                  "render_primitives",
+                  "unsupported"
+                ]
+              },
+              "status": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "semanticInference": {
+                "type": "boolean",
+                "description": "False means entries are render facts, not inferred business controls."
+              },
+              "factCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 256
+              },
+              "facts": {
+                "type": "array",
+                "maxItems": 256,
+                "items": { "$ref": "#/components/schemas/RenderFact" }
+              }
+            }
+          }
+        ]
+      },
+      "RenderFact": {
+        "type": "object",
+        "required": ["sequence", "clientTick", "screenRevision", "category", "class", "x", "y", "width", "height"],
+        "properties": {
+          "sequence": { "type": "integer", "format": "int64" },
+          "clientTick": { "type": "integer", "format": "int64" },
+          "screenRevision": { "type": "integer", "format": "int64" },
+          "category": { "type": "string", "enum": ["element", "item", "text", "picture"] },
+          "class": { "type": "string" },
+          "x": { "type": "integer" },
+          "y": { "type": "integer" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" }
+        }
+      },
+      "SecurityContextResponse": {
+        "type": "object",
+        "required": [
+          "type",
+          "protocolVersion",
+          "authentication",
+          "bindAddress",
+          "grantedScopes",
+          "requestId"
+        ],
+        "properties": {
+          "type": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] },
+          "authentication": { "type": "string", "enum": ["bearer"] },
+          "bindAddress": { "type": "string", "enum": ["127.0.0.1"] },
+          "grantedScopes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "requestId": { "type": "string" }
+        }
+      },
+      "ThreadProbeResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["requestedAffinity", "thread", "ownerThreadObserved"],
+            "properties": {
+              "requestedAffinity": {
+                "type": "string",
+                "enum": ["client", "render", "server"]
+              },
+              "thread": { "type": "string" },
+              "ownerThreadObserved": { "type": "boolean" }
+            }
+          }
+        ]
+      },
+      "LeaseTtlRequest": {
+        "type": "object",
+        "properties": {
+          "ttlMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1000,
+            "maximum": 60000,
+            "default": 15000
+          }
+        }
+      },
+      "ControlLeaseResponse": {
+        "type": "object",
+        "required": ["type", "status", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["available", "active", "acquired", "renewed", "released"]
+          },
+          "leaseId": { "type": "string", "format": "uuid" },
+          "expiresAtMillis": { "type": "integer", "format": "int64" },
+          "hadLease": { "type": "boolean" },
+          "reason": { "type": "string" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "InputStateResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["pressedKeys", "pressedButtons", "pressedKeyCount", "pressedButtonCount"],
+            "properties": {
+              "pressedKeys": {
+                "type": "array",
+                "items": { "type": "integer" }
+              },
+              "pressedButtons": {
+                "type": "array",
+                "items": { "type": "integer" }
+              },
+              "pressedKeyCount": { "type": "integer", "minimum": 0 },
+              "pressedButtonCount": { "type": "integer", "minimum": 0 }
+            }
+          }
+        ]
+      },
+      "WaitScreenOperationRequest": {
+        "type": "object",
+        "required": ["classContains"],
+        "properties": {
+          "classContains": { "type": "string" },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 60000,
+            "default": 5000
+          }
+        }
+      },
+      "OperationResponse": {
+        "type": "object",
+        "required": ["type", "operationId", "status", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "operationId": { "type": "string", "format": "uuid" },
+          "status": {
+            "type": "string",
+            "enum": ["running", "completed", "failed", "cancelled"]
+          },
+          "result": { "type": "object", "additionalProperties": true },
+          "error": { "type": "string" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "OperationDescriptor": {
+        "type": "object",
+        "required": [
+          "id", "scope", "requiresControlLease", "requiresDebugArm",
+          "supportsIdempotency", "supportsCancellation", "supportedPreconditions", "threadAffinity"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "scope": { "type": "string" },
+          "requiresControlLease": { "type": "boolean" },
+          "requiresDebugArm": { "type": "boolean" },
+          "supportsIdempotency": { "type": "boolean" },
+          "supportsCancellation": { "type": "boolean" },
+          "supportedPreconditions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "threadAffinity": {
+            "type": "string",
+            "enum": ["client_thread", "render_thread", "server_thread", "multi_thread", "provider_managed"]
+          }
+        }
+      },
+      "OperationDescriptorsResponse": {
+        "type": "object",
+        "required": ["type", "operations", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "operations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OperationDescriptor" }
+          },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "AuditEntry": {
+        "type": "object",
+        "required": ["sequence", "timestampMillis", "requestId", "path", "outcome"],
+        "properties": {
+          "sequence": { "type": "integer", "format": "int64" },
+          "timestampMillis": { "type": "integer", "format": "int64" },
+          "requestId": { "type": "string" },
+          "path": { "type": "string" },
+          "outcome": { "type": "string" }
+        }
+      },
+      "AuditResponse": {
+        "type": "object",
+        "required": ["type", "entries", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "entries": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AuditEntry" }
+          },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "AutomationCondition": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": { "type": "string", "enum": ["screen", "ui.exists"] },
+          "classContains": { "type": "string" },
+          "titleContains": { "type": "string" },
+          "open": { "type": "boolean" },
+          "selector": { "$ref": "#/components/schemas/UiSelector" },
+          "exists": { "type": "boolean", "default": true }
+        }
+      },
+      "WaitUntilRequest": {
+        "type": "object",
+        "required": ["condition"],
+        "properties": {
+          "condition": { "$ref": "#/components/schemas/AutomationCondition" },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 60000,
+            "default": 5000
+          }
+        }
+      },
+      "AssertRequest": {
+        "type": "object",
+        "required": ["condition"],
+        "properties": {
+          "condition": { "$ref": "#/components/schemas/AutomationCondition" }
+        }
+      },
+      "AssertResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["condition", "passed", "message"],
+            "properties": {
+              "screenClass": { "type": "string" },
+              "screenRevision": { "type": "integer", "format": "int64" },
+              "menuRevision": { "type": "integer", "format": "int64" },
+              "condition": { "$ref": "#/components/schemas/AutomationCondition" },
+              "passed": { "type": "boolean" },
+              "message": { "type": "string" },
+              "waited": { "type": "boolean" }
+            }
+          }
+        ]
+      },
+      "PipelineStep": {
+        "type": "object",
+        "required": ["type"],
+        "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "delay", "mouse.move", "mouse.button", "mouse.click", "mouse.scroll", "mouse.drag",
+              "key", "key.tap", "key.chord", "ui.action", "ui.drag", "wait.until", "assert.that"
+            ]
+          },
+          "durationMs": { "type": "integer", "format": "int64" },
+          "holdMs": { "type": "integer", "format": "int64" },
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" },
+          "fromX": { "type": "number", "format": "double" },
+          "fromY": { "type": "number", "format": "double" },
+          "toX": { "type": "number", "format": "double" },
+          "toY": { "type": "number", "format": "double" },
+          "segments": { "type": "integer", "minimum": 1, "maximum": 120 },
+          "button": { "type": "integer" },
+          "action": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" }
+            ]
+          },
+          "modifiers": { "type": "integer" },
+          "xOffset": { "type": "number", "format": "double" },
+          "yOffset": { "type": "number", "format": "double" },
+          "key": { "type": "integer" },
+          "scanCode": { "type": "integer" },
+          "keys": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "required": ["key"],
+              "properties": {
+                "key": { "type": "integer" },
+                "scanCode": { "type": "integer" },
+                "modifiers": { "type": "integer" }
+              }
+            }
+          },
+          "selector": { "$ref": "#/components/schemas/UiSelector" },
+          "coordinates": { "$ref": "#/components/schemas/UiCoordinates" },
+          "fromSelector": { "$ref": "#/components/schemas/UiSelector" },
+          "toSelector": { "$ref": "#/components/schemas/UiSelector" },
+          "condition": { "$ref": "#/components/schemas/AutomationCondition" },
+          "timeoutMs": { "type": "integer", "format": "int64" }
+        },
+        "additionalProperties": true
+      },
+      "PipelineRequest": {
+        "type": "object",
+        "required": ["steps"],
+        "properties": {
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": { "$ref": "#/components/schemas/PipelineStep" }
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 300000,
+            "default": 60000
+          },
+          "cleanupOnComplete": { "type": "boolean", "default": true }
+        }
+      },
+      "ProviderDescriptor": {
+        "type": "object",
+        "required": ["id", "perspective", "threadAffinity", "source", "dataSource", "persistentStorage", "trust", "thirdParty"],
+        "properties": {
+          "id": { "type": "string" },
+          "perspective": { "type": "string" },
+          "threadAffinity": { "type": "string" },
+          "source": { "type": "string" },
+          "dataSource": { "type": "string", "enum": ["LIVE"] },
+          "persistentStorage": { "type": "boolean", "enum": [false] },
+          "trust": { "type": "string" },
+          "thirdParty": { "type": "boolean" }
+        }
+      },
+      "ProviderDescriptorsResponse": {
+        "type": "object",
+        "required": ["type", "dataSource", "persistentStorageAvailable", "providers", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "dataSource": { "type": "string", "enum": ["LIVE"] },
+          "persistentStorageAvailable": { "type": "boolean", "enum": [false] },
+          "providers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProviderDescriptor" }
+          },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "ProviderReadRequest": {
+        "type": "object",
+        "required": ["providerId"],
+        "properties": {
+          "providerId": { "type": "string" },
+          "query": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ProviderReadResponse": {
+        "type": "object",
+        "required": [
+          "type", "providerId", "providerRevision", "querySnapshotId", "perspective", "threadAffinity",
+          "source", "dataSource", "storageAccessed", "trust", "thirdParty", "query", "data"
+        ],
+        "properties": {
+          "type": { "type": "string" },
+          "providerId": { "type": "string" },
+          "providerRevision": { "type": "integer", "format": "int64" },
+          "querySnapshotId": { "type": "string", "format": "uuid" },
+          "perspective": { "type": "string" },
+          "threadAffinity": { "type": "string" },
+          "source": { "type": "string" },
+          "dataSource": { "type": "string", "enum": ["LIVE"] },
+          "storageAccessed": { "type": "boolean", "enum": [false] },
+          "trust": { "type": "string" },
+          "thirdParty": { "type": "boolean" },
+          "query": { "type": "object", "additionalProperties": true },
+          "data": { "type": "object", "additionalProperties": true },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "StateFrameRequest": {
+        "type": "object",
+        "required": ["reads"],
+        "properties": {
+          "reads": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": { "$ref": "#/components/schemas/ProviderReadRequest" }
+          }
+        }
+      },
+      "StateFrameResponse": {
+        "type": "object",
+        "required": [
+          "type", "stateFrameId", "stateFrameSequence", "consistency", "dataSource", "storageAccessed",
+          "startedAtMillis", "completedAtMillis", "reads", "requestId", "protocolVersion"
+        ],
+        "properties": {
+          "type": { "type": "string" },
+          "stateFrameId": { "type": "string", "format": "uuid" },
+          "stateFrameSequence": { "type": "integer", "format": "int64" },
+          "consistency": { "type": "string", "enum": ["coordinated_best_effort"] },
+          "dataSource": { "type": "string", "enum": ["LIVE"] },
+          "storageAccessed": { "type": "boolean", "enum": [false] },
+          "startedAtMillis": { "type": "integer", "format": "int64" },
+          "completedAtMillis": { "type": "integer", "format": "int64" },
+          "reads": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ProviderReadResponse" }
+          },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "CaptureInfoResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["backend", "backendDescription", "mode", "format", "captureVerified", "encodingThread", "inputConcurrent"],
+            "properties": {
+              "backend": { "type": "string", "enum": ["opengl", "vulkan"] },
+              "backendDescription": { "type": "string" },
+              "mode": { "type": "string", "enum": ["COMPOSITE"] },
+              "format": { "type": "string", "enum": ["PNG"] },
+              "captureVerified": { "type": "boolean" },
+              "encodingThread": { "type": "string", "enum": ["io_pool"] },
+              "inputConcurrent": { "type": "boolean" }
+            }
+          }
+        ]
+      },
+      "WorldFingerprintResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["worldFingerprint", "perspective", "sessionBound", "storageAccessed"],
+            "properties": {
+              "worldFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "perspective": { "type": "string", "enum": ["server_authoritative_live"] },
+              "sessionBound": { "type": "boolean", "enum": [true] },
+              "storageAccessed": { "type": "boolean", "enum": [false] }
+            }
+          }
+        ]
+      },
+      "DebugArmRequest": {
+        "type": "object",
+        "required": ["worldFingerprint"],
+        "properties": {
+          "worldFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "ttlMs": { "type": "integer", "format": "int64", "minimum": 1000, "maximum": 60000, "default": 15000 }
+        }
+      },
+      "DebugArmResponse": {
+        "type": "object",
+        "required": ["type", "status", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "status": { "type": "string", "enum": ["armed", "renewed", "disarmed"] },
+          "debugArmId": { "type": "string", "format": "uuid" },
+          "worldFingerprint": { "type": "string" },
+          "expiresAtMillis": { "type": "integer", "format": "int64" },
+          "wasArmed": { "type": "boolean" },
+          "reason": { "type": "string" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "TeleportRequest": {
+        "type": "object",
+        "required": ["x", "y", "z"],
+        "properties": {
+          "x": { "type": "number", "format": "double" },
+          "y": { "type": "number", "format": "double" },
+          "z": { "type": "number", "format": "double" }
+        }
+      },
+      "DebugHealthRequest": {
+        "type": "object",
+        "required": ["health"],
+        "properties": {
+          "health": { "type": "number", "format": "float", "minimum": 0 }
+        }
+      },
+      "DebugBlockRequest": {
+        "type": "object",
+        "required": ["x", "y", "z", "blockId"],
+        "properties": {
+          "x": { "type": "integer" },
+          "y": { "type": "integer" },
+          "z": { "type": "integer" },
+          "blockId": { "type": "string" },
+          "expectedBlockId": { "type": "string" }
+        }
+      },
+      "MutationEvidenceResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["mode", "perspective", "mechanism", "evidenceContaminated", "directMutationUsed", "storageAccessed"],
+            "properties": {
+              "mode": { "type": "string", "enum": ["FIXTURE", "DEBUG_PRIVILEGED"] },
+              "perspective": { "type": "string" },
+              "mechanism": { "type": "string", "enum": ["SERVER_API", "DIRECT_MUTATION"] },
+              "evidenceContaminated": { "type": "boolean", "enum": [true] },
+              "directMutationUsed": { "type": "boolean" },
+              "storageAccessed": { "type": "boolean", "enum": [false] },
+              "serverTick": { "type": "integer", "format": "int64" }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "ContactSheetConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "columns": { "type": "integer", "minimum": 1, "maximum": 16, "default": 4 },
+          "cellWidth": { "type": "integer", "minimum": 16, "maximum": 1024, "default": 256 },
+          "cellHeight": { "type": "integer", "minimum": 16, "maximum": 1024, "default": 144 },
+          "spacing": { "type": "integer", "minimum": 0, "maximum": 32, "default": 4 }
+        }
+      },
+      "RecordingRequest": {
+        "type": "object",
+        "properties": {
+          "intervalMs": { "type": "integer", "format": "int64", "minimum": 50, "maximum": 60000, "default": 250 },
+          "durationMs": { "type": "integer", "format": "int64", "minimum": 100, "maximum": 300000, "default": 5000 },
+          "maxSamples": { "type": "integer", "format": "int64", "minimum": 1, "maximum": 512, "default": 20 },
+          "captureFrames": { "type": "boolean", "default": true },
+          "stateReads": {
+            "type": "array",
+            "maxItems": 32,
+            "items": { "$ref": "#/components/schemas/ProviderReadRequest" }
+          },
+          "contactSheet": { "$ref": "#/components/schemas/ContactSheetConfig" }
+        }
+      },
+      "RecordingStatusResponse": {
+        "type": "object",
+        "required": [
+          "type", "recordingId", "status", "startedAtMillis", "samples", "writtenFrames", "writtenStates",
+          "gaps", "writerQueueDepth", "writerQueueCapacity", "evidenceContaminated", "artifactReady"
+        ],
+        "properties": {
+          "type": { "type": "string" },
+          "recordingId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["recording", "finalizing", "completed", "failed"] },
+          "startedAtMillis": { "type": "integer", "format": "int64" },
+          "completedAtMillis": { "type": "integer", "format": "int64" },
+          "samples": { "type": "integer", "format": "int64" },
+          "writtenFrames": { "type": "integer", "format": "int64" },
+          "writtenStates": { "type": "integer", "format": "int64" },
+          "gaps": { "type": "integer", "format": "int64" },
+          "writerQueueDepth": { "type": "integer" },
+          "writerQueueCapacity": { "type": "integer", "enum": [64] },
+          "evidenceContaminated": { "type": "boolean" },
+          "artifactReady": { "type": "boolean" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "RecordingListResponse": {
+        "type": "object",
+        "required": ["type", "recordings", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string" },
+          "recordings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RecordingStatusResponse" }
+          },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error",
+          "message",
+          "requestId",
+          "protocolVersion"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string",
+            "enum": ["v0"]
+          }
+        }
+      }
+    }
+  }
+}

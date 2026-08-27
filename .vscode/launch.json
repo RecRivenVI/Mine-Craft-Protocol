@@ -1,0 +1,207 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 0
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\1.20.1-forge\\client",
+      "env": {
+        "MOD_CLASSES": "minecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 1
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\1.20.1-forge\\server",
+      "env": {
+        "MOD_CLASSES": "minecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 0
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\1.21.1-neoforge\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 1
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\1.21.1-neoforge\\server",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 0
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\26.1.2-neoforge\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 1
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\26.1.2-neoforge\\server",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.2-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 26.2-neoforge",
+        "order": 0
+      },
+      "projectName": "26.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\26.2-neoforge\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.2-neoforge - ClientVulkan",
+      "presentation": {
+        "group": "Mod Development - 26.2-neoforge",
+        "order": 1
+      },
+      "projectName": "26.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\clientVulkanRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\clientVulkanRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\26.2-neoforge\\client-vulkan",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.2-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 26.2-neoforge",
+        "order": 2
+      },
+      "projectName": "26.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dminecraft_protocol_probe%%D:\\Workspaces\\Repositories\\Local\\Mine-Craft-Protocol\\versions\\26.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\26.2-neoforge\\server",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
+}
+
+def targetProperties = new Properties()
+file('target.properties').withInputStream { targetProperties.load(it) }
+targetProperties.each { key, value -> project.ext.set(key.toString(), value) }
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        minecraft_protocol_probe {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+
+    runs {
+        client {
+            client()
+            runDir = '../../runs/26.2-fabric/client'
+            vmArg '-Dminecraft.protocol.probe.disablePauseOnLostFocus=true'
+            if (project.hasProperty('mcpQuickPlayServer')) {
+                programArgs '--quickPlayMultiplayer', project.property('mcpQuickPlayServer').toString()
+            }
+        }
+        clientVulkan {
+            client()
+            runDir = '../../runs/26.2-fabric/client-vulkan'
+            programArgs '--graphicsBackend', 'vulkan'
+            vmArg '-Dminecraft.protocol.probe.disablePauseOnLostFocus=true'
+        }
+        server {
+            server()
+            runDir = '../../runs/26.2-fabric/server'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}

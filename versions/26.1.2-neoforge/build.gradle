@@ -1,0 +1,88 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.144'
+}
+
+def targetProperties = new Properties()
+file('target.properties').withInputStream { targetProperties.load(it) }
+targetProperties.each { key, value -> project.ext.set(key.toString(), value) }
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+def vulkanFmlConfig = rootProject.file('runs/26.1.2-neoforge/client-vulkan/config/fml.toml')
+def prepareVulkanFmlConfig = tasks.register('prepareVulkanFmlConfig') {
+    outputs.file(vulkanFmlConfig)
+    doLast {
+        vulkanFmlConfig.parentFile.mkdirs()
+        vulkanFmlConfig.setText('earlyWindowControl = false\n', 'UTF-8')
+    }
+}
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+            gameDirectory = file('../../runs/26.1.2-neoforge/client')
+            systemProperty 'minecraft.protocol.probe.disablePauseOnLostFocus', 'true'
+            if (project.hasProperty('mcpQuickPlayServer')) {
+                programArguments.addAll '--quickPlayMultiplayer', project.property('mcpQuickPlayServer').toString()
+            }
+        }
+        clientVulkan {
+            client()
+            gameDirectory = file('../../runs/26.1.2-neoforge/client-vulkan')
+            programArguments.addAll '--graphicsBackend', 'vulkan'
+            systemProperty 'minecraft.protocol.probe.disablePauseOnLostFocus', 'true'
+            taskBefore prepareVulkanFmlConfig
+        }
+        server {
+            server()
+            gameDirectory = file('../../runs/26.1.2-neoforge/server')
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [
+            minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version: neo_version,
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_license: mod_license,
+            mod_version: mod_version,
+            mod_description: mod_description
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+tasks.named('runClientVulkan').configure {
+    dependsOn prepareVulkanFmlConfig
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}

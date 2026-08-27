@@ -1,0 +1,24 @@
+license="All Rights Reserved"
+
+[[mods]]
+modId="minecraft_protocol_probe"
+version="${mod_version}"
+displayName="Minecraft Protocol Probe"
+description='''${mod_description}'''
+
+[[mixins]]
+config="minecraft_protocol_probe.mixins.json"
+
+[[dependencies.minecraft_protocol_probe]]
+modId="neoforge"
+type="required"
+versionRange="[26.2.0.67,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.minecraft_protocol_probe]]
+modId="minecraft"
+type="required"
+versionRange="[26.2]"
+ordering="NONE"
+side="BOTH"
