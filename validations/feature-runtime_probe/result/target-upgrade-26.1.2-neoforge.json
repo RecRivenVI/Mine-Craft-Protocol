@@ -1,0 +1,60 @@
+{
+  "result": "PASS",
+  "target": "26.1.2-neoforge",
+  "baseCommit": "e5e3bb0ed1261cd4db0882a896b15e112b1ce19d",
+  "workingTreeDirty": true,
+  "evidenceBoundary": "CURRENT_UNCOMMITTED_UPGRADE_CANDIDATE_NOT_EXACT_COMMIT_RELEASE_ATTESTATION",
+  "native": {
+    "Target": "26.1.2-neoforge",
+    "InWorld": false,
+    "Screen": "net.minecraft.client.gui.screens.TitleScreen",
+    "ScreenRevision": 2,
+    "MenuRevision": 0,
+    "CaptureBytes": 590164,
+    "WebSocket": "PASS",
+    "Readiness": "ready",
+    "Result": "PASS"
+  },
+  "control": {
+    "Result": "PASS",
+    "Target": "26.1.2-neoforge",
+    "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+    "Samples": [
+      {
+        "mode": "READ",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      },
+      {
+        "mode": "OPERATE",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      },
+      {
+        "mode": "TAKEOVER",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      }
+    ],
+    "HumanAcceptance": "NOT_RUN",
+    "PersistentWrite": 0
+  },
+  "companion": "ACTUAL_STDIO_PASS",
+  "javaExecutable": "C:\\Users\\RavenYin\\.gradle\\jdks\\jdk-25.0.4.1+1\\bin\\java.exe",
+  "shutdown": "CLEAN_EXIT_0_PORT_RELEASED",
+  "humanAcceptance": "NOT_RUN",
+  "computerUse": false,
+  "persistentWriteInvocations": 0,
+  "targetSourceInventorySha256": "828476057db3c8aca0aa8aa5abb5d9a93450408468597d57f589728811f526e6",
+  "artifactSha256": "de35eb196adeda4e51c6e58e73201ba533f509f27f7d75da4f5e392741f1088d",
+  "observedAt": "2026-10-10T10:42:32.1030514Z"
+}

@@ -1,0 +1,64 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const directory = fileURLToPath(new URL('.', import.meta.url));
+const specificationPath = resolve(directory, '../../protocol_schema/src/main/openapi/minecraft-control-v0.json');
+const specification = JSON.parse(await readFile(specificationPath, 'utf8'));
+
+const requiredPaths = [
+  '/v0/session',
+  '/v0/control/mode',
+  '/v0/capabilities',
+  '/v0/ui/tree',
+  '/v0/ui/action',
+  '/v0/pipelines',
+  '/v0/state/frames',
+  '/v0/capture',
+  '/v0/recordings',
+  '/v0/diagnostics/hooks',
+  '/v0/server/peer'
+  ,'/v0/observe/deep'
+  ,'/v0/observe/deep/capabilities'
+  ,'/v0/debug/capabilities'
+  ,'/v0/debug/mutations'
+  ,'/v0/debug/batches'
+];
+const requiredSchemas = [
+  'CapabilitiesResponse',
+  'AgentMode', 'AgentModeVersion', 'ControlModeRequest', 'ControlModeResponse',
+  'UiTreeResponse',
+  'PipelineRequest',
+  'StateFrameRequest',
+  'RecordingRequest',
+  'HookManifestResponse',
+  'ErrorResponse'
+  ,'DeepObservationRequest'
+  ,'DeepObservationResponse'
+  ,'ResourceRevisionRef'
+  ,'DebugMutationRequest'
+  ,'DebugMutationResult'
+  ,'DebugBatchRequest'
+];
+
+if (specification.info?.version !== '0.0.1-control-r24') {
+  throw new Error(`Companion requires OpenAPI 0.0.1-control-r24, received ${specification.info?.version ?? 'missing'}`);
+}
+for (const path of requiredPaths) {
+  if (!specification.paths?.[path]) throw new Error(`Companion-required protocol path is missing: ${path}`);
+}
+for (const schema of requiredSchemas) {
+  if (!specification.components?.schemas?.[schema]) throw new Error(`Companion-required schema is missing: ${schema}`);
+}
+const serialized = JSON.stringify(specification);
+if (serialized.includes('expectedWorldRevision')) {
+  throw new Error('Companion protocol must not restore global expectedWorldRevision');
+}
+
+const policies = ['READ_COMPATIBLE', 'OPERATE_REQUIRED', 'TAKEOVER_REQUIRED', 'MODE_INDEPENDENT'];
+for (const [path, methods] of Object.entries(specification.paths)) {
+  for (const [method, operation] of Object.entries(methods)) {
+    if (!operation.operationId) continue;
+    if (!policies.includes(operation['x-agent-mode'])) throw new Error(`Unclassified native operation ${method} ${path}`);
+  }
+}

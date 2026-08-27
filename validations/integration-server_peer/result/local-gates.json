@@ -1,0 +1,322 @@
+{
+  "Result": "PASS",
+  "Checks": 39,
+  "Cases": [
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "current-products-five-targets",
+      "Expected": "PASS",
+      "Outcome": "PASS",
+      "Check": "PASS",
+      "Error": null
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-source-1.20.1-forge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 1.20.1-forge must have a Peer server"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-source-1.21.1-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 1.21.1-neoforge must have a Peer server"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-source-26.1.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.1.2-neoforge must have a Peer server"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-source-26.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-neoforge must have a Peer server"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-source-26.2-fabric",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-fabric must have a Peer server"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "wrong-contract-version",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: Schema must identify the current reviewed Native contract"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-contract-route",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: Peer status path must exist"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "wrong-source-contract",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-neoforge must retain its native Loader launch model; quick-play arguments are instance configuration"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-artifact-1.20.1-forge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 1.20.1-forge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-artifact-1.21.1-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 1.21.1-neoforge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-artifact-26.1.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 26.1.2-neoforge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-artifact-26.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 26.2-neoforge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "missing-artifact-26.2-fabric",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 26.2-fabric"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "newer-wrong-version-ignored",
+      "Expected": "PASS",
+      "Outcome": "PASS",
+      "Check": "PASS",
+      "Error": null
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "wrong-version-only",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 26.2-neoforge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "project-version-changed-without-artifact",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: current release artifact must exist for 1.20.1-forge"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "renamed-stale-jar-version",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "26.2-neoforge artifact metadata identity/version mismatch"
+    },
+    {
+      "Gate": "Invoke-ServerPeerLocalGate.ps1",
+      "Case": "renamed-stale-jar-identity",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "26.2-neoforge artifact metadata identity/version mismatch"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "current-products-five-targets",
+      "Expected": "PASS",
+      "Outcome": "PASS",
+      "Check": "PASS",
+      "Error": null
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-source-1.20.1-forge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861\\versions\\1.20.1-forge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-source-1.21.1-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861\\versions\\1.21.1-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-source-26.1.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861\\versions\\26.1.2-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-source-26.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861\\versions\\26.2-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-source-26.2-fabric",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861\\versions\\26.2-fabric\\src\\client\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "wrong-contract-version",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: Schema must identify the current reviewed Native contract"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-contract-route",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: Hook manifest path must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "wrong-source-contract",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-neoforge compatibility Screen must contain Compatibility Text"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "wrong-hook-contract",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Phase 7 Hook gate assertion failed: 26.2-neoforge Mixin config must fail visibly when a required Hook cannot apply"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-artifact-1.20.1-forge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 1.20.1-forge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-artifact-1.21.1-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 1.21.1-neoforge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-artifact-26.1.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.1.2-neoforge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-artifact-26.2-neoforge",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-neoforge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "missing-artifact-26.2-fabric",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-fabric current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "newer-wrong-version-ignored",
+      "Expected": "PASS",
+      "Outcome": "PASS",
+      "Check": "PASS",
+      "Error": null
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "wrong-version-only",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 26.2-neoforge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "project-version-changed-without-artifact",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Current local gate assertion failed: 1.20.1-forge current release artifact must exist"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "renamed-stale-jar-version",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "26.2-neoforge artifact metadata identity/version mismatch"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "renamed-stale-jar-identity",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "26.2-neoforge artifact metadata identity/version mismatch"
+    }
+  ],
+  "Fixture": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-510cf1bca0284ff9911ff85313ea2861",
+  "SampleKind": "COPIES_OF_CURRENT_SOURCE_AND_JARS",
+  "ActualRepositoryFilesMutated": false,
+  "GameStarted": false
+}

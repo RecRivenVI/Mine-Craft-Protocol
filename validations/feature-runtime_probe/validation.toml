@@ -1,0 +1,4 @@
+tool = "validation_tools"
+targets = ["1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric"]
+[instances.client]
+jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]

@@ -1,0 +1,227 @@
+{
+  "result": "PASS_CONTROL_DECLARATION_CORRECTION",
+  "date": "2026-09-07",
+  "baseCommit": "5dc95a7240f477ed2a8e5359b9f2c9c5b5e20229",
+  "binding": "Working-tree validation on the stated base; not an exact-commit release attestation.",
+  "contract": {
+    "capability": "blocked_during_takeover",
+    "policy": "never_capture_or_warp_during_takeover",
+    "legacyGrant": false,
+    "legacyNativeCaptureGrants": 0,
+    "observedCapture": "Actual state retained; Vanilla capture outside TAKEOVER is allowed.",
+    "compatibility": "Existing response shapes retained. Consumers matching the obsolete agent_gated_native_click value must update."
+  },
+  "nativeMatrix": [
+    {
+      "Result": "PASS",
+      "Target": "1.20.1-forge",
+      "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+      "Samples": [
+        {
+          "mode": "READ",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "OPERATE",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "TAKEOVER",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        }
+      ],
+      "HumanAcceptance": "NOT_RUN",
+      "PersistentWrite": 0
+    },
+    {
+      "Result": "PASS",
+      "Target": "1.21.1-neoforge",
+      "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+      "Samples": [
+        {
+          "mode": "READ",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "OPERATE",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "TAKEOVER",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        }
+      ],
+      "HumanAcceptance": "NOT_RUN",
+      "PersistentWrite": 0
+    },
+    {
+      "Result": "PASS",
+      "Target": "26.1.2-neoforge",
+      "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+      "Samples": [
+        {
+          "mode": "READ",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "OPERATE",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "TAKEOVER",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        }
+      ],
+      "HumanAcceptance": "NOT_RUN",
+      "PersistentWrite": 0
+    },
+    {
+      "Result": "PASS",
+      "Target": "26.2-neoforge",
+      "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+      "Samples": [
+        {
+          "mode": "READ",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "OPERATE",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "TAKEOVER",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        }
+      ],
+      "HumanAcceptance": "NOT_RUN",
+      "PersistentWrite": 0
+    },
+    {
+      "Result": "PASS",
+      "Target": "26.2-fabric",
+      "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+      "Samples": [
+        {
+          "mode": "READ",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "OPERATE",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        },
+        {
+          "mode": "TAKEOVER",
+          "capability": "blocked_during_takeover",
+          "policy": "never_capture_or_warp_during_takeover",
+          "granted": false,
+          "captured": false,
+          "nativeGrants": 0
+        }
+      ],
+      "HumanAcceptance": "NOT_RUN",
+      "PersistentWrite": 0
+    }
+  ],
+  "shutdown": "All five isolated title-only clients exited normally; each test port released.",
+  "checks": {
+    "fiveTargetBuild": "PASS",
+    "javaTests": {
+      "tests": 108,
+      "failures": 0,
+      "errors": 0,
+      "note": "Existing target/shared test reports; unchanged tasks may be up-to-date."
+    },
+    "schemaGenerationAndTest": "PASS",
+    "companionBuildAndTest": {
+      "tests": 3,
+      "result": "PASS",
+      "coverage": "Official MCP Tool and Resource response preservation, including Vanilla capture outside TAKEOVER."
+    },
+    "cursorClassifier": {
+      "cases": 11,
+      "result": "PASS",
+      "coverage": "Negative old-declaration/grant/capture cases; synthetic samples are not human acceptance."
+    },
+    "controlStatic": "PASS",
+    "repositoryStructure": "PASS_SKIP_GRADLE",
+    "documentation": "PASS",
+    "diffCheck": "PASS"
+  },
+  "limits": {
+    "humanAcceptance": "NOT_RUN_USER_DEFERRED",
+    "fullFiveTargetFunctionalAcceptance": "NOT_RUN",
+    "showcase": "NOT_RUN",
+    "uiUxChanged": false,
+    "inputHooksOrStateMachineChanged": false,
+    "persistentWrites": 0,
+    "worldsEntered": 0,
+    "historicalEvidenceRewritten": false
+  },
+  "observations": [
+    {
+      "target": "26.2-neoforge",
+      "status": "OPEN_OUT_OF_SCOPE",
+      "issue": "Early authenticated presence during asset loading encountered Pipeline contains invalid shader program in presentOperatorChrome; asset-ready bounded retest passed the declaration matrix. This does not prove the startup rendering risk fixed.",
+      "crashSha256": "90F646539656DDD20ED87F9870408DB4D7159F93E6F1B15C9E3CB6B0ACDEA3B9",
+      "localDiagnostic": "validations/.local/cursor-declaration-20260907/26.2-neoforge/crash-reports/crash-2026-09-07_14.51.43-client.txt",
+      "next": "Independent rendering-readiness review with the user's future UI/UX scope; no render/hook fix in this task."
+    }
+  ],
+  "nextAction": "Wait for user UI/UX requirements; do not start human unified acceptance."
+}

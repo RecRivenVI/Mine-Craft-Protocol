@@ -1,0 +1,87 @@
+{
+  "result": "PASS",
+  "target": "26.3-fabric",
+  "baseCommit": "e5e3bb0ed1261cd4db0882a896b15e112b1ce19d",
+  "workingTreeDirty": true,
+  "evidenceBoundary": "CURRENT_UNCOMMITTED_UPGRADE_CANDIDATE_NOT_EXACT_COMMIT_RELEASE_ATTESTATION",
+  "native": {
+    "Target": "26.3-fabric",
+    "InWorld": false,
+    "Screen": "net.minecraft.client.gui.screens.TitleScreen",
+    "ScreenRevision": 2,
+    "MenuRevision": 0,
+    "CaptureBytes": 518519,
+    "WebSocket": "PASS",
+    "Readiness": "ready",
+    "Result": "PASS"
+  },
+  "control": {
+    "Result": "PASS",
+    "Target": "26.3-fabric",
+    "Source": "ACTUAL_NATIVE_CAPABILITIES_SESSION_INPUT_STATE",
+    "Samples": [
+      {
+        "mode": "READ",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      },
+      {
+        "mode": "OPERATE",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      },
+      {
+        "mode": "TAKEOVER",
+        "capability": "blocked_during_takeover",
+        "policy": "never_capture_or_warp_during_takeover",
+        "granted": false,
+        "captured": false,
+        "nativeGrants": 0
+      }
+    ],
+    "HumanAcceptance": "NOT_RUN",
+    "PersistentWrite": 0
+  },
+  "companion": "ACTUAL_STDIO_PASS",
+  "javaExecutable": "C:\\Users\\RavenYin\\.gradle\\jdks\\jdk-25.0.4.1+1\\bin\\java.exe",
+  "shutdown": "NOT_RUN_CURRENT_CLIENT_LEFT_AT_TITLE_FOR_USER",
+  "humanAcceptance": "NOT_RUN",
+  "computerUse": false,
+  "persistentWriteInvocations": 0,
+  "priorAutomatedFunctionalSmoke": {
+    "guiClick": "PASS",
+    "pointerSteps": 12,
+    "agentEsc": "PASS",
+    "recordingStatus": "completed",
+    "hover": "VANILLA_WIDGET_VERIFIED",
+    "shutdown": "CLEAN_EXIT_0",
+    "result": "PASS",
+    "dragCancellation": "PASS",
+    "postCancelMouseEvents": 0,
+    "logSha256": "ef3d0d8414f5ef919576ab7685c0c06cf9fb629aa336ac95a99d950ac87a41bc",
+    "relativeCamera": "VANILLA"
+  },
+  "priorFreshWorldChecks": {
+    "source": "PERSISTED",
+    "contextSource": "retained_detached_storage_context",
+    "deepObservation": "PASS",
+    "persistedDomains": [
+      "world",
+      "player",
+      "chunk"
+    ],
+    "saveQuit": "PASS",
+    "persistentWrite": 0,
+    "logSha256": "58ecd06eef856fcb03c7a012ebb43a1871c568f7384c9722a2cf129a2009a3d2",
+    "player": "PASS"
+  },
+  "targetSourceInventorySha256": "8f5ddd1e9978507ad62380bc2d1becd9133c0bec8afd3f46944666ce080cc1f8",
+  "artifactSha256": "39c7c25bcb7e9eb7241d23a9a367328e46ed6d3baa19cf966fc0a49460520e0b",
+  "observedAt": "2026-10-10T10:42:32.9295538Z"
+}

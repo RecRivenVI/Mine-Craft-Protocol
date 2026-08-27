@@ -1,0 +1,37 @@
+[
+  {
+    "check": "conformance-native_protocol/task/Invoke-NativeProtocolLocalGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "conformance-automation/task/Invoke-AutomationLocalGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "conformance-observation/task/Invoke-ObservationLocalGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "conformance-recording_debug/task/Invoke-RecordingDebugLocalGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "compatibility-standard_gui/task/Invoke-Phase7HookCompatibilityGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "conformance-deep_state/task/Invoke-DiagnosticBoundaryStaticGate.ps1",
+    "result": "PASS",
+    "error": null
+  },
+  {
+    "check": "regression-v1_release/task/Invoke-Phase8DependencyAuditClassifierTests.ps1",
+    "result": "PASS",
+    "error": null
+  }
+]

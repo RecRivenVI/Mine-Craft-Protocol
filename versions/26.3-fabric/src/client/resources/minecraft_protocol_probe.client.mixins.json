@@ -1,0 +1,31 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "io.github.recrivenvi.minecraftprotocol.probe.mixin",
+    "compatibilityLevel": "JAVA_25",
+    "client": [
+        "AbstractContainerScreenAccessor",
+        "AbstractContainerScreenMixin",
+        "BaseContainerBlockEntityAccessor",
+        "ConnectionMixin",
+        "DistanceManagerAccessor",
+        "GuiRenderStateMixin",
+        "InputConstantsMixin",
+        "KeyboardHandlerMixin",
+        "KeyboardHandlerInvoker",
+        "LevelTicksAccessor",
+        "MinecraftMixin",
+        "GameRendererMixin",
+        "GameRendererAccessor",
+        "MouseHandlerInvoker",
+        "MouseHandlerAccessor",
+        "MouseHandlerMixin",
+        "SDLEventHandlerMixin",
+        "MultiPlayerGameModeMixin",
+        "ServerGamePacketListenerImplMixin",
+        "WindowMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

@@ -1,0 +1,118 @@
+package io.github.recrivenvi.minecraftprotocol.probe.runtime;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+
+interface ProbeService {
+    default void attachControlSession(AgentControlSession session) {}
+
+    default void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {}
+
+    CompletableFuture<JsonObject> session();
+
+    CompletableFuture<JsonObject> capabilities();
+
+    CompletableFuture<JsonObject> readiness();
+
+    CompletableFuture<JsonObject> hookManifest();
+
+    CompletableFuture<JsonObject> trace();
+
+    CompletableFuture<JsonObject> renderFacts();
+
+    CompletableFuture<JsonObject> uiTree();
+
+    CompletableFuture<JsonObject> pointerState();
+
+    CompletableFuture<JsonObject> mouseMove(double guiX, double guiY);
+
+    CompletableFuture<JsonObject> mouseMoveGuarded(double guiX, double guiY, JsonObject guard);
+
+    CompletableFuture<JsonObject> mouseButtonGuarded(
+            int button, int action, int modifiers, JsonObject guard);
+
+    CompletableFuture<JsonObject> mouseScrollGuarded(
+            double xOffset, double yOffset, JsonObject guard);
+
+    CompletableFuture<JsonObject> mouseDelta(double dx, double dy);
+
+    default void gestureEvent(String id, String phase, JsonObject detail) {}
+
+    CompletableFuture<JsonObject> mouseButton(int button, int action, int modifiers);
+
+    CompletableFuture<JsonObject> mouseScroll(double xOffset, double yOffset);
+
+    CompletableFuture<JsonObject> key(int key, int scanCode, int action, int modifiers);
+
+    CompletableFuture<JsonObject> playerCommand(String command);
+
+    CompletableFuture<JsonObject> playerState();
+
+    CompletableFuture<JsonObject> blockState(int x, int y, int z);
+
+    CompletableFuture<JsonObject> entities(double radius);
+
+    CompletableFuture<JsonObject> serverPlayerState();
+
+    CompletableFuture<JsonObject> serverBlockState(int x, int y, int z);
+
+    CompletableFuture<JsonObject> serverEntities(double radius);
+
+    CompletableFuture<byte[]> capturePng();
+
+    CompletableFuture<JsonObject> captureInfo();
+
+    Path artifactRoot();
+
+    CompletableFuture<JsonObject> worldFingerprint();
+
+    CompletableFuture<JsonObject> fixtureTeleport(
+            double x, double y, double z, AgentControlSession.OperateWork work);
+
+    CompletableFuture<JsonObject> debugSetHealth(
+            float health, AgentControlSession.OperateWork work);
+
+    CompletableFuture<JsonObject> debugSetBlock(
+            int x,
+            int y,
+            int z,
+            String blockId,
+            String expectedBlockId,
+            AgentControlSession.OperateWork work);
+
+    CompletableFuture<JsonObject> formalObservationCapabilities();
+
+    CompletableFuture<JsonObject> formalDeepObservation(
+            JsonObject request, DeepObservationRequestContext requestContext);
+
+    CompletableFuture<JsonObject> phase9aDebugScenario(
+            JsonObject request, AgentControlSession.OperateWork work);
+
+    CompletableFuture<JsonObject> phase9aInventory();
+
+    CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request);
+
+    CompletableFuture<JsonObject> phase9cDebugCapabilities();
+
+    CompletableFuture<JsonObject> phase9cDebugMutation(
+            JsonObject request, DebugMutationAuthorization authorization);
+
+    CompletableFuture<JsonObject> peerStatus();
+
+    CompletableFuture<JsonObject> peerProbe();
+
+    CompletableFuture<JsonObject> waitForScreen(String classContains, long timeoutMillis);
+
+    CompletableFuture<JsonObject> validatePreconditions(
+            Long expectedScreenRevision, Long expectedMenuRevision);
+
+    CompletableFuture<JsonObject> inputState();
+
+    CompletableFuture<JsonObject> threadProbe(String affinity);
+
+    CompletableFuture<JsonObject> openAutomationProbeScreen(AgentControlSession.OperateWork work);
+
+    CompletableFuture<JsonObject> releaseAllInput(String reason);
+}

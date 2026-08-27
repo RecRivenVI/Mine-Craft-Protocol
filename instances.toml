@@ -1,0 +1,9 @@
+[all]
+width = 2560
+height = 1440
+
+[client]
+jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+
+[client-multiplayer]
+jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]

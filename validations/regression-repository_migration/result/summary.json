@@ -1,0 +1,416 @@
+{
+  "schema": "repository-template-migration-v1",
+  "result": "MIGRATION_CHECKS_PASS_WITH_EXISTING_DEPENDENCY_AUDIT_FAILURE",
+  "baselineCommit": "1f754ab52d8c2d7d64e26d72fa489f2c2a471527",
+  "candidate": "UNCOMMITTED_WORKTREE",
+  "referenceTarget": "26.2-neoforge",
+  "template": {
+    "tag": "1.2.0",
+    "commit": "328d3a75d9f75c641e5d7ca045632a894a5eff20",
+    "protectedFilesChecked": 80,
+    "protectedFilesModified": 0
+  },
+  "identity": {
+    "modId": "minecraft_protocol_probe",
+    "name": "Minecraft Protocol Probe",
+    "version": "0.0.1-phase8",
+    "authors": "RecRivenVI",
+    "license": "All Rights Reserved",
+    "description": "Agent-native Minecraft Autonomous Testing Platform Runtime.",
+    "side": "both",
+    "modGroup": "io.github.recrivenvi.minecraftprotocol",
+    "packageRootChanged": false
+  },
+  "templatePrecedence": [
+    "Product components use independent included builds and flatten into final Target JARs, replacing prior nested-JAR packaging.",
+    "Instances use instances.toml/local.toml and the template merge/default policy, replacing the previous properties cascade.",
+    "The template-supplied specification workflow is retained despite the former repository rule against implicit CI.",
+    "No root build.gradle.kts: coordination is performed by the template settings plugins.",
+    "Template defaults provide DevPlayer/DevGuest; the old requirement to explicitly configure a second player name is replaced."
+  ],
+  "builds": {
+    "baselineArchiveBuild": "PASS_ALL_FIVE_ORIGINAL_BUILDS",
+    "spotlessApply": "PASS",
+    "check": "PASS",
+    "verifyRelease": "PASS_ALL_FIVE_46_REQUIRED_ENTRIES",
+    "verifyCompliance": {
+      "failures": 0,
+      "warnings": 27,
+      "P06": 0,
+      "P07": 0
+    },
+    "finalCommand": "gradlew.bat spotlessApply check verifyRelease --offline --no-daemon --console=plain",
+    "onlineRetry": "A later online build encountered a Forge Maven TLS handshake failure; verified cache/offline run passed. Earlier online full build passed."
+  },
+  "tests": {
+    "neoForge26_2JUnit": {
+      "tests": 103,
+      "failures": 0
+    },
+    "runtimeSafetyJUnit": {
+      "tests": 5,
+      "failures": 0
+    },
+    "companion": {
+      "tests": 3,
+      "failures": 0
+    },
+    "protocolSchema": "VALIDATION_AND_JAVA_TYPESCRIPT_GENERATION_PASS_140_MODELS_EACH",
+    "templateComponents": "CONFIGURATION_CONVENTIONS_COMPLIANCE_TESTS_PASS",
+    "controlStatic": "PASS_FIVE_TARGETS_75_HTTP_24_MCP",
+    "showcaseDeterministic": "PASS_32_CHECKS",
+    "showcaseLaunchConfiguration": "PASS_FORGE_AND_FABRIC_NO_LAUNCH",
+    "localGateNegativeFixtures": "PASS_39_CHECKS_NO_REAL_REPOSITORY_MUTATION",
+    "phase9Static": "9B_9B1_9B2_9C_9D0_9D1_9D2_PASS",
+    "phase8HardeningStatic": "PASS",
+    "phase8Local": "FAIL_DEPENDENCY_AUDIT_HIGH_1_CRITICAL_0"
+  },
+  "dependencyAudit": {
+    "status": "FAIL_VULNERABILITIES_FOUND",
+    "high": 1,
+    "critical": 0,
+    "dependency": "@modelcontextprotocol/client",
+    "version": "2.0.0",
+    "usage": "EXISTING_DEV_TEST_DEPENDENCY",
+    "advisory": "GHSA-6qxp-vccf-f47h",
+    "dependenciesUpgraded": false,
+    "evidence": "dependency-audit.json"
+  },
+  "runtime": {
+    "referenceDailyClient": "PASS_TITLE_SCREEN_RUNTIME_HTTP_LOADER_MOD_LIST_NO_CRASH",
+    "referenceShutdown": "GUI_QUIT_THEN_BUILD_EXIT_0_PORT_RELEASED",
+    "finalFiveTargetStartup": "PASS_ALL_FIVE_AFTER_FINAL_PRODUCT_CONSTANT_GENERATION",
+    "fiveTargetSmokeBoundary": "INITIALIZER_RENDER_RESOURCE_READY_PLUS_10S_ALIVE; exact owned PID controlled termination is NOT graceful shutdown acceptance.",
+    "server": "NOT_RUN_LOCAL_TOML_EULA_NOT_ACCEPTED",
+    "humanVisualAcceptance": "NOT_PERFORMED",
+    "worldScenarios": "NOT_PERFORMED",
+    "outsideRepositoryGameInstances": "NOT_OPERATED",
+    "computerUseUsed": false,
+    "persistentWriteInvocations": 0
+  },
+  "preservation": {
+    "openApiSemanticContent": "UNCHANGED",
+    "historicalResultJsonChecked": 12,
+    "historicalResultJsonModified": 0,
+    "existingRuntimeDirectories": "Already instances/<target>/client; preserved in place, no legacy daily run root found.",
+    "localProperties": "ABSENT_AT_START",
+    "localToml": "NOT_CREATED_NO_EULA_WRITTEN",
+    "productCalledDiagnostics": "KEPT_IN_PRODUCT_SOURCE; no independent default-off dev entrypoint could be removed without changing the existing product call path.",
+    "publishing": "NO_UNUSED_MAVEN_PUBLICATION_PRESENT",
+    "separateZipProduct": "NONE"
+  },
+  "comparison": {
+    "primaryRule": "Ignore ONLY LineNumberTable; all residual differences are reported. Secondary annotation/debug comparisons do not replace the primary comparison.",
+    "rows": [
+      {
+        "target": "1.20.1-forge",
+        "identicalExistingClassesIgnoringOnlyLineNumbers": 155,
+        "changedClasses": [
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.class",
+            "reason": "Forge precompiled Minecraft API causes anonymous TutorialToast construction to fail; explicit same-argument constructor in a named local subclass preserves render/hide behavior."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.class",
+            "reason": "Only other javac debug attributes differ after required formatting; instructions/other class attributes match with SKIP_DEBUG."
+          }
+        ],
+        "changedResources": [
+          {
+            "path": "META-INF/mods.toml",
+            "reason": "Description uses template-safe double quotes; original authors are explicitly emitted for NeoForge. Forge explicitly records existing MATCH_VERSION default; original product identity and minimum Loader requirements preserved."
+          },
+          {
+            "path": "minecraft_protocol_probe.mixins.json",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          },
+          {
+            "path": "pack.mcmeta",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          }
+        ],
+        "added": [
+          {
+            "path": "META-INF/LICENSE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/NOTICE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/licenses/ravens_mod_template-mit.txt",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.class",
+            "reason": "Generated constant from src/main/templates; all former ID string sites use compile-time constants with unchanged values."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen$1ShowcaseTutorialToast.class",
+            "reason": "Explicit constructor version of the original anonymous TutorialToast; same behavior, required for Forge API compilation."
+          }
+        ],
+        "removed": [
+          {
+            "path": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          },
+          {
+            "path": "META-INF/jarjar/metadata.json",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen$1.class",
+            "reason": "Replaced by named local TutorialToast with explicit equivalent constructor."
+          }
+        ]
+      },
+      {
+        "target": "1.21.1-neoforge",
+        "identicalExistingClassesIgnoringOnlyLineNumbers": 156,
+        "changedClasses": [],
+        "changedResources": [
+          {
+            "path": "META-INF/neoforge.mods.toml",
+            "reason": "Description uses template-safe double quotes; original authors are explicitly emitted for NeoForge. Forge explicitly records existing MATCH_VERSION default; original product identity and minimum Loader requirements preserved."
+          },
+          {
+            "path": "minecraft_protocol_probe.mixins.json",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          },
+          {
+            "path": "pack.mcmeta",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          }
+        ],
+        "added": [
+          {
+            "path": "META-INF/LICENSE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/NOTICE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/licenses/ravens_mod_template-mit.txt",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.class",
+            "reason": "Generated constant from src/main/templates; all former ID string sites use compile-time constants with unchanged values."
+          }
+        ],
+        "removed": [
+          {
+            "path": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          },
+          {
+            "path": "META-INF/jarjar/metadata.json",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          }
+        ]
+      },
+      {
+        "target": "26.1.2-neoforge",
+        "identicalExistingClassesIgnoringOnlyLineNumbers": 156,
+        "changedClasses": [
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          }
+        ],
+        "changedResources": [
+          {
+            "path": "META-INF/neoforge.mods.toml",
+            "reason": "Description uses template-safe double quotes; original authors are explicitly emitted for NeoForge. Forge explicitly records existing MATCH_VERSION default; original product identity and minimum Loader requirements preserved."
+          },
+          {
+            "path": "minecraft_protocol_probe.mixins.json",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          }
+        ],
+        "added": [
+          {
+            "path": "META-INF/LICENSE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/NOTICE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/licenses/ravens_mod_template-mit.txt",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.class",
+            "reason": "Generated constant from src/main/templates; all former ID string sites use compile-time constants with unchanged values."
+          }
+        ],
+        "removed": [
+          {
+            "path": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          },
+          {
+            "path": "META-INF/jarjar/metadata.json",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          }
+        ]
+      },
+      {
+        "target": "26.2-neoforge",
+        "identicalExistingClassesIgnoringOnlyLineNumbers": 160,
+        "changedClasses": [],
+        "changedResources": [
+          {
+            "path": "META-INF/neoforge.mods.toml",
+            "reason": "Description uses template-safe double quotes; original authors are explicitly emitted for NeoForge. Forge explicitly records existing MATCH_VERSION default; original product identity and minimum Loader requirements preserved."
+          },
+          {
+            "path": "minecraft_protocol_probe.mixins.json",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          }
+        ],
+        "added": [
+          {
+            "path": "META-INF/LICENSE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/NOTICE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/licenses/ravens_mod_template-mit.txt",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.class",
+            "reason": "Generated constant from src/main/templates; all former ID string sites use compile-time constants with unchanged values."
+          }
+        ],
+        "removed": [
+          {
+            "path": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          },
+          {
+            "path": "META-INF/jarjar/metadata.json",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          }
+        ]
+      },
+      {
+        "target": "26.2-fabric",
+        "identicalExistingClassesIgnoringOnlyLineNumbers": 160,
+        "changedClasses": [
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.class",
+            "reason": "Loader-provided Mixin @Redirect.at annotation changes from one At annotation to a one-element array; javap checked each of the eight classes, executable instructions otherwise match."
+          }
+        ],
+        "changedResources": [
+          {
+            "path": "META-INF/MANIFEST.MF",
+            "reason": "Loom/Gradle/Loader/Mixin/TinyRemapper provenance versions follow template tooling; existing split-client entries remain."
+          },
+          {
+            "path": "fabric.mod.json",
+            "reason": "Template formatting and removal of nested safety JAR declaration because product classes are flattened; existing dependency minima and entrypoints preserved."
+          },
+          {
+            "path": "minecraft_protocol_probe.client.mixins.json",
+            "reason": "Required JSON formatting only; parsed semantic content preserved."
+          }
+        ],
+        "added": [
+          {
+            "path": "META-INF/LICENSE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/NOTICE",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "META-INF/licenses/ravens_mod_template-mit.txt",
+            "reason": "Product LICENSE/NOTICE and original template MIT attribution required by derivation policy."
+          },
+          {
+            "path": "io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.class",
+            "reason": "Generated constant from src/main/templates; all former ID string sites use compile-time constants with unchanged values."
+          }
+        ],
+        "removed": [
+          {
+            "path": "META-INF/jars/runtime-safety-0.0.1.jar",
+            "reason": "Nested library container/metadata removed in favor of exactly one flattened safety class set."
+          }
+        ]
+      }
+    ]
+  },
+  "artifactHashes": {
+    "1.20.1-forge": "dc9b1daaa2da500b13498caedde93d5ab9c4b5982caf9c50af6a97024d32cdf4",
+    "1.21.1-neoforge": "1fc91b135d6fc587db3570f60a378491c7588cb25dc5648d32b6c0f17cc0e854",
+    "26.1.2-neoforge": "e50b4c6be918c59ee365e9a885025c74eb4dc5c722f6343a82a25e93d1f4576c",
+    "26.2-neoforge": "c79c16f276b9e6af2759fb8e7e54b0654c9f78e8bc755fa271b2b114cd1bfbf1",
+    "26.2-fabric": "226859696b362ae8b65731f007846af6de6a243301baf15f1241066e4e8cf342"
+  },
+  "recycled": [
+    "AGENTS.md (previous version)",
+    "build.gradle.kts (previous root coordination)",
+    "gradle/configuration/ (previous included build implementation)",
+    "gradle/loader-runs.gradle",
+    "instance.properties",
+    "versions/1.20.1-forge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar (stale former filename)",
+    "versions/1.21.1-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar (stale former filename)",
+    "versions/26.1.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar (stale former filename)",
+    "versions/26.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar (stale former filename)",
+    "versions/26.2-fabric/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar (stale former filename)"
+  ],
+  "permanentlyDeleted": [],
+  "git": {
+    "branch": "master",
+    "HEAD": "1f754ab52d8c2d7d64e26d72fa489f2c2a471527",
+    "originMaster": "1f754ab52d8c2d7d64e26d72fa489f2c2a471527",
+    "commitCreated": false,
+    "pushPerformed": false,
+    "onlyStaged": "gradlew executable mode"
+  },
+  "unexecuted": [
+    "New exact-commit remote attestation: candidate is intentionally uncommitted.",
+    "Full prior Live gates/Manual Esc/Showcase visual acceptance: needs test worlds, privileges or physical human input beyond this migration check.",
+    "Vulkan backend live test: launch capability/configuration retained, not a new actual-backend acceptance.",
+    "Prism/modpack compatibility: forbidden outside repository game instances.",
+    "Dedicated-server boot: no local.toml EULA acceptance."
+  ]
+}

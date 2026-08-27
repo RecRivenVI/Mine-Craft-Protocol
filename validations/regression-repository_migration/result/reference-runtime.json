@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "candidate": "UNCOMMITTED_WORKTREE",
+  "baselineCommit": "1f754ab52d8c2d7d64e26d72fa489f2c2a471527",
+  "target": "26.2-neoforge",
+  "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
+  "titleScreen": true,
+  "runtimeHttp": "PASS",
+  "modInitializer": "PASS",
+  "loaderModList": "Minecraft Protocol Probe 0.0.1-phase8 (minecraft_protocol_probe)",
+  "clientDirectory": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\instances\\26.2-neoforge\\client",
+  "crashReports": 0,
+  "persistentWriteInvocations": 0,
+  "visualAcceptance": "NOT_PERFORMED",
+  "worldEntered": false,
+  "timestamp": "2026-10-09T13:03:24.4241026Z"
+}

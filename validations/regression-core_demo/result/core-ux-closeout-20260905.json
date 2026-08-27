@@ -1,0 +1,778 @@
+{
+  "schemaVersion": "core-ux-closeout-v1",
+  "timestamp": "2026-09-05T11:45:08.5529557+08:00",
+  "previousUxTask": "PARTIAL",
+  "reason": "One Forge Save & Quit UI action timed out and succeeded on retry; repeated checks did not reproduce it, but its cause is not established.",
+  "baseCommit": "2260d695ecfc320ae94176cc4d2ed6af6508094d",
+  "originCommitAtStart": "2260d695ecfc320ae94176cc4d2ed6af6508094d",
+  "sourceState": "WORKING_TREE_CANDIDATE",
+  "workingTreeCleanAtValidation": false,
+  "sourceBinding": "base commit plus product Git blob identities below; not a clean-remote release attestation",
+  "minecraftControlMechanisms": [
+    "Runtime HTTP/WebSocket",
+    "official MCP Companion over stdio"
+  ],
+  "humanEventSource": "USER_PHYSICAL_ACTIONS_ONLY",
+  "computerUseOrHostInputInjectionUsed": false,
+  "persistentWriteInvocations": 0,
+  "ordinaryVanillaSaveAndQuitInIsolatedTestWorlds": true,
+  "userSaveDirectoriesModified": false,
+  "regression": {
+    "phase8LocalGate": "PASS",
+    "fiveTargetBuild": "PASS",
+    "hardeningStatic": "PASS",
+    "javaTests": 71,
+    "javaFailures": 0,
+    "companionTests": 3,
+    "companionFailures": 0,
+    "dependencyAudit": {
+      "status": "PASS_NO_THRESHOLD_VULNERABILITIES",
+      "attempts": 1,
+      "high": 0,
+      "critical": 0,
+      "classifierCases": 7
+    },
+    "phase9B1Static": "PASS",
+    "phase9B2Static": "PASS",
+    "phase9CStatic": "PASS",
+    "phase9D0Static": "PASS",
+    "phase9D1Static": "PASS",
+    "phase9D2Static": "PASS",
+    "runtimeSafetyPackagingStructure": "PASS (one embedded dependency per target; no duplicate shared class)",
+    "phase7SourceManifestAlignment": "PASS (7 operator cancellations, 2 forwarding redirects per target)",
+    "phase7LiveWidgetHookAlignment": {
+      "target": "26.2-neoforge",
+      "result": "PASS"
+    },
+    "representativeCancellation": {
+      "target": "26.2-neoforge",
+      "scenarios": 12,
+      "result": "PASS",
+      "postCancelInputSideEffects": 0,
+      "wsDisconnectCleanup": "PASS",
+      "leaseExpiryCleanup": "PASS"
+    },
+    "representativeSecurity": {
+      "target": "26.2-neoforge",
+      "result": "PASS",
+      "auth": true,
+      "hostOrigin": true,
+      "principal": true,
+      "bodyBudget": true,
+      "rateBudget": true,
+      "activeOperationBound": 16,
+      "auditCorrelation": true
+    },
+    "representativeDebugAuthority": {
+      "target": "26.2-neoforge",
+      "result": "PASS",
+      "missingArm": true,
+      "wrongFingerprint": true,
+      "wrongNamespace": true,
+      "wrongEpoch": true,
+      "wrongLifecycle": true,
+      "mutationOnFailure": 0
+    },
+    "resourceVersionLive": [
+      "1.21.1-neoforge",
+      "26.1.2-neoforge",
+      "26.2-neoforge"
+    ],
+    "gitDiffCheck": "PASS"
+  },
+  "captureIsolation": {
+    "ordering": "fresh ordinary content -> bounded readback submission -> Operator chrome -> present",
+    "jvmOrderingAndBoundsTests": "PASS",
+    "concurrentCaptures": 120,
+    "recordingFramesChecked": 451,
+    "sampledRegionMismatches": 0,
+    "oracle": "Sparse perimeter and bottom-right region pixels on a stable standard GUI fixture. Not an exhaustive whole-image pixel comparison.",
+    "fixtureEvidence": "FIXTURE Arrange; this is capture-isolation diagnostics, not gameplay acceptance",
+    "recordingGaps": 20,
+    "gapPolicy": "Explicit bounded drop/gap; zero gaps is not claimed"
+  },
+  "targets": [
+    {
+      "target": "1.20.1-forge",
+      "backend": "opengl",
+      "liveKind": "FINAL_JAR_PRODUCTION_LOADER",
+      "buildArtifact": "versions/1.20.1-forge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "buildArtifactSha256": "057e6537503e532aa708cb7185f8b86812cc1dd272f73f4e42f5c851d281202c",
+      "runtime": "PASS",
+      "v1Smoke": "PASS",
+      "clientUnloadedNoLoad": "PASS",
+      "serverLiveNoStorageFallback": "PASS",
+      "persistentReadRunning": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok"
+      },
+      "persistentReadAfterSaveAndQuit": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok",
+        "dataSource": "PERSISTED",
+        "consistency": "last_saved_state",
+        "lifecycleState": "offline_file_snapshot",
+        "liveWorldExists": false,
+        "targetLoaded": false
+      },
+      "lifecycle": "STOPPED_OFFLINE",
+      "agentRoutedEsc": "PASS",
+      "normalReleaseAndOriginalIcon": "PASS",
+      "humanInput": "PASS",
+      "concurrentCaptures": 24,
+      "recordingFramesCompared": 91,
+      "recordingId": "44feb1b1-a4cf-47e5-a0ef-4ec42c0e49e1",
+      "bundle": "build/core-demo-correctness-live/forge-20260905104236/data-gate/bundle.zip",
+      "bundleSha256": "eb54245b043685c9d046fb5655be4a6c47c52b7b2ddabb67cd6da545807064be",
+      "shutdown": {
+        "result": "PASS",
+        "processExitCode": 0,
+        "recordingId": "76d70ccd-23b2-4481-a4ea-763f897444d3",
+        "status": "completed",
+        "stopReason": "transport_close",
+        "writtenFrames": 2,
+        "gaps": 0,
+        "writerErrors": 0,
+        "manifest": true,
+        "bundle": true,
+        "checksums": true,
+        "frameIndex": true,
+        "nativeCrashFiles": 0
+      }
+    },
+    {
+      "target": "26.2-fabric",
+      "backend": "opengl",
+      "liveKind": "FINAL_JAR_PRODUCTION_LOADER",
+      "buildArtifact": "versions/26.2-fabric/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "buildArtifactSha256": "0908ac3b1fd9fe7e3731a9a76155624f3d529879eb38c6723a6f483318bb1c2d",
+      "runtime": "PASS",
+      "v1Smoke": "PASS",
+      "clientUnloadedNoLoad": "PASS",
+      "serverLiveNoStorageFallback": "PASS",
+      "persistentReadRunning": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok"
+      },
+      "persistentReadAfterSaveAndQuit": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok",
+        "dataSource": "PERSISTED",
+        "consistency": "last_saved_state",
+        "lifecycleState": "offline_file_snapshot",
+        "liveWorldExists": false,
+        "targetLoaded": false
+      },
+      "lifecycle": "STOPPED_OFFLINE",
+      "agentRoutedEsc": "PASS",
+      "normalReleaseAndOriginalIcon": "PASS",
+      "humanInput": "PASS",
+      "concurrentCaptures": 24,
+      "recordingFramesCompared": 89,
+      "recordingId": "57a7247a-a551-4224-b581-d3a531d194c6",
+      "bundle": "build/core-demo-correctness-live/fabric-20260905110508/data-gate/bundle.zip",
+      "bundleSha256": "87443c8fb4277709fe46864adbd569c93074370d53dbcfb42e36a9c21aca703f",
+      "shutdown": {
+        "result": "PASS",
+        "processExitCode": 0,
+        "recordingId": "9733ac8f-2873-43c5-83fa-db00824be2d7",
+        "status": "completed",
+        "stopReason": "transport_close",
+        "writtenFrames": 1,
+        "gaps": 1,
+        "writerErrors": 0,
+        "manifest": true,
+        "bundle": true,
+        "checksums": true,
+        "frameIndex": true,
+        "nativeCrashFiles": 0
+      }
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "backend": "opengl",
+      "liveKind": "ISOLATED_MODDEV_SOURCE_SET",
+      "buildArtifact": "versions/1.21.1-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "buildArtifactSha256": "372ede31aa4dffd1e7ccd6db705110fd509a8e901b8123fddbf64f90e9cee5d7",
+      "runtime": "PASS",
+      "v1Smoke": "PASS",
+      "clientUnloadedNoLoad": "PASS",
+      "serverLiveNoStorageFallback": "PASS",
+      "persistentReadRunning": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok"
+      },
+      "persistentReadAfterSaveAndQuit": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok",
+        "dataSource": "PERSISTED",
+        "consistency": "last_saved_state",
+        "lifecycleState": "offline_file_snapshot",
+        "liveWorldExists": false,
+        "targetLoaded": false
+      },
+      "lifecycle": "STOPPED_OFFLINE",
+      "agentRoutedEsc": "PASS",
+      "normalReleaseAndOriginalIcon": "PASS",
+      "humanInput": "NOT_RUN (representative human acceptance only)",
+      "concurrentCaptures": 24,
+      "recordingFramesCompared": 91,
+      "recordingId": "b1370a20-689d-4055-87a5-78f540d1cb1d",
+      "bundle": "build/core-demo-correctness-live/1.21.1-neoforge-20260905111739/data-gate/bundle.zip",
+      "bundleSha256": "5ba591ce89dadfcd433d5346bddb3a290328ad45437f4f5fe5cad6b5ed25773e",
+      "shutdown": {
+        "result": "PASS",
+        "processExitCode": 0,
+        "recordingId": "10bb55e1-d498-4b53-9f07-94b98107a650",
+        "status": "completed",
+        "stopReason": "transport_close",
+        "writtenFrames": 7,
+        "gaps": 2,
+        "writerErrors": 0,
+        "manifest": true,
+        "bundle": true,
+        "checksums": true,
+        "frameIndex": true,
+        "nativeCrashFiles": 0
+      }
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "backend": "opengl",
+      "liveKind": "ISOLATED_MODDEV_SOURCE_SET",
+      "buildArtifact": "versions/26.1.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "buildArtifactSha256": "2b15450cc8bfcd02ad13a202a6cc9013ddfc42deaf6d232f16852485672e6132",
+      "runtime": "PASS",
+      "v1Smoke": "PASS",
+      "clientUnloadedNoLoad": "PASS",
+      "serverLiveNoStorageFallback": "PASS",
+      "persistentReadRunning": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "PERSISTED_STORAGE_CHANGED_DURING_READ"
+      },
+      "persistentReadAfterSaveAndQuit": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok",
+        "dataSource": "PERSISTED",
+        "consistency": "last_saved_state",
+        "lifecycleState": "offline_file_snapshot",
+        "liveWorldExists": false,
+        "targetLoaded": false
+      },
+      "lifecycle": "STOPPED_OFFLINE",
+      "agentRoutedEsc": "PASS",
+      "normalReleaseAndOriginalIcon": "PASS",
+      "humanInput": "NOT_RUN (representative human acceptance only)",
+      "concurrentCaptures": 24,
+      "recordingFramesCompared": 90,
+      "recordingId": "6c5acd83-a9e0-44bd-9843-5d2441b7020b",
+      "bundle": "build/core-demo-correctness-live/26.1.2-neoforge-20260905111739/data-gate/bundle.zip",
+      "bundleSha256": "c65a29ed04d74fdaffd237c1a22900fd74b40eec9ae482b161554c27d61e3ae6",
+      "shutdown": {
+        "result": "PASS",
+        "processExitCode": 0,
+        "recordingId": "5918b0a9-f7e8-409e-b1d9-188fe0ba216d",
+        "status": "completed",
+        "stopReason": "transport_close",
+        "writtenFrames": 6,
+        "gaps": 4,
+        "writerErrors": 0,
+        "manifest": true,
+        "bundle": true,
+        "checksums": true,
+        "frameIndex": true,
+        "nativeCrashFiles": 0
+      }
+    },
+    {
+      "target": "26.2-neoforge",
+      "backend": "opengl",
+      "liveKind": "ISOLATED_MODDEV_SOURCE_SET",
+      "buildArtifact": "versions/26.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "buildArtifactSha256": "8da1da1e3cbb8043b9231ba0f1526e19cf55439408aab02722ea8a984a036e9e",
+      "runtime": "PASS",
+      "v1Smoke": "PASS",
+      "clientUnloadedNoLoad": "PASS",
+      "serverLiveNoStorageFallback": "PASS",
+      "persistentReadRunning": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "PERSISTED_STORAGE_CHANGED_DURING_READ",
+        "laterStableChunk": "ok"
+      },
+      "persistentReadAfterSaveAndQuit": {
+        "world": "ok",
+        "player": "ok",
+        "chunk": "ok",
+        "dataSource": "PERSISTED",
+        "consistency": "last_saved_state",
+        "lifecycleState": "offline_file_snapshot",
+        "liveWorldExists": false,
+        "targetLoaded": false
+      },
+      "lifecycle": "STOPPED_OFFLINE",
+      "agentRoutedEsc": "PASS",
+      "normalReleaseAndOriginalIcon": "PASS",
+      "humanInput": "NOT_RUN (representative human acceptance only)",
+      "concurrentCaptures": 24,
+      "recordingFramesCompared": 90,
+      "recordingId": "09147d5e-5ad8-4469-96fe-656330edc6c8",
+      "bundle": "build/core-demo-correctness-live/26.2-neoforge-20260905111739/data-gate/bundle.zip",
+      "bundleSha256": "155ea928757fcfa0287db31d009b5aacc47ac5ed0ac14fdfa5047e944ecdafbf",
+      "shutdown": {
+        "result": "PASS",
+        "processExitCode": 0,
+        "recordingId": "c2b09a13-41fe-46f1-bb1a-066c323ca396",
+        "status": "completed",
+        "stopReason": "transport_close",
+        "writtenFrames": 6,
+        "gaps": 1,
+        "writerErrors": 0,
+        "manifest": true,
+        "bundle": true,
+        "checksums": true,
+        "frameIndex": true,
+        "nativeCrashFiles": 0
+      }
+    }
+  ],
+  "humanAcceptance": {
+    "forge": {
+      "result": "PASS",
+      "rawEvidence": "human-forge-20260905.json",
+      "postRevokeAgentInput": 0,
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "stableAfterRevocationSeconds": 50,
+      "nativeEsc": "PASS",
+      "focusOnlyNoGrab": "PASS",
+      "nativeClickGrant": "PASS",
+      "focusLossRelease": "PASS",
+      "returnWithoutGrab": "PASS",
+      "blueChromeHidden": true,
+      "titleRestored": true,
+      "originalMinecraftIconRestored": true,
+      "manualAuditEntries": 1,
+      "mcpRepeatedControlDenials": 3,
+      "mcpReconsentRequired": true,
+      "readAfterRevocation": "PASS",
+      "explicitReconsentAndReacquire": "PASS",
+      "reclassification": "Original watcher counted one Vanilla cursor-mode sample after MANUALLY_REVOKED. AGENT_CONTROLLED samples had zero background capture. Original result/samples preserved."
+    },
+    "fabric": {
+      "result": "PASS",
+      "rawEvidence": "human-fabric-20260905.json",
+      "postRevokeAgentInput": 0,
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "stableAfterRevocationSeconds": 50,
+      "nativeEsc": "PASS",
+      "focusOnlyNoGrab": "PASS",
+      "nativeClickGrant": "PASS (separate human retest)",
+      "focusLossRelease": "PASS",
+      "returnWithoutGrab": "PASS",
+      "blueChromeHidden": true,
+      "titleRestored": true,
+      "originalMinecraftIconRestored": true,
+      "manualAuditEntries": 1,
+      "mcpRepeatedControlDenials": 3,
+      "mcpReconsentRequired": true,
+      "explicitReconsentAndReacquire": "PASS",
+      "initialPartialReason": "User confirmed they had omitted the native-click step; no product defect inferred. A subsequent human-only cursor test passed."
+    }
+  },
+  "additionalForgeRecheck": {
+    "instance": "build/core-demo-correctness-live/forge-20260905112642",
+    "normalPauseClickCycles": 10,
+    "extraExploratoryRequestsRateLimited": 2,
+    "duplicateOperationIdsFromTheAdHocHarnessExcluded": true,
+    "saveAndQuitHoldMs": 40,
+    "saveAndQuit": "PASS",
+    "cleanShutdown": "PASS",
+    "processExitCode": 0,
+    "shutdownRecordingId": "8c2574d2-e7ae-4ed9-b0a7-e6a9baefb4f1",
+    "stopReason": "transport_close",
+    "writerErrors": 0
+  },
+  "issues": [
+    {
+      "id": "FORGE_SAVE_CLICK_TIMEOUT",
+      "status": "OPEN_NOT_REPRODUCED",
+      "instance": "build/core-demo-correctness-live/forge-20260905104236",
+      "operationId": "5c256c75-5950-494c-be77-0ed4ea1bc82b",
+      "result": "WAIT_TIMEOUT",
+      "retryOperationId": "49ad5961-698f-48cf-a3da-10891ffa2cab",
+      "impact": "Save & Quit remained on PauseScreen after a routed click; retry succeeded. Further Options/Pause cycles and a fresh save/close passed. No unsupported root-cause claim."
+    },
+    {
+      "id": "LONG_CONTACT_SHEET_BUDGET_DIAGNOSTIC",
+      "status": "LIMITATION_OBSERVED",
+      "recordingId": "c728a83e-619c-42b8-908a-4a646f200fc2",
+      "result": "failed finalization at 512 frames; no manifest/bundle",
+      "assessment": "The exploratory request exceeded the planned short shutdown run and reached the sample cap. 854x480 decoded sources exceed the existing contact-sheet source budget; this is consistent with the source guard, not a passed shutdown test. Failure details are not exposed adequately by the recording status response.",
+      "followup": "Keep requested short recording within published budgets; improve error visibility separately if authorized."
+    }
+  ],
+  "closedIssues": [
+    "Windows file contention no longer inferred as corruption; active and detached post-quit persisted reads verified.",
+    "Valid unpadded Anvil file tail no longer inferred as truncation; deterministic truncated-tail test passes.",
+    "Client far unloaded chunk explicitly unavailable; no void_air substitute or implicit loading.",
+    "MCP preserves repeated manual-revocation structure.",
+    "Capture/recording ordering replaces timed chrome suppression.",
+    "Current normal close regression: six primary/recheck closes exit 0; no native crash in those runs. Historical GLFW crash retained as history, not a proven root cause."
+  ],
+  "excludedFromThisTask": [
+    "Persistent Write",
+    "new READ/OPERATE/TAKEOVER implementation",
+    "Virtual Pointer implementation",
+    "Phase 9E/9F/9G/10",
+    "E1/E2/E3"
+  ],
+  "research": {
+    "document": "AGENT_CONTROL_MODEL_RESEARCH.md",
+    "status": "PROPOSAL_NOT_IMPLEMENTED"
+  },
+  "productSourceGitBlobs": [
+    {
+      "path": "companion/src/result.ts",
+      "gitBlob": "83d284804110ee0d001ffee83a08c96d2aaa80fc"
+    },
+    {
+      "path": "companion/src/runtime-client.ts",
+      "gitBlob": "bf59e42e8c8d4e53e4ccdfeeeb444bdf18ce356c"
+    },
+    {
+      "path": "companion/src/test/companion.test.ts",
+      "gitBlob": "9b0f96913fae7488567f41e4f637d8b93c9501df"
+    },
+    {
+      "path": "protocol-schema/src/main/openapi/minecraft-control-v0.json",
+      "gitBlob": "8f00dca47bd47e22fac5e5b58af0dfe63c31dba3"
+    },
+    {
+      "path": "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java",
+      "gitBlob": "5b2d8caf55a1caa41c6b86661ea224f41a28e4e7"
+    },
+    {
+      "path": "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/CancellableWork.java",
+      "gitBlob": "eb74f865c8277ea016af2037a733d82019414434"
+    },
+    {
+      "path": "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java",
+      "gitBlob": "41194652ed671800324f7e3ad6d9e1bdb3f13bfb"
+    },
+    {
+      "path": "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/FrameCaptureQueue.java",
+      "gitBlob": "06db1c56551cbf932fbf04753c6284f920367542"
+    },
+    {
+      "path": "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java",
+      "gitBlob": "62e522446b746acefae0d4b5aeb23058a29a2fb6"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java",
+      "gitBlob": "22c0761915ce5506d83410cddbb9e3165e9b7761"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java",
+      "gitBlob": "152ed3d81eb9daadecddc960e7b5020f6efa0b29"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java",
+      "gitBlob": "4b8777c8aab2bad6e20a54e981eaf25955d8e77a"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java",
+      "gitBlob": "8cdfc1038cefff9f27d3231ae56e53ad1e44b4d3"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java",
+      "gitBlob": "d51617392ae9cd7daae1e4e36d0717254b3db430"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java",
+      "gitBlob": "254d9860407ab5317c340ae8a804a987732fa1c8"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "gitBlob": "b8a4ba008d81aec150ae238375babf8590142da7"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ForgeProbeRuntime.java",
+      "gitBlob": "f94cb16a56e1d6d57d09c90f9ba4469e5e050386"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java",
+      "gitBlob": "c7d7d4739606a45d5d0036b8d354bec93b3df9f9"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java",
+      "gitBlob": "a1606eebcf8af276531ad7e5cca876658ee4dd98"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java",
+      "gitBlob": "d5b3094c534e31894869938cf18307903004e9e5"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java",
+      "gitBlob": "a970975f3264212c04635af3edecb35bd7b2c202"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/resources/minecraft_protocol_probe.mixins.json",
+      "gitBlob": "ba27209b1d43f639c2b6e972834e27c0f5fc46e8"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java",
+      "gitBlob": "a3124cf898d6473b32cd0994e8216d6a5cd9f750"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java",
+      "gitBlob": "daffe8779ec1789b052202edda13bf488266ad88"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java",
+      "gitBlob": "d108a01849f27ac93129f7dedefa2a499c399d98"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java",
+      "gitBlob": "8cdfc1038cefff9f27d3231ae56e53ad1e44b4d3"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java",
+      "gitBlob": "596b40743104effcc3a678ab8076b30ed67f7953"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java",
+      "gitBlob": "0b86d84f4f6a3bdedbe023870a9b2ee74c2fa3f6"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "gitBlob": "b8a4ba008d81aec150ae238375babf8590142da7"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java",
+      "gitBlob": "f329ae3616611a7af4cc28d159ffae2d6c5abf39"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java",
+      "gitBlob": "e16f72c85d60f501ae38aeb94be722ff970b6f70"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java",
+      "gitBlob": "177699a328487d77cfa21d22db41095172b76f6a"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java",
+      "gitBlob": "2701ad25d37c01f77e95eaf5bbdde5e119ac7301"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java",
+      "gitBlob": "a970975f3264212c04635af3edecb35bd7b2c202"
+    },
+    {
+      "path": "versions/1.21.1-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json",
+      "gitBlob": "9baf5476ebb1ad72b9507287c5a8c4a688a5bf6f"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java",
+      "gitBlob": "85318147efd26983678d6ee833eb5ba2ad245ad9"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java",
+      "gitBlob": "a3124cf898d6473b32cd0994e8216d6a5cd9f750"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java",
+      "gitBlob": "a3681b374fbc9827844a79cffa9926b44290bc83"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java",
+      "gitBlob": "ffab3aa2ccabbafd82d1cd9d28450e521ffec69f"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java",
+      "gitBlob": "8cdfc1038cefff9f27d3231ae56e53ad1e44b4d3"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java",
+      "gitBlob": "abe65922873da142eb55b2cf34fb79e188e08a88"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java",
+      "gitBlob": "0b86d84f4f6a3bdedbe023870a9b2ee74c2fa3f6"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "gitBlob": "b8a4ba008d81aec150ae238375babf8590142da7"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java",
+      "gitBlob": "bef9664d1ee886be98c8cb4fc8c87660c51434e7"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java",
+      "gitBlob": "7ebd8ffbe06a3d81c0560f887be5524f0692e655"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java",
+      "gitBlob": "c787339c68a0a5667c3d0d3537af9865b3ccb157"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java",
+      "gitBlob": "6d61228f410e4e03089dce358608201e94688f13"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java",
+      "gitBlob": "a970975f3264212c04635af3edecb35bd7b2c202"
+    },
+    {
+      "path": "versions/26.1.2-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json",
+      "gitBlob": "81e0f7d099256571e802f1b3530199fc388bedb1"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java",
+      "gitBlob": "607c9e1c0031e0152346299d005be932f1ece324"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java",
+      "gitBlob": "c3329e753ea10cef6d6c1b8cc07ae49e2b576f5c"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java",
+      "gitBlob": "db738600e5a39f6423c2b9b3bc07e7a66542d7b1"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java",
+      "gitBlob": "73da978ad2cba7f9f92763f3fc1bff6fe1f4c9c4"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java",
+      "gitBlob": "8cdfc1038cefff9f27d3231ae56e53ad1e44b4d3"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java",
+      "gitBlob": "4463e56f0a8aa815fb00693c9a5b4f85b5c59ffc"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java",
+      "gitBlob": "6d980c258eea6a31254a30f1d7b24d472a5416ca"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "gitBlob": "b8a4ba008d81aec150ae238375babf8590142da7"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.java",
+      "gitBlob": "f0c20be3c3e99ef751444b6aecfffa1fc7d78d81"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java",
+      "gitBlob": "7ebd8ffbe06a3d81c0560f887be5524f0692e655"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java",
+      "gitBlob": "1c2eeaff1c4eb032714e522e665e39a6a6375f9d"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java",
+      "gitBlob": "1b9346a4c48e26a00f8c41ec1423476057b28348"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java",
+      "gitBlob": "a970975f3264212c04635af3edecb35bd7b2c202"
+    },
+    {
+      "path": "versions/26.2-fabric/src/client/resources/minecraft_protocol_probe.client.mixins.json",
+      "gitBlob": "1d1d0dca352922e948adc545c6f35717ce153662"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java",
+      "gitBlob": "607c9e1c0031e0152346299d005be932f1ece324"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java",
+      "gitBlob": "a3124cf898d6473b32cd0994e8216d6a5cd9f750"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java",
+      "gitBlob": "a3681b374fbc9827844a79cffa9926b44290bc83"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java",
+      "gitBlob": "6cc21e00dfca2bf4c8cd9e51117bee2fc7c8b67f"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java",
+      "gitBlob": "8cdfc1038cefff9f27d3231ae56e53ad1e44b4d3"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java",
+      "gitBlob": "abe65922873da142eb55b2cf34fb79e188e08a88"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java",
+      "gitBlob": "0b86d84f4f6a3bdedbe023870a9b2ee74c2fa3f6"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "gitBlob": "b8a4ba008d81aec150ae238375babf8590142da7"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java",
+      "gitBlob": "1482288c5c5ea49b0383f0f4faaba0ec15228b7e"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java",
+      "gitBlob": "66407351a759328022817ed9820ae03e81b4c3fb"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java",
+      "gitBlob": "f241504418f220c65fb9ff9626f3bfe6d5173cfd"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java",
+      "gitBlob": "5f3ddaf8216610844ae3ee7c7410efc08452465f"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java",
+      "gitBlob": "a970975f3264212c04635af3edecb35bd7b2c202"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json",
+      "gitBlob": "81e0f7d099256571e802f1b3530199fc388bedb1"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ControlChromeCaptureTest.java",
+      "gitBlob": "2f8424743ea9b437af67beb8b5b442a947e46ffd"
+    },
+    {
+      "path": "versions/26.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapterTest.java",
+      "gitBlob": "d9ff372bf3a78efd3ad7e86cb8e2163b95025eb3"
+    }
+  ],
+  "deletedProductPaths": [
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiMixin.java",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScreenMixin.java",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiMixin.java",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScreenMixin.java",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiRenderMixin.java",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScreenMixin.java",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudMixin.java",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScreenMixin.java",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudMixin.java",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScreenMixin.java"
+  ],
+  "postLiveSourceCleanup": {
+    "change": "Removed a trailing empty EOF line from eight new render hook files to pass the staged diff check; no logic changed.",
+    "fiveTargetRecompile": "PASS",
+    "finalArtifactSha256Unchanged": true
+  }
+}

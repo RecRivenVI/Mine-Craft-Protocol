@@ -1,0 +1,25 @@
+{
+  "schema": "control-ui-showcase-v1",
+  "target": "26.3-fabric",
+  "testedCommit": "12c28b4abf97e74d51e88c972dbc2cd18dcf4e86",
+  "workingTreeDirty": true,
+  "runtime": "loader_development_source_sets",
+  "purpose": "UI_SHOWCASE",
+  "requireTitle": true,
+  "result": "PASS",
+  "visualAcceptance": "NOT_PERFORMED",
+  "unifiedAcceptance": "NOT_PERFORMED",
+  "persistentWriteInvocations": 0,
+  "cases": [
+    {
+      "case": "inventory-pointer",
+      "result": "PASS",
+      "meaning": "EXECUTION_ONLY_NOT_VISUAL_VERDICT",
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "seconds": 6.7286978
+    }
+  ],
+  "cleanup": "READ_HELD_ZERO_TITLE",
+  "timestamp": "2026-10-11T06:19:16.6921389Z"
+}
