@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -102,47 +101,11 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     CompletableFuture<JsonObject> assertThat(JsonObject condition) {
-        if (!isUiCondition(condition)) return requireConditionEngine().assertThat(condition);
-        return this.service.uiTree().thenApply(tree -> {
-            JsonObject evaluation = evaluate(tree, condition);
-            if (!evaluation.get("passed").getAsBoolean()) {
-                throw new ProtocolState.ProtocolException(
-                        "ASSERTION_FAILED", 412, evaluation.get("message").getAsString());
-            }
-            return evaluation;
-        });
+        return requireConditionEngine().assertThat(condition);
     }
 
     CompletableFuture<JsonObject> waitUntil(JsonObject condition, long timeoutMillis) {
-        if (!isUiCondition(condition)) return requireConditionEngine().waitUntil(condition, timeoutMillis);
-        CompletableFuture<JsonObject> result = new CompletableFuture<>();
-        long timeout = bounded(timeoutMillis, 1L, 60_000L);
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
-        Runnable poll = new Runnable() {
-            @Override
-            public void run() {
-                if (result.isDone()) return;
-                service.uiTree().whenComplete((tree, error) -> {
-                    if (result.isDone()) return;
-                    if (error != null) {
-                        result.completeExceptionally(unwrap(error));
-                        return;
-                    }
-                    JsonObject evaluation = evaluate(tree, condition);
-                    if (evaluation.get("passed").getAsBoolean()) {
-                        evaluation.addProperty("waited", true);
-                        result.complete(evaluation);
-                    } else if (System.nanoTime() >= deadline) {
-                        result.completeExceptionally(new ProtocolState.ProtocolException(
-                                "WAIT_TIMEOUT", 408, evaluation.get("message").getAsString()));
-                    } else {
-                        scheduler.schedule(this, 25L, TimeUnit.MILLISECONDS);
-                    }
-                });
-            }
-        };
-        poll.run();
-        return result;
+        return requireConditionEngine().waitUntil(condition, timeoutMillis);
     }
 
     CompletableFuture<JsonObject> executePipeline(JsonObject request, Runnable leaseCheck) {
@@ -285,50 +248,12 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     private CompletableFuture<JsonObject> assertThat(JsonObject condition, PipelineExecution execution) {
-        if (!isUiCondition(condition)) return execution.track(requireConditionEngine().assertThat(condition));
-        return execution.effect(this.service::uiTree).thenApply(tree -> {
-            execution.checkActive();
-            JsonObject evaluation = evaluate(tree, condition);
-            if (!evaluation.get("passed").getAsBoolean()) {
-                throw new ProtocolState.ProtocolException(
-                        "ASSERTION_FAILED", 412, evaluation.get("message").getAsString());
-            }
-            return evaluation;
-        });
+        return execution.track(requireConditionEngine().assertThat(condition));
     }
 
     private CompletableFuture<JsonObject> waitUntil(
             JsonObject condition, long timeoutMillis, PipelineExecution execution) {
-        if (!isUiCondition(condition)) return execution.track(requireConditionEngine().waitUntil(condition, timeoutMillis));
-        CompletableFuture<JsonObject> result = execution.track(new CompletableFuture<>());
-        long timeout = bounded(timeoutMillis, 1L, 60_000L);
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
-        Runnable[] poll = new Runnable[1];
-        poll[0] = () -> {
-            if (result.isDone()) return;
-            execution.effect(this.service::uiTree).whenComplete((tree, error) -> {
-                if (result.isDone()) return;
-                if (error != null) {
-                    result.completeExceptionally(unwrap(error));
-                    return;
-                }
-                JsonObject evaluation = evaluate(tree, condition);
-                if (evaluation.get("passed").getAsBoolean()) {
-                    evaluation.addProperty("waited", true);
-                    result.complete(evaluation);
-                } else if (System.nanoTime() >= deadline) {
-                    result.completeExceptionally(new ProtocolState.ProtocolException(
-                            "WAIT_TIMEOUT", 408, evaluation.get("message").getAsString()));
-                } else {
-                    execution.delay(25L).whenComplete((ignored, delayError) -> {
-                        if (delayError != null) result.completeExceptionally(unwrap(delayError));
-                        else poll[0].run();
-                    });
-                }
-            });
-        };
-        poll[0].run();
-        return result;
+        return execution.track(requireConditionEngine().waitUntil(condition, timeoutMillis));
     }
 
     private CompletableFuture<JsonObject> runStep(JsonObject step, PipelineExecution execution) {
@@ -439,7 +364,7 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     private static JsonObject resolveTree(JsonObject tree, JsonObject selector) {
-        List<JsonObject> matches = findMatches(tree, selector);
+        List<JsonObject> matches = ConditionEngine.findMatches(tree, selector);
         if (matches.isEmpty()) {
             throw new ProtocolState.ProtocolException("UI_NODE_NOT_FOUND", 404, "UI selector matched no nodes");
         }
@@ -469,75 +394,6 @@ final class AutomationEngine implements AutoCloseable {
         json.add("node", node);
         json.add("interactionPoint", point);
         return json;
-    }
-
-    private static List<JsonObject> findMatches(JsonObject tree, JsonObject selector) {
-        List<JsonObject> matches = new ArrayList<>();
-        if (!tree.has("children")) return matches;
-        boolean caseSensitive = bool(selector, "caseSensitive", false);
-        for (JsonElement element : tree.getAsJsonArray("children")) {
-            JsonObject node = element.getAsJsonObject();
-            if (!matches(node, selector, caseSensitive)) continue;
-            matches.add(node);
-        }
-        return matches;
-    }
-
-    private static boolean matches(JsonObject node, JsonObject selector, boolean caseSensitive) {
-        if (!equalsField(node, selector, "nodeId", caseSensitive)) return false;
-        if (!equalsField(node, selector, "role", caseSensitive)) return false;
-        if (!equalsField(node, selector, "label", caseSensitive)) return false;
-        if (!equalsField(node, selector, "class", caseSensitive)) return false;
-        if (!containsField(node, selector, "labelContains", "label", caseSensitive)) return false;
-        if (!containsField(node, selector, "classContains", "class", caseSensitive)) return false;
-        if (selector.has("slot") && (!node.has("slot")
-                || node.get("slot").getAsInt() != selector.get("slot").getAsInt())) return false;
-        if (bool(selector, "visibleOnly", true) && node.has("visible") && !node.get("visible").getAsBoolean()) return false;
-        if (bool(selector, "activeOnly", false) && node.has("active") && !node.get("active").getAsBoolean()) return false;
-        return true;
-    }
-
-    private static JsonObject evaluate(JsonObject tree, JsonObject condition) {
-        String type = string(condition, "type", "screen");
-        boolean passed;
-        String message;
-        if (type.equals("screen")) {
-            passed = true;
-            if (condition.has("classContains")) {
-                passed &= normalized(tree.has("screenClass") ? tree.get("screenClass").getAsString() : "", false)
-                        .contains(normalized(condition.get("classContains").getAsString(), false));
-            }
-            if (condition.has("titleContains")) {
-                passed &= normalized(tree.has("title") ? tree.get("title").getAsString() : "", false)
-                        .contains(normalized(condition.get("titleContains").getAsString(), false));
-            }
-            if (condition.has("open")) {
-                boolean open = tree.has("screenClass") && !tree.get("screenClass").getAsString().isEmpty();
-                passed &= open == condition.get("open").getAsBoolean();
-            }
-            message = passed ? "Screen condition satisfied" : "Screen condition is not satisfied";
-        } else if (type.equals("ui.exists")) {
-            JsonObject selector = requiredObject(condition, "selector");
-            int count = findMatches(tree, selector).size();
-            boolean expected = bool(condition, "exists", true);
-            passed = (count > 0) == expected;
-            message = passed ? "UI existence condition satisfied" : "UI existence condition is not satisfied";
-        } else {
-            throw new ProtocolState.ProtocolException(
-                    "UNSUPPORTED_CONDITION", 400, "Unsupported condition type: " + type);
-        }
-        JsonObject json = new JsonObject();
-        json.addProperty("type", "assert.result");
-        copy(tree, json, "target", "clientTick", "screenClass", "screenRevision", "menuRevision");
-        json.add("condition", condition.deepCopy());
-        json.addProperty("passed", passed);
-        json.addProperty("message", message);
-        return json;
-    }
-
-    private static boolean isUiCondition(JsonObject condition) {
-        String type = string(condition, "type", "screen");
-        return type.equals("screen") || type.equals("ui.exists");
     }
 
     private ConditionEngine requireConditionEngine() {
@@ -575,30 +431,6 @@ final class AutomationEngine implements AutoCloseable {
     private static boolean hasBounds(JsonObject node) {
         return node.has("x") && node.has("y") && node.has("width") && node.has("height")
                 && node.get("width").getAsDouble() > 0 && node.get("height").getAsDouble() > 0;
-    }
-
-    private static boolean equalsField(
-            JsonObject node, JsonObject selector, String field, boolean caseSensitive) {
-        if (!selector.has(field)) return true;
-        if (!node.has(field)) return false;
-        return normalized(node.get(field).getAsString(), caseSensitive)
-                .equals(normalized(selector.get(field).getAsString(), caseSensitive));
-    }
-
-    private static boolean containsField(
-            JsonObject node,
-            JsonObject selector,
-            String selectorField,
-            String nodeField,
-            boolean caseSensitive) {
-        if (!selector.has(selectorField)) return true;
-        if (!node.has(nodeField)) return false;
-        return normalized(node.get(nodeField).getAsString(), caseSensitive)
-                .contains(normalized(selector.get(selectorField).getAsString(), caseSensitive));
-    }
-
-    private static String normalized(String value, boolean caseSensitive) {
-        return caseSensitive ? value : value.toLowerCase(Locale.ROOT);
     }
 
     private static JsonObject requiredObject(JsonObject object, String name) {

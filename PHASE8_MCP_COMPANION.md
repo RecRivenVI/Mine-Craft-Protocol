@@ -1,6 +1,6 @@
 # Phase 8 MCP Companion and V1 Release Hardening
 
-> Status: Phase 8 Hardening PASS; V1 Release Candidate PASS
+> Status: Phase 8.1 working-tree candidate PASS; origin/master Release Candidate FAIL pending commit-bound revalidation
 > Date: 2026-08-28  
 > Product baseline: V1 capability set complete; native Wire Protocol v1 remains unfrozen
 
@@ -167,9 +167,9 @@ budget = 250 ms
 
 Final acceptance was re-run on current hardened artifacts across all five Targets, plus OpenGL/Vulkan variants for NeoForge/Fabric 26.2. Historical Phase 6–8 evidence was not used as a substitute.
 
-### Current Hardening Release Evidence
+### Historical Working-Tree Hardening Evidence
 
-The final current-artifact run passed:
+The pre-Phase-8.1 working-tree run passed the following checks. These results remain useful regression evidence but are not commit-bound remote certification:
 
 - five Target build, launch, readiness, authenticated session/capability/UI, GAME_ROUTED input, integrated-world Player/Block/Entity observation, server-authoritative Player/Block observation, current-player command, Composite Capture, WS event, Lease release and clean shutdown;
 - NeoForge 26.2 OpenGL and Vulkan capture;
@@ -198,7 +198,15 @@ The final current-artifact run passed:
 
 ## V1 Definition of Done Status
 
-The 20 V1 criteria are satisfied under ADR-0001's loopback-only V1 Release Profile. The final decision is based on current hardened artifacts and the Phase 8 hardening gates, not historical-only evidence.
+The implementation satisfied the working-tree Phase 8 Hardening suite under ADR-0001's loopback-only V1 Release Profile. Phase 8.1 found that the tracked Evidence was bound to an obsolete SHA and that Pipeline typed-condition parity required additional production/conformance work. Until those repairs are committed, pushed, fetched into a clean detached worktree and revalidated, the permitted status is:
+
+```text
+working-tree candidate: PASS
+origin/master Release Candidate: FAIL
+Phase 9 entry: CLOSED
+```
+
+The numbered criteria below remain the V1 acceptance contract; they are not a current remote PASS assertion.
 
 1. five-Target load/conformance: current hardened-artifact world smoke PASS;
 2. shared external contract and honest capability matrix: Phase 7;

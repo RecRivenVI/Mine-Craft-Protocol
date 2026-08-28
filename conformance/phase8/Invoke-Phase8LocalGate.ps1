@@ -31,6 +31,8 @@ try {
 
     $hardening = & '.\conformance\phase8\Invoke-Phase8HardeningStaticGate.ps1'
     Assert-True ($hardening.Result -eq 'PASS') 'Phase 8 hardening static gate must pass'
+    Assert-True (Test-Path -LiteralPath '.\conformance\phase8\Invoke-Phase8RemoteParityGate.ps1') `
+        'Phase 8 Remote Parity Gate must exist'
 
     $javaTestReports = @(Get-ChildItem 'versions\26.2-neoforge\build\test-results\test' -Filter 'TEST-*.xml' -File)
     $javaTests = 0

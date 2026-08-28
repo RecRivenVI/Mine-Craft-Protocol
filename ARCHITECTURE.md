@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Phase 8 V1 release-hardening baseline  
+> Status: Phase 8.1 working-tree reconciliation; remote Release Candidate pending commit-bound revalidation
 > Authority: `PROJECT_EXECUTION_PLAN.md` defines long-term scope; this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
@@ -26,11 +26,11 @@ Current implementation status:
 
 | Target | Build | Client runtime | Dedicated server | V0 control runtime |
 |---|---|---|---|---|
-| 1.20.1 Forge | verified | verified | Integrated + physical Peer verified | Phase 7 aligned; Render Facts unavailable |
-| 1.21.1 NeoForge | verified | verified | Integrated + physical Peer verified | Phase 7 aligned; Render Facts unavailable |
-| 26.1.2 NeoForge | verified | OpenGL verified | Integrated + physical Peer verified | Phase 7 aligned; Render Facts verified |
-| 26.2 NeoForge | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 7 aligned |
-| 26.2 Fabric | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 7 aligned |
+| 1.20.1 Forge | verified | verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts unavailable |
+| 1.21.1 NeoForge | verified | verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts unavailable |
+| 26.1.2 NeoForge | verified | OpenGL verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts verified |
+| 26.2 NeoForge | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate |
+| 26.2 Fabric | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate |
 
 ## Current Runtime Layers
 
@@ -54,7 +54,9 @@ bounded audit and thread-affinity diagnostics
 semantic selector and bounds-center coordinate generation
 tree-targeted and vision-coordinate UI actions
 cancellable multi-step input Pipeline with finally cleanup
-Runtime wait/assert conditions
+single-source ConditionEngine for standalone and Pipeline wait/assert conditions
+bounded EventHub filter/ring/resume/gap/resync
+per-principal/per-connection SecurityGate request budgets
 bounded structured Render Facts on 26.2
 explicit client-known and Integrated Server-authoritative LIVE queries
 coordinated best-effort State Frames
@@ -62,6 +64,7 @@ typed LIVE-only Provider Read SPI
 runtime graphics-backend and Capture concurrency evidence
 bounded multi-track Recording Session
 versioned Artifact Bundle and experimental binary canonical store
+streaming Runtime/Companion Artifact transport and aggregate Recording budgets
 scope-gated Fixture and world-bound Debug Arm
 typed player-health and loaded-block Debug mutations
 evidence contamination propagation
@@ -117,6 +120,8 @@ X-MCP-Expected-Menu-Revision
 
 `GET /v0/operations` is the runtime declaration surface for scope, Lease, idempotency, cancellation, supported preconditions and thread affinity. Long waits can be created as operation handles, inspected and cancelled. V0 remains unstable and does not freeze Wire Protocol V1.
 
+MCP exposes native Operation get/wait/cancel without creating a second lifecycle state machine. Cancelling a waiting MCP Pipeline request issues native `DELETE /v0/operations/{operationId}`.
+
 There is still no global `expectedWorldRevision`. Current mutations accept only the Screen/Menu resources they actually depend on. Later world operations must add resource or value preconditions appropriate to the target block, chunk, entity, container or provider.
 
 ## Thread Ownership
@@ -164,9 +169,11 @@ Every input mutation requires the active Lease ID. Runtime-owned pressed keys an
 
 The Runtime binds IPv4 loopback only. It uses an explicitly supplied token from `minecraft.protocol.token` / `MCP_RUNTIME_TOKEN`, or generates a 256-bit random token and writes it to `<gameDirectory>/minecraft-protocol/token` without logging the value.
 
-Host and Origin are constrained to exact loopback names. Bearer comparison is constant-time. Effective scopes come from `minecraft.protocol.scopes` / `MCP_RUNTIME_SCOPES`; the default Phase 2 probe scopes are `read`, `ui`, `input`, `capture`, `event`, `diagnostics` and `control`.
+Host and Origin are constrained to exact loopback names. Bearer comparison is constant-time. Effective scopes come from `minecraft.protocol.scopes` / `MCP_RUNTIME_SCOPES`; the V1 default scopes are `read`, `ui`, `input`, `capture`, `event`, `diagnostics`, `control` and `command`.
 
-The current audit store is a bounded in-memory ring intended for probe verification, not the Ultimate persistent audit artifact. It records request correlation, path, outcome, sequence and timestamp without recording credentials or request bodies.
+Authenticated requests pass through `SecurityGate`, which assigns token-lifetime principal and connection identities and applies principal, connection and expensive-category token buckets. Active Operations are bounded to 16.
+
+The current audit store is a bounded in-memory ring intended for probe verification, not the Ultimate persistent audit artifact. It correlates request, principal, connection, Lease, Debug Arm and Operation without recording credentials or request bodies.
 
 ## Phase 3 UI Resolution and Action
 
@@ -209,6 +216,8 @@ The five Target fixture covers EditBox, disabled state, duplicate selectors and 
 - delay, `wait.until` and `assert.that` steps.
 
 Pipelines are bounded to 256 steps and five minutes. Every step revalidates the Control Lease. Failure, cancellation, Lease expiry and normal completion with default settings release all Runtime-owned held input through Minecraft's input handlers. `cleanupOnComplete=false` is explicit and still remains bounded by Lease expiry or release.
+
+Standalone `POST /v0/wait/until`, standalone `POST /v0/assert`, Pipeline `wait.until` and Pipeline `assert.that` all use the same `ConditionEngine`. Screen/UI and Player/Block/Entity/Menu/Inventory/Recording/Event/Operation/Provider conditions therefore have one semantics source and one cancellation-aware polling implementation.
 
 ## Standard Mod GUI Fixture
 
@@ -313,6 +322,12 @@ bundle.zip
 The readable manifest and indexes are versioned. NDJSON is explicitly a human/debug export. `canonical/store-v0.bin` uses an experimental length-prefixed record store behind a `CanonicalStore` interface; the manifest marks `frozen=false`. It is not the final Recording codec.
 
 Contact Sheet composition, checksums and ZIP generation execute on writer/finalizer workers after capture/state acquisition drains.
+
+Contact Sheet dimensions, pixels, decoded sources, raw allocation, output bytes, per-frame/state bytes, Session bytes and Bundle source bytes use checked aggregate budgets. Oversized sheets split into multiple derivatives. Artifact download returns a `Path` and streams it through Netty chunked file transfer.
+
+## Release Evidence Binding
+
+Formal V1/Phase release evidence is generated from a clean detached worktree at the fetched remote commit. The Remote Parity Gate records commit/ref identity, worktree cleanliness, gate version/time, critical Git blob hashes and built Artifact hashes. A dirty source tree may only be called a working-tree candidate; it cannot establish `origin/master Release Candidate PASS`.
 
 ## Fixture, Debug Arm and Evidence Contamination
 

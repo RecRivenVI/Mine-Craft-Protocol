@@ -3,6 +3,9 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
@@ -78,6 +81,8 @@ final class ConditionEngine implements AutoCloseable {
     private CompletableFuture<JsonObject> evaluate(JsonObject condition) {
         String type = string(condition, "type", "");
         return switch (type) {
+            case "screen" -> this.screen(condition);
+            case "ui.exists" -> this.uiExists(condition);
             case "player" -> this.player(condition);
             case "block" -> this.block(condition);
             case "entity" -> this.entity(condition);
@@ -96,6 +101,40 @@ final class ConditionEngine implements AutoCloseable {
             default -> CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
                     "UNSUPPORTED_CONDITION", 400, "Unsupported condition type: " + type));
         };
+    }
+
+    private CompletableFuture<JsonObject> screen(JsonObject condition) {
+        return this.service.uiTree().thenApply(tree -> {
+            boolean passed = true;
+            if (condition.has("classContains")) {
+                passed &= normalized(string(tree, "screenClass", ""), false)
+                        .contains(normalized(condition.get("classContains").getAsString(), false));
+            }
+            if (condition.has("titleContains")) {
+                passed &= normalized(string(tree, "title", ""), false)
+                        .contains(normalized(condition.get("titleContains").getAsString(), false));
+            }
+            if (condition.has("open")) {
+                boolean open = !string(tree, "screenClass", "").isEmpty();
+                passed &= open == condition.get("open").getAsBoolean();
+            }
+            return result(condition, tree, passed, "Screen condition");
+        });
+    }
+
+    private CompletableFuture<JsonObject> uiExists(JsonObject condition) {
+        JsonObject selector = requiredObject(condition, "selector");
+        return this.service.uiTree().thenApply(tree -> {
+            List<JsonObject> matches = findMatches(tree, selector);
+            boolean expected = bool(condition, "exists", true);
+            boolean passed = (matches.size() > 0) == expected;
+            JsonObject evidence = tree.deepCopy();
+            JsonArray values = new JsonArray();
+            matches.forEach(match -> values.add(match.deepCopy()));
+            evidence.add("matches", values);
+            evidence.addProperty("matchCount", matches.size());
+            return result(condition, evidence, passed, "UI existence condition");
+        });
     }
 
     private CompletableFuture<JsonObject> player(JsonObject condition) {
@@ -219,6 +258,62 @@ final class ConditionEngine implements AutoCloseable {
                 ? condition.getAsJsonObject("expected") : new JsonObject();
     }
 
+    static List<JsonObject> findMatches(JsonObject tree, JsonObject selector) {
+        List<JsonObject> matches = new ArrayList<>();
+        if (!tree.has("children")) return matches;
+        boolean caseSensitive = bool(selector, "caseSensitive", false);
+        for (JsonElement element : tree.getAsJsonArray("children")) {
+            JsonObject node = element.getAsJsonObject();
+            if (matches(node, selector, caseSensitive)) matches.add(node);
+        }
+        return matches;
+    }
+
+    private static boolean matches(JsonObject node, JsonObject selector, boolean caseSensitive) {
+        if (!equalsField(node, selector, "nodeId", caseSensitive)) return false;
+        if (!equalsField(node, selector, "role", caseSensitive)) return false;
+        if (!equalsField(node, selector, "label", caseSensitive)) return false;
+        if (!equalsField(node, selector, "class", caseSensitive)) return false;
+        if (!containsField(node, selector, "labelContains", "label", caseSensitive)) return false;
+        if (!containsField(node, selector, "classContains", "class", caseSensitive)) return false;
+        if (selector.has("slot") && (!node.has("slot")
+                || node.get("slot").getAsInt() != selector.get("slot").getAsInt())) return false;
+        if (bool(selector, "visibleOnly", true) && node.has("visible") && !node.get("visible").getAsBoolean()) return false;
+        return !bool(selector, "activeOnly", false) || !node.has("active") || node.get("active").getAsBoolean();
+    }
+
+    private static boolean equalsField(
+            JsonObject node, JsonObject selector, String field, boolean caseSensitive) {
+        if (!selector.has(field)) return true;
+        if (!node.has(field)) return false;
+        return normalized(node.get(field).getAsString(), caseSensitive)
+                .equals(normalized(selector.get(field).getAsString(), caseSensitive));
+    }
+
+    private static boolean containsField(
+            JsonObject node,
+            JsonObject selector,
+            String selectorField,
+            String nodeField,
+            boolean caseSensitive) {
+        if (!selector.has(selectorField)) return true;
+        if (!node.has(nodeField)) return false;
+        return normalized(node.get(nodeField).getAsString(), caseSensitive)
+                .contains(normalized(selector.get(selectorField).getAsString(), caseSensitive));
+    }
+
+    private static String normalized(String value, boolean caseSensitive) {
+        return caseSensitive ? value : value.toLowerCase(Locale.ROOT);
+    }
+
+    private static JsonObject requiredObject(JsonObject json, String name) {
+        if (!json.has(name) || !json.get(name).isJsonObject()) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_CONDITION", 400, "Missing condition object: " + name);
+        }
+        return json.getAsJsonObject(name);
+    }
+
     private static boolean matchesExpected(JsonObject actual, JsonObject expected) {
         for (var entry : expected.entrySet()) {
             if (!actual.has(entry.getKey()) || !same(actual.get(entry.getKey()), entry.getValue())) return false;
@@ -285,4 +380,3 @@ final class ConditionEngine implements AutoCloseable {
         }
     }
 }
-

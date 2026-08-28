@@ -203,6 +203,12 @@ A Companion pointed at a non-loopback Runtime could silently expand the attack s
 
 Controls: loopback is the default and non-loopback URLs fail unless `MCP_COMPANION_ALLOW_NON_LOOPBACK=true` is explicit. The opt-in does not claim TLS/pairing and the Companion exposes no general proxy, shell, filesystem browser or process control.
 
+### Release Evidence Source Drift
+
+Tests run against a dirty worktree can describe capabilities that are absent from the published commit, while a tracked evidence document can retain an obsolete source SHA after later commits.
+
+Controls: formal release evidence must be generated from a clean detached worktree at the fetched `origin/master` commit. The Remote Parity Gate records `sourceCommit`, `originCommit`, branch, cleanliness, gate version/time, critical Git blob hashes and built Artifact hashes. Dirty-tree results are labeled working-tree candidates and cannot establish a remote Release Candidate PASS.
+
 ## Explicit Non-Goals
 
 The Runtime will not provide:

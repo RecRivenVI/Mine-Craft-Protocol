@@ -54,6 +54,14 @@ foreach ($target in $targets) {
     foreach ($condition in @('player','block','entity','menu','inventory','event','operation')) {
         Assert-True ($conditions.Contains('"' + $condition + '"')) "$($target.Name) Wait/Assert missing $condition"
     }
+    Assert-True ($conditions.Contains('"screen"') -and $conditions.Contains('"ui.exists"')) `
+        "$($target.Name) ConditionEngine must own Screen/UI semantics"
+    Assert-True ($transport -match 'conditions\.waitUntil' -and $transport -match 'conditions\.assertThat') `
+        "$($target.Name) standalone Wait/Assert must route directly to ConditionEngine"
+    Assert-True ($automation -notmatch 'isUiCondition' `
+            -and ([regex]::Matches($automation, 'requireConditionEngine\(\)\.waitUntil')).Count -ge 2 `
+            -and ([regex]::Matches($automation, 'requireConditionEngine\(\)\.assertThat')).Count -ge 2) `
+        "$($target.Name) Pipeline and Automation Wait/Assert must share ConditionEngine semantics"
     Assert-True ($security -match 'TokenBucket' -and $security -match 'MAX_CONNECTIONS' -and $security -match 'category\(method, path\)') "$($target.Name) security rate budgets missing"
     Assert-True ($runtime -match 'command\.player\.execute' -and $runtime -match 'NORMAL_NETWORK') "$($target.Name) current-player command capability missing"
 
@@ -74,6 +82,12 @@ foreach ($tool in @('minecraft_get_operation','minecraft_wait_operation','minecr
 }
 Assert-True ($server -match 'z\.discriminatedUnion\(' -and $server -notmatch 'steps:\s*z\.array\(objectSchema\)') 'critical MCP input schemas must be typed'
 Assert-True ($server -match 'context\.signal|cancellationSignal\(context\)') 'MCP cancellation propagation missing'
+
+$conditionConformance = Get-Content -LiteralPath `
+    (Join-Path $root 'conformance\phase8\Invoke-Phase8ConditionConformance.ps1') -Raw
+foreach ($marker in @('Pipeline player/block waits','entity/menu asserts','Pipeline event wait','PipelineTypedConditions')) {
+    Assert-True ($conditionConformance.Contains($marker)) "Pipeline typed condition conformance missing: $marker"
+}
 
 $schema = Get-Content -LiteralPath (Join-Path $root 'protocol-schema\src\main\openapi\minecraft-control-v0.json') -Raw | ConvertFrom-Json
 foreach ($path in @('/v0/operations/{operationId}/wait','/v0/events/resync','/v0/command/player')) {

@@ -475,12 +475,12 @@ final class ProbeTransport implements AutoCloseable {
                 protocolState.requireScope("read");
                 JsonObject body = jsonBody(request);
                 sendJsonFuture(context, metadata, path, protocolState.applyDeadline(
-                        automation.waitUntil(body.getAsJsonObject("condition"), optionalLong(body, "timeoutMs", 5_000L)),
+                        conditions.waitUntil(body.getAsJsonObject("condition"), optionalLong(body, "timeoutMs", 5_000L)),
                         metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/assert")) {
                 protocolState.requireScope("read");
                 sendJsonFuture(context, metadata, path, protocolState.applyDeadline(
-                        automation.assertThat(jsonBody(request).getAsJsonObject("condition")),
+                        conditions.assertThat(jsonBody(request).getAsJsonObject("condition")),
                         metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/pipelines")) {
                 protocolState.requireScope("input");

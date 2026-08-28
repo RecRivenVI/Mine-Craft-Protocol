@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：架构审查定向修订稿 / 工程执行基线  
-> 文档版本：0.2  
+> 文档状态：Phase 8.1 Remote Parity / Release Evidence Reconciliation
+> 文档版本：0.3
 > 编制日期：2026-08-27  
-> 修订日期：2026-08-27  
+> 修订日期：2026-08-28
 > 项目性质：Minecraft Java Agent 自动化、调试、录制与测试基础设施  
-> 当前阶段：架构与执行计划，尚未开始产品代码实现
+> 当前阶段：Phase 8.1 本地修复与远程证据重新绑定；Phase 9/10 均未开始
 
 ---
 
@@ -38,11 +38,11 @@
 
 | Target ID | Minecraft | Loader | 主要定位 |
 |---|---:|---|---|
-| `forge-1.20.1` | 1.20.1 | Forge | 老版本兼容下界与 Java 17 时代实现 |
-| `neoforge-1.21.1` | 1.21.1 | NeoForge | 长期常用稳定版本 |
-| `neoforge-26.1.2` | 26.1.2 | NeoForge | 新版本号体系与 Java 25 时代实现 |
-| `neoforge-26.2` | 26.2 | NeoForge | 新 GUI/渲染架构与 Vulkan 兼容目标 |
-| `fabric-26.2` | 26.2 | Fabric | 新架构下的跨 Loader 对照实现 |
+| `1.20.1-forge` | 1.20.1 | Forge | 老版本兼容下界与 Java 17 时代实现 |
+| `1.21.1-neoforge` | 1.21.1 | NeoForge | 长期常用稳定版本 |
+| `26.1.2-neoforge` | 26.1.2 | NeoForge | 新版本号体系与 Java 25 时代实现 |
+| `26.2-neoforge` | 26.2 | NeoForge | 新 GUI/渲染架构与 Vulkan 兼容目标 |
+| `26.2-fabric` | 26.2 | Fabric | 新架构下的跨 Loader 对照实现 |
 
 各 Target 实现同一套外部行为契约，但允许使用完全不同的内部 Mixin、Accessor、Invoker、Access Transformer、Access Widener 和目标版本桥接代码。
 
@@ -2003,7 +2003,7 @@ Agent
 
 ### Phase 8：MCP Companion 与 V1 发布硬化
 
-执行状态（2026-08-28）：已完成并通过 V1 Release Hardening。独立 TypeScript MCP v2 Companion、stdio、23 Tools、原生 Operation get/wait/cancel、Resources/streaming Artifact、静态 Prompt、typed schemas、Prompt Injection 隔离、EventHub 可靠性、Recording 总资源预算与关闭 finalization、current-player command、五 Target 当前 Artifact 世界闭环及 NeoForge/Fabric 26.2 OpenGL/Vulkan Capture 均已通过；§27.2 V1 Definition of Done 在 ADR-0001 的 loopback-only V1 Profile 下满足，原生 Wire Protocol v1 仍保持未冻结。
+执行状态（2026-08-28）：Phase 8.1 本地 working-tree 修复与完整 Hardening/Live matrix 已通过。tracked Evidence 已改用 commit-bound 规则，ConditionEngine 已统一 standalone/Pipeline 语义，并增加 Pipeline typed-condition Conformance。由于本轮禁止 commit/push，`origin/master` 尚未包含修复，不得继续宣称 V1 Release Candidate PASS；必须在修复被提交、推送并从 clean detached remote worktree 重跑 Gate 后重新判定。原生 Wire Protocol v1 仍保持未冻结。
 
 交付 MCP Tools/Resources、stdio、协议代际兼容、Artifact 获取、Agent-friendly 错误、完整自主测试工作流、安全审计和性能基线。
 
@@ -2011,11 +2011,15 @@ Agent
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
+执行状态：未开始。Phase 8.1 Remote Parity 未通过前 Entry Gate 保持关闭。
+
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
 退出门槛：对应 Ultimate capability 有明确 Target coverage、权限、迁移和压力测试。
 
 ### Phase 10：Ultimate 高级诊断与恢复
+
+执行状态：未开始。必须在 Phase 9 Conformance、Exit Gate 和独立审查完成后单独启动，不得与 Phase 9 合并。
 
 交付 Rolling Recorder、人类操作录制/回放、Golden Diff、因果延迟、Debug Tick Step、Crash-safe Finalization 和高级诊断工具。
 
@@ -2236,29 +2240,24 @@ Agent
 
 ## 29. 下一步立即执行项
 
-Phase 0–8 主体已经完成；当前唯一允许的下一步是 **Phase 8 / V1 Release Hardening**，不得用 Phase 9 功能扩展替代 release gate。执行顺序：
+当前唯一允许的下一步是完成 **Phase 8.1 Remote Parity / Release Evidence Reconciliation**：
 
-1. 完成 Pipeline/Operation cancellation propagation 与无 post-cancel side effect 证据；
-2. 完成 MCP operation get/wait/cancel 与 MCP cancellation propagation；
-3. 完成 EventHub filter/backpressure/ring/resume/gap/resync；
-4. 完成 Recording 会话级资源预算、Contact Sheet 分片、Artifact 双端 streaming 和关闭竞态修复；
-5. 完成 V1 Wait/Assert typed core、current-player command、principal/rate limit/audit 关联；
-6. 通过 schema、Java、Companion、hardening static 和资源压力 gate；
-7. 使用当前最终 Artifact 在五 Target 重跑 minimal live smoke，并对 NeoForge/Fabric 26.2 分别记录 OpenGL/Vulkan；
-8. 只有 Release Gate 全部通过后，才可重新声明 `Phase 8 Complete` 与 `V1 Release Candidate PASS`，随后再讨论 Phase 9。
-8. Phase 0H：形成并运行 Conformance V0。
+1. 统一 standalone 与 Pipeline 的 Screen/UI/Player/Block/Entity/Menu/Event 等 Condition 语义源；
+2. 增加 Pipeline player/block/event wait 与 entity/menu assert Conformance；
+3. 增加 `Invoke-Phase8RemoteParityGate.ps1`，从 fetch 后的 `origin/master` 建立 clean detached worktree；
+4. Remote Gate 输出 `sourceCommit/branch/originCommit/workingTreeClean/gateVersion/timestamp`、critical source hashes 与 Artifact hashes；
+5. 在本地修复 working tree 重跑 OpenAPI、Static、Java、Companion、五 Target build、Hardening Live、五 Target world smoke 和 26.2 OpenGL/Vulkan matrix；
+6. 本轮不创建 commit、不 push；完成后等待修复被提交和推送；
+7. push 后重新 fetch，并只从 clean `origin/master` worktree 运行 Remote Parity Gate；
+8. 仅当 Remote Gate 与 exact-commit Live Evidence 同时 PASS，才重新声明 V1 Remote Release Candidate PASS 并打开 Phase 9 Entry Gate。
 
-优先回答的事实问题：
+在上述条件满足前：
 
-1. Forge 1.20.1 Interaction Tree 的可靠观察点；
-2. Forge 1.20.1 GAME_ROUTED Input 的最佳进入层；
-3. NeoForge 26.2 Interaction Tree 和 Screen/Menu 生命周期；
-4. NeoForge 26.2 Render Facts 捕获边界；
-5. NeoForge 26.2 OpenGL Composite Capture；
-6. NeoForge 26.2 Vulkan Composite Capture；
-7. Fabric 26.2 的同等调用路径；
-8. Container 真实点击到服务器验证的完整链；
-9. 玩家键盘、视角和网络同步路径；
-10. Client/Render/Integrated Server thread scheduling。
+```text
+Phase 8 Remote Parity: FAIL
+V1 Remote Release Candidate: FAIL
+Phase 9 Entry Gate: CLOSED
+Phase 10: NOT STARTED
+```
 
-本计划是当前研讨成果的统一执行基线。除非 Spike 暴露新的结构性矛盾，不再主动新增大量顶层 subsystem。未知问题优先通过 Spike、Probe、Instrumentation Experiment 和 Conformance Scenario 获取事实，再修订局部契约。
+Phase 9 与 Phase 10 必须保持独立：Phase 9 完成 Conformance、Exit Gate 和独立审查后，才能另行启动 Phase 10。
