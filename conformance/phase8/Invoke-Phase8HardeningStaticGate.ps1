@@ -50,6 +50,9 @@ foreach ($target in $targets) {
     foreach ($state in @('STOPPING_CAPTURE','DRAINING_ENCODERS','FINALIZING','WRITING_MANIFEST','CLOSED')) {
         Assert-True ($recording.Contains($state)) "$($target.Name) Recording lifecycle missing $state"
     }
+    Assert-True ($recording -match 'captureStopping' -and $recording -match 'pendingCaptureWork' `
+        -and $recording -match 'stopPendingCaptureWork' -and $recording -match 'future\.cancel\(false\)') `
+        "$($target.Name) shutdown must cancel stalled capture work before finalization"
 
     foreach ($condition in @('player','block','entity','menu','inventory','event','operation')) {
         Assert-True ($conditions.Contains('"' + $condition + '"')) "$($target.Name) Wait/Assert missing $condition"

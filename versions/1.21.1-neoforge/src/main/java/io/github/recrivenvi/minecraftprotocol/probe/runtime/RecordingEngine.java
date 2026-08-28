@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -113,8 +114,8 @@ final class RecordingEngine implements AutoCloseable {
                     "ARTIFACT_CREATE_FAILED", 500, "Unable to initialize recording store");
         }
         this.sessions.put(id, session);
-        session.timer = this.scheduler.scheduleAtFixedRate(
-                () -> this.sample(session), 0L, config.intervalMillis(), TimeUnit.MILLISECONDS);
+        session.installTimer(this.scheduler.scheduleAtFixedRate(
+                () -> this.sample(session), 0L, config.intervalMillis(), TimeUnit.MILLISECONDS));
         this.recordEvent("recording.started", session.statusJson());
         return session.statusJson();
     }
@@ -209,7 +210,7 @@ final class RecordingEngine implements AutoCloseable {
     }
 
     private void sample(RecordingSession session) {
-        if (!session.status.equals("recording")) return;
+        if (!session.status.equals("recording") || session.captureStopping.get()) return;
         long elapsed = System.currentTimeMillis() - session.startedAtMillis;
         if (elapsed >= session.config.durationMillis()
                 || session.sampleSequence.get() >= session.config.maxSamples()) {
@@ -231,10 +232,17 @@ final class RecordingEngine implements AutoCloseable {
                 : this.observation.stateFrame(stateRequest(session.config.stateReads()));
         CompletableFuture<JsonObject> tree = this.service.uiTree();
         CompletableFuture<JsonObject> input = this.service.inputState();
-        CompletableFuture.allOf(capture, state, tree, input).whenComplete((ignored, error) -> {
+        CompletableFuture<Void> sampleWork = CompletableFuture.allOf(capture, state, tree, input);
+        session.trackCaptureWork(capture);
+        session.trackCaptureWork(state);
+        session.trackCaptureWork(tree);
+        session.trackCaptureWork(input);
+        session.trackCaptureWork(sampleWork);
+        sampleWork.whenComplete((ignored, error) -> {
             if (error != null) {
                 session.inFlight.decrementAndGet();
                 session.gapCount.incrementAndGet();
+                if (session.captureStopping.get()) session.lastGapTrack = "sample_cancelled_on_finalize";
                 return;
             }
             Sample sample = new Sample(
@@ -266,12 +274,12 @@ final class RecordingEngine implements AutoCloseable {
     }
 
     private void finalizeSession(RecordingSession session, String reason) {
+        session.stopPendingCaptureWork();
         if (!session.finalizationStarted.compareAndSet(false, true)) return;
         session.status = "finalizing";
         session.lifecycle = "STOPPING_CAPTURE";
         session.stopReason = reason;
         session.completedAtMillis = System.currentTimeMillis();
-        if (session.timer != null) session.timer.cancel(false);
         this.finalizer.execute(() -> {
             try {
                 while (session.inFlight.get() > 0) Thread.sleep(10L);
@@ -316,7 +324,9 @@ final class RecordingEngine implements AutoCloseable {
         private final AtomicLong writtenBytes = new AtomicLong();
         private final AtomicInteger inFlight = new AtomicInteger();
         private final AtomicBoolean evidenceContaminated = new AtomicBoolean();
+        private final AtomicBoolean captureStopping = new AtomicBoolean();
         private final AtomicBoolean finalizationStarted = new AtomicBoolean();
+        private final Set<CompletableFuture<?>> pendingCaptureWork = ConcurrentHashMap.newKeySet();
         private final CompletableFuture<Void> finalization = new CompletableFuture<>();
         private final JsonArray frameIndex = new JsonArray();
         private final JsonArray contactSheets = new JsonArray();
@@ -337,6 +347,24 @@ final class RecordingEngine implements AutoCloseable {
             this.timeline = Files.newBufferedWriter(
                     directory.resolve("timeline/timeline.ndjson"), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        }
+
+        private void installTimer(ScheduledFuture<?> scheduled) {
+            this.timer = scheduled;
+            if (this.captureStopping.get()) scheduled.cancel(false);
+        }
+
+        private <T> void trackCaptureWork(CompletableFuture<T> future) {
+            this.pendingCaptureWork.add(future);
+            future.whenComplete((ignored, error) -> this.pendingCaptureWork.remove(future));
+            if (this.captureStopping.get()) future.cancel(false);
+        }
+
+        private void stopPendingCaptureWork() {
+            this.captureStopping.set(true);
+            ScheduledFuture<?> scheduled = this.timer;
+            if (scheduled != null) scheduled.cancel(false);
+            for (CompletableFuture<?> future : this.pendingCaptureWork) future.cancel(false);
         }
 
         private void writeSample(Sample sample) throws IOException {

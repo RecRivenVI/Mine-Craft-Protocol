@@ -1,0 +1,37 @@
+{
+  "result": "PASS",
+  "sourceCommit": "4f6bfc0e092b911baa5e8e09de6e37a268baf6a1",
+  "branch": "master",
+  "originCommit": "4f6bfc0e092b911baa5e8e09de6e37a268baf6a1",
+  "workingTreeClean": true,
+  "gateVersion": "phase8.1-remote-parity-v1",
+  "timestamp": "2026-08-28T13:15:42.3398380+00:00",
+  "remote": "origin",
+  "remoteRef": "origin/master",
+  "static": "PASS",
+  "javaTests": 8,
+  "javaTestFailures": 0,
+  "companionTools": 23,
+  "gateScriptBlob": "29594a1862f53f73d94e17e1a08f4048f7c3cce3",
+  "criticalSourceHashes": {
+    "companion/src/runtime-client.ts": "31f29994206d5cf4b31c4faff105ce849dc6be74",
+    "companion/src/server.ts": "cd47be6121140ec6a3b40a3fa325090c749fafed",
+    "protocol-schema/src/main/openapi/minecraft-control-v0.json": "34f1ad965703b1cae7959cb25eabf6d5db7b453f",
+    "conformance/phase8/Invoke-Phase8HardeningStaticGate.ps1": "39d9655cd0f1220c30bde323576f557cb65f7dc2",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "f66d95f557c64ccf65fb8e3fc753c3635599cb67",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "cf31fb5f78d3050b3705f41ab3afa25b8036507c",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "60a5f29b0596536242ad833706630a36c03df050",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/EventHub.java": "0ba5ed815abe5a38676c5bfaf36f70acb93570b4",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java": "0b93a5f62f298faabbeec7a4e38405ac971b3f68",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SecurityGate.java": "8b6994e8e41ae04d1931c688e5f96626380293d7",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "06ed5753ad15b2826e764ed090b2089d78554912"
+  },
+  "artifactHashes": {
+    "1.20.1-forge": "64A3CC1957A7507447B5142FA2D623A561D6F711CE0889E4CDA6D155654B0262",
+    "1.21.1-neoforge": "EB77EDF995AE08318AFD5D311530B31DB246976DF7568A8CF0A84FDFEB085DC8",
+    "26.1.2-neoforge": "707A2C8392BD000F08BA0BAC519B025B1ED363F4537C112089560DC689C56396",
+    "26.2-neoforge": "16A0AA732CABFBA2DBE33D8860291EB59EFC816501E5A312BF8C0513C29249EF",
+    "26.2-fabric": "73131F1850D6560A85100B9D6CABB2FAA6C1DC8F84D4DD58DA41EF765D8DFA42"
+  },
+  "failure": null
+}

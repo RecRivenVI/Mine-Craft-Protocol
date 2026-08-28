@@ -21,7 +21,7 @@ $finalClean = $false
 $criticalHashes = [ordered]@{}
 $artifactHashes = [ordered]@{}
 $gateScriptBlob = ''
-$gateVersion = 'phase8.1-remote-parity-v1'
+$gateVersion = 'phase8.2-remote-parity-v2'
 $timestamp = [DateTimeOffset]::UtcNow.ToString('O')
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -66,7 +66,27 @@ try {
     $client = Read-RemoteFile 'companion\src\runtime-client.ts'
     $server = Read-RemoteFile 'companion\src\server.ts'
     $conditionConformance = Read-RemoteFile 'conformance\phase8\Invoke-Phase8ConditionConformance.ps1'
+    $dependencyAudit = Read-RemoteFile 'conformance\phase8\DependencyAudit.ps1'
+    $dependencyAuditTests = Read-RemoteFile 'conformance\phase8\Invoke-Phase8DependencyAuditClassifierTests.ps1'
+    $localGateSource = Read-RemoteFile 'conformance\phase8\Invoke-Phase8LocalGate.ps1'
+    $recordingShutdownTest = Read-RemoteFile `
+        'versions\26.2-neoforge\src\test\java\io\github\recrivenvi\minecraftprotocol\probe\runtime\RecordingEngineTest.java'
     $evidence = Read-RemoteFile 'PHASE8_HARDENING_EVIDENCE.md'
+
+    foreach ($status in @('PASS_NO_THRESHOLD_VULNERABILITIES','FAIL_VULNERABILITIES_FOUND',
+            'FAIL_AUDIT_UNAVAILABLE','FAIL_INVALID_RESPONSE')) {
+        Assert-True ($dependencyAudit.Contains($status)) "Dependency audit classification missing: $status"
+    }
+    Assert-True ($dependencyAudit -match 'ValidateRange\(1, 3\)' `
+            -and $localGateSource -match 'Invoke-DependencyAudit.+MaxAttempts 3' `
+            -and $localGateSource -match 'Invoke-Phase8DependencyAuditClassifierTests' `
+            -and $localGateSource -match "Cases -eq 7" `
+            -and ([regex]::Matches($dependencyAuditTests, "Add-Result '")).Count -eq 7) `
+        'Remote dependency audit is not fail-closed with seven deterministic cases and three attempts'
+    Assert-True ($recordingShutdownTest -match 'closeCancelsStalledCaptureAndFinalizesBundle' `
+            -and $recordingShutdownTest -match 'bundle\.zip' `
+            -and $recordingShutdownTest -match 'transport_close') `
+        'Recording shutdown finalization regression coverage is missing'
 
     Assert-True ($client -notmatch 'arrayBuffer\s*\(') 'Companion production still uses arrayBuffer()'
     foreach ($marker in @('content-length','getReader(','reader.cancel')) {
@@ -109,6 +129,9 @@ try {
     }
     Assert-True ($recording -notmatch 'Files\.readAllBytes' -and $recording -match 'CompletableFuture<Path> artifact') `
         'Recording Artifact path is not streaming-safe'
+    Assert-True ($recording -match 'captureStopping' -and $recording -match 'pendingCaptureWork' `
+            -and $recording -match 'stopPendingCaptureWork' -and $recording -match 'future\.cancel\(false\)') `
+        'Recording shutdown cannot cancel stalled capture work'
     Assert-True ($transport -match 'ChunkedNioFile' -and $transport -match 'HttpChunkedInput') `
         'Runtime Artifact response is not streaming'
 
@@ -148,7 +171,11 @@ try {
         'companion/src/runtime-client.ts',
         'companion/src/server.ts',
         'protocol-schema/src/main/openapi/minecraft-control-v0.json',
+        'conformance/phase8/DependencyAudit.ps1',
+        'conformance/phase8/Invoke-Phase8DependencyAuditClassifierTests.ps1',
+        'conformance/phase8/Invoke-Phase8LocalGate.ps1',
         'conformance/phase8/Invoke-Phase8HardeningStaticGate.ps1',
+        'versions/26.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngineTest.java',
         "$($runtimeRoot.Replace('\','/'))/AutomationEngine.java",
         "$($runtimeRoot.Replace('\','/'))/ProbeTransport.java",
         "$($runtimeRoot.Replace('\','/'))/ProtocolState.java",
@@ -210,6 +237,13 @@ $result = [ordered]@{
     javaTests = $(if ($null -ne $localGate) { $localGate.JavaTests } else { 0 })
     javaTestFailures = $(if ($null -ne $localGate) { $localGate.JavaTestFailures } else { 0 })
     companionTools = $(if ($null -ne $localGate) { $localGate.CompanionTools } else { 0 })
+    dependencyAuditStatus = $(if ($null -ne $localGate) { $localGate.DependencyAuditStatus } else { 'NOT_RUN' })
+    dependencyAuditAttempts = $(if ($null -ne $localGate) { $localGate.DependencyAuditAttempts } else { 0 })
+    dependencyAuditServiceAvailable = $(if ($null -ne $localGate) { $localGate.DependencyAuditServiceAvailable } else { $false })
+    dependencyAuditResponseValid = $(if ($null -ne $localGate) { $localGate.DependencyAuditResponseValid } else { $false })
+    dependencyVulnerabilitiesHigh = $(if ($null -ne $localGate) { $localGate.DependencyVulnerabilitiesHigh } else { 0 })
+    dependencyVulnerabilitiesCritical = $(if ($null -ne $localGate) { $localGate.DependencyVulnerabilitiesCritical } else { 0 })
+    dependencyAuditClassifierTests = $(if ($null -ne $localGate) { $localGate.DependencyAuditClassifierTests } else { 0 })
     gateScriptBlob = $gateScriptBlob
     criticalSourceHashes = $criticalHashes
     artifactHashes = $artifactHashes
