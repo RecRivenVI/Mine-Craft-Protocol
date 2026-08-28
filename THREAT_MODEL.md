@@ -153,7 +153,13 @@ A third-party Mod may register a provider that returns oversized, misleading or 
 
 Controls: explicit namespaced registration, reserved `minecraft:` namespace, detached JSON-only contract, standard request-body limits, trust/source propagation and no promotion of provider data into Tool descriptions, scopes or Runtime policy. Provider code remains part of the registering Mod's trust boundary and must own its thread scheduling.
 
-Phase 9B adds Provider V2 declarations for schema version, thread affinity, perspectives, snapshot safety, read effects, initialization/loading/storage/mutation flags, revision source, Delta capability, future Debug schema and required scopes. Unsafe/lazy providers are not invoked without explicit `allowReadEffects`; provider count/time/per-provider/total byte budgets and schema validation isolate throw, timeout, oversized and invalid providers without failing other observation domains.
+Phase 9B.1 turns every Provider V2 declaration into enforced policy. Required scopes come only from the authenticated Runtime principal; unsupported perspectives do not invoke the provider; declared Client/Server affinity is scheduled on the owner thread while unsupported Render affinity is reported unavailable. `allowReadEffects` can authorize only declared lazy initialization. It never authorizes data loading, persistent storage access or mutation. Those providers are skipped/denied in ordinary observation and remain reserved for later typed, separately authorized planes.
+
+Provider entry and completion are bounded separately. A provider that blocks before returning its Future is detected after the call returns, marked degraded/quarantined and not automatically reinvoked. A timed-out/cancelled Future is retired, cancellation is attempted, accounting is released and late completion cannot publish data or revisions. Executable snapshot/query schema validators are resolved at registration and applied before data becomes visible. Audit records principal, provider ID, required scopes, policy decision, perspective, read effects, duration and status, but not provider payload.
+
+Deep Observation request cancellation has three Runtime paths: deadline, HTTP disconnect and typed request-ID cancellation. The Companion binds modern MCP AbortSignal delivery to the typed cancellation route. Legacy `2025-11-25` stdio does not deliver cancellation notifications to the server handler; this limitation is reported honestly, every Deep Observation carries a Runtime deadline, and asynchronous operations remain manageable through explicit status/wait/cancel Tools.
+
+A deliberately malicious in-process Mod can still stall a Minecraft owner thread or otherwise violate JVM process integrity. Provider V2 is a cooperative correctness and containment contract for trusted-but-buggy extensions; it is not a process sandbox and does not claim to isolate hostile in-process bytecode.
 
 ### Observation Authority Confusion
 

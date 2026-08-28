@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9B PASS
+> Status: Phase 9B PASS — CONTRACT HARDENED
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9A/9B complete; Phase 9C and Phase 10 are not started
+> Current phase boundary: Phase 9B.1 is complete; Phase 9C is not started and awaits independent review; Phase 10 is not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -427,11 +427,11 @@ The 26.2 NeoForge/Fabric experimental engines are currently behaviorally close, 
 
 ## 14. Phase 9 Execution Decomposition
 
-### Phase 9B — Deep Observation and Provider V2 — COMPLETE
+### Phase 9B — Deep Observation and Provider V2 — COMPLETE, CONTRACT HARDENED
 
 Deliver formal typed Player/Entity/Block Entity/Chunk snapshots, client/server comparison, Provider schema/snapshot/delta declarations and required Target hooks.
 
-Exit gate result: PASS. All five Targets expose the formal V0 schema, resource-local revision, client/server comparison, no-load observation, normalized loading summary, Target diagnostic tickets, Scheduled Tick detail, Provider V2 and executable budgets.
+Exit gate result: PASS — CONTRACT HARDENED. All five Targets expose the formal V0 schema, projection-independent resource-local revision, client/server comparison, no-load observation, normalized loading summary, Target diagnostic tickets, Scheduled Tick detail, enforced Provider V2 contracts and executable budgets.
 
 ### Phase 9C — Deep Debug and Batch Boundary State
 
@@ -492,7 +492,7 @@ Final Phase 9A decision:
 
 ```text
 Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
-Phase 9B Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9B Entry Gate: CLOSED (completed)
 Phase 10: NOT STARTED
 ```
 
@@ -507,9 +507,9 @@ GET  /v0/observe/deep/capabilities
 POST /v0/observe/deep
 ```
 
-OpenAPI V0 version is `0.0.1-phase9b`; 106 Java and 106 TypeScript model files are generated. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
+OpenAPI V0 version is `0.0.1-phase9b1`; Wire Protocol v1 remains unfrozen. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
 
-Every formal response carries `ObservationMetadata`, session epoch, snapshot ID, client/server ticks, alignment quality, limitations and resource-local `ResourceRevisionRef` values. Runtime-derived revisions use `revisionSource=snapshot_change_sequence`; Provider results retain their declared provider revision source. No global world revision exists.
+Every formal response carries `ObservationMetadata`, session epoch, snapshot ID, client/server ticks, alignment quality, limitations and resource-local `ResourceRevisionRef` values. Runtime-derived revisions use canonical semantic state captured before response projection. Provider results retain their declared provider revision source. Block Entity lifecycle/type state and opt-in serialized state have separate revisions. No global world revision exists.
 
 Five-Target formal coverage:
 
@@ -546,7 +546,7 @@ includeSerializedBlockEntities=true:
   explicit truncation when exceeded
 ```
 
-Provider V2 verifies safe snapshot execution, lazy provider non-invocation by default, explicit effect opt-in, provider revision, schema version, thread affinity, Delta/Debug declarations and isolation of throw, timeout, oversized and invalid-schema providers.
+Provider V2 enforces authenticated required scopes, perspective and owner-thread affinity before invocation. `allowReadEffects` can authorize only declared lazy initialization; load, storage and mutation remain denied in normal observation. Entry blocking is detected/quarantined; timeout/deadline/disconnect/runtime-close retire pending work and ignore late completion. Snapshot and query payloads are validated through an executable schema registry; invalid registration and duplicate IDs fail deterministically.
 
 Representative NeoForge 26.2 projection baseline:
 
@@ -585,7 +585,62 @@ Phase 10 advanced diagnostics/recovery
 ```
 
 ```text
-Phase 9B: PASS
+Phase 9B.1: PASS
+Phase 9B: PASS — CONTRACT HARDENED
 Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 ```
+
+## 17. Phase 9B.1 Contract Hardening Evidence
+
+### 17.1 Resource revision model
+
+| Resource | Canonical semantic state | Revision source | Request-shape independence |
+|---|---|---|---|
+| Player | full owner-thread Player snapshot without request/tick metadata | snapshot change sequence | projection independent |
+| Menu | menu ID, slots and carried stack | snapshot change sequence | projection independent |
+| Entity | identity plus full captured common semantic state | snapshot change sequence | projection/order independent |
+| Block | loaded state, ID and properties | snapshot change sequence | selector metadata excluded |
+| Chunk | loaded/status/sections/Block Entity count/loading/ticks | snapshot change sequence | radius/projection excluded |
+| Block Entity | key/type/loaded lifecycle state | snapshot change sequence | serialization opt-in excluded |
+| Block Entity serialized | structured opt-in serialized state | snapshot change sequence | separate from base revision |
+| Provider | native provider revision or deterministic schema payload | provider revision / snapshot change sequence | query/projection independent |
+
+The tracker is a 4,096-entry access-ordered LRU fingerprint cache. Every new or changed runtime-derived state receives a session-monotonic generation; eviction never resets a resource to revision 1 or aliases an older generation. sessionEpoch distinguishes Runtime lifetimes.
+
+### 17.2 Provider policy matrix
+
+| Descriptor | Normal observe | allowReadEffects=true | Additional authority |
+|---|---|---|---|
+| snapshot safe / no effects | allow | allow | authenticated required scopes |
+| may initialize | skip | allow with lazy_initialization evidence | declared scopes |
+| may load data | skip | still skip | future dedicated policy only |
+| may access storage | skip | still skip | Phase 9D policy only |
+| may mutate | deny | deny | Phase 9C typed Debug only |
+| unsupported perspective | skip without invocation | skip | none |
+| missing required scope | deny without invocation | deny | authenticated principal must hold scope |
+| unsupported affinity | explicit unavailable | explicit unavailable | Target capability |
+
+Provider synchronous entry budget is 10 ms. Violations are recorded and quarantined; this is cooperative in-process containment, not a hostile-code sandbox. Async timeout attempts underlying cancellation, retires the invocation generation, releases accounting and prevents late result/revision publication. Request deadline and disconnect propagate to the same cancellation tree.
+
+### 17.3 Five-Target live matrix
+
+| Target | Revision | Scope | Perspective | Affinity | Policy | Timeout | Schema | Formal 9B | V1 | Shutdown |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Forge 1.20.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 1.21.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.1.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| Fabric 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+
+Representative NeoForge 26.2 performance after moving revision work off the owner thread:
+
+| Profile | Owner capture | Revision | Provider entry | Provider validation | Response bytes |
+|---|---:|---:|---:|---:|---:|
+| minimal | 134 us | 274 us detached | N/A | N/A | 2,761 |
+| typical | 2,449 us | 590 us detached | 7 us | 67 us | 20,588 |
+| maximum | 4,726 us | 2,771 us detached | bounded per provider | 44 us max | 121,995 |
+
+The final five-Target matrix observed a 5,772 us worst owner-thread capture, below the 12 ms hard budget. Revision canonicalization, hashing and response projection run on `minecraft-protocol-observation-revisions`; their cost is reported separately and does not block the Client/Server owner thread. Provider entry, validation and total duration are also emitted separately.
+
+MCP cancellation is protocol-era aware. Runtime HTTP deadline, disconnect and typed `DELETE /v0/requests/{requestId}` cancellation are implemented and live-tested. Modern MCP contexts that deliver an AbortSignal invoke the typed cancel route. The currently negotiated `2025-11-25` stdio transport does not deliver cancellation notifications to the Companion handler; it therefore uses the explicit operation cancel Tool for operations and always sends a Runtime deadline for Deep Observation rather than claiming unsupported early cancellation.

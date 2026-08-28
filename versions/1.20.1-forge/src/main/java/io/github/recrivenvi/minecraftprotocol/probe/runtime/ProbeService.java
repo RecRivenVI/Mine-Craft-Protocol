@@ -62,7 +62,8 @@ interface ProbeService {
     CompletableFuture<JsonObject> phase9aDelta(String baseSnapshotId);
     CompletableFuture<JsonObject> phase9aReconstruct(JsonObject request);
     CompletableFuture<JsonObject> formalObservationCapabilities();
-    CompletableFuture<JsonObject> formalDeepObservation(JsonObject request);
+    CompletableFuture<JsonObject> formalDeepObservation(
+            JsonObject request, DeepObservationRequestContext requestContext);
     CompletableFuture<JsonObject> peerStatus();
     CompletableFuture<JsonObject> peerProbe();
 

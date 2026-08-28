@@ -447,7 +447,30 @@ final class ProbeTransport implements AutoCloseable {
                 sendJsonFuture(context, metadata, path, service.formalObservationCapabilities());
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/observe/deep")) {
                 protocolState.requireScope("read");
-                sendJsonFuture(context, metadata, path, service.formalDeepObservation(jsonBody(request)));
+                DeepObservationRequestContext observationContext = protocolState.deepObservationContext(
+                        metadata, auditConnectionId(context.channel()));
+                protocolState.registerDeepObservation(metadata.requestId(), observationContext);
+                CompletableFuture<JsonObject> source =
+                        service.formalDeepObservation(jsonBody(request), observationContext);
+                CompletableFuture<JsonObject> guarded =
+                        protocolState.applyDeadline(source, metadata.deadlineAtMillis());
+                context.channel().closeFuture().addListener(ignored ->
+                        observationContext.cancel("client_disconnect"));
+                guarded.whenComplete((value, error) -> {
+                    if (error != null) observationContext.cancel(
+                            error instanceof TimeoutException ? "request_deadline" : "request_cancelled");
+                    protocolState.unregisterDeepObservation(metadata.requestId(), observationContext);
+                });
+                sendJsonFuture(context, metadata, path, guarded);
+            } else if (request.method() == HttpMethod.DELETE && path.startsWith("/v0/requests/")) {
+                protocolState.requireScope("read");
+                String cancelledRequestId = path.substring("/v0/requests/".length());
+                if (cancelledRequestId.isBlank()) {
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_REQUEST_ID", 400, "Missing request ID to cancel");
+                }
+                sendImmediate(context, metadata, path,
+                        protocolState.cancelDeepObservation(cancelledRequestId));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
                 sendImmediate(context, metadata, path, recording.list());

@@ -53,7 +53,8 @@ interface ProbeService {
 
     CompletableFuture<JsonObject> debugSetBlock(int x, int y, int z, String blockId, String expectedBlockId);
     CompletableFuture<JsonObject> formalObservationCapabilities();
-    CompletableFuture<JsonObject> formalDeepObservation(JsonObject request);
+    CompletableFuture<JsonObject> formalDeepObservation(
+            JsonObject request, DeepObservationRequestContext requestContext);
     CompletableFuture<JsonObject> peerStatus();
     CompletableFuture<JsonObject> peerProbe();
 

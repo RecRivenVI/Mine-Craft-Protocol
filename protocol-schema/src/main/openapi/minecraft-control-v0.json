@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-phase9b",
+    "version": "0.0.1-phase9b1",
     "description": "Unstable Phase 9B V0 contract with formal Deep Observation and Provider V2. This is not a frozen Wire Protocol v1.",
     "x-stability": "unstable"
   },
@@ -303,6 +303,30 @@
                 "schema": {
                   "$ref": "#/components/schemas/OperationResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/requests/{requestId}": {
+      "parameters": [
+        {
+          "name": "requestId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      ],
+      "delete": {
+        "operationId": "cancelActiveRequest",
+        "description": "Cancel an active request-scoped execution tree such as Deep Observation Provider work.",
+        "responses": {
+          "200": {
+            "description": "Cancellation result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RequestCancellationResponse" }
               }
             }
           }
@@ -1602,16 +1626,30 @@
           "serverTick": { "type": "integer", "format": "int64" },
           "snapshotId": { "type": "string", "format": "uuid" },
           "sessionEpoch": { "type": "string", "format": "uuid" },
-          "alignmentQuality": { "type": "string" }
+          "alignmentQuality": { "type": "string" },
+          "revisionComputationMicros": { "type": "integer", "format": "int64", "minimum": 0 },
+          "revisionThread": { "type": "string", "enum": ["detached_revision_worker"] },
+          "revisionTracker": {
+            "type": "object",
+            "required": ["sessionEpoch", "entryCount", "entryBound", "evictionCount", "generationHighWatermark"],
+            "properties": {
+              "sessionEpoch": { "type": "string", "format": "uuid" },
+              "entryCount": { "type": "integer", "minimum": 0 },
+              "entryBound": { "type": "integer", "minimum": 1 },
+              "evictionCount": { "type": "integer", "format": "int64", "minimum": 0 },
+              "generationHighWatermark": { "type": "integer", "format": "int64", "minimum": 0 },
+              "evictedResourceReobservation": { "type": "string" }
+            }
+          }
         }
       },
       "ResourceRevisionRef": {
         "type": "object",
         "required": ["resourceType", "resourceKey", "revision", "revisionSource"],
         "properties": {
-          "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "chunk", "block_entity", "provider"] },
+          "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "block", "chunk", "block_entity", "block_entity_serialized", "provider"] },
           "resourceKey": { "type": "string" },
-          "revision": { "type": "integer", "format": "int64", "minimum": 1 },
+          "revision": { "type": "integer", "format": "int64", "minimum": 0 },
           "revisionSource": { "type": "string", "enum": ["native_counter", "runtime_event_sequence", "snapshot_change_sequence", "provider_revision"] }
         }
       },
@@ -1689,8 +1727,8 @@
         "properties":{"dimension":{"type":"string"},"gameTime":{"type":"integer","format":"int64"},"dayTime":{"oneOf":[{"type":"integer","format":"int64"},{"type":"string"}]},"raining":{"type":"boolean"},"thundering":{"type":"boolean"},"blockScheduledTickCount":{"type":"integer"},"fluidScheduledTickCount":{"type":"integer"},"serverTick":{"type":"integer","format":"int64"}}
       },
       "ProviderV2Result": {
-        "type":"object", "required":["providerId","schemaVersion","snapshotSchema","threadAffinity","readEffects","snapshotSafe","revisionSource","deltaCapability","status"],
-        "properties":{"providerId":{"type":"string"},"schemaVersion":{"type":"string"},"snapshotSchema":{"type":"string"},"threadAffinity":{"type":"string"},"readEffects":{"type":"string"},"snapshotSafe":{"type":"boolean"},"mayInitialize":{"type":"boolean"},"mayLoadData":{"type":"boolean"},"mayAccessStorage":{"type":"boolean"},"mayMutate":{"type":"boolean"},"revisionSource":{"type":"string"},"deltaCapability":{"type":"string","enum":["native_event_delta","snapshot_diff_delta","none"]},"debugSupported":{"type":"boolean"},"status":{"type":"string","enum":["registered","completed","skipped","failed"]},"reason":{"type":"string"},"providerRevision":{"type":"integer","format":"int64"},"bytes":{"type":"integer"},"durationMicros":{"type":"integer","format":"int64"},"data":{"type":"object"}}
+        "type":"object", "required":["providerId","schemaVersion","snapshotSchema","querySchema","threadAffinity","readEffects","snapshotSafe","revisionSource","deltaCapability","status"],
+        "properties":{"providerId":{"type":"string"},"schemaVersion":{"type":"string"},"snapshotSchema":{"type":"string"},"querySchema":{"type":"string"},"threadAffinity":{"type":"string","enum":["detached_provider_worker","client_thread","server_thread","render_thread"]},"perspectives":{"type":"array","items":{"type":"string","enum":["client_known","server_authoritative"]}},"requiredScopes":{"type":"array","items":{"type":"string"}},"resolvedPerspective":{"type":"string"},"readEffects":{"type":"string"},"snapshotSafe":{"type":"boolean"},"mayInitialize":{"type":"boolean"},"mayLoadData":{"type":"boolean"},"mayAccessStorage":{"type":"boolean"},"mayMutate":{"type":"boolean"},"revisionSource":{"type":"string"},"deltaCapability":{"type":"string","enum":["native_event_delta","native_typed_delta","snapshot_diff_delta","none"]},"debugSupported":{"type":"boolean"},"status":{"type":"string","enum":["registered","completed","skipped","failed","permission_denied","degraded"]},"reason":{"type":"string"},"schemaDetail":{"type":"string"},"providerRevision":{"type":"integer","format":"int64","minimum":0},"bytes":{"type":"integer"},"entryDurationMicros":{"type":"integer","format":"int64","minimum":0},"validationDurationMicros":{"type":"integer","format":"int64","minimum":0},"durationMicros":{"type":"integer","format":"int64","minimum":0},"data":{"type":"object"}}
       },
       "DeepObservationServerSnapshot": {
         "type":"object",
@@ -2907,6 +2945,20 @@
           "result": { "type": "object", "additionalProperties": true },
           "error": { "type": "string" },
           "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "RequestCancellationResponse": {
+        "type": "object",
+        "required": ["type", "requestId", "status", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string", "enum": ["request.cancellation"] },
+          "requestId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["cancelled", "already_terminal_or_unknown"]
+          },
+          "pendingProviderWork": { "type": "integer", "minimum": 0 },
           "protocolVersion": { "type": "string", "enum": ["v0"] }
         }
       },

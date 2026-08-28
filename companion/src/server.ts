@@ -1,4 +1,5 @@
 import { McpServer, ResourceTemplate, type CallToolResult } from '@modelcontextprotocol/server';
+import { randomUUID } from 'node:crypto';
 import * as z from 'zod/v4';
 
 import type { CompanionConfig } from './config.js';
@@ -145,7 +146,13 @@ async function waitForOperation(client: RuntimeClient, operationId: string, time
 function cancellationSignal(context: unknown): AbortSignal | undefined {
   if (typeof context !== 'object' || context === null || !('signal' in context)) return undefined;
   const signal = (context as { signal?: unknown }).signal;
-  return signal instanceof AbortSignal ? signal : undefined;
+  if (typeof signal !== 'object' || signal === null) return undefined;
+  const candidate = signal as Partial<AbortSignal>;
+  return typeof candidate.aborted === 'boolean'
+      && typeof candidate.addEventListener === 'function'
+      && typeof candidate.removeEventListener === 'function'
+    ? signal as AbortSignal
+    : undefined;
 }
 
 function resourceLink(name: string, uri: string, mimeType: string, data: JsonValue): CallToolResult {
@@ -169,7 +176,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b' });
+  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b1' });
 
   server.registerTool('minecraft_get_session', {
     title: 'Get Minecraft Session',
@@ -211,7 +218,31 @@ export function buildServer(config: CompanionConfig): McpServer {
     description: 'Read a formal, typed, budgeted client/server Minecraft snapshot. Provider data and read effects are explicit and opt-in.',
     inputSchema: deepObservationSchema,
     annotations: readAnnotations
-  }, async args => asToolResult(() => client.json('POST', '/v0/observe/deep', clean(args))));
+  }, async (args, context) => asToolResult(async () => {
+    const signal = cancellationSignal(context);
+    const requestId = randomUUID();
+    const cancelNative = (): void => {
+      void client.json('DELETE', `/v0/requests/${encodeURIComponent(requestId)}`).catch(() => undefined);
+    };
+    signal?.addEventListener('abort', cancelNative, { once: true });
+    if (signal?.aborted) cancelNative();
+    try {
+      return await client.json(
+        'POST',
+        '/v0/observe/deep',
+        clean(args),
+        {
+          headers: {
+            'x-mcp-request-id': requestId,
+            'x-mcp-deadline-ms': String(client.config.timeoutMs)
+          },
+          ...(signal ? { signal } : {})
+        }
+      );
+    } finally {
+      signal?.removeEventListener('abort', cancelNative);
+    }
+  }));
 
   server.registerTool('minecraft_query_world', {
     title: 'Query Loaded Minecraft World',

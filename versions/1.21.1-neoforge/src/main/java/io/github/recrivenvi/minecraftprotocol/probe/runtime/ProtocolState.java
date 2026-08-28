@@ -39,7 +39,9 @@ final class ProtocolState implements AutoCloseable {
     private final ScheduledExecutorService scheduler;
     private final Map<String, CompletableFuture<JsonObject>> idempotentResults = new ConcurrentHashMap<>();
     private final Map<String, Operation> operations = new ConcurrentHashMap<>();
+    private final Map<String, DeepObservationRequestContext> deepObservations = new ConcurrentHashMap<>();
     private final Deque<AuditEntry> audit = new ArrayDeque<>();
+    private final Deque<JsonObject> providerAudit = new ArrayDeque<>();
     private final AtomicLong auditSequence = new AtomicLong();
     private ControlLease lease;
     private DebugArm debugArm;
@@ -74,6 +76,48 @@ final class ProtocolState implements AutoCloseable {
         if (!this.scopes.contains(scope)) {
             throw new ProtocolException("SCOPE_DENIED", 403, "Required scope is not granted: " + scope);
         }
+    }
+
+    DeepObservationRequestContext deepObservationContext(
+            RequestMetadata metadata, String connectionId) {
+        return new DeepObservationRequestContext(
+                this.scopes,
+                this.principalId,
+                metadata.requestId(),
+                connectionId,
+                metadata.deadlineAtMillis(),
+                this::auditProvider);
+    }
+
+    void registerDeepObservation(
+            String requestId, DeepObservationRequestContext requestContext) {
+        DeepObservationRequestContext previous = this.deepObservations.putIfAbsent(
+                requestId, requestContext);
+        if (previous != null) {
+            throw new ProtocolException(
+                    "DUPLICATE_ACTIVE_REQUEST_ID", 409,
+                    "A Deep Observation with this request ID is already active");
+        }
+    }
+
+    void unregisterDeepObservation(
+            String requestId, DeepObservationRequestContext requestContext) {
+        this.deepObservations.remove(requestId, requestContext);
+    }
+
+    JsonObject cancelDeepObservation(String requestId) {
+        DeepObservationRequestContext requestContext = this.deepObservations.remove(requestId);
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "request.cancellation");
+        json.addProperty("requestId", requestId);
+        if (requestContext == null) {
+            json.addProperty("status", "already_terminal_or_unknown");
+            return json;
+        }
+        requestContext.cancel("explicit_request_cancel");
+        json.addProperty("status", "cancelled");
+        json.addProperty("pendingProviderWork", requestContext.pendingCount());
+        return json;
     }
 
     synchronized JsonObject acquireLease(long requestedTtlMillis) {
@@ -302,6 +346,26 @@ final class ProtocolState implements AutoCloseable {
         while (this.audit.size() > 256) this.audit.removeFirst();
     }
 
+    private synchronized void auditProvider(DeepObservationRequestContext.ProviderAuditEvent event) {
+        JsonObject item = new JsonObject();
+        item.addProperty("sequence", this.auditSequence.incrementAndGet());
+        item.addProperty("timestampMillis", System.currentTimeMillis());
+        item.addProperty("requestId", event.requestId());
+        item.addProperty("principalId", event.principalId());
+        item.addProperty("connectionId", event.connectionId());
+        item.addProperty("providerId", event.providerId());
+        JsonArray scopes = new JsonArray();
+        event.requiredScopes().stream().sorted().forEach(scopes::add);
+        item.add("requiredScopes", scopes);
+        item.addProperty("decision", event.decision());
+        item.addProperty("perspective", event.perspective());
+        item.addProperty("readEffects", event.readEffects());
+        item.addProperty("durationMicros", event.durationMicros());
+        item.addProperty("status", event.status());
+        this.providerAudit.addLast(item);
+        while (this.providerAudit.size() > 256) this.providerAudit.removeFirst();
+    }
+
     synchronized JsonObject auditSnapshot(int requestedLimit) {
         int limit = Math.max(1, Math.min(requestedLimit, 256));
         JsonArray entries = new JsonArray();
@@ -325,6 +389,13 @@ final class ProtocolState implements AutoCloseable {
         JsonObject json = new JsonObject();
         json.addProperty("type", "audit");
         json.add("entries", entries);
+        JsonArray providers = new JsonArray();
+        int providerSkip = Math.max(0, this.providerAudit.size() - limit);
+        int providerIndex = 0;
+        for (JsonObject item : this.providerAudit) {
+            if (providerIndex++ >= providerSkip) providers.add(item.deepCopy());
+        }
+        json.add("providerInvocations", providers);
         return json;
     }
 
@@ -387,6 +458,10 @@ final class ProtocolState implements AutoCloseable {
         this.debugArm = null;
         this.inputCleanup.accept("transport_close");
         for (Operation operation : this.operations.values()) operation.cancel("transport_close");
+        for (DeepObservationRequestContext requestContext : this.deepObservations.values()) {
+            requestContext.cancel("transport_close");
+        }
+        this.deepObservations.clear();
         this.scheduler.shutdownNow();
     }
 

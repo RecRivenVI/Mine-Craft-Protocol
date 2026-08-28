@@ -15,7 +15,7 @@ try{
   A(-not[bool](Get-NetTCPConnection -LocalPort $run.Port -State Listen -ErrorAction SilentlyContinue))"port $($run.Port) occupied"
   $dir=(Resolve-Path $run.Dir).Path
   $process=Start-Process '.\gradlew.bat' -ArgumentList $run.Task,'--no-daemon','--offline' -WorkingDirectory $root -RedirectStandardOutput (Join-Path $dir 'phase9b-live-stdout.log') -RedirectStandardError (Join-Path $dir 'phase9b-live-stderr.log') -PassThru -WindowStyle Hidden
-  $tokenFile=Join-Path $dir 'minecraft-protocol\token';$deadline=[DateTime]::UtcNow.AddMinutes(3);$session=$null
+  $tokenFile=Join-Path $dir 'minecraft-protocol\token';$deadline=[DateTime]::UtcNow.AddMinutes(6);$session=$null
   do{if(Test-Path $tokenFile){$token=(Get-Content $tokenFile -Raw).Trim();$auth=@{Authorization="Bearer $token"};try{$session=Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/session" -Headers $auth -TimeoutSec 2}catch{$session=$null}};if($session.target-eq$run.Target){break};Start-Sleep -Seconds 2}while([DateTime]::UtcNow-lt$deadline)
   A($session.target-eq$run.Target)"$($run.Target) not ready";$base="http://127.0.0.1:$($run.Port)"
   [void](J $base $token POST '/v0/control/emergency-release' $auth $null);$lease=J $base $token POST '/v0/control/acquire' $auth @{ttlMs=60000};$lh=@{Authorization="Bearer $token";'X-MCP-Control-Lease'=$lease.leaseId}

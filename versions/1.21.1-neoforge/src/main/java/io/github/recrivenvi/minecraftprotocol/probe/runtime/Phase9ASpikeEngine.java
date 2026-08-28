@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -76,7 +77,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private final String target;
     private final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
+    private final ProviderExecutionEngine providerExecution = new ProviderExecutionEngine(this.revisions);
     private final ExecutorService storageWorker;
+    private final ExecutorService revisionWorker;
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
     private final Map<String, JsonObject> deltas = new LinkedHashMap<>();
@@ -91,6 +94,15 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             thread.setDaemon(true);
             return thread;
         });
+        this.revisionWorker = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "minecraft-protocol-observation-revisions");
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    void installProviderDispatcher(ProviderExecutionEngine.Dispatcher dispatcher) {
+        this.providerExecution.installDispatcher(dispatcher);
     }
 
     JsonObject inventory() {
@@ -158,6 +170,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             providers.add(providerDescriptor(provider.descriptor()));
         }
         json.add("providers", providers);
+        json.add("providerRuntime", this.providerExecution.diagnostics());
+        json.addProperty("providerPolicyVersion", "phase9b1-provider-policy-v0");
         JsonObject hooks = new JsonObject();
         hooks.addProperty("ticketHook", this.ticketHookVerified.get() ? "runtime_verified" : "unverified_until_deep_observation");
         hooks.addProperty("scheduledTickHook", this.scheduledTickHookVerified.get() ? "runtime_verified" : "unverified_until_deep_observation");
@@ -203,12 +217,32 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         }
         snapshot.remove("providerTrack");
         snapshot.remove("tickets");
-        applyProjection(snapshot, request);
-        snapshot.addProperty("type", "deep_observation.server_snapshot");
         return snapshot;
     }
 
-    CompletableFuture<JsonObject> formalize(JsonObject request, JsonObject client, JsonObject server) {
+    CompletableFuture<JsonObject> prepareFormalServerSnapshot(
+            JsonObject request, JsonObject canonicalSnapshot) {
+        if (this.closed.get()) {
+            return CompletableFuture.failedFuture(new CancellationException("observation_runtime_closed"));
+        }
+        return CompletableFuture.supplyAsync(() -> {
+            long revisionStarted = System.nanoTime();
+            JsonArray revisionRefs = canonicalResourceRevisions(canonicalSnapshot);
+            long revisionMicros = (System.nanoTime() - revisionStarted) / 1_000L;
+            JsonObject visible = canonicalSnapshot.deepCopy();
+            visible.add("_canonicalResourceRevisionRefs", revisionRefs);
+            visible.addProperty("_revisionComputationMicros", revisionMicros);
+            applyProjection(visible, request);
+            visible.addProperty("type", "deep_observation.server_snapshot");
+            return visible;
+        }, this.revisionWorker);
+    }
+
+    CompletableFuture<JsonObject> formalize(
+            JsonObject request,
+            JsonObject client,
+            JsonObject server,
+            DeepObservationRequestContext requestContext) {
         String perspective = request.has("perspective") ? request.get("perspective").getAsString() : "server_authoritative";
         JsonObject response = base("deep_observation.snapshot");
         response.addProperty("schemaVersion", "phase9b-observation-v0");
@@ -217,8 +251,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         response.addProperty("sessionEpoch", this.revisions.sessionEpoch());
         response.addProperty("capturedAt", System.currentTimeMillis());
         if (client != null) response.add("client", client.deepCopy());
-        if (server != null) response.add("server", server.deepCopy());
+        JsonObject visibleServer = server == null ? null : server.deepCopy();
+        if (visibleServer != null) {
+            visibleServer.remove("_canonicalResourceRevisionRefs");
+            visibleServer.remove("_revisionComputationMicros");
+            response.add("server", visibleServer);
+        }
         JsonObject metadata = observationMetadata(client, server);
+        metadata.add("revisionTracker", this.revisions.diagnostics());
+        metadata.addProperty("revisionComputationMicros",
+                server != null && server.has("_revisionComputationMicros")
+                        ? server.get("_revisionComputationMicros").getAsLong() : 0L);
+        metadata.addProperty("revisionThread", "detached_revision_worker");
         response.add("metadata", metadata);
         JsonArray refs = resourceRevisions(client, server);
         response.add("resourceRevisionRefs", refs);
@@ -237,7 +281,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             response.add("providers", new JsonArray());
             return CompletableFuture.completedFuture(checkedResponse(response, request));
         }
-        return providers(request, refs).thenApply(providerResults -> {
+        return this.providerExecution.execute(request, refs, requestContext).thenApply(providerResults -> {
             response.add("providers", providerResults);
             return checkedResponse(response, request);
         });
@@ -452,84 +496,6 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         }, this.storageWorker);
     }
 
-    private CompletableFuture<JsonArray> providers(JsonObject request, JsonArray revisionRefs) {
-        JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
-                ? request.getAsJsonObject("budgets") : new JsonObject();
-        int providerLimit = bounded(integer(budgets, "maxProviders", 4), 1, 8);
-        int perProviderBytes = bounded(integer(budgets, "maxProviderBytes", 16_384), 256, 16_384);
-        int totalProviderBytes = bounded(integer(budgets, "maxTotalProviderBytes", 65_536), 1_024, 65_536);
-        int timeoutMillis = bounded(integer(budgets, "providerTimeoutMs", 250), 25, 1_000);
-        boolean allowReadEffects = request.has("allowReadEffects") && request.get("allowReadEffects").getAsBoolean();
-        Set<String> selected = new HashSet<>();
-        if (request.has("providerIds") && request.get("providerIds").isJsonArray()) {
-            request.getAsJsonArray("providerIds").forEach(element -> selected.add(element.getAsString()));
-        }
-        JsonObject query = request.has("providerQuery") && request.get("providerQuery").isJsonObject()
-                ? request.getAsJsonObject("providerQuery").deepCopy() : new JsonObject();
-        List<CompletableFuture<JsonObject>> captures = new ArrayList<>();
-        int considered = 0;
-        for (AgentDataProviderV2 provider : MinecraftProtocolProvidersV2.snapshot()) {
-            AgentDataProviderV2.Descriptor descriptor = provider.descriptor();
-            if (!selected.isEmpty() && !selected.contains(descriptor.providerId())) continue;
-            if (considered++ >= providerLimit) break;
-            if (!descriptor.snapshotSafe() && !allowReadEffects) {
-                JsonObject skipped = providerResult(descriptor, "skipped", "read_effects_not_allowed");
-                captures.add(CompletableFuture.completedFuture(skipped));
-                continue;
-            }
-            AgentDataProviderV2.ReadContext context = new AgentDataProviderV2.ReadContext(
-                    query, request.has("perspective") ? request.get("perspective").getAsString() : "server_authoritative",
-                    allowReadEffects, System.currentTimeMillis() + timeoutMillis, perProviderBytes);
-            long started = System.nanoTime();
-            CompletableFuture<JsonObject> capture;
-            try {
-                capture = provider.capture(context);
-            } catch (Throwable throwable) {
-                capture = CompletableFuture.failedFuture(throwable);
-            }
-            captures.add(capture.orTimeout(timeoutMillis, TimeUnit.MILLISECONDS).handle((data, error) -> {
-                if (error != null) return providerResult(descriptor, "failed",
-                        error.getClass().getSimpleName().contains("Timeout") ? "timeout" : "provider_exception");
-                int bytes = GSON.toJson(data).getBytes(StandardCharsets.UTF_8).length;
-                if (bytes > perProviderBytes) return providerResult(descriptor, "failed", "provider_byte_budget_exceeded");
-                if (!data.has("schemaVersion") || !descriptor.schemaVersion().equals(data.get("schemaVersion").getAsString())
-                        || !data.has("data") || !data.get("data").isJsonObject()) {
-                    return providerResult(descriptor, "failed", "schema_violation");
-                }
-                JsonObject result = providerResult(descriptor, "completed", "");
-                result.add("data", data.get("data").deepCopy());
-                result.addProperty("providerRevision", data.has("providerRevision")
-                        ? data.get("providerRevision").getAsLong() : 0L);
-                result.addProperty("revisionSource", descriptor.revisionSource());
-                result.addProperty("bytes", bytes);
-                result.addProperty("durationMicros", (System.nanoTime() - started) / 1_000L);
-                return result;
-            }));
-        }
-        CompletableFuture<?>[] futures = captures.toArray(CompletableFuture[]::new);
-        return CompletableFuture.allOf(futures).thenApply(ignored -> {
-            JsonArray results = new JsonArray();
-            int total = 0;
-            for (CompletableFuture<JsonObject> future : captures) {
-                JsonObject result = future.join();
-                int bytes = result.has("bytes") ? result.get("bytes").getAsInt() : 0;
-                if (total + bytes > totalProviderBytes) {
-                    JsonObject limited = result.deepCopy();
-                    limited.addProperty("status", "failed");
-                    limited.addProperty("reason", "total_provider_byte_budget_exceeded");
-                    limited.remove("data");
-                    results.add(limited);
-                    continue;
-                }
-                total += bytes;
-                results.add(result);
-                if (result.has("data")) revisionRefs.add(this.revisions.revision(
-                        "provider", result.get("providerId").getAsString(), result.get("data")));
-            }
-            return results;
-        });
-    }
-
     private JsonObject checkedResponse(JsonObject response, JsonObject request) {
         JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
                 ? request.getAsJsonObject("budgets") : new JsonObject();
@@ -561,8 +527,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonArray resourceRevisions(JsonObject client, JsonObject server) {
         JsonArray refs = new JsonArray();
-        if (client != null) refs.add(this.revisions.revision("player", "client", client));
+        if (client != null) refs.add(this.revisions.revision("player", "client", canonicalClientPlayer(client)));
         if (server == null) return refs;
+        if (server.has("_canonicalResourceRevisionRefs")) {
+            server.getAsJsonArray("_canonicalResourceRevisionRefs").forEach(element -> refs.add(element.deepCopy()));
+            return refs;
+        }
+        canonicalResourceRevisions(server).forEach(element -> refs.add(element.deepCopy()));
+        return refs;
+    }
+
+    private JsonArray canonicalResourceRevisions(JsonObject server) {
+        JsonArray refs = new JsonArray();
         if (server.has("player")) {
             JsonObject player = server.getAsJsonObject("player");
             refs.add(this.revisions.revision("player", player.get("uuid").getAsString(), player));
@@ -575,15 +551,42 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             JsonObject entity = element.getAsJsonObject();
             refs.add(this.revisions.revision("entity", entity.get("uuid").getAsString(), entity));
         }
+        if (server.has("blocks")) for (JsonElement element : server.getAsJsonArray("blocks")) {
+            JsonObject block = element.getAsJsonObject();
+            refs.add(this.revisions.revision("block", block.get("key").getAsString(), block));
+        }
         if (server.has("chunks")) for (JsonElement element : server.getAsJsonArray("chunks")) {
             JsonObject chunk = element.getAsJsonObject();
             refs.add(this.revisions.revision("chunk", chunk.get("key").getAsString(), chunk));
         }
         if (server.has("blockEntities")) for (JsonElement element : server.getAsJsonArray("blockEntities")) {
             JsonObject blockEntity = element.getAsJsonObject();
-            refs.add(this.revisions.revision("block_entity", blockEntity.get("key").getAsString(), blockEntity));
+            String key = blockEntity.get("key").getAsString();
+            refs.add(this.revisions.revision("block_entity", key, canonicalBlockEntityBase(blockEntity)));
+            if (blockEntity.has("serializedState")) {
+                refs.add(this.revisions.revision(
+                        "block_entity_serialized", key, blockEntity.get("serializedState")));
+            }
         }
         return refs;
+    }
+
+    private static JsonObject canonicalClientPlayer(JsonObject client) {
+        JsonObject semantic = client.deepCopy();
+        for (String field : List.of(
+                "type", "target", "clientTick", "perspective", "source", "authority",
+                "dataSource", "storageAccessed", "stalePossible", "requestId", "protocolVersion")) {
+            semantic.remove(field);
+        }
+        return semantic;
+    }
+
+    private static JsonObject canonicalBlockEntityBase(JsonObject blockEntity) {
+        JsonObject semantic = new JsonObject();
+        for (String field : List.of("key", "type", "loaded")) {
+            if (blockEntity.has(field)) semantic.add(field, blockEntity.get(field).deepCopy());
+        }
+        return semantic;
     }
 
     private static JsonObject compare(JsonObject client, JsonObject server) {
@@ -636,6 +639,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("providerId", descriptor.providerId());
         json.addProperty("schemaVersion", descriptor.schemaVersion());
         json.addProperty("snapshotSchema", descriptor.snapshotSchema());
+        json.addProperty("querySchema", descriptor.querySchema());
         json.addProperty("threadAffinity", descriptor.threadAffinity());
         json.addProperty("readEffects", descriptor.readEffects());
         json.addProperty("snapshotSafe", descriptor.snapshotSafe());
@@ -646,6 +650,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("revisionSource", descriptor.revisionSource());
         json.addProperty("deltaCapability", descriptor.deltaCapability());
         json.addProperty("debugSupported", descriptor.debugDeclaration().supported());
+        JsonArray perspectives = new JsonArray();
+        descriptor.perspectives().forEach(perspectives::add);
+        json.add("perspectives", perspectives);
+        JsonArray requiredScopes = new JsonArray();
+        descriptor.requiredScopes().forEach(requiredScopes::add);
+        json.add("requiredScopes", requiredScopes);
         json.addProperty("status", "registered");
         return json;
     }
@@ -1381,6 +1391,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     @Override
     public void close() {
         if (!this.closed.compareAndSet(false, true)) return;
+        this.providerExecution.close();
+        this.revisionWorker.shutdownNow();
         this.storageWorker.shutdown();
         try {
             if (!this.storageWorker.awaitTermination(2L, TimeUnit.SECONDS)) this.storageWorker.shutdownNow();

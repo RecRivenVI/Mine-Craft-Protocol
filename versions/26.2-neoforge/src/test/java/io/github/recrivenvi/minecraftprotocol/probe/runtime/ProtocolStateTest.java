@@ -75,6 +75,26 @@ final class ProtocolStateTest {
         }
     }
 
+    @Test
+    void explicitRequestCancellationRetiresDeepObservationWork() {
+        try (ProtocolState state = state()) {
+            DeepObservationRequestContext context = new DeepObservationRequestContext(
+                    Set.of("read"),
+                    "test-principal",
+                    "deep-request",
+                    "connection",
+                    System.currentTimeMillis() + 5_000L,
+                    ignored -> { });
+            CompletableFuture<JsonObject> providerWork = context.track(new CompletableFuture<>());
+            state.registerDeepObservation("deep-request", context);
+            JsonObject cancelled = state.cancelDeepObservation("deep-request");
+            assertEquals("cancelled", cancelled.get("status").getAsString());
+            assertTrue(providerWork.isCancelled());
+            assertEquals("already_terminal_or_unknown",
+                    state.cancelDeepObservation("deep-request").get("status").getAsString());
+        }
+    }
+
     private static ProtocolState state() {
         return new ProtocolState(
                 Set.of("read", "input", "control", "event", "diagnostics", "command"),

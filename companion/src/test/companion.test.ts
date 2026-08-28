@@ -32,10 +32,14 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(bytes);
 }
 
-async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[] }> {
+async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[] }> {
   const leases: string[] = [];
   const operationCancels: number[] = [];
+  const deepObserveStarts: number[] = [];
+  const deepObserveAborts: number[] = [];
+  const deepObserveDeadlines: string[] = [];
   let longOperation = false;
+  let cancelDeepObserve: (() => void) | undefined;
   const server = createServer(async (request, response) => {
     if (request.headers.authorization !== `Bearer ${token}`) {
       json(response, 401, { error: 'UNAUTHORIZED', message: 'invalid token', requestId: 'mock-request' });
@@ -55,6 +59,35 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
     if (path === '/v0/input/state') return json(response, 200, { ...base, type: 'input.state', pressedKeyCount: 0, pressedButtonCount: 0 });
     if (path === '/v0/capture/info') return json(response, 200, { ...base, type: 'capture.info', backend: 'opengl', mode: 'COMPOSITE', format: 'PNG' });
     if (path === '/v0/state/frames') return json(response, 200, { ...base, type: 'state.frame', stateFrameId: recordingId, consistency: 'coordinated_best_effort', reads: payload.reads ?? [] });
+    if (path === '/v0/observe/deep') {
+      deepObserveDeadlines.push(String(request.headers['x-mcp-deadline-ms'] ?? ''));
+      const providerQuery = typeof payload.providerQuery === 'object' && payload.providerQuery !== null
+        ? payload.providerQuery as Record<string, unknown> : {};
+      if (providerQuery.probe === 'cancel') {
+        deepObserveStarts.push(Date.now());
+        await new Promise<void>(resolveWait => {
+          cancelDeepObserve = resolveWait;
+          response.once('close', () => {
+            resolveWait();
+          });
+          setTimeout(resolveWait, 10_000).unref();
+        });
+        if (response.destroyed || response.writableEnded) return;
+      }
+      return json(response, 200, {
+        ...base,
+        type: 'deep_observation.snapshot',
+        formal: true,
+        perspective: payload.perspective,
+        providers: []
+      });
+    }
+    if (path.startsWith('/v0/requests/') && request.method === 'DELETE') {
+      deepObserveAborts.push(Date.now());
+      cancelDeepObserve?.();
+      cancelDeepObserve = undefined;
+      return json(response, 200, { ...base, type: 'request.cancellation', status: 'cancelled' });
+    }
     if (path.endsWith('/world/entities')) return json(response, 200, { ...base, type: 'world.entities', source: path.includes('/server/') ? 'integrated_server_live' : 'client_live', entities: [] });
     if (path.endsWith('/world/block')) {
       if (url.searchParams.get('x') === '999') return json(response, 409, { error: 'BLOCK_TEST_ERROR', message: 'mock block failure', requestId: 'mock-request' });
@@ -131,6 +164,9 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
     baseUrl: `http://127.0.0.1:${address.port}`,
     leases,
     operationCancels,
+    deepObserveStarts,
+    deepObserveAborts,
+    deepObserveDeadlines,
     close: async () => { server.close(); await once(server, 'close'); }
   };
 }
@@ -168,6 +204,32 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal((sessionData.companion as Record<string, unknown>).dataPlaneOnly, true);
     assert.equal(JSON.stringify(sessionData).includes(maliciousText), true);
 
+    const deepController = new AbortController();
+    const deepObserve = client.callTool({
+      name: 'minecraft_deep_observe',
+      arguments: {
+        perspective: 'server_authoritative',
+        domains: ['providers'],
+        includeProviderData: true,
+        providerIds: ['minecraft_protocol_probe:timeout'],
+        providerQuery: { probe: 'cancel' }
+      }
+    }, { signal: deepController.signal });
+    const deepStartDeadline = Date.now() + 3000;
+    while (runtime.deepObserveStarts.length === 0 && Date.now() < deepStartDeadline) {
+      await new Promise(resolveWait => setTimeout(resolveWait, 25));
+    }
+    assert.equal(runtime.deepObserveStarts.length, 1, 'mock Runtime must receive Deep Observation before cancellation');
+    assert.ok(Number(runtime.deepObserveDeadlines[0]) > 0, 'MCP Deep Observation must carry a Runtime deadline');
+    deepController.abort();
+    await deepObserve.catch(() => undefined);
+    const deepAbortDeadline = Date.now() + 3000;
+    while (runtime.deepObserveAborts.length === 0 && Date.now() < deepAbortDeadline) {
+      await new Promise(resolveWait => setTimeout(resolveWait, 25));
+    }
+    assert.equal(runtime.deepObserveAborts.length, negotiated === '2025-11-25' ? 0 : 1,
+      'MCP request cancellation must match the negotiated protocol capability');
+
     const lease = await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire', ttlMs: 60000 } });
     assert.equal(lease.isError, undefined);
     const action = await client.callTool({ name: 'minecraft_interact_ui', arguments: { action: 'click', selector: { role: 'button', label: maliciousText } } });
@@ -187,6 +249,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(command.isError, undefined);
     assert.equal(JSON.stringify(command.structuredContent).includes('NORMAL_NETWORK'), true);
 
+    const operationCancelsBeforeSignal = runtime.operationCancels.length;
     const controller = new AbortController();
     const cancellable = client.callTool({
       name: 'minecraft_run_input_pipeline',
@@ -195,10 +258,12 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     setTimeout(() => controller.abort(), 100).unref();
     await cancellable.catch(() => undefined);
     const cancelDeadline = Date.now() + 3000;
-    while (runtime.operationCancels.length === 0 && Date.now() < cancelDeadline) {
+    while (runtime.operationCancels.length === operationCancelsBeforeSignal && Date.now() < cancelDeadline) {
       await new Promise(resolveWait => setTimeout(resolveWait, 25));
     }
-    assert.equal(runtime.operationCancels.length, 1, 'MCP cancellation must DELETE the native Runtime operation');
+    assert.equal(runtime.operationCancels.length,
+      operationCancelsBeforeSignal + (negotiated === '2025-11-25' ? 0 : 1),
+      'MCP operation cancellation must match the negotiated protocol capability');
 
     const captureTool = await client.callTool({ name: 'minecraft_capture', arguments: {} });
     assert.ok(captureTool.content.some(block => block.type === 'resource_link' && block.uri === 'minecraft://capture/latest'));

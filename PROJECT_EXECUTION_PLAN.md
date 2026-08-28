@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Phase 9B Deep Observation / Provider V2 Complete
+> 文档状态：Phase 9B Deep Observation / Provider V2 Complete — Contract Hardened
 > 文档版本：0.5
 > 编制日期：2026-08-27  
 > 修订日期：2026-08-28
 > 项目性质：Minecraft Java Agent 自动化、调试、录制与测试基础设施  
-> 当前阶段：Phase 8/V1 已完成；Phase 9A/9B 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
+> 当前阶段：Phase 8/V1 与 Phase 9B.1 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
 
 ---
 
@@ -2011,7 +2011,7 @@ Agent
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-08-28）：Phase 9A 已完成事实调查；Phase 9B 已完成五 Target Formal Deep Observation、client/server perspectives、资源级 snapshot-change revision、normalized loading summary、只读 Ticket/LevelTicks Hook、Provider V2、投影/预算/截断、OpenAPI V0 与 MCP 聚合。Phase 9C 尚未开始，必须经独立审查另行开放。
+执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1 已完成五 Target Formal Deep Observation 与契约硬化。资源 revision 由投影前 canonical semantic state 生成，并使用有界、会话单调的 tracker；Provider V2 已强制认证 scopes、perspective、thread affinity、read-effects/no-load/no-storage/no-mutation、timeout/cancellation/late-result isolation 与 executable schema registry。Phase 9C 尚未开始，必须经独立审查另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2246,7 +2246,8 @@ Agent
 Phase 8 Remote Parity: PASS
 V1 Remote Release Candidate: PASS
 Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
-Phase 9B: PASS
+Phase 9B.1: PASS
+Phase 9B: PASS — CONTRACT HARDENED
 Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN

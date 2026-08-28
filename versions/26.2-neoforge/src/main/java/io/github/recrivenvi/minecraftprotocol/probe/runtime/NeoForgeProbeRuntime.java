@@ -90,6 +90,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private volatile String lastRenderFact = "";
 
     private NeoForgeProbeRuntime() {
+        this.phase9a.installProviderDispatcher(this::dispatchProvider);
     }
 
     public static void onClientTick(Minecraft minecraft) {
@@ -855,17 +856,19 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
-    public CompletableFuture<JsonObject> formalDeepObservation(JsonObject request) {
+    public CompletableFuture<JsonObject> formalDeepObservation(
+            JsonObject request, DeepObservationRequestContext requestContext) {
         String perspective = request.has("perspective")
                 ? request.get("perspective").getAsString() : "server_authoritative";
         if (perspective.equals("client_known")) {
             return this.playerState().thenCompose(client ->
-                    this.phase9a.formalize(request, client, null));
+                    this.phase9a.formalize(request, client, null, requestContext));
         }
         CompletableFuture<JsonObject> server = this.onIntegratedServer((minecraftServer, player) ->
-                this.phase9a.captureFormal(minecraftServer, player, request));
+                this.phase9a.captureFormal(minecraftServer, player, request)).thenCompose(canonical ->
+                this.phase9a.prepareFormalServerSnapshot(request, canonical));
         if (perspective.equals("server_authoritative")) {
-            return server.thenCompose(value -> this.phase9a.formalize(request, null, value));
+            return server.thenCompose(value -> this.phase9a.formalize(request, null, value, requestContext));
         }
         if (!perspective.equals("both")) {
             return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
@@ -874,7 +877,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         CompletableFuture<JsonObject> client = this.playerState();
         return client.thenCombine(server, (clientValue, serverValue) ->
                 new JsonObject[] { clientValue, serverValue }).thenCompose(values ->
-                this.phase9a.formalize(request, values[0], values[1]));
+                this.phase9a.formalize(request, values[0], values[1], requestContext));
     }
 
     @Override
@@ -1061,6 +1064,23 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             json.addProperty("inputDispatchSequence", inputSequence);
             return json;
         });
+    }
+
+    private CompletableFuture<ProviderExecutionEngine.Entry> dispatchProvider(
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2 provider,
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2.ReadContext context,
+            String affinity) {
+        return switch (affinity) {
+            case "client_thread" -> this.onClient(() -> ProviderExecutionEngine.enter(
+                    provider, context, requireClient().isSameThread()));
+            case "server_thread" -> this.onIntegratedServer((server, player) ->
+                    ProviderExecutionEngine.enter(provider, context, server.isSameThread()));
+            case "render_thread" -> this.onClient(() -> ProviderExecutionEngine.enter(
+                    provider, context,
+                    com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread()));
+            default -> CompletableFuture.completedFuture(
+                    ProviderExecutionEngine.Entry.unsupported(affinity));
+        };
     }
 
     private <T> CompletableFuture<T> onClient(Supplier<T> supplier) {
