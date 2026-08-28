@@ -9,11 +9,13 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public final class MinecraftProtocolProvidersV2 {
+    public static final int MAX_REGISTERED_PROVIDERS = 256;
     private static final Set<String> AFFINITIES = Set.of(
             "detached_provider_worker", "client_thread", "server_thread", "render_thread");
     private static final Set<String> PERSPECTIVES = Set.of("client_known", "server_authoritative");
     private static final Set<String> READ_EFFECTS = Set.of("none", "lazy_initialization");
     private static final Set<String> REVISION_SOURCES = Set.of("provider_revision", "snapshot_change_sequence");
+    private static final Set<String> REVISION_SCOPES = Set.of("resource", "query_view");
     private static final Set<String> DELTA_CAPABILITIES = Set.of("none", "snapshot_diff_delta", "native_typed_delta");
     private static final Pattern VERSION = Pattern.compile("[A-Za-z0-9._-]{1,64}");
     private static final Pattern SCOPE = Pattern.compile("[a-z][a-z0-9._-]{0,63}");
@@ -23,6 +25,10 @@ public final class MinecraftProtocolProvidersV2 {
     }
 
     public static synchronized void register(AgentDataProviderV2 provider) {
+        if (PROVIDERS.size() >= MAX_REGISTERED_PROVIDERS) {
+            throw new IllegalStateException(
+                    "Provider V2 registry is full: " + MAX_REGISTERED_PROVIDERS);
+        }
         Objects.requireNonNull(provider, "provider");
         AgentDataProviderV2.Descriptor descriptor = Objects.requireNonNull(provider.descriptor(), "descriptor");
         String id = descriptor.providerId();
@@ -49,6 +55,24 @@ public final class MinecraftProtocolProvidersV2 {
         }
         if (!REVISION_SOURCES.contains(descriptor.revisionSource())) {
             throw new IllegalArgumentException("Provider V2 revisionSource is invalid: " + id);
+        }
+        if (!REVISION_SCOPES.contains(descriptor.revisionScope())) {
+            throw new IllegalArgumentException("Provider V2 revisionScope is invalid: " + id);
+        }
+        if ("resource".equals(descriptor.revisionScope())) {
+            requireSchema(id, "revisionSchema", descriptor.revisionSchema());
+            if (!descriptor.revisionQueryInvariant()) {
+                throw new IllegalArgumentException(
+                        "Resource-scoped Provider V2 revision must be query invariant: " + id);
+            }
+        } else if (descriptor.revisionQueryInvariant()) {
+            throw new IllegalArgumentException(
+                    "query_view Provider V2 revision cannot claim query invariance: " + id);
+        }
+        if ("provider_revision".equals(descriptor.revisionSource())
+                && !"resource".equals(descriptor.revisionScope())) {
+            throw new IllegalArgumentException(
+                    "Native Provider V2 revision must be resource scoped: " + id);
         }
         if (!DELTA_CAPABILITIES.contains(descriptor.deltaCapability())) {
             throw new IllegalArgumentException("Provider V2 deltaCapability is invalid: " + id);

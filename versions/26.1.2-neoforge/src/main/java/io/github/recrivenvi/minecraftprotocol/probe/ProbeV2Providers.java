@@ -29,6 +29,14 @@ final class ProbeV2Providers {
         MinecraftProtocolProvidersV2.register(new TestProvider("storage", "none", false, false, "detached_provider_worker", List.of("server_authoritative"), List.of("read"), Policy.STORAGE, "provider_revision"));
         MinecraftProtocolProvidersV2.register(new TestProvider("mutate", "none", false, false, "server_thread", List.of("server_authoritative"), List.of("read"), Policy.MUTATE, "provider_revision"));
         MinecraftProtocolProvidersV2.register(new TestProvider("snapshot-fallback", "none", true, false, "detached_provider_worker", List.of("server_authoritative"), List.of("read"), Policy.NONE, "snapshot_change_sequence"));
+        MinecraftProtocolProvidersV2.register(new RevisionContractProvider(
+                "fallback-query", RevisionMode.FALLBACK_QUERY));
+        MinecraftProtocolProvidersV2.register(new RevisionContractProvider(
+                "query-view", RevisionMode.QUERY_VIEW));
+        MinecraftProtocolProvidersV2.register(new RevisionContractProvider(
+                "native-regression", RevisionMode.NATIVE_REGRESSION));
+        MinecraftProtocolProvidersV2.register(new RevisionContractProvider(
+                "native-inconsistent", RevisionMode.NATIVE_INCONSISTENT));
         MinecraftProtocolProvidersV2.register(new FailureProvider("failure", FailureMode.THROW));
         MinecraftProtocolProvidersV2.register(new FailureProvider("timeout", FailureMode.TIMEOUT));
         MinecraftProtocolProvidersV2.register(new FailureProvider("late-success", FailureMode.LATE_SUCCESS));
@@ -116,6 +124,22 @@ final class ProbeV2Providers {
             List<String> scopes,
             Policy policy,
             String revisionSource) {
+        return descriptor(
+                name, effects, safe, mayInitialize, affinity, perspectives, scopes,
+                policy, revisionSource, "resource");
+    }
+
+    private static AgentDataProviderV2.Descriptor descriptor(
+            String name,
+            String effects,
+            boolean safe,
+            boolean mayInitialize,
+            String affinity,
+            List<String> perspectives,
+            List<String> scopes,
+            Policy policy,
+            String revisionSource,
+            String revisionScope) {
         boolean mayMutate = policy == Policy.MUTATE;
         return new AgentDataProviderV2.Descriptor(
                 "minecraft_protocol_probe:" + name,
@@ -133,6 +157,9 @@ final class ProbeV2Providers {
                 policy == Policy.STORAGE,
                 mayMutate,
                 revisionSource,
+                revisionScope,
+                revisionScope.equals("resource") ? SNAPSHOT_SCHEMA : "",
+                revisionScope.equals("resource"),
                 name.equals("safe") ? "snapshot_diff_delta" : "none",
                 new AgentDataProviderV2.DebugDeclaration(
                         mayMutate, mayMutate ? DEBUG_SCHEMA : "", "debug", true),
@@ -142,21 +169,67 @@ final class ProbeV2Providers {
     private static JsonObject result(AgentDataProviderV2.Descriptor descriptor, long revision) {
         JsonObject result = new JsonObject();
         result.addProperty("schemaVersion", descriptor.schemaVersion());
-        JsonObject data = new JsonObject();
-        data.addProperty("temperature", 20.5D);
+        JsonObject revisionState = new JsonObject();
+        revisionState.addProperty("temperature", 20.5D);
         JsonObject meta = new JsonObject();
         meta.addProperty("label", descriptor.providerId());
         JsonObject details = new JsonObject();
         details.addProperty("enabled", true);
         meta.add("details", details);
-        data.add("meta", meta);
+        revisionState.add("meta", meta);
+        JsonObject data = revisionState.deepCopy();
         data.addProperty("threadName", Thread.currentThread().getName());
         result.add("data", data);
+        result.add("revisionState", revisionState);
         result.addProperty("providerRevision", revision);
         return result;
     }
 
     private enum Policy { NONE, LOAD, STORAGE, MUTATE }
+
+    private enum RevisionMode {
+        FALLBACK_QUERY, QUERY_VIEW, NATIVE_REGRESSION, NATIVE_INCONSISTENT
+    }
+
+    private static final class RevisionContractProvider implements AgentDataProviderV2 {
+        private final Descriptor descriptor;
+        private final RevisionMode mode;
+        private final AtomicLong invocations = new AtomicLong();
+
+        private RevisionContractProvider(String name, RevisionMode mode) {
+            this.mode = mode;
+            this.descriptor = ProbeV2Providers.descriptor(
+                    name, "none", true, false, "detached_provider_worker",
+                    List.of("server_authoritative"), List.of("read"), Policy.NONE,
+                    mode == RevisionMode.FALLBACK_QUERY || mode == RevisionMode.QUERY_VIEW
+                            ? "snapshot_change_sequence" : "provider_revision",
+                    mode == RevisionMode.QUERY_VIEW ? "query_view" : "resource");
+        }
+
+        @Override
+        public Descriptor descriptor() {
+            return this.descriptor;
+        }
+
+        @Override
+        public CompletableFuture<JsonObject> capture(ReadContext context) {
+            long invocation = this.invocations.incrementAndGet();
+            long revision = this.mode == RevisionMode.NATIVE_REGRESSION
+                    ? invocation == 1L ? 10L : 9L
+                    : 10L;
+            JsonObject result = ProbeV2Providers.result(this.descriptor, revision);
+            if (this.mode == RevisionMode.FALLBACK_QUERY || this.mode == RevisionMode.QUERY_VIEW) {
+                result.getAsJsonObject("data").addProperty(
+                        "view", context.query().has("probe")
+                                ? context.query().get("probe").getAsString() : "none");
+            }
+            if (this.mode == RevisionMode.NATIVE_INCONSISTENT && invocation > 1L) {
+                result.getAsJsonObject("data").addProperty("temperature", 21.0D);
+                result.getAsJsonObject("revisionState").addProperty("temperature", 21.0D);
+            }
+            return CompletableFuture.completedFuture(result);
+        }
+    }
 
     private static final class TestProvider implements AgentDataProviderV2 {
         private final Descriptor descriptor;

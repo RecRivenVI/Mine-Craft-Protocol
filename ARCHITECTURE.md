@@ -1,11 +1,51 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Phase 8/V1 attested; Phase 9A/9B complete; Phase 9C not started
-> Authority: `PROJECT_EXECUTION_PLAN.md` defines long-term scope; this file records the current implemented Runtime and Companion architecture.
+> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B complete; Phase 9C not started
+> Authority: `PROJECT_EXECUTION_PLAN.md` defines Runtime scope, `PLATFORM_VISION.md` defines the long-term Platform boundary, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
 
-Mine-Craft-Protocol is a Minecraft Agent Control Runtime. The native HTTP/WebSocket contract is independent from MCP. The implemented TypeScript MCP Companion is a separate adapter process and is not part of the in-game Runtime core.
+Mine-Craft-Protocol's long-term product is an **Agent-native Minecraft Development, Debugging and Testing Platform**. The current implemented core is the **Minecraft Agent Control Runtime**, now formally the Platform's Runtime Control, Testing and Observation subsystem.
+
+The native HTTP/WebSocket Runtime contract remains independent from MCP. The implemented TypeScript MCP Companion is a separate adapter process and is not part of the in-game Runtime core. This product-boundary upgrade does not claim that Source Intelligence, Mod Intelligence, Exploratory Debug or a Human Inspector is implemented.
+
+## Long-Term Platform Boundary — PLANNED
+
+```text
+Coding Agent / Human Inspector
+             |
+             v
+Unified Agent Surface (MCP / Native APIs)
+             |
+      Platform Companion
+       |             |
+       |             +-- Development Intelligence Service
+       |                   +-- Artifact / Mapping
+       |                   +-- Managed Source Store
+       |                   +-- Symbol / AST / Reference / Call Graph
+       |                   +-- Mod / Mixin / AW / AT Intelligence
+       |
+       +-- Runtime Adapter -- HTTP/WS --> Minecraft Agent Control Runtime
+```
+
+Status and ownership are explicit:
+
+| Plane | Status | Process boundary |
+|---|---|---|
+| Runtime Control and Testing | CURRENT | Minecraft Runtime Mod + optional Server Peer |
+| Deep Runtime Observation | CURRENT | Minecraft Runtime Mod + Server authority |
+| Typed Deep Debug | PARTIAL | Minecraft Runtime Mod / Server Peer; Phase 9C planned |
+| Evidence / Artifact / Timeline | CURRENT | Runtime plus Companion consumers |
+| Source / Mapping / Mod Intelligence | PLANNED | external Development Intelligence Service |
+| Runtime <-> Source Correlation | PLANNED | Platform Companion / integration layer |
+| Safe Probe / unsafe Exploratory JVM | PLANNED | separate authority and threat boundary |
+| Human Developer Inspector | PLANNED | external consumer of the same typed services |
+
+The Development Intelligence Service may initially share a process with the Platform Companion, but the Runtime Mod never owns heavyweight decompilation, source corpora, SQLite/full-text indexes, AST parsing, call-graph construction or third-party Mod decompilation.
+
+Normal Runtime and typed Debug remain free of arbitrary shell, process, filesystem and Reflection RPC. A future unsafe Exploratory JVM surface is a separate, default-off, loopback-only, explicitly armed and explicitly **not sandboxed** plane; its output is always invalid for gameplay acceptance.
+
+Runtime, Source and Mapping services will share a Target-aware symbol identity consisting of Target, source universe, mapping namespace, owner, member name, descriptor and artifact hash where available. Sharing identity correlates facts; it does not merge Runtime truth with source/decompiler inference.
 
 ## Explicit Targets
 

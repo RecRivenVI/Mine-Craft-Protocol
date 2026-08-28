@@ -77,9 +77,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private final String target;
     private final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
+    private final ObservationLifecycleTracker lifecycles = new ObservationLifecycleTracker();
     private final ProviderExecutionEngine providerExecution = new ProviderExecutionEngine(this.revisions);
     private final ExecutorService storageWorker;
-    private final ExecutorService revisionWorker;
+    private final BoundedTaskExecutor revisionWorker;
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
     private final Map<String, JsonObject> deltas = new LinkedHashMap<>();
@@ -94,11 +95,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             thread.setDaemon(true);
             return thread;
         });
-        this.revisionWorker = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "minecraft-protocol-observation-revisions");
-            thread.setDaemon(true);
-            return thread;
-        });
+        this.revisionWorker = new BoundedTaskExecutor(
+                "minecraft-protocol-observation-revisions", 1, 8);
     }
 
     void installProviderDispatcher(ProviderExecutionEngine.Dispatcher dispatcher) {
@@ -171,6 +169,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         }
         json.add("providers", providers);
         json.add("providerRuntime", this.providerExecution.diagnostics());
+        json.add("revisionRuntime", this.revisionWorker.diagnostics());
+        json.add("lifecycleRuntime", this.lifecycles.diagnostics());
         json.addProperty("providerPolicyVersion", "phase9b1-provider-policy-v0");
         JsonObject hooks = new JsonObject();
         hooks.addProperty("ticketHook", this.ticketHookVerified.get() ? "runtime_verified" : "unverified_until_deep_observation");
@@ -225,7 +225,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (this.closed.get()) {
             return CompletableFuture.failedFuture(new CancellationException("observation_runtime_closed"));
         }
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<JsonObject> submitted = this.revisionWorker.submit(() -> {
             long revisionStarted = System.nanoTime();
             JsonArray revisionRefs = canonicalResourceRevisions(canonicalSnapshot);
             long revisionMicros = (System.nanoTime() - revisionStarted) / 1_000L;
@@ -235,7 +235,20 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             applyProjection(visible, request);
             visible.addProperty("type", "deep_observation.server_snapshot");
             return visible;
-        }, this.revisionWorker);
+        });
+        CompletableFuture<JsonObject> result = new CompletableFuture<>();
+        submitted.whenComplete((value, error) -> {
+            if (error instanceof java.util.concurrent.RejectedExecutionException) {
+                result.completeExceptionally(new ProtocolState.ProtocolException(
+                        "REVISION_BACKPRESSURE", 429,
+                        "Detached revision queue is full"));
+            } else if (error != null) {
+                result.completeExceptionally(error);
+            } else {
+                result.complete(value);
+            }
+        });
+        return result;
     }
 
     CompletableFuture<JsonObject> formalize(
@@ -263,6 +276,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 server != null && server.has("_revisionComputationMicros")
                         ? server.get("_revisionComputationMicros").getAsLong() : 0L);
         metadata.addProperty("revisionThread", "detached_revision_worker");
+        metadata.addProperty("revisionQueueDepth", this.revisionWorker.queueDepth());
         response.add("metadata", metadata);
         JsonArray refs = resourceRevisions(client, server);
         response.add("resourceRevisionRefs", refs);
@@ -527,7 +541,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonArray resourceRevisions(JsonObject client, JsonObject server) {
         JsonArray refs = new JsonArray();
-        if (client != null) refs.add(this.revisions.revision("player", "client", canonicalClientPlayer(client)));
+        if (client != null) {
+            String uuid = client.has("uuid") ? client.get("uuid").getAsString() : "unavailable";
+            String key = uuid + "@client_known";
+            refs.add(this.revisions.revision(
+                    "player", key, "player:" + key + "@runtime_session",
+                    canonicalClientPlayer(client)));
+        }
         if (server == null) return refs;
         if (server.has("_canonicalResourceRevisionRefs")) {
             server.getAsJsonArray("_canonicalResourceRevisionRefs").forEach(element -> refs.add(element.deepCopy()));
@@ -539,33 +559,47 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonArray canonicalResourceRevisions(JsonObject server) {
         JsonArray refs = new JsonArray();
+        String dimension = server.has("dimension") ? server.get("dimension").getAsString() : "unknown";
         if (server.has("player")) {
             JsonObject player = server.getAsJsonObject("player");
-            refs.add(this.revisions.revision("player", player.get("uuid").getAsString(), player));
+            String key = player.get("uuid").getAsString() + "@server_authoritative";
+            refs.add(this.revisions.revision(
+                    "player", key, player.get("lifecycleId").getAsString(), player));
         }
         if (server.has("menu")) {
             JsonObject menu = server.getAsJsonObject("menu");
-            refs.add(this.revisions.revision("menu", menu.get("menuId").getAsString(), menu));
+            String key = menu.get("ownerUuid").getAsString()
+                    + "@menu:" + menu.get("menuId").getAsString();
+            refs.add(this.revisions.revision(
+                    "menu", key, menu.get("lifecycleId").getAsString(), menu));
         }
         if (server.has("entities")) for (JsonElement element : server.getAsJsonArray("entities")) {
             JsonObject entity = element.getAsJsonObject();
-            refs.add(this.revisions.revision("entity", entity.get("uuid").getAsString(), entity));
+            refs.add(this.revisions.revision(
+                    "entity", entity.get("uuid").getAsString(),
+                    entity.get("lifecycleId").getAsString(), entity));
         }
         if (server.has("blocks")) for (JsonElement element : server.getAsJsonArray("blocks")) {
             JsonObject block = element.getAsJsonObject();
-            refs.add(this.revisions.revision("block", block.get("key").getAsString(), block));
+            String key = dimension + "@" + block.get("key").getAsString();
+            refs.add(this.revisions.revision(
+                    "block", key, block.get("lifecycleId").getAsString(), block));
         }
         if (server.has("chunks")) for (JsonElement element : server.getAsJsonArray("chunks")) {
             JsonObject chunk = element.getAsJsonObject();
-            refs.add(this.revisions.revision("chunk", chunk.get("key").getAsString(), chunk));
+            String key = dimension + "@" + chunk.get("key").getAsString();
+            refs.add(this.revisions.revision(
+                    "chunk", key, chunk.get("lifecycleId").getAsString(), chunk));
         }
         if (server.has("blockEntities")) for (JsonElement element : server.getAsJsonArray("blockEntities")) {
             JsonObject blockEntity = element.getAsJsonObject();
-            String key = blockEntity.get("key").getAsString();
-            refs.add(this.revisions.revision("block_entity", key, canonicalBlockEntityBase(blockEntity)));
+            String key = dimension + "@" + blockEntity.get("key").getAsString();
+            String lifecycleId = blockEntity.get("lifecycleId").getAsString();
+            refs.add(this.revisions.revision(
+                    "block_entity", key, lifecycleId, canonicalBlockEntityBase(blockEntity)));
             if (blockEntity.has("serializedState")) {
                 refs.add(this.revisions.revision(
-                        "block_entity_serialized", key, blockEntity.get("serializedState")));
+                        "block_entity_serialized", key, lifecycleId, blockEntity.get("serializedState")));
             }
         }
         return refs;
@@ -780,6 +814,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonObject player(ServerPlayer player) {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", player.getUUID().toString());
+        json.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                "player", player.getUUID().toString(), player));
         json.addProperty("name", player.getName().getString());
         JsonObject position = new JsonObject();
         position.addProperty("x", player.getX());
@@ -823,24 +859,32 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(slot.getName(), item(player.getItemBySlot(slot)));
         json.add("equipment", equipment);
         JsonArray attributes = new JsonArray();
+        List<JsonObject> normalizedAttributes = new ArrayList<>();
         for (AttributeInstance instance : player.getAttributes().getSyncableAttributes()) {
             JsonObject attribute = new JsonObject();
             attribute.addProperty("id", instance.getAttribute().unwrapKey()
                     .map(key -> key.location().toString()).orElse("unregistered"));
             attribute.addProperty("base", instance.getBaseValue());
             attribute.addProperty("value", instance.getValue());
-            attributes.add(attribute);
+            normalizedAttributes.add(attribute);
         }
+        normalizedAttributes.sort(Comparator.comparing(
+                value -> value.get("id").getAsString()));
+        normalizedAttributes.forEach(attributes::add);
         json.add("attributes", attributes);
         JsonArray effects = new JsonArray();
+        List<JsonObject> normalizedEffects = new ArrayList<>();
         for (MobEffectInstance instance : player.getActiveEffects()) {
             JsonObject effect = new JsonObject();
             effect.addProperty("id", instance.getEffect().unwrapKey()
                     .map(key -> key.location().toString()).orElse("unregistered"));
             effect.addProperty("duration", instance.getDuration());
             effect.addProperty("amplifier", instance.getAmplifier());
-            effects.add(effect);
+            normalizedEffects.add(effect);
         }
+        normalizedEffects.sort(Comparator.comparing(
+                value -> value.get("id").getAsString()));
+        normalizedEffects.forEach(effects::add);
         json.add("effects", effects);
         json.addProperty("vehicle", player.getVehicle() == null ? "" : player.getVehicle().getUUID().toString());
         JsonArray passengers = new JsonArray();
@@ -865,6 +909,11 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonObject menu(ServerPlayer player) {
         JsonObject json = new JsonObject();
         json.addProperty("menuId", player.containerMenu.containerId);
+        json.addProperty("ownerUuid", player.getUUID().toString());
+        json.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                "menu",
+                player.getUUID() + ":" + player.containerMenu.containerId,
+                player.containerMenu));
         json.addProperty("role", player.containerMenu.containerId == 0 ? "player_inventory" : "container");
         json.addProperty("serverAuthoritative", true);
         json.addProperty("playerInventoryRelationship", true);
@@ -890,6 +939,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonObject entity(Entity entity) {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", entity.getUUID().toString());
+        json.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                "entity", entity.getUUID().toString(), entity));
         json.addProperty("runtimeId", entity.getId());
         json.addProperty("type", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
         json.addProperty("x", entity.getX());
@@ -933,6 +984,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
                 JsonObject value = new JsonObject();
                 value.addProperty("key", x + "," + z);
+                value.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                        "chunk", x + "," + z, chunk));
                 value.addProperty("chunkX", x);
                 value.addProperty("chunkZ", z);
                 value.addProperty("loaded", chunk != null);
@@ -965,6 +1018,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         SortedArraySet<Ticket<?>> tickets = ticketMap.get(key);
         JsonArray reasons = new JsonArray();
         JsonArray details = new JsonArray();
+        List<JsonObject> normalizedDetails = new ArrayList<>();
         Set<String> normalized = new HashSet<>();
         int loadingLevel = 34;
         if (tickets != null) for (Ticket<?> ticket : tickets) {
@@ -974,8 +1028,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             JsonObject detail = new JsonObject();
             detail.addProperty("type", rawType);
             detail.addProperty("level", ticket.getTicketLevel());
-            details.add(detail);
+            normalizedDetails.add(detail);
         }
+        normalizedDetails.sort(Comparator
+                .comparing((JsonObject value) -> value.get("type").getAsString())
+                .thenComparingInt(value -> value.get("level").getAsInt()));
+        normalizedDetails.forEach(details::add);
         normalized.stream().sorted().forEach(reasons::add);
         json.addProperty("loaded", chunk != null);
         json.addProperty("fullStatus", chunk == null ? "UNLOADED" : chunk.getFullStatus().toString());
@@ -1048,6 +1106,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 BlockEntity blockEntity = entry.getValue();
                 JsonObject value = new JsonObject();
                 value.addProperty("key", key(entry.getKey()));
+                value.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                        "block_entity", key(entry.getKey()), blockEntity));
                 value.addProperty("type", BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()).toString());
                 value.addProperty("loaded", true);
                 value.addProperty("readEffects", includeSerialized ? "serialization_hooks_invoked" : "none");
@@ -1086,6 +1146,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             BlockPos pos = new BlockPos(position.get("x").getAsInt(), position.get("y").getAsInt(), position.get("z").getAsInt());
             JsonObject value = new JsonObject();
             value.addProperty("key", key(pos));
+            value.addProperty("lifecycleId",
+                    "block:" + level.dimension().toString() + "@" + key(pos));
             value.addProperty("x", pos.getX());
             value.addProperty("y", pos.getY());
             value.addProperty("z", pos.getZ());
@@ -1392,7 +1454,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     public void close() {
         if (!this.closed.compareAndSet(false, true)) return;
         this.providerExecution.close();
-        this.revisionWorker.shutdownNow();
+        this.revisionWorker.close();
         this.storageWorker.shutdown();
         try {
             if (!this.storageWorker.awaitTermination(2L, TimeUnit.SECONDS)) this.storageWorker.shutdownNow();

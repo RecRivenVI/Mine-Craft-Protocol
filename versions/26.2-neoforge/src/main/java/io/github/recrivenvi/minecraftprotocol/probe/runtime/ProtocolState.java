@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 final class ProtocolState implements AutoCloseable {
+    static final int MAX_ACTIVE_DEEP_OBSERVATIONS = 16;
     static final String LEASE_HEADER = "X-MCP-Control-Lease";
     static final String REQUEST_ID_HEADER = "X-MCP-Request-Id";
     static final String PROTOCOL_HEADER = "X-MCP-Protocol-Version";
@@ -89,8 +90,14 @@ final class ProtocolState implements AutoCloseable {
                 this::auditProvider);
     }
 
-    void registerDeepObservation(
+    synchronized void registerDeepObservation(
             String requestId, DeepObservationRequestContext requestContext) {
+        if (this.deepObservations.size() >= MAX_ACTIVE_DEEP_OBSERVATIONS) {
+            throw new ProtocolException(
+                    "TOO_MANY_DEEP_OBSERVATIONS", 429,
+                    "At most " + MAX_ACTIVE_DEEP_OBSERVATIONS
+                            + " Deep Observation requests may be active");
+        }
         DeepObservationRequestContext previous = this.deepObservations.putIfAbsent(
                 requestId, requestContext);
         if (previous != null) {
@@ -449,6 +456,8 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("principalLifecycle", "runtime_token_lifetime");
         json.addProperty("bindAddress", "127.0.0.1");
         json.add("grantedScopes", grantedScopes);
+        json.addProperty("activeDeepObservations", this.deepObservations.size());
+        json.addProperty("maxActiveDeepObservations", MAX_ACTIVE_DEEP_OBSERVATIONS);
         return json;
     }
 

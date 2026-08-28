@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-phase9b1",
+    "version": "0.0.1-phase9b2",
     "description": "Unstable Phase 9B V0 contract with formal Deep Observation and Provider V2. This is not a frozen Wire Protocol v1.",
     "x-stability": "unstable"
   },
@@ -1629,6 +1629,7 @@
           "alignmentQuality": { "type": "string" },
           "revisionComputationMicros": { "type": "integer", "format": "int64", "minimum": 0 },
           "revisionThread": { "type": "string", "enum": ["detached_revision_worker"] },
+          "revisionQueueDepth": { "type": "integer", "minimum": 0, "maximum": 8 },
           "revisionTracker": {
             "type": "object",
             "required": ["sessionEpoch", "entryCount", "entryBound", "evictionCount", "generationHighWatermark"],
@@ -1645,12 +1646,35 @@
       },
       "ResourceRevisionRef": {
         "type": "object",
-        "required": ["resourceType", "resourceKey", "revision", "revisionSource"],
+        "required": ["sessionEpoch", "resourceType", "resourceKey", "lifecycleId", "revision", "revisionSource", "revisionScope", "mutationPreconditionEligible"],
         "properties": {
+          "sessionEpoch": { "type": "string", "format": "uuid" },
           "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "block", "chunk", "block_entity", "block_entity_serialized", "provider"] },
           "resourceKey": { "type": "string" },
+          "lifecycleId": { "type": "string" },
           "revision": { "type": "integer", "format": "int64", "minimum": 0 },
-          "revisionSource": { "type": "string", "enum": ["native_counter", "runtime_event_sequence", "snapshot_change_sequence", "provider_revision"] }
+          "revisionSource": { "type": "string", "enum": ["native_counter", "runtime_event_sequence", "snapshot_change_sequence", "provider_revision"] },
+          "revisionScope": { "type": "string", "enum": ["resource", "query_view"] },
+          "mutationPreconditionEligible": { "type": "boolean" },
+          "queryFingerprint": { "type": "string" }
+        }
+      },
+      "ResourceVersionToken": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ResourceRevisionRef" }
+        ],
+        "description": "Epoch- and lifecycle-bound token for future typed mutation preconditions."
+      },
+      "ResourceVersionPrecondition": {
+        "type": "object",
+        "required": ["expectedResourceVersion"],
+        "properties": {
+          "expectedResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" },
+          "valuePreconditions": {
+            "type": "object",
+            "description": "Optional domain value checks such as expectedBlockState, expectedItem or expectedMenuId.",
+            "additionalProperties": true
+          }
         }
       },
       "CapabilityLimitation": {
@@ -1681,7 +1705,7 @@
         "type": "object",
         "required": ["uuid", "name", "position", "pose", "health", "maxHealth", "inventory", "equipment", "dimension"],
         "properties": {
-          "uuid": { "type": "string", "format": "uuid" }, "name": { "type": "string" },
+          "uuid": { "type": "string", "format": "uuid" }, "lifecycleId": { "type": "string" }, "name": { "type": "string" },
           "position": { "type": "object", "required": ["x", "y", "z", "velocityX", "velocityY", "velocityZ", "yaw", "pitch"], "properties": { "x": {"type":"number"}, "y":{"type":"number"}, "z":{"type":"number"}, "previousX":{"type":"number"}, "previousY":{"type":"number"}, "previousZ":{"type":"number"}, "velocityX":{"type":"number"}, "velocityY":{"type":"number"}, "velocityZ":{"type":"number"}, "yaw":{"type":"number"}, "pitch":{"type":"number"} } },
           "pose": { "type": "string" }, "onGround": {"type":"boolean"}, "inWater":{"type":"boolean"}, "fallFlying":{"type":"boolean"},
           "health":{"type":"number"}, "maxHealth":{"type":"number"}, "absorption":{"type":"number"}, "food":{"type":"integer"}, "air":{"type":"integer"},
@@ -1696,19 +1720,19 @@
       },
       "EntitySnapshot": {
         "type":"object", "required":["uuid","runtimeId","type","x","y","z","velocityX","velocityY","velocityZ","yaw","pitch","pose","noGravity"],
-        "properties":{"uuid":{"type":"string","format":"uuid"},"runtimeId":{"type":"integer"},"type":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"velocityX":{"type":"number"},"velocityY":{"type":"number"},"velocityZ":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"pose":{"type":"string"},"noGravity":{"type":"boolean"},"health":{"type":"number"},"maxHealth":{"type":"number"},"equipment":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/ItemSnapshot"}},"effectCount":{"type":"integer"},"syncableAttributeCount":{"type":"integer"},"vehicle":{"type":"string"},"passengers":{"type":"array","items":{"type":"string"}}}
+        "properties":{"uuid":{"type":"string","format":"uuid"},"lifecycleId":{"type":"string"},"runtimeId":{"type":"integer"},"type":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"velocityX":{"type":"number"},"velocityY":{"type":"number"},"velocityZ":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"pose":{"type":"string"},"noGravity":{"type":"boolean"},"health":{"type":"number"},"maxHealth":{"type":"number"},"equipment":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/ItemSnapshot"}},"effectCount":{"type":"integer"},"syncableAttributeCount":{"type":"integer"},"vehicle":{"type":"string"},"passengers":{"type":"array","items":{"type":"string"}}}
       },
       "MenuSnapshot": {
-        "type":"object", "required":["menuId","role","serverAuthoritative","playerInventoryRelationship","slots","carriedStack"],
-        "properties":{"menuId":{"type":"integer"},"role":{"type":"string","enum":["player_inventory","container"]},"serverAuthoritative":{"type":"boolean","enum":[true]},"playerInventoryRelationship":{"type":"boolean"},"slots":{"type":"array","items":{"$ref":"#/components/schemas/ItemSnapshot"}},"carriedStack":{"$ref":"#/components/schemas/ItemSnapshot"}}
+        "type":"object", "required":["menuId","ownerUuid","lifecycleId","role","serverAuthoritative","playerInventoryRelationship","slots","carriedStack"],
+        "properties":{"menuId":{"type":"integer"},"ownerUuid":{"type":"string","format":"uuid"},"lifecycleId":{"type":"string"},"role":{"type":"string","enum":["player_inventory","container"]},"serverAuthoritative":{"type":"boolean","enum":[true]},"playerInventoryRelationship":{"type":"boolean"},"slots":{"type":"array","items":{"$ref":"#/components/schemas/ItemSnapshot"}},"carriedStack":{"$ref":"#/components/schemas/ItemSnapshot"}}
       },
       "BlockSnapshot": {
-        "type":"object", "required":["key","x","y","z","available","loadRequested"],
-        "properties":{"key":{"type":"string"},"x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"},"available":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"blockId":{"type":"string"},"properties":{"type":"object","additionalProperties":{"type":"string"}},"reason":{"type":"string","enum":["NOT_LOADED"]}}
+        "type":"object", "required":["key","lifecycleId","x","y","z","available","loadRequested"],
+        "properties":{"key":{"type":"string"},"lifecycleId":{"type":"string"},"x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"},"available":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"blockId":{"type":"string"},"properties":{"type":"object","additionalProperties":{"type":"string"}},"reason":{"type":"string","enum":["NOT_LOADED"]}}
       },
       "BlockEntitySnapshot": {
-        "type":"object", "required":["key","type","loaded","readEffects"],
-        "properties":{"key":{"type":"string"},"type":{"type":"string"},"loaded":{"type":"boolean"},"readEffects":{"type":"string","enum":["none","serialization_hooks_invoked"]},"serializedBytes":{"type":"integer"},"serializedStateStatus":{"type":"string","enum":["complete","truncated"]},"serializedState":{"type":"object"},"limitation":{"type":"string"}}
+        "type":"object", "required":["key","lifecycleId","type","loaded","readEffects"],
+        "properties":{"key":{"type":"string"},"lifecycleId":{"type":"string"},"type":{"type":"string"},"loaded":{"type":"boolean"},"readEffects":{"type":"string","enum":["none","serialization_hooks_invoked"]},"serializedBytes":{"type":"integer"},"serializedStateStatus":{"type":"string","enum":["complete","truncated"]},"serializedState":{"type":"object"},"limitation":{"type":"string"}}
       },
       "ScheduledTickSnapshot": {
         "type":"object", "required":["x","y","z","type","triggerTick","priority","subTickOrder","chunkX","chunkZ"],
@@ -1719,16 +1743,16 @@
         "properties":{"loaded":{"type":"boolean"},"fullStatus":{"type":"string"},"loadingLevel":{"type":"integer"},"simulationLevel":{"type":"integer"},"simulationActive":{"type":"boolean"},"sourceCount":{"type":"integer"},"holderState":{"type":"string"},"ticketDetailAvailable":{"type":"boolean"},"reasons":{"type":"array","items":{"type":"string","enum":["player","forced","portal","lighting","spawn_or_start","other"]}},"targetDiagnostic":{"type":"object","description":"Target-specific diagnostic-only ticket schema"}}
       },
       "ChunkSnapshot": {
-        "type":"object", "required":["key","chunkX","chunkZ","loaded","loadRequested"],
-        "properties":{"key":{"type":"string"},"chunkX":{"type":"integer"},"chunkZ":{"type":"integer"},"loaded":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"status":{"type":"string"},"sectionCount":{"type":"integer"},"nonEmptySections":{"type":"integer"},"blockEntityCount":{"type":"integer"},"loadingSummary":{"$ref":"#/components/schemas/ChunkLoadingSummary"},"scheduledBlockTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"scheduledFluidTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"reason":{"type":"string"}}
+        "type":"object", "required":["key","lifecycleId","chunkX","chunkZ","loaded","loadRequested"],
+        "properties":{"key":{"type":"string"},"lifecycleId":{"type":"string"},"chunkX":{"type":"integer"},"chunkZ":{"type":"integer"},"loaded":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"status":{"type":"string"},"sectionCount":{"type":"integer"},"nonEmptySections":{"type":"integer"},"blockEntityCount":{"type":"integer"},"loadingSummary":{"$ref":"#/components/schemas/ChunkLoadingSummary"},"scheduledBlockTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"scheduledFluidTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"reason":{"type":"string"}}
       },
       "WorldSnapshot": {
         "type":"object", "required":["dimension","gameTime","raining","thundering","blockScheduledTickCount","fluidScheduledTickCount","serverTick"],
         "properties":{"dimension":{"type":"string"},"gameTime":{"type":"integer","format":"int64"},"dayTime":{"oneOf":[{"type":"integer","format":"int64"},{"type":"string"}]},"raining":{"type":"boolean"},"thundering":{"type":"boolean"},"blockScheduledTickCount":{"type":"integer"},"fluidScheduledTickCount":{"type":"integer"},"serverTick":{"type":"integer","format":"int64"}}
       },
       "ProviderV2Result": {
-        "type":"object", "required":["providerId","schemaVersion","snapshotSchema","querySchema","threadAffinity","readEffects","snapshotSafe","revisionSource","deltaCapability","status"],
-        "properties":{"providerId":{"type":"string"},"schemaVersion":{"type":"string"},"snapshotSchema":{"type":"string"},"querySchema":{"type":"string"},"threadAffinity":{"type":"string","enum":["detached_provider_worker","client_thread","server_thread","render_thread"]},"perspectives":{"type":"array","items":{"type":"string","enum":["client_known","server_authoritative"]}},"requiredScopes":{"type":"array","items":{"type":"string"}},"resolvedPerspective":{"type":"string"},"readEffects":{"type":"string"},"snapshotSafe":{"type":"boolean"},"mayInitialize":{"type":"boolean"},"mayLoadData":{"type":"boolean"},"mayAccessStorage":{"type":"boolean"},"mayMutate":{"type":"boolean"},"revisionSource":{"type":"string"},"deltaCapability":{"type":"string","enum":["native_event_delta","native_typed_delta","snapshot_diff_delta","none"]},"debugSupported":{"type":"boolean"},"status":{"type":"string","enum":["registered","completed","skipped","failed","permission_denied","degraded"]},"reason":{"type":"string"},"schemaDetail":{"type":"string"},"providerRevision":{"type":"integer","format":"int64","minimum":0},"bytes":{"type":"integer"},"entryDurationMicros":{"type":"integer","format":"int64","minimum":0},"validationDurationMicros":{"type":"integer","format":"int64","minimum":0},"durationMicros":{"type":"integer","format":"int64","minimum":0},"data":{"type":"object"}}
+        "type":"object", "required":["providerId","schemaVersion","snapshotSchema","querySchema","threadAffinity","readEffects","snapshotSafe","revisionSource","revisionScope","revisionQueryInvariant","deltaCapability","status"],
+        "properties":{"providerId":{"type":"string"},"schemaVersion":{"type":"string"},"snapshotSchema":{"type":"string"},"querySchema":{"type":"string"},"threadAffinity":{"type":"string","enum":["detached_provider_worker","client_thread","server_thread","render_thread"]},"perspectives":{"type":"array","items":{"type":"string","enum":["client_known","server_authoritative"]}},"requiredScopes":{"type":"array","items":{"type":"string"}},"resolvedPerspective":{"type":"string"},"readEffects":{"type":"string"},"snapshotSafe":{"type":"boolean"},"mayInitialize":{"type":"boolean"},"mayLoadData":{"type":"boolean"},"mayAccessStorage":{"type":"boolean"},"mayMutate":{"type":"boolean"},"revisionSource":{"type":"string"},"revisionScope":{"type":"string","enum":["resource","query_view"]},"revisionSchema":{"type":"string"},"revisionQueryInvariant":{"type":"boolean"},"queryFingerprint":{"type":"string"},"deltaCapability":{"type":"string","enum":["native_event_delta","native_typed_delta","snapshot_diff_delta","none"]},"debugSupported":{"type":"boolean"},"status":{"type":"string","enum":["registered","completed","skipped","failed","permission_denied","degraded"]},"reason":{"type":"string"},"schemaDetail":{"type":"string"},"providerRevision":{"type":"integer","format":"int64","minimum":0},"bytes":{"type":"integer"},"entryDurationMicros":{"type":"integer","format":"int64","minimum":0},"validationDurationMicros":{"type":"integer","format":"int64","minimum":0},"durationMicros":{"type":"integer","format":"int64","minimum":0},"data":{"type":"object"}}
       },
       "DeepObservationServerSnapshot": {
         "type":"object",

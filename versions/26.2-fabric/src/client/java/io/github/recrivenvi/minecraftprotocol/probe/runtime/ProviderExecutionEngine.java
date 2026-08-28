@@ -9,13 +9,15 @@ import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -26,24 +28,26 @@ import java.util.concurrent.atomic.AtomicLong;
 final class ProviderExecutionEngine implements AutoCloseable {
     private static final Gson GSON = new Gson();
     static final long ENTRY_BUDGET_MICROS = 10_000L;
+    static final int WORKER_THREADS = 2;
+    static final int WORKER_QUEUE_CAPACITY = 16;
+    private static final int MAX_NATIVE_REVISION_STATES = 256;
 
     private final ObservationRevisionTracker revisions;
-    private final ExecutorService worker;
+    private final BoundedTaskExecutor worker;
     private final ScheduledExecutorService scheduler;
     private final AtomicLong generation = new AtomicLong();
     private final ConcurrentHashMap<Long, Invocation> pending = new ConcurrentHashMap<>();
     private final Set<String> quarantined = ConcurrentHashMap.newKeySet();
+    private final Map<String, NativeRevisionState> nativeRevisionStates =
+            new LinkedHashMap<>(64, 0.75F, true);
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile Dispatcher dispatcher = (provider, context, affinity) ->
             CompletableFuture.completedFuture(Entry.unsupported(affinity));
 
     ProviderExecutionEngine(ObservationRevisionTracker revisions) {
         this.revisions = revisions;
-        this.worker = Executors.newFixedThreadPool(2, runnable -> {
-            Thread thread = new Thread(runnable, "minecraft-protocol-provider-worker");
-            thread.setDaemon(true);
-            return thread;
-        });
+        this.worker = new BoundedTaskExecutor(
+                "minecraft-protocol-provider-worker", WORKER_THREADS, WORKER_QUEUE_CAPACITY);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "minecraft-protocol-provider-timeouts");
             thread.setDaemon(true);
@@ -138,6 +142,11 @@ final class ProviderExecutionEngine implements AutoCloseable {
         json.addProperty("pendingInvocations", this.pending.size());
         json.addProperty("quarantinedProviders", this.quarantined.size());
         json.addProperty("invocationGeneration", this.generation.get());
+        json.add("worker", this.worker.diagnostics());
+        synchronized (this.nativeRevisionStates) {
+            json.addProperty("nativeRevisionStateEntries", this.nativeRevisionStates.size());
+            json.addProperty("nativeRevisionStateBound", MAX_NATIVE_REVISION_STATES);
+        }
         return json;
     }
 
@@ -150,7 +159,7 @@ final class ProviderExecutionEngine implements AutoCloseable {
             int byteBudget) {
         long started = System.nanoTime();
         CompletableFuture<Entry> entryFuture = "detached_provider_worker".equals(descriptor.threadAffinity())
-                ? CompletableFuture.supplyAsync(() -> enter(provider, context, true), this.worker)
+                ? this.worker.submit(() -> enter(provider, context, true))
                 : this.dispatcher.dispatch(provider, context, descriptor.threadAffinity());
         requestContext.track(entryFuture);
         CompletableFuture<JsonObject> result = new CompletableFuture<>();
@@ -161,7 +170,10 @@ final class ProviderExecutionEngine implements AutoCloseable {
                 return;
             }
             if (entryError != null) {
-                fail(result, descriptor, requestContext, context.perspective(), started, "provider_entry_exception", 0L);
+                fail(result, descriptor, requestContext, context.perspective(), started,
+                        entryError instanceof RejectedExecutionException
+                                ? "provider_worker_backpressure" : "provider_entry_exception",
+                        0L);
                 return;
             }
             if (!entry.supported() || !entry.ownerThreadObserved()) {
@@ -208,7 +220,7 @@ final class ProviderExecutionEngine implements AutoCloseable {
                     return;
                 }
                 result.complete(validate(
-                        descriptor, data, context.perspective(), started,
+                        descriptor, data, context.query(), context.perspective(), started,
                         entry.entryDurationMicros(), byteBudget, requestContext));
             });
         });
@@ -227,6 +239,7 @@ final class ProviderExecutionEngine implements AutoCloseable {
     private JsonObject validate(
             AgentDataProviderV2.Descriptor descriptor,
             JsonObject payload,
+            JsonObject query,
             String perspective,
             long started,
             long entryDurationMicros,
@@ -240,6 +253,24 @@ final class ProviderExecutionEngine implements AutoCloseable {
         }
         if (!payload.has("data") || !payload.get("data").isJsonObject()) {
             return failure(descriptor, requestContext, perspective, started, "schema_violation", entryDurationMicros);
+        }
+        JsonObject revisionState = payload.has("revisionState") && payload.get("revisionState").isJsonObject()
+                ? payload.getAsJsonObject("revisionState") : null;
+        if ("resource".equals(descriptor.revisionScope())) {
+            if (revisionState == null) {
+                return quarantineFailure(
+                        descriptor, requestContext, perspective, started,
+                        "provider_revision_state_missing", entryDurationMicros);
+            }
+            ProviderSchemaRegistry.ValidationResult revisionSchema =
+                    ProviderSchemaRegistry.validate(descriptor.revisionSchema(), revisionState);
+            if (!revisionSchema.valid()) {
+                JsonObject failed = quarantineFailure(
+                        descriptor, requestContext, perspective, started,
+                        "provider_revision_state_schema_violation", entryDurationMicros);
+                failed.addProperty("schemaDetail", revisionSchema.reason());
+                return failed;
+            }
         }
         ProviderSchemaRegistry.ValidationResult schema =
                 ProviderSchemaRegistry.validate(descriptor.snapshotSchema(), payload.getAsJsonObject("data"));
@@ -256,6 +287,9 @@ final class ProviderExecutionEngine implements AutoCloseable {
         result.addProperty("resolvedPerspective", perspective);
         result.add("data", payload.getAsJsonObject("data").deepCopy());
         result.addProperty("revisionSource", descriptor.revisionSource());
+        result.addProperty("revisionScope", descriptor.revisionScope());
+        result.addProperty("revisionQueryInvariant", descriptor.revisionQueryInvariant());
+        String providerLifecycle = "provider:" + descriptor.providerId() + "@runtime_registration";
         if ("provider_revision".equals(descriptor.revisionSource())) {
             if (!payload.has("providerRevision") || !payload.get("providerRevision").isJsonPrimitive()
                     || !payload.getAsJsonPrimitive("providerRevision").isNumber()
@@ -263,12 +297,27 @@ final class ProviderExecutionEngine implements AutoCloseable {
                 return failure(descriptor, requestContext, perspective, started, "provider_revision_missing_or_invalid", entryDurationMicros);
             }
             long providerRevision = payload.get("providerRevision").getAsLong();
+            String revisionFingerprint = ObservationRevisionTracker.fingerprint(revisionState);
+            String integrityFailure = validateNativeRevision(
+                    descriptor.providerId(), providerRevision, revisionFingerprint);
+            if (integrityFailure != null) {
+                return quarantineFailure(
+                        descriptor, requestContext, perspective, started,
+                        integrityFailure, entryDurationMicros);
+            }
             result.addProperty("providerRevision", providerRevision);
             result.add("_revisionRef", this.revisions.nativeRevision(
-                    "provider", descriptor.providerId(), providerRevision, "provider_revision"));
-        } else {
+                    "provider", descriptor.providerId(), providerLifecycle,
+                    providerRevision, "provider_revision"));
+        } else if ("resource".equals(descriptor.revisionScope())) {
             result.add("_revisionRef", this.revisions.revision(
-                    "provider", descriptor.providerId(), payload.getAsJsonObject("data")));
+                    "provider", descriptor.providerId(), providerLifecycle, revisionState));
+        } else {
+            String queryFingerprint = ObservationRevisionTracker.fingerprint(query);
+            result.addProperty("queryFingerprint", queryFingerprint);
+            result.add("_revisionRef", this.revisions.queryViewRevision(
+                    "provider", descriptor.providerId(), providerLifecycle,
+                    queryFingerprint, payload.getAsJsonObject("data")));
         }
         result.addProperty("bytes", bytes);
         result.addProperty("entryDurationMicros", entryDurationMicros);
@@ -309,6 +358,35 @@ final class ProviderExecutionEngine implements AutoCloseable {
             long entryDurationMicros) {
         target.complete(failure(
                 descriptor, requestContext, perspective, started, reason, entryDurationMicros));
+    }
+
+    private JsonObject quarantineFailure(
+            AgentDataProviderV2.Descriptor descriptor,
+            DeepObservationRequestContext requestContext,
+            String perspective,
+            long started,
+            String reason,
+            long entryDurationMicros) {
+        this.quarantined.add(descriptor.providerId());
+        return failure(
+                descriptor, requestContext, perspective, started, reason, entryDurationMicros);
+    }
+
+    private String validateNativeRevision(
+            String providerId, long revision, String revisionStateFingerprint) {
+        synchronized (this.nativeRevisionStates) {
+            NativeRevisionState previous = this.nativeRevisionStates.get(providerId);
+            if (previous != null) {
+                if (revision < previous.revision()) return "provider_revision_regressed";
+                if (revision == previous.revision()
+                        && !revisionStateFingerprint.equals(previous.fingerprint())) {
+                    return "provider_revision_inconsistent";
+                }
+            }
+            this.nativeRevisionStates.put(
+                    providerId, new NativeRevisionState(revision, revisionStateFingerprint));
+            return null;
+        }
     }
 
     private JsonObject failure(
@@ -380,6 +458,9 @@ final class ProviderExecutionEngine implements AutoCloseable {
         json.addProperty("mayAccessStorage", descriptor.mayAccessStorage());
         json.addProperty("mayMutate", descriptor.mayMutate());
         json.addProperty("revisionSource", descriptor.revisionSource());
+        json.addProperty("revisionScope", descriptor.revisionScope());
+        json.addProperty("revisionSchema", descriptor.revisionSchema());
+        json.addProperty("revisionQueryInvariant", descriptor.revisionQueryInvariant());
         json.addProperty("deltaCapability", descriptor.deltaCapability());
         json.addProperty("debugSupported", descriptor.debugDeclaration().supported());
         JsonArray perspectives = new JsonArray();
@@ -432,7 +513,7 @@ final class ProviderExecutionEngine implements AutoCloseable {
         }
         this.pending.clear();
         this.scheduler.shutdownNow();
-        this.worker.shutdownNow();
+        this.worker.close();
     }
 
     @FunctionalInterface
@@ -465,5 +546,8 @@ final class ProviderExecutionEngine implements AutoCloseable {
         Invocation(long generation, CompletableFuture<JsonObject> underlying, CompletableFuture<JsonObject> result) {
             this(generation, underlying, result, new AtomicBoolean());
         }
+    }
+
+    private record NativeRevisionState(long revision, String fingerprint) {
     }
 }

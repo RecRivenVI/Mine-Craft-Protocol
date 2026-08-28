@@ -95,6 +95,28 @@ final class ProtocolStateTest {
         }
     }
 
+    @Test
+    void activeDeepObservationRegistryIsBounded() {
+        try (ProtocolState state = state()) {
+            for (int index = 0; index < ProtocolState.MAX_ACTIVE_DEEP_OBSERVATIONS; index++) {
+                state.registerDeepObservation(
+                        "request-" + index,
+                        new DeepObservationRequestContext(
+                                Set.of("read"), "principal", "request-" + index,
+                                "connection", 0L, ignored -> { }));
+            }
+            ProtocolState.ProtocolException failure = assertThrows(
+                    ProtocolState.ProtocolException.class,
+                    () -> state.registerDeepObservation(
+                            "overflow",
+                            new DeepObservationRequestContext(
+                                    Set.of("read"), "principal", "overflow",
+                                    "connection", 0L, ignored -> { })));
+            assertEquals("TOO_MANY_DEEP_OBSERVATIONS", failure.code());
+            assertEquals(429, failure.httpStatus());
+        }
+    }
+
     private static ProtocolState state() {
         return new ProtocolState(
                 Set.of("read", "input", "control", "event", "diagnostics", "command"),

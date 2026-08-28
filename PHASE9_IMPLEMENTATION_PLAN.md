@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9B PASS — CONTRACT HARDENED
+> Status: Phase 9B PASS — CONTRACT + REVISION IDENTITY HARDENED
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9B.1 is complete; Phase 9C is not started and awaits independent review; Phase 10 is not started
+> Current phase boundary: Phase 9B.2 is complete; Phase 9C is not started and awaits independent review; Phase 10 is not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -37,6 +37,14 @@ PARTIAL
 UNAVAILABLE
 REQUIRES_NEW_HOOK
 ```
+
+### 1.1 Platform Charter Boundary
+
+The long-term product definition is now the **Agent-native Minecraft Development, Debugging and Testing Platform** described by `PLATFORM_VISION.md`. The Minecraft Agent Control Runtime remains its Runtime Control, Testing and Observation subsystem.
+
+This charter evolution does not change Phase 9 scope, implementation order, evidence or exit gates. Source/Mapping/Mod Intelligence, Runtime-to-source correlation, Safe Probe, unsafe Exploratory JVM and Human Inspector are separate `PLANNED` Platform capabilities. They are not Phase 9B deliverables and have not started implementation.
+
+Phase 9C must still pass its independent entry review and preserve strongly typed Minecraft-domain mutations. A future exploratory path cannot compensate for a missing or incorrect typed Debug contract. Runtime Phase 9C-9G and Phase 10 remain unchanged; Development Intelligence and Platform Integration use separate parallel tracks and separate gates.
 
 ## 2. Entry Reconciliation
 
@@ -463,6 +471,8 @@ Promote 1.21.1/26.1.2, run five-Target capability matrix, 20-minute mixed stress
 
 Exit gate: Phase 9 DoD is evidence-backed and Phase 10 becomes ready for a separate independent review.
 
+The Platform charter does not append Development Intelligence work to Phase 9 or renumber it as Phase 11+. After a separately authorized Phase 9C establishes stable typed Debug boundaries, later Runtime work and separately authorized DI architecture/implementation may proceed in parallel. Neither track can waive the other's gate.
+
 ## 15. Phase 9A Conformance and Exit
 
 Phase 9A conformance lives in `conformance/phase9/` and is separate from Phase 8:
@@ -507,7 +517,7 @@ GET  /v0/observe/deep/capabilities
 POST /v0/observe/deep
 ```
 
-OpenAPI V0 version is `0.0.1-phase9b1`; Wire Protocol v1 remains unfrozen. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
+OpenAPI V0 version is `0.0.1-phase9b2`; Wire Protocol v1 remains unfrozen. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
 
 Every formal response carries `ObservationMetadata`, session epoch, snapshot ID, client/server ticks, alignment quality, limitations and resource-local `ResourceRevisionRef` values. Runtime-derived revisions use canonical semantic state captured before response projection. Provider results retain their declared provider revision source. Block Entity lifecycle/type state and opt-in serialized state have separate revisions. No global world revision exists.
 
@@ -586,7 +596,8 @@ Phase 10 advanced diagnostics/recovery
 
 ```text
 Phase 9B.1: PASS
-Phase 9B: PASS — CONTRACT HARDENED
+Phase 9B.2: PASS
+Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 ```
@@ -644,3 +655,51 @@ Representative NeoForge 26.2 performance after moving revision work off the owne
 The final five-Target matrix observed a 5,772 us worst owner-thread capture, below the 12 ms hard budget. Revision canonicalization, hashing and response projection run on `minecraft-protocol-observation-revisions`; their cost is reported separately and does not block the Client/Server owner thread. Provider entry, validation and total duration are also emitted separately.
 
 MCP cancellation is protocol-era aware. Runtime HTTP deadline, disconnect and typed `DELETE /v0/requests/{requestId}` cancellation are implemented and live-tested. Modern MCP contexts that deliver an AbortSignal invoke the typed cancel route. The currently negotiated `2025-11-25` stdio transport does not deliver cancellation notifications to the Companion handler; it therefore uses the explicit operation cancel Tool for operations and always sends a Runtime deadline for Deep Observation rather than claiming unsupported early cancellation.
+
+## 18. Phase 9B.2 Revision Identity / Canonicalization Evidence
+
+### 18.1 Canonical collection semantics
+
+| Domain | Collection semantics | Normalization | Revision behavior |
+|---|---|---|---|
+| Inventory | ordered by slot index | capture order preserved | slot/content swap changes revision |
+| Menu slots | ordered by slot index | capture order preserved | slot/content swap changes revision |
+| Attributes | unordered set | sorted by registry ID | source iteration reorder is stable |
+| Effects | unordered set | sorted by effect ID | source iteration reorder is stable |
+| Passengers | ordered by Minecraft relationship order | preserved | reorder changes revision |
+| Entity query results | unordered resource collection | sorted by UUID | source iteration reorder is stable |
+| NBT List | ordered | preserved | reorder changes serialized BE revision |
+| Provider JSON array | ordered by default | Provider contract may normalize explicitly | reorder changes fallback revision state |
+
+Generic canonicalization sorts JSON object keys and preserves every JSON array in original order. It no longer guesses set semantics.
+
+### 18.2 Provider revision contract
+
+Provider descriptors now declare revisionSource, revisionScope, revisionSchema and revisionQueryInvariant. Resource-scoped fallback providers supply a bounded revisionState independent from query-shaped data. Query-view fallback revisions include a query fingerprint in identity and are not mutation-precondition eligible. Native provider revisions are resource scoped, non-decreasing and checked against canonical revisionState; regression or same-revision/different-state is rejected and quarantines the provider.
+
+### 18.3 Resource version token
+
+Every ResourceRevisionRef now carries sessionEpoch, resourceType, resourceKey, lifecycleId, revision, revisionSource, revisionScope and mutationPreconditionEligible. ResourceVersionVerifier provides stable STALE_SESSION_EPOCH, RESOURCE_MISMATCH, STALE_RESOURCE_REVISION and RESOURCE_VERSION_NOT_PRECONDITION_ELIGIBLE outcomes without implementing any Debug mutation.
+
+Session-local lifecycle generations are assigned to Player, Menu, Entity, Chunk and Block Entity objects. Menu ID reuse, entity recreation, Block Entity replacement and chunk unload/reload therefore invalidate old tokens even when the semantic key is reused. The lifecycle map and revision tracker are both bounded at 4,096 entries; reset/eviction allocates new monotonic generations rather than aliasing history.
+
+### 18.4 Executor bounds
+
+| Executor | Threads | Queue | Overload |
+|---|---:|---:|---|
+| Detached revision | 1 | 8 | request fails with REVISION_BACKPRESSURE / HTTP 429 |
+| Detached Provider entry | 2 | 16 | provider result fails with provider_worker_backpressure |
+
+Active Deep Observation requests are bounded at 16. Provider pending work is therefore bounded by 16 requests x 8 providers, while entry and revision queues remain independently bounded. Forced unit overload and 16-request live concurrency both pass; the representative run completed 15 requests and rejected one with controlled 429, with queues returning to zero and session latency at 7 ms.
+
+### 18.5 Five-Target final matrix
+
+| Target | Canonical | Provider revision | Epoch | Lifecycle | Executors | Formal 9B | V1 |
+|---|---|---|---|---|---|---|---|
+| Forge 1.20.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 1.21.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.1.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| Fabric 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+
+Across the final Phase 9B.1/9B.2 matrices, the worst observed owner-thread capture was 5,839 us, detached revision was 4,656 us and Provider validation was 141 us. Owner-thread work remains below the 12 ms hard budget.

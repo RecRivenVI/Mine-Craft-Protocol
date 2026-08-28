@@ -7,7 +7,7 @@ $ErrorActionPreference='Stop'
 $base=$BaseUri.TrimEnd('/');$token=(Get-Content $TokenFile -Raw).Trim();$auth=@{Authorization="Bearer $token"}
 function A([bool]$c,[string]$m){if(-not$c){throw "Phase 9B.1 revision failed: $m"}}
 function J([string]$m,[string]$p,$h,$b){$q=@{Uri=$base+$p;Method=$m;Headers=$h};if($null-ne$b){$q.ContentType='application/json';$q.Body=$b|ConvertTo-Json -Depth 50 -Compress};Invoke-RestMethod @q}
-function Ref($response,[string]$type,[string]$key=''){$values=@($response.resourceRevisionRefs|Where-Object -Property resourceType -eq $type);if($key){$values=@($values|Where-Object -Property resourceKey -eq $key)};if($values.Count){return $values[0]};return $null}
+function Ref($response,[string]$type,[string]$key=''){$values=@($response.resourceRevisionRefs|Where-Object -Property resourceType -eq $type);if($key){$exact=@($values|Where-Object -Property resourceKey -eq $key);$values=if($exact.Count){$exact}else{@($values|Where-Object {$_.resourceKey.EndsWith("@$key")})}};if($values.Count){return $values[0]};return $null}
 function Observe($projection,[bool]$serialized){J POST '/v0/observe/deep' $auth @{perspective='server_authoritative';domains=@('player','entities','blocks','block_entities','chunks','menu');selector=@{chunkRadius=0;entityRadius=16;blocks=@(@{x=$script:x;y=$script:y;z=$script:z})};projection=$projection;includeSerializedBlockEntities=$serialized;includeProviderData=$false;budgets=@{maxEntities=32;maxBlockEntities=32;maxResponseBytes=524288}}}
 $session=J GET '/v0/session' $auth $null;A($session.target-eq$ExpectedTarget-and$session.inWorld)'target/world'
 $player=J GET '/v0/player' $auth $null;$script:x=[math]::Floor($player.x)+2;$script:y=[math]::Floor($player.y)-1;$script:z=[math]::Floor($player.z)

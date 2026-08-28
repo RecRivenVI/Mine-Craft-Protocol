@@ -7,15 +7,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Bounded resource-local state generations; never a global world transaction token. */
+/** Bounded, epoch-bound resource state generations; never a global world transaction token. */
 final class ObservationRevisionTracker {
     static final int DEFAULT_MAX_ENTRIES = 4_096;
 
@@ -36,7 +33,19 @@ final class ObservationRevisionTracker {
     }
 
     synchronized JsonObject revision(String resourceType, String resourceKey, JsonElement canonicalState) {
-        String key = resourceType + "|" + resourceKey;
+        return revision(
+                resourceType,
+                resourceKey,
+                resourceType + ":" + resourceKey + "@session",
+                canonicalState);
+    }
+
+    synchronized JsonObject revision(
+            String resourceType,
+            String resourceKey,
+            String lifecycleId,
+            JsonElement canonicalState) {
+        String key = resourceType + "|" + resourceKey + "|" + lifecycleId;
         String fingerprint = fingerprint(canonicalState);
         State previous = this.states.get(key);
         long revision = previous != null && previous.fingerprint().equals(fingerprint)
@@ -44,13 +53,44 @@ final class ObservationRevisionTracker {
                 : ++this.nextGeneration;
         this.states.put(key, new State(revision, fingerprint));
         this.evictIfNeeded();
-        return reference(resourceType, resourceKey, revision, "snapshot_change_sequence");
+        return reference(
+                resourceType, resourceKey, lifecycleId, revision,
+                "snapshot_change_sequence", "resource", true);
+    }
+
+    synchronized JsonObject queryViewRevision(
+            String resourceType,
+            String resourceKey,
+            String lifecycleId,
+            String queryFingerprint,
+            JsonElement canonicalView) {
+        String scopedKey = resourceKey + "?query=" + queryFingerprint;
+        String scopedLifecycle = lifecycleId + "?query=" + queryFingerprint;
+        String key = resourceType + "|" + scopedKey + "|" + scopedLifecycle;
+        String fingerprint = fingerprint(canonicalView);
+        State previous = this.states.get(key);
+        long revision = previous != null && previous.fingerprint().equals(fingerprint)
+                ? previous.revision()
+                : ++this.nextGeneration;
+        this.states.put(key, new State(revision, fingerprint));
+        this.evictIfNeeded();
+        JsonObject reference = reference(
+                resourceType, scopedKey, scopedLifecycle, revision,
+                "snapshot_change_sequence", "query_view", false);
+        reference.addProperty("queryFingerprint", queryFingerprint);
+        return reference;
     }
 
     synchronized JsonObject nativeRevision(
-            String resourceType, String resourceKey, long providerRevision, String revisionSource) {
+            String resourceType,
+            String resourceKey,
+            String lifecycleId,
+            long providerRevision,
+            String revisionSource) {
         if (providerRevision < 0L) throw new IllegalArgumentException("providerRevision must be non-negative");
-        return reference(resourceType, resourceKey, providerRevision, revisionSource);
+        return reference(
+                resourceType, resourceKey, lifecycleId, providerRevision,
+                revisionSource, "resource", true);
     }
 
     synchronized JsonObject diagnostics() {
@@ -61,6 +101,7 @@ final class ObservationRevisionTracker {
         json.addProperty("evictionCount", this.evictionCount);
         json.addProperty("generationHighWatermark", this.nextGeneration);
         json.addProperty("evictedResourceReobservation", "allocates_new_session_unique_generation");
+        json.addProperty("arraySemantics", "ordered_by_default");
         return json;
     }
 
@@ -76,13 +117,23 @@ final class ObservationRevisionTracker {
         }
     }
 
-    private static JsonObject reference(
-            String resourceType, String resourceKey, long revision, String revisionSource) {
+    private JsonObject reference(
+            String resourceType,
+            String resourceKey,
+            String lifecycleId,
+            long revision,
+            String revisionSource,
+            String revisionScope,
+            boolean mutationPreconditionEligible) {
         JsonObject json = new JsonObject();
+        json.addProperty("sessionEpoch", this.sessionEpoch);
         json.addProperty("resourceType", resourceType);
         json.addProperty("resourceKey", resourceKey);
+        json.addProperty("lifecycleId", lifecycleId);
         json.addProperty("revision", revision);
         json.addProperty("revisionSource", revisionSource);
+        json.addProperty("revisionScope", revisionScope);
+        json.addProperty("mutationPreconditionEligible", mutationPreconditionEligible);
         return json;
     }
 
@@ -100,15 +151,12 @@ final class ObservationRevisionTracker {
                     .forEach(key -> result.add(key, canonicalize(value.getAsJsonObject().get(key))));
             return result;
         }
-        List<JsonElement> values = new ArrayList<>();
-        value.getAsJsonArray().forEach(element -> values.add(canonicalize(element)));
-        values.sort(Comparator.comparing(JsonElement::toString));
         JsonArray result = new JsonArray();
-        values.forEach(result::add);
+        value.getAsJsonArray().forEach(element -> result.add(canonicalize(element)));
         return result;
     }
 
-    private static String fingerprint(JsonElement value) {
+    static String fingerprint(JsonElement value) {
         try {
             String canonical = canonicalize(value).toString();
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

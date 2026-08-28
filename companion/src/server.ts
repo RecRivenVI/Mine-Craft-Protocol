@@ -176,7 +176,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b1' });
+  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b2' });
 
   server.registerTool('minecraft_get_session', {
     title: 'Get Minecraft Session',

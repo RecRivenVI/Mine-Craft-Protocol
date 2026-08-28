@@ -26,6 +26,9 @@ public interface AgentDataProviderV2 {
             boolean mayAccessStorage,
             boolean mayMutate,
             String revisionSource,
+            String revisionScope,
+            String revisionSchema,
+            boolean revisionQueryInvariant,
             String deltaCapability,
             DebugDeclaration debugDeclaration,
             List<String> requiredScopes) {

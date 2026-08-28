@@ -1,17 +1,21 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Phase 9B Deep Observation / Provider V2 Complete — Contract Hardened
-> 文档版本：0.5
+> 文档状态：Platform Charter Adopted；Phase 9B Complete — Contract + Revision Identity Hardened
+> 文档版本：0.6
 > 编制日期：2026-08-27  
-> 修订日期：2026-08-28
-> 项目性质：Minecraft Java Agent 自动化、调试、录制与测试基础设施  
-> 当前阶段：Phase 8/V1 与 Phase 9B.1 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
+> 修订日期：2026-08-29
+> 项目性质：Agent-native Minecraft 开发、调试、自动测试与源码智能平台
+> 当前阶段：Phase 8/V1 与 Phase 9B.1/9B.2 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
 
 ---
 
 ## 1. 执行摘要
 
-本项目拟建设一套跨 Minecraft Java 版本、跨 Forge/NeoForge/Fabric Loader 的 **Minecraft Agent Control Runtime**。它在 Minecraft 客户端与可选服务器端 Peer 中提供深度观察、真实 GUI/键鼠操作、世界交互、特权调试、连续画面录制、世界状态录制、事件等待、断言、追踪与诊断能力，并通过稳定的原生 HTTP/WebSocket 协议以及独立 MCP Companion 向 Coding Agent、测试程序和其他自动化客户端开放。
+本项目的长期产品定义升级为 **Agent-native Minecraft Development, Debugging and Testing Platform**：面向 Coding Agent / Autonomous Agent 的 Minecraft Java 开发、运行时控制、深度调试、自动测试、源码理解、Mod 分析、录制诊断与开发辅助平台。
+
+现有 **Minecraft Agent Control Runtime** 不是被替换的旧产品，而是 Platform 内负责 Runtime Control、Testing 与 Observation 的核心子系统。它在 Minecraft 客户端与可选服务器端 Peer 中提供深度观察、真实 GUI/键鼠操作、世界交互、特权调试、连续画面录制、世界状态录制、事件等待、断言、追踪与诊断能力，并通过独立原生 HTTP/WebSocket 协议以及 MCP Companion 向 Agent 和测试程序开放。
+
+Platform 的新增长期边界包括 Source/Mapping/Mod Intelligence、Runtime 与 Source 双向关联、受控 Exploratory Debug、统一 Agent Surface 和可选 Human Developer Inspector。其工程章程、状态分层和并行路线以 `PLATFORM_VISION.md` 为准；这些 PLANNED/ULTIMATE 能力不构成当前实现声明，也不改变现有 Phase 9/10 Gate。
 
 项目不是普通的 Minecraft Bot，也不是简单地把 MCP SDK 嵌入游戏。其目标更接近以下能力的组合：
 
@@ -20,7 +24,10 @@
 - 面向游戏状态的调试器与测试夹具；
 - 画面、输入、世界状态、网络与事件的同步录制器；
 - 面向 Coding Agent 的自动等待、断言、回放和失败诊断平台；
-- 一个独立于 Minecraft 内部类名和 Loader API 的稳定控制协议。
+- 一个独立于 Minecraft 内部类名和 Loader API 的稳定控制协议；
+- 受管 Minecraft/Loader/Mod Artifact、Mapping、Source、Symbol、AST、Reference 与 Call Graph Intelligence；
+- Runtime failure、Source symbol、Mixin/AW/AT 与多 Target Version Diff 的关联平面；
+- 与可信 typed testing path 严格分离的受控 Exploratory Debug，以及可选 Human Developer Inspector。
 
 项目核心执行哲学为：
 
@@ -122,7 +129,7 @@ Loader API 仍主要承担 Mod 入口、物理/逻辑侧识别、配置装载、
 
 三者必须共存，但每个操作必须携带真实来源，不得用调试写入伪装为玩家行为。
 
-### 3.5 协议永远不暴露版本内部细节
+### 3.5 Runtime 控制协议不把版本内部细节作为公共操作语义
 
 Agent 面向稳定语义：
 
@@ -138,15 +145,25 @@ wait.until
 assert.evaluate
 ```
 
-Agent 不应依赖 Mojmap 类名、Mixin 目标方法、Loader 事件类或字段名。
+Agent 不应依赖 Mojmap 类名、Mixin 目标方法、Loader 事件类或字段名来完成 Runtime 控制操作。长期 Source/Mapping/Mod Intelligence 会显式处理版本感知的 class/member/descriptor、mapping 和 injection identity，但这些属于源码理解与关联数据，不会反向污染稳定的 Minecraft 领域控制语义。
 
 ### 3.6 MCP 是适配层，不是核心协议
 
 原生 HTTP/WebSocket 协议必须可以被普通测试程序直接使用。MCP Companion 负责把完整协议整理成适合 Coding Agent 的 Tools、Resources、Prompts 和录制 Artifact 接口。
 
+### 3.7 可信测试路径与探索路径分离
+
+正式产品哲学为：
+
+> **Typed path is the trusted testing path. Exploratory path is the investigation path.**
+
+PLAYTEST、FIXTURE 和 DEBUG_PRIVILEGED 继续构成受治理的 Runtime 操作与证据平面。长期规划的 EXPLORATORY 是单独的未知问题调查平面，不能绕过 typed contract，也不能产生 gameplay acceptance evidence。Runtime facts 与 Source facts 应关联而不混同；生成或反编译源码属于受管开发缓存，不属于项目源码。
+
 ---
 
 ## 4. 总体系统架构
+
+下图继续描述当前已实现和正在推进的 Minecraft Agent Control Runtime。长期 Platform 顶层架构、Development Intelligence Service、Exploratory Debug 与 Human Inspector 边界见 `PLATFORM_VISION.md`；Runtime Mod 不承担重型反编译、源码缓存、AST/Call Graph 或任意构建进程控制。
 
 ```text
                        Coding Agent / Test Runner
@@ -1808,11 +1825,11 @@ diagnostics.*
 
 ## 23. 范围分层、执行阶段与里程碑
 
-### 23.1 Ultimate Scope
+### 23.1 Runtime Ultimate Scope
 
-Ultimate Scope 是本计划书描述的完整长期目标，包括五 Target、Interaction Tree、Render Tree、Vision、完整键鼠宏与 Pipeline DSL、Live World 查询、世界状态录制、Server Peer、完整 DEBUG_PRIVILEGED、连续录制与 Artifact、Golden Diff、Rolling Recorder、网络追踪、人类操作回放、Tick Step、MCP Companion、持久化世界诊断和高级崩溃恢复。
+Runtime Ultimate Scope 是本计划书描述的完整 Runtime 长期目标，包括五 Target、Interaction Tree、Render Tree、Vision、完整键鼠宏与 Pipeline DSL、Live World 查询、世界状态录制、Server Peer、完整 DEBUG_PRIVILEGED、连续录制与 Artifact、Golden Diff、Rolling Recorder、网络追踪、人类操作回放、Tick Step、MCP Companion、持久化世界诊断和高级崩溃恢复。
 
-Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。
+Runtime Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。新增 Platform Ultimate Scope 叠加 Source/Mapping/Mod Intelligence、Runtime-to-source correlation、Exploratory Debug 与 Human Inspector，其章程见 `PLATFORM_VISION.md`，完成标准见 27.4。
 
 ### 23.2 V1 Product Scope
 
@@ -1904,6 +1921,20 @@ Agent
   ↓
 得到带 provenance 的结果
 ```
+
+### 23.4 Platform 产品范围层级
+
+新增 Platform 长期目标后，范围使用五个互不替代的层级：
+
+```text
+Runtime V1
+Runtime Ultimate
+Platform Developer Preview
+Platform Beta
+Platform Ultimate
+```
+
+Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory JVM 或 Human Inspector 尚未实现而失效。Platform Developer Preview 可先聚焦成熟 Runtime control/testing、Deep Observation、经独立 Gate 的 typed Deep Debug 与 MCP；Development Intelligence 和 Platform Integration 按 `PLATFORM_VISION.md` 的独立并行 Track 推进，不改写 Phase 9/10 的现有范围、顺序或退出门槛。
 
 ### Phase 0A：最小 Runtime Contracts 草图
 
@@ -2011,7 +2042,7 @@ Agent
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1 已完成五 Target Formal Deep Observation 与契约硬化。资源 revision 由投影前 canonical semantic state 生成，并使用有界、会话单调的 tracker；Provider V2 已强制认证 scopes、perspective、thread affinity、read-effects/no-load/no-storage/no-mutation、timeout/cancellation/late-result isolation 与 executable schema registry。Phase 9C 尚未开始，必须经独立审查另行开放。
+执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Generic canonicalization 保留 array 顺序，领域无序集合在 capture 层按稳定 ID 归一化；ResourceRevisionRef 绑定 sessionEpoch、resource identity 与 lifecycle generation。Provider resource/query-view revision 明确分层，native revision regression/inconsistency 会被拒绝并 quarantine。Revision/Provider executor、active observation 和生命周期/指纹缓存均有界。Phase 9C 尚未开始，必须经独立审查另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2187,7 +2218,7 @@ Agent
 19. 录制、查询和网络压力不产生不可控主线程阻塞；
 20. 未进入 V1 的 Ultimate 能力在 capability 和文档中明确，不以占位实现冒充完成。
 
-### 27.3 Ultimate Definition of Done
+### 27.3 Runtime Ultimate Definition of Done
 
 在 V1 基础上进一步满足：
 
@@ -2202,13 +2233,28 @@ Agent
 9. 高级 Crash-safe Finalization 与最后可用诊断资料恢复可用；
 10. Ultimate 各能力通过对应 Target coverage、性能、安全和兼容测试。
 
+### 27.4 Platform Ultimate Definition of Done
+
+在 Runtime Ultimate 完成的基础上进一步满足：
+
+1. Source Intelligence 能以受管、可重建、带来源与许可元数据的本地缓存解析 Minecraft、Loader、项目与第三方 Mod Source Universe；
+2. Mapping Intelligence 能在五 Target 的版本、namespace、owner、name 和 descriptor 间稳定解析；
+3. Symbol/AST/Reference/Hierarchy/Call Graph 与结构化 Version Diff 可预算、可索引并通过代表性语料验证；
+4. Mod metadata、依赖、entrypoint、Mixin、AW、AT、Accessor 与 Invoker Intelligence 完成并保持 Target 感知；
+5. Runtime event/failure 与 Source symbol、mapping、Mod injection 和 Artifact hash 可双向关联；
+6. Safe Probe 完成只读、预算、权限和审计 Conformance；
+7. 显式不安全的 EXPLORATORY_JVM 在默认关闭、loopback、独立 Exploratory Arm、短 TTL 与 trusted-local-developer Threat Model 下完成验收，并始终标记 `invalid_for_acceptance`；
+8. Native API、MCP/Agent Surface 与 Human Developer Inspector 使用一致能力和权限边界，大数据通过 Resource/Artifact/streaming/index 获取；
+9. Development Intelligence 供应链、缓存完整性、来源、许可、再分发限制和恢复策略完成独立安全/发布审查；
+10. Runtime、Development Intelligence 与 Platform Integration 三条路线通过统一回归、性能、安全和证据门槛。
+
 ---
 
 ## 28. 当前已冻结的产品决策
 
 以下内容视为当前执行基线，后续如修改应记录 ADR：
 
-1. 项目核心是 Minecraft Agent Control Runtime，不是内嵌 MCP Server；
+1. 长期产品是 Agent-native Minecraft Development, Debugging and Testing Platform；Minecraft Agent Control Runtime 是其核心 Runtime Control、Testing 与 Observation 子系统，不是内嵌 MCP Server；
 2. 原生协议独立于 MCP；
 3. 支持五个指定 Target；
 4. Capability-first / Fidelity-first；Mixin 允许必要侵入但没有默认优先权，Loader API 不构成功能上限；
@@ -2217,7 +2263,7 @@ Agent
 7. UI Tree 用于坐标解析，实际操作走游戏内输入分发；
 8. 截图和多模态坐标点击是 GUI 必备回退路径；
 9. 键鼠引擎以完整宏能力和长流水线为目标；
-10. 世界操作保留 PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 三个平面；
+10. 世界操作保留 PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 三个受治理平面；长期 EXPLORATORY 是独立调查平面，不能并入 DEBUG_PRIVILEGED 或计为 gameplay evidence；
 11. 调试级全能读写必须实现并保留；
 12. 所有读取和写入均标记视角、来源、机制、副作用和证据价值；
 13. 连续帧录制、自动拼接和参数化输出必须实现；
@@ -2226,7 +2272,7 @@ Agent
 16. 输入、帧、世界状态、事件、网络和日志共享统一时间线；
 17. Server Peer 用于服务器权威观察、录制、Fixture 和 Debug；
 18. 默认 loopback；V1 Release Profile 仅允许 loopback。LAN 显式启用能力保留在 Ultimate Scope，并须先完成 ADR-0001 所列 TLS、配对、可撤销 Principal、IP Policy 和独立 Conformance；
-19. 不提供任意 Shell、任意文件系统和通用 JVM RAT 能力；
+19. 正常 Runtime 与 typed Debug 不提供任意 Shell、任意文件系统、任意进程控制或通用 JVM Reflection/RAT；长期不安全 EXPLORATORY_JVM 如被实现，必须是默认关闭、loopback、独立 Arm、明确非 Sandbox 的单独最高风险平面；
 20. 不使用全局 `expectedWorldRevision` 作为普通 optimistic concurrency，采用资源级 revision 与 value precondition；
 21. Request Envelope 公共层最小化，Lease、Idempotency、Precondition、Operation Handle 和 Debug Context 按能力声明；
 22. DEBUG_PRIVILEGED 对外保持 Minecraft 领域强类型，不提供通用 Reflection RPC；
@@ -2234,7 +2280,12 @@ Agent
 24. 高频长期 Recording 的 canonical representation 不被 JSON/NDJSON 锁死；
 25. Minecraft 文本只进入数据平面，不能动态改变 Tool、权限、系统指令或 Runtime Policy；
 26. Ultimate Scope、V1 Product Scope 和 Phase 0 Vertical Slice 分层管理；
-27. 不在架构验证前过早冻结 Wire Protocol v1。
+27. 不在架构验证前过早冻结 Wire Protocol v1；
+28. Development Intelligence Service 与 Runtime Mod 分离；反编译器、Managed Source Store、索引、AST 和 Call Graph 不进入 Minecraft Runtime；
+29. 生成/反编译源码是带来源、校验和、许可/再分发元数据的受管缓存，不是 Mod 项目 Git 源码；
+30. Runtime/Source/Mapping 使用统一 Target 和 symbol identity，但 Runtime facts 与 Source facts 只关联、不混同；
+31. Native API 可以细粒度，MCP/Agent Surface 保持聚合且高效，大数据通过 Resource、Artifact、streaming 和索引传输；
+32. Runtime Track、Development Intelligence Track 与 Platform Integration Track 并行治理；新增 Platform 目标不得绕过现有 Phase 9/10 Gate。
 
 ---
 
@@ -2247,10 +2298,13 @@ Phase 8 Remote Parity: PASS
 V1 Remote Release Candidate: PASS
 Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
 Phase 9B.1: PASS
-Phase 9B: PASS — CONTRACT HARDENED
+Phase 9B.2: PASS
+Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```
 
 Phase 9 与 Phase 10 必须保持独立：Phase 9 完成 Conformance、Exit Gate 和独立审查后，才能另行启动 Phase 10。
+
+本轮仅记录 Platform 目标升级。当前 Runtime 任务继续遵循既有 Gate；Development Intelligence、Exploratory Debug、Human Inspector 和 Platform Integration 均未开始实现。Development Intelligence 的 DI-0 至 DI-10 与 Platform Integration 的 PI-0 至 PI-5 草案见 `PLATFORM_VISION.md`。

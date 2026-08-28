@@ -1,7 +1,7 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Phase 8 V1 release-hardening baseline  
-> Scope: current V0 loopback Runtime and future privileged control plane
+> Status: Phase 8 V1 release-hardening baseline plus adopted long-term Platform boundaries
+> Scope: current V0 loopback Runtime controls and planned Development Intelligence / Exploratory threat boundaries; planned controls are not implementation claims
 
 ## Protected Assets
 
@@ -11,6 +11,9 @@
 - Authentication tokens and control leases.
 - Screenshots, chat, books, signs, logs and recorded state.
 - Local game stability and save integrity.
+- Future managed artifact/source cache integrity, mapping provenance and source licence metadata.
+- Future Runtime-to-source symbol identity and evidence correlation.
+- Future Exploratory Arm authority and local developer consent.
 
 ## Trust Boundaries
 
@@ -28,6 +31,18 @@ Minecraft server thread
 ```
 
 Minecraft-provided content is untrusted even when it originates from a locally loaded world. A remote server, resource pack or Mod may control visible text and rendered content.
+
+The long-term Platform adds boundaries that are not present in the current Runtime:
+
+```text
+Agent / Human Inspector
+  -> Platform Companion
+       -> current Runtime Adapter -> loopback Minecraft Runtime
+       -> planned Development Intelligence Service -> artifact repositories / managed cache
+       -> planned Exploratory Plane -> explicitly armed local JVM
+```
+
+These planes have different authority. A Runtime token, Debug Arm or successful Source query must not implicitly authorize artifact acquisition, cache mutation, project modification, unsafe JVM execution or host process control.
 
 ## Current Implemented Controls
 
@@ -161,6 +176,10 @@ Deep Observation request cancellation has three Runtime paths: deadline, HTTP di
 
 A deliberately malicious in-process Mod can still stall a Minecraft owner thread or otherwise violate JVM process integrity. Provider V2 is a cooperative correctness and containment contract for trusted-but-buggy extensions; it is not a process sandbox and does not claim to isolate hostile in-process bytecode.
 
+Phase 9B.2 hardens revision identity before privileged mutation may consume it. Generic JSON canonicalization preserves array order; only domain-owned unordered collections are explicitly normalized. Resource-scoped Provider fallback revisions validate a query-independent revisionState, while query-view revisions include the query fingerprint and are marked ineligible for mutation preconditions. Native Provider revisions must be non-decreasing and consistent with canonical revisionState; regression or same-revision/different-state quarantines the provider.
+
+Every resource version is bound to sessionEpoch and a session-local lifecycle generation. Menu/container ID reuse, entity recreation, Block Entity replacement and chunk unload/reload invalidate older tokens. Revision and lifecycle caches remain bounded. Detached revision and Provider entry executors use bounded queues with controlled 429/provider failures; active Deep Observation requests are capped at 16 so moving work off owner threads cannot create unbounded heap growth.
+
 ### Observation Authority Confusion
 
 Client-known state may be stale or incomplete compared with Integrated Server state.
@@ -217,9 +236,41 @@ Tests run against a dirty worktree can describe capabilities that are absent fro
 
 Controls: formal release evidence must be generated from a clean detached worktree at the fetched `origin/master` commit. The Remote Parity Gate records `sourceCommit`, `originCommit`, branch, cleanliness, gate version/time, critical Git blob hashes and built Artifact hashes. Dirty-tree results are labeled working-tree candidates and cannot establish a remote Release Candidate PASS.
 
+### Development Intelligence Supply-Chain and Cache Poisoning — PLANNED
+
+Minecraft/Loader/Mod JARs, mappings, upstream sources, decompiler input and indexes can be replaced, poisoned or resolved from an unintended repository. Decompiled output may be incomplete or misleading. Third-party JAR contents are untrusted input to resolvers, decompilers and parsers.
+
+Required future controls: explicit repository/source origin, cryptographic hashes, immutable content-addressed inputs where practical, Target and mapping namespace binding, bounded parser/index workers, cache manifests, deterministic rebuild verification and quarantine of inconsistent entries. Source/decompiler facts carry origin and confidence and never override a contradictory Runtime observation.
+
+### Source Licence and Redistribution Confusion — PLANNED
+
+A local cache of generated/decompiled Minecraft or Mod source may be mistaken for redistributable project source.
+
+Required future controls: record origin, licence metadata, generated/decompiled status and redistribution restrictions; keep managed corpora outside project Git; avoid embedding bulk source in Runtime Artifact bundles; require separate legal/release review before redistribution.
+
+### Cross-Plane Authority Confusion — PLANNED
+
+An Agent may attempt to reuse Runtime read/debug authority for source acquisition, project writes, build/process execution or exploratory JVM execution.
+
+Required future controls: separate capability declarations, scopes and audit identities for Runtime, Development Intelligence and Exploratory planes. Unified MCP routing must not create a unified super-token or a second hidden authority state machine.
+
+### Unsafe Exploratory JVM Execution — PLANNED HIGHEST RISK
+
+Full JVM scripting cannot be reliably described as a sandbox. It may obtain filesystem, network, reflection, ClassLoader, process and JVM-internal access and may corrupt the game or host data.
+
+Required future controls: disabled by default; loopback-only initial design; explicit local configuration plus human-visible enablement; separate short-lived session-bound Exploratory Arm; trusted-local-developer-only threat model; duration/result budgets and emergency disarm; audit of principal/session/request/script hash/duration/result/exception. Full script text is excluded by default because it may contain secrets.
+
+Every Safe Probe or unsafe JVM result must return exploratory authority/mechanism and `evidence=invalid_for_acceptance`. Exploratory actions can investigate or arrange state but can never satisfy PLAYTEST evidence. The ordinary Debug Arm does not authorize this plane.
+
+### Human Inspector Privilege Confusion — PLANNED
+
+A Web UI can make high-risk actions appear equivalent to read-only inspection or can expose sensitive Runtime/source data to browser origins.
+
+Required future controls: use the same typed service contracts and capability truth as Agents, separate read and armed actions visually, retain Host/Origin/CSRF-equivalent protections appropriate to its transport, never embed credentials in served assets and label all exploratory output as non-acceptance evidence.
+
 ## Explicit Non-Goals
 
-The Runtime will not provide:
+The current normal Runtime and typed Debug planes will not provide:
 
 - Arbitrary shell execution.
 - Arbitrary filesystem browsing.
@@ -228,6 +279,8 @@ The Runtime will not provide:
 - General process control.
 
 Internal invasive implementation remains restricted behind typed Minecraft-domain operations.
+
+A future explicitly unsafe `EXPLORATORY_JVM` service is not an exception hidden inside the normal Runtime API. It is a separate, default-off, loopback-only, separately armed, non-sandboxed highest-risk plane with invalid-for-acceptance evidence. Its implementation requires a dedicated architecture/security gate and is currently absent.
 
 ## Phase 8 Security Evidence
 
