@@ -13,13 +13,14 @@ final class ProbeV2Providers {
     static final String SNAPSHOT_SCHEMA = "minecraft_protocol_probe://schemas/provider-test-snapshot-v1";
     static final String QUERY_SCHEMA = "minecraft_protocol_probe://schemas/provider-test-query-v1";
     static final String DEBUG_SCHEMA = "minecraft_protocol_probe://schemas/provider-test-debug-v1";
+    static final String DEBUG_RESULT_SCHEMA = "minecraft_protocol_probe://schemas/provider-test-debug-result-v1";
 
     private ProbeV2Providers() {
     }
 
     static void registerAll() {
         registerSchemas();
-        MinecraftProtocolProvidersV2.register(new TestProvider("safe", "none", true, false, "detached_provider_worker", List.of("server_authoritative", "client_known"), List.of("read"), Policy.NONE, "provider_revision"));
+        MinecraftProtocolProvidersV2.register(new TestProvider("safe", "none", true, false, "server_thread", List.of("server_authoritative", "client_known"), List.of("read"), Policy.NONE, "provider_revision"));
         MinecraftProtocolProvidersV2.register(new TestProvider("lazy", "lazy_initialization", false, true, "detached_provider_worker", List.of("server_authoritative", "client_known"), List.of("read"), Policy.NONE, "provider_revision"));
         MinecraftProtocolProvidersV2.register(new TestProvider("scope", "none", true, false, "detached_provider_worker", List.of("server_authoritative"), List.of("read.internal"), Policy.NONE, "provider_revision"));
         MinecraftProtocolProvidersV2.register(new TestProvider("server-thread", "none", true, false, "server_thread", List.of("server_authoritative"), List.of("read"), Policy.NONE, "provider_revision"));
@@ -54,8 +55,25 @@ final class ProbeV2Providers {
             ProviderSchemaRegistry.register(QUERY_SCHEMA, ProbeV2Providers::validateQuery);
             ProviderSchemaRegistry.register(DEBUG_SCHEMA, value ->
                     value.has("operation") && value.get("operation").isJsonPrimitive()
+                            && List.of("temperature.set", "temperature.delayed_set")
+                                    .contains(value.get("operation").getAsString())
+                            && value.has("value") && value.get("value").isJsonPrimitive()
+                            && value.getAsJsonPrimitive("value").isNumber()
+                            && (!value.has("delayMs") || value.get("delayMs").isJsonPrimitive()
+                                    && value.getAsJsonPrimitive("delayMs").isNumber()
+                                    && value.get("delayMs").getAsInt() >= 25
+                                    && value.get("delayMs").getAsInt() <= 500)
                             ? ProviderSchemaRegistry.ValidationResult.pass()
-                            : ProviderSchemaRegistry.ValidationResult.fail("missing_operation"));
+                            : ProviderSchemaRegistry.ValidationResult.fail("invalid_temperature_mutation"));
+            ProviderSchemaRegistry.register(DEBUG_RESULT_SCHEMA, value ->
+                    value.has("before") && value.get("before").isJsonObject()
+                            && value.has("after") && value.get("after").isJsonObject()
+                            && value.has("revisionStateBefore") && value.get("revisionStateBefore").isJsonObject()
+                            && value.has("revisionStateAfter") && value.get("revisionStateAfter").isJsonObject()
+                            && value.has("providerRevisionBefore") && value.get("providerRevisionBefore").isJsonPrimitive()
+                            && value.has("providerRevisionAfter") && value.get("providerRevisionAfter").isJsonPrimitive()
+                            ? ProviderSchemaRegistry.ValidationResult.pass()
+                            : ProviderSchemaRegistry.ValidationResult.fail("invalid_debug_result"));
         }
     }
 
@@ -162,15 +180,27 @@ final class ProbeV2Providers {
                 revisionScope.equals("resource"),
                 name.equals("safe") ? "snapshot_diff_delta" : "none",
                 new AgentDataProviderV2.DebugDeclaration(
-                        mayMutate, mayMutate ? DEBUG_SCHEMA : "", "debug", true),
+                        mayMutate || name.equals("safe"),
+                        mayMutate || name.equals("safe") ? DEBUG_SCHEMA : "",
+                        mayMutate || name.equals("safe") ? DEBUG_RESULT_SCHEMA : "",
+                        "debug.provider",
+                        true,
+                        mayMutate || name.equals("safe"),
+                        mayMutate || name.equals("safe") ? "must_advance" : "none",
+                        mayMutate || name.equals("safe") ? "provider_declared" : "none"),
                 scopes);
     }
 
     private static JsonObject result(AgentDataProviderV2.Descriptor descriptor, long revision) {
+        return result(descriptor, revision, 20.5D);
+    }
+
+    private static JsonObject result(
+            AgentDataProviderV2.Descriptor descriptor, long revision, double temperature) {
         JsonObject result = new JsonObject();
         result.addProperty("schemaVersion", descriptor.schemaVersion());
         JsonObject revisionState = new JsonObject();
-        revisionState.addProperty("temperature", 20.5D);
+        revisionState.addProperty("temperature", temperature);
         JsonObject meta = new JsonObject();
         meta.addProperty("label", descriptor.providerId());
         JsonObject details = new JsonObject();
@@ -235,6 +265,7 @@ final class ProbeV2Providers {
         private final Descriptor descriptor;
         private final AtomicLong invocations = new AtomicLong();
         private final AtomicLong semanticRevision = new AtomicLong(1L);
+        private volatile double temperature = 20.5D;
 
         private TestProvider(
                 String name,
@@ -258,7 +289,57 @@ final class ProbeV2Providers {
         @Override
         public CompletableFuture<JsonObject> capture(ReadContext context) {
             this.invocations.incrementAndGet();
-            return CompletableFuture.completedFuture(result(this.descriptor, this.semanticRevision.get()));
+            return CompletableFuture.completedFuture(result(
+                    this.descriptor, this.semanticRevision.get(), this.temperature));
+        }
+
+        @Override
+        public CompletableFuture<JsonObject> mutate(DebugContext context) {
+            if (!this.descriptor.debugDeclaration().supported()) {
+                return AgentDataProviderV2.super.mutate(context);
+            }
+            if (context.cancellationRequested().getAsBoolean()) {
+                return CompletableFuture.failedFuture(
+                        new java.util.concurrent.CancellationException("provider_debug_cancelled"));
+            }
+            double requested = context.mutation().get("value").getAsDouble();
+            if (context.mutation().get("operation").getAsString().equals("temperature.delayed_set")) {
+                int delay = context.mutation().has("delayMs")
+                        ? context.mutation().get("delayMs").getAsInt() : 250;
+                return CompletableFuture.supplyAsync(
+                        () -> this.applyTemperature(context, requested),
+                        CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS));
+            }
+            return CompletableFuture.completedFuture(this.applyTemperature(context, requested));
+        }
+
+        private synchronized JsonObject applyTemperature(
+                DebugContext context, double requested) {
+            if (context.cancellationRequested().getAsBoolean()) {
+                throw new java.util.concurrent.CancellationException("provider_debug_cancelled");
+            }
+            long expectedRevision = context.expectedResourceVersion().has("revision")
+                    ? context.expectedResourceVersion().get("revision").getAsLong() : -1L;
+            if (expectedRevision != this.semanticRevision.get()) {
+                throw new IllegalStateException("provider_stale_resource_revision");
+            }
+            long beforeRevision = this.semanticRevision.get();
+            double beforeTemperature = this.temperature;
+            this.temperature = requested;
+            long afterRevision = this.semanticRevision.incrementAndGet();
+            JsonObject result = new JsonObject();
+            result.add("before", ProbeV2Providers.result(
+                    this.descriptor, beforeRevision, beforeTemperature).getAsJsonObject("data"));
+            result.add("after", ProbeV2Providers.result(
+                    this.descriptor, afterRevision, this.temperature).getAsJsonObject("data"));
+            result.add("revisionStateBefore", ProbeV2Providers.result(
+                    this.descriptor, beforeRevision, beforeTemperature).getAsJsonObject("revisionState"));
+            result.add("revisionStateAfter", ProbeV2Providers.result(
+                    this.descriptor, afterRevision, this.temperature).getAsJsonObject("revisionState"));
+            result.addProperty("providerRevisionBefore", beforeRevision);
+            result.addProperty("providerRevisionAfter", afterRevision);
+            result.addProperty("synchronization", "provider_declared");
+            return result;
         }
     }
 

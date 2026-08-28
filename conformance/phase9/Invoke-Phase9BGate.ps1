@@ -25,4 +25,4 @@ if(-not $SkipLive){
         if($e.Value.Result -ne 'PASS'){throw "$($e.Key) failed"}
     }
 }
-[pscustomobject]@{Result='PASS';Phase='9B';ContractHardening='9B.1';RevisionIdentityHardening='9B.2';Static='PASS';Build=$(if($SkipBuild){'SKIPPED'}else{'PASS'});Live=$(if($SkipLive){'SKIPPED'}else{'PASS'});Details=$details;Phase9C='NOT_STARTED';WireProtocolV1='NOT_FROZEN'}
+[pscustomobject]@{Result='PASS';Phase='9B';ContractHardening='9B.1';RevisionIdentityHardening='9B.2';Static='PASS';Build=$(if($SkipBuild){'SKIPPED'}else{'PASS'});Live=$(if($SkipLive){'SKIPPED'}else{'PASS'});Details=$details;Phase9C='DOWNSTREAM_PHASE_COMPLETE';WireProtocolV1='NOT_FROZEN'}

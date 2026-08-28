@@ -25,7 +25,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Phase 8 Gradle gate failed with exit code $LASTEXITCODE" }
 
     $schema = Get-Content 'protocol-schema\src\main\openapi\minecraft-control-v0.json' -Raw | ConvertFrom-Json
-    Assert-True ($schema.info.version -eq '0.0.1-phase9b2') 'OpenAPI must identify the current Phase 9B.2 V0 contract'
+    Assert-True ($schema.info.version -eq '0.0.1-phase9c') 'OpenAPI must identify the current Phase 9C V0 contract'
     Assert-True ($null -ne $schema.paths.'/v0/diagnostics/hooks') 'Phase 7 Hook contract must remain present'
     Assert-True ($null -ne $schema.paths.'/v0/operations/{operationId}/wait') 'native operation wait contract must exist'
     Assert-True ($null -ne $schema.paths.'/v0/events/resync') 'event resync contract must exist'

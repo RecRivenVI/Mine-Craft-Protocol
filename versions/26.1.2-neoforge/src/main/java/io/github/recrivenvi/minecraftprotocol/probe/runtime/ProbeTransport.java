@@ -1,6 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.netty.bootstrap.ServerBootstrap;
@@ -72,6 +73,7 @@ final class ProbeTransport implements AutoCloseable {
     private final RecordingEngine recording;
     private final EventHub eventHub;
     private final ConditionEngine conditions;
+    private final DebugBatchEngine debugBatches;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
     private EventLoopGroup bossGroup;
@@ -95,6 +97,8 @@ final class ProbeTransport implements AutoCloseable {
         this.conditions = new ConditionEngine(
                 service, this.protocolState, this.eventHub, this.recording, this.observation);
         this.automation.setConditionEngine(this.conditions);
+        this.debugBatches = new DebugBatchEngine(
+                service, this.protocolState, this::observeDebugMutation);
     }
 
     void startAsync() {
@@ -142,6 +146,7 @@ final class ProbeTransport implements AutoCloseable {
         if (!this.closed.compareAndSet(false, true)) return;
         this.eventHub.close();
         this.conditions.close();
+        this.debugBatches.close();
         this.automation.close();
         this.protocolState.close();
         this.recording.close();
@@ -384,29 +389,90 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/status")) {
                 protocolState.requireScope("debug");
                 sendImmediate(context, metadata, path, protocolState.debugStatus());
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/capabilities")) {
+                protocolState.requireScope("debug");
+                sendJsonFuture(context, metadata, path,
+                        service.phase9cDebugCapabilities().thenApply(capabilities -> {
+                            capabilities.add("batch", debugBatches.capabilities());
+                            capabilities.add("evidence", protocolState.debugEvidenceStatus());
+                            return capabilities;
+                        }));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/arm")) {
                 protocolState.requireScope("debug");
-                protocolState.requireScope("control");
-                protocolState.requireLease(metadata.leaseId());
                 JsonObject body = jsonBody(request);
-                sendJsonFuture(context, metadata, path, service.worldFingerprint().thenApply(fingerprint ->
-                        protocolState.armDebug(
-                                body.get("worldFingerprint").getAsString(),
-                                fingerprint.get("worldFingerprint").getAsString(),
-                                optionalLong(body, "ttlMs", 15_000L))));
+                sendJsonFuture(context, metadata, path,
+                        service.worldFingerprint().thenCombine(
+                                service.phase9cDebugCapabilities(), (fingerprint, capabilities) ->
+                                        protocolState.armDebug(
+                                                body.get("worldFingerprint").getAsString(),
+                                                fingerprint.get("worldFingerprint").getAsString(),
+                                                capabilities.get("sessionEpoch").getAsString(),
+                                                stringSet(body, "namespaces"),
+                                                optionalLong(body, "ttlMs", 15_000L))));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/renew")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
                 JsonObject body = jsonBody(request);
-                sendJsonFuture(context, metadata, path, service.worldFingerprint().thenApply(fingerprint ->
-                        protocolState.renewDebug(
-                                metadata.debugArmId(),
-                                fingerprint.get("worldFingerprint").getAsString(),
-                                optionalLong(body, "ttlMs", 15_000L))));
+                sendJsonFuture(context, metadata, path,
+                        service.worldFingerprint().thenCombine(
+                                service.phase9cDebugCapabilities(), (fingerprint, capabilities) ->
+                                        protocolState.renewDebug(
+                                                metadata.debugArmId(),
+                                                fingerprint.get("worldFingerprint").getAsString(),
+                                                capabilities.get("sessionEpoch").getAsString(),
+                                                optionalLong(body, "ttlMs", 15_000L))));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/disarm")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
                 sendImmediate(context, metadata, path, protocolState.disarmDebug("client_disarm"));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/mutations")) {
+                JsonObject body = jsonBody(request);
+                String operation = requiredString(body, "operation");
+                String domain = debugDomain(operation);
+                protocolState.requireDebugScope(domain);
+                body.addProperty("debugOperationId", metadata.requestId());
+                JsonObject started = debugEvent("debug.operation.started", body, metadata.requestId());
+                broadcast(started);
+                CompletableFuture<JsonObject> mutation = service.phase9cDebugMutation(
+                        body, singleDebugAuthorization(metadata));
+                mutation.whenComplete((result, error) -> {
+                    if (error == null) {
+                        observeDebugMutation(result);
+                    } else {
+                        JsonObject failed = debugEvent(
+                                "debug.operation.failed", body, metadata.requestId());
+                        Throwable cause = unwrap(error);
+                        failed.addProperty("error", cause instanceof ProtocolState.ProtocolException protocolException
+                                ? protocolException.code() : cause.getClass().getSimpleName());
+                        broadcast(failed);
+                    }
+                });
+                sendJsonFuture(context, metadata, path,
+                        protocolState.applyDeadline(mutation, metadata.deadlineAtMillis()));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/batches")) {
+                JsonObject body = jsonBody(request);
+                if (!body.has("items") || !body.get("items").isJsonArray()) {
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_DEBUG_BATCH", 400, "Debug batch requires items");
+                }
+                for (com.google.gson.JsonElement item : body.getAsJsonArray("items")) {
+                    if (!item.isJsonObject()) throw new ProtocolState.ProtocolException(
+                            "INVALID_DEBUG_BATCH", 400, "Every Debug batch item must be an object");
+                    protocolState.requireDebugScope(debugDomain(
+                            requiredString(item.getAsJsonObject(), "operation")));
+                }
+                JsonObject operation = protocolState.startOperation(
+                        operationId -> debugBatches.start(operationId, body, metadata), false);
+                sendImmediate(context, metadata, path, operation);
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/evidence")) {
+                protocolState.requireScope("debug");
+                sendImmediate(context, metadata, path, protocolState.debugEvidenceStatus());
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/evidence/act/start")) {
+                protocolState.requireScope("debug");
+                sendImmediate(context, metadata, path, protocolState.startGameplayAct());
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/evidence/act/finish")) {
+                protocolState.requireScope("debug");
+                JsonObject body = jsonBody(request);
+                sendImmediate(context, metadata, path,
+                        protocolState.finishGameplayAct(requiredString(body, "actId")));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/fixture/player/teleport")) {
                 protocolState.requireScope("fixture");
                 protocolState.requireLease(metadata.leaseId());
@@ -426,6 +492,18 @@ final class ProbeTransport implements AutoCloseable {
                 });
                 mutation.thenAccept(result ->
                         recording.contaminate("DEBUG_PRIVILEGED", "debug.player.health", result));
+                sendJsonFuture(context, metadata, path, mutation);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/phase9a/scenario")) {
+                protocolState.requireScope("debug");
+                protocolState.requireLease(metadata.leaseId());
+                JsonObject body = jsonBody(request);
+                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                    protocolState.requireDebugArm(
+                            metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
+                    return service.phase9aDebugScenario(body);
+                });
+                mutation.thenAccept(result -> recording.contaminate(
+                        "DEBUG_PRIVILEGED", "debug.phase9a.scenario", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/world/block")) {
                 protocolState.requireScope("debug");
@@ -842,6 +920,114 @@ final class ProbeTransport implements AutoCloseable {
         return body.has(name) && !body.get(name).isJsonNull() ? body.get(name).getAsString() : null;
     }
 
+    private DebugMutationAuthorization singleDebugAuthorization(
+            ProtocolState.RequestMetadata metadata) {
+        return new DebugMutationAuthorization() {
+            @Override
+            public Permit authorize(
+                    String currentWorldFingerprint,
+                    String sessionEpoch,
+                    String domain,
+                    String namespace) {
+                protocolState.requireDebugAuthorization(
+                        metadata.debugArmId(), currentWorldFingerprint,
+                        sessionEpoch, domain, namespace);
+                return () -> { };
+            }
+
+            @Override
+            public boolean hasScope(String scope) {
+                return protocolState.hasScope(scope);
+            }
+
+            @Override
+            public String principalId() {
+                return protocolState.principalId();
+            }
+
+            @Override
+            public String debugArmId() {
+                return metadata.debugArmId();
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+        };
+    }
+
+    private void observeDebugMutation(JsonObject result) {
+        String operationId = result.has("debugOperationId")
+                ? result.get("debugOperationId").getAsString() : UUID.randomUUID().toString();
+        String namespace = result.has("namespace")
+                ? result.get("namespace").getAsString() : "unknown";
+        String operation = result.has("operation")
+                ? result.get("operation").getAsString() : "debug.mutation";
+        recording.contaminate("DEBUG_PRIVILEGED", operation, result);
+        JsonObject evidence = protocolState.noteDebugMutation(operationId, namespace, operation);
+        JsonObject completed = result.deepCopy();
+        completed.addProperty("type", "debug.operation.completed");
+        completed.add("evidenceWindow", evidence);
+        broadcast(completed);
+        JsonObject changed = new JsonObject();
+        changed.addProperty("type", "resource.changed");
+        changed.addProperty("category", "debug");
+        changed.addProperty("causedByDebugOperationId", operationId);
+        changed.addProperty("operation", operation);
+        if (result.has("afterResourceVersion")) {
+            changed.add("resourceVersion", result.get("afterResourceVersion").deepCopy());
+        }
+        broadcast(changed);
+    }
+
+    private static JsonObject debugEvent(
+            String type, JsonObject request, String operationId) {
+        JsonObject event = new JsonObject();
+        event.addProperty("type", type);
+        event.addProperty("category", "debug");
+        event.addProperty("debugOperationId", operationId);
+        if (request.has("operation")) {
+            event.addProperty("operation", request.get("operation").getAsString());
+        }
+        event.addProperty("evidence", "diagnostic");
+        return event;
+    }
+
+    private static String debugDomain(String operation) {
+        int separator = operation.indexOf('.');
+        String domain = separator < 0 ? "" : operation.substring(0, separator);
+        if (!List.of(
+                "player", "entity", "world", "block_entity", "chunk",
+                "menu", "client", "network", "provider").contains(domain)) {
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409, "Unknown typed Debug domain: " + domain);
+        }
+        return domain;
+    }
+
+    private static String requiredString(JsonObject body, String name) {
+        if (!body.has(name) || !body.get(name).isJsonPrimitive()
+                || body.get(name).getAsString().isBlank()) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "Missing " + name);
+        }
+        return body.get(name).getAsString();
+    }
+
+    private static java.util.Set<String> stringSet(JsonObject body, String name) {
+        if (!body.has(name)) return java.util.Set.of();
+        if (!body.get(name).isJsonArray()) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_DEBUG_ARM", 400, name + " must be an array");
+        }
+        java.util.Set<String> values = new java.util.LinkedHashSet<>();
+        for (com.google.gson.JsonElement element : body.getAsJsonArray(name)) {
+            values.add(element.getAsString());
+        }
+        return values;
+    }
+
     private static int intQuery(QueryStringDecoder decoder, String name, int fallback) {
         return Integer.parseInt(stringQuery(decoder, name, Integer.toString(fallback)));
     }
@@ -881,6 +1067,10 @@ final class ProbeTransport implements AutoCloseable {
             current = current.getCause();
         }
         return current;
+    }
+
+    static Throwable unwrapForInternalUse(Throwable throwable) {
+        return unwrap(throwable);
     }
 
     private static void sendBytes(

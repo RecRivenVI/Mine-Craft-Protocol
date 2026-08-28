@@ -109,10 +109,16 @@ public final class MinecraftProtocolProvidersV2 {
         AgentDataProviderV2.DebugDeclaration debug = Objects.requireNonNull(
                 descriptor.debugDeclaration(), "debugDeclaration");
         if (debug.supported()) {
-            if (debug.schema() == null || debug.schema().isBlank()
-                    || !ProviderSchemaRegistry.contains(debug.schema())
+            if (debug.mutationSchema() == null || debug.mutationSchema().isBlank()
+                    || !ProviderSchemaRegistry.contains(debug.mutationSchema())
+                    || debug.resultSchema() == null || debug.resultSchema().isBlank()
+                    || !ProviderSchemaRegistry.contains(debug.resultSchema())
                     || debug.requiredScope() == null || !SCOPE.matcher(debug.requiredScope()).matches()
-                    || !debug.requiresArm()) {
+                    || !debug.requiresArm()
+                    || !debug.supportsResourceVersionPrecondition()
+                    || !"must_advance".equals(debug.revisionBehavior())
+                    || debug.synchronizationBehavior() == null
+                    || debug.synchronizationBehavior().isBlank()) {
                 throw new IllegalArgumentException("Provider V2 debug declaration is inconsistent: "
                         + descriptor.providerId());
             }

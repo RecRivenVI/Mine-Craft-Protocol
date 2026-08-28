@@ -6,6 +6,7 @@
   "refmap": "minecraft_protocol_probe.refmap.json",
   "client": [
     "AbstractContainerScreenMixin",
+    "BaseContainerBlockEntityAccessor",
     "ClientPacketListenerMixin",
     "DistanceManagerAccessor",
     "LevelTicksAccessor",

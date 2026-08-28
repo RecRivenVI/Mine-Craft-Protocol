@@ -37,12 +37,15 @@ final class ProviderExecutionEngine implements AutoCloseable {
     private final ScheduledExecutorService scheduler;
     private final AtomicLong generation = new AtomicLong();
     private final ConcurrentHashMap<Long, Invocation> pending = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, MutationInvocation> pendingMutations = new ConcurrentHashMap<>();
     private final Set<String> quarantined = ConcurrentHashMap.newKeySet();
     private final Map<String, NativeRevisionState> nativeRevisionStates =
             new LinkedHashMap<>(64, 0.75F, true);
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile Dispatcher dispatcher = (provider, context, affinity) ->
             CompletableFuture.completedFuture(Entry.unsupported(affinity));
+    private volatile MutationDispatcher mutationDispatcher = (provider, context, affinity, authorization) ->
+            CompletableFuture.completedFuture(MutationEntry.unsupported(affinity));
 
     ProviderExecutionEngine(ObservationRevisionTracker revisions) {
         this.revisions = revisions;
@@ -57,6 +60,153 @@ final class ProviderExecutionEngine implements AutoCloseable {
 
     void installDispatcher(Dispatcher dispatcher) {
         this.dispatcher = java.util.Objects.requireNonNull(dispatcher);
+    }
+
+    void installMutationDispatcher(MutationDispatcher dispatcher) {
+        this.mutationDispatcher = java.util.Objects.requireNonNull(dispatcher);
+    }
+
+    CompletableFuture<JsonObject> debugMutate(
+            String providerId,
+            JsonObject mutation,
+            JsonObject expectedResourceVersion,
+            String worldFingerprint,
+            String requestId,
+            DebugMutationAuthorization authorization,
+            int timeoutMillis,
+            int byteBudget) {
+        AgentDataProviderV2 provider = MinecraftProtocolProvidersV2.snapshot().stream()
+                .filter(candidate -> candidate.descriptor().providerId().equals(providerId))
+                .findFirst()
+                .orElseThrow(() -> new ProtocolState.ProtocolException(
+                        "PROVIDER_NOT_FOUND", 404, "Unknown provider: " + providerId));
+        AgentDataProviderV2.Descriptor descriptor = provider.descriptor();
+        AgentDataProviderV2.DebugDeclaration debug = descriptor.debugDeclaration();
+        if (!debug.supported()) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409,
+                    "Provider does not expose typed Debug mutation: " + providerId));
+        }
+        if (!authorization.hasScope(debug.requiredScope())) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "DEBUG_SCOPE_DENIED", 403,
+                    "Provider Debug requires scope: " + debug.requiredScope()));
+        }
+        if (!"provider_revision".equals(descriptor.revisionSource())
+                || !"resource".equals(descriptor.revisionScope())) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "RESOURCE_VERSION_NOT_PRECONDITION_ELIGIBLE", 409,
+                    "Provider Debug currently requires a native resource revision"));
+        }
+        ProviderSchemaRegistry.ValidationResult mutationSchema =
+                ProviderSchemaRegistry.validate(debug.mutationSchema(), mutation);
+        if (!mutationSchema.valid()) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_SCHEMA_VIOLATION", 400, mutationSchema.reason()));
+        }
+        if (this.quarantined.contains(providerId)) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409, "Provider is quarantined: " + providerId));
+        }
+        String providerLifecycle = "provider:" + providerId + "@runtime_registration";
+        synchronized (this.nativeRevisionStates) {
+            NativeRevisionState current = this.nativeRevisionStates.get(providerId);
+            if (current == null) {
+                return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                        "PROVIDER_RESOURCE_VERSION_UNAVAILABLE", 409,
+                        "Observe the Provider resource before submitting a Debug mutation"));
+            }
+            ResourceVersionVerifier.verify(expectedResourceVersion, this.revisions.nativeRevision(
+                    "provider", providerId, providerLifecycle,
+                    current.revision(), "provider_revision"));
+        }
+        int boundedTimeout = bounded(timeoutMillis, 25, 1_000);
+        int boundedBytes = bounded(byteBudget, 256, 16_384);
+        CompletableFuture<JsonObject> result = new CompletableFuture<>();
+        AgentDataProviderV2.DebugContext context = new AgentDataProviderV2.DebugContext(
+                mutation, expectedResourceVersion, worldFingerprint,
+                System.currentTimeMillis() + boundedTimeout, boundedBytes,
+                requestId, () -> result.isCancelled() || authorization.isCancelled());
+        long started = System.nanoTime();
+        CompletableFuture<MutationEntry> entryFuture = this.mutationDispatcher.dispatch(
+                provider, context, descriptor.threadAffinity(), authorization);
+        entryFuture.whenComplete((entry, entryError) -> {
+            if (entryError != null) {
+                result.completeExceptionally(entryError);
+                return;
+            }
+            if (!entry.supported() || !entry.ownerThreadObserved()) {
+                result.completeExceptionally(new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE", 409,
+                        "Provider Debug thread affinity is unavailable"));
+                return;
+            }
+            if (entry.entryDurationMicros() > ENTRY_BUDGET_MICROS) {
+                entry.permit().close();
+                this.quarantined.add(providerId);
+                if (entry.mutation() != null) entry.mutation().cancel(true);
+                result.completeExceptionally(new ProtocolState.ProtocolException(
+                        "PROVIDER_DEBUG_ENTRY_BUDGET_EXCEEDED", 409,
+                        "Provider Debug entry exceeded its synchronous budget"));
+                return;
+            }
+            CompletableFuture<JsonObject> underlying = entry.mutation();
+            if (underlying == null) {
+                entry.permit().close();
+                result.completeExceptionally(new ProtocolState.ProtocolException(
+                        "PROVIDER_DEBUG_CONTRACT_VIOLATION", 409,
+                        "Provider returned a null Debug future"));
+                return;
+            }
+            long invocationGeneration = this.generation.incrementAndGet();
+            MutationInvocation invocation = new MutationInvocation(
+                    invocationGeneration, underlying, result, entry.permit());
+            this.pendingMutations.put(invocationGeneration, invocation);
+            var timeout = this.scheduler.schedule(() -> {
+                if (!this.pendingMutations.remove(invocationGeneration, invocation)) return;
+                invocation.retired().set(true);
+                invocation.underlying().cancel(true);
+                invocation.permit().close();
+                invocation.result().completeExceptionally(new ProtocolState.ProtocolException(
+                        "PROVIDER_DEBUG_TIMEOUT", 408, "Provider Debug mutation timed out"));
+            }, boundedTimeout, TimeUnit.MILLISECONDS);
+            underlying.whenComplete((payload, error) -> {
+                timeout.cancel(false);
+                if (!this.pendingMutations.remove(invocationGeneration, invocation)
+                        || invocation.retired().get()) return;
+                invocation.permit().close();
+                if (error != null) {
+                    Throwable cause = error.getCause() == null ? error : error.getCause();
+                    if ("provider_stale_resource_revision".equals(cause.getMessage())) {
+                        result.completeExceptionally(new ProtocolState.ProtocolException(
+                                "STALE_RESOURCE_REVISION", 409,
+                                "Provider resource changed before mutation"));
+                    } else {
+                        result.completeExceptionally(error);
+                    }
+                    return;
+                }
+                try {
+                    result.complete(this.validateDebugResult(
+                            descriptor, payload, expectedResourceVersion,
+                            requestId, authorization, boundedBytes, started));
+                } catch (Throwable throwable) {
+                    result.completeExceptionally(throwable);
+                }
+            });
+        });
+        result.whenComplete((value, error) -> {
+            if (!result.isCancelled()) return;
+            for (MutationInvocation invocation : this.pendingMutations.values()) {
+                if (invocation.result() == result
+                        && this.pendingMutations.remove(invocation.generation(), invocation)) {
+                    invocation.retired().set(true);
+                    invocation.underlying().cancel(true);
+                    invocation.permit().close();
+                }
+            }
+        });
+        return result;
     }
 
     CompletableFuture<JsonArray> execute(
@@ -140,6 +290,7 @@ final class ProviderExecutionEngine implements AutoCloseable {
     JsonObject diagnostics() {
         JsonObject json = new JsonObject();
         json.addProperty("pendingInvocations", this.pending.size());
+        json.addProperty("pendingDebugMutations", this.pendingMutations.size());
         json.addProperty("quarantinedProviders", this.quarantined.size());
         json.addProperty("invocationGeneration", this.generation.get());
         json.add("worker", this.worker.diagnostics());
@@ -389,6 +540,95 @@ final class ProviderExecutionEngine implements AutoCloseable {
         }
     }
 
+    private JsonObject validateDebugResult(
+            AgentDataProviderV2.Descriptor descriptor,
+            JsonObject payload,
+            JsonObject expectedResourceVersion,
+            String requestId,
+            DebugMutationAuthorization authorization,
+            int byteBudget,
+            long started) {
+        if (payload == null) throw new ProtocolState.ProtocolException(
+                "PROVIDER_DEBUG_CONTRACT_VIOLATION", 409, "Provider returned null Debug result");
+        ProviderSchemaRegistry.ValidationResult resultSchema = ProviderSchemaRegistry.validate(
+                descriptor.debugDeclaration().resultSchema(), payload);
+        if (!resultSchema.valid()) {
+            this.quarantined.add(descriptor.providerId());
+            throw new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_RESULT_SCHEMA_VIOLATION", 409, resultSchema.reason());
+        }
+        int bytes = GSON.toJson(payload).getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > byteBudget) throw new ProtocolState.ProtocolException(
+                "DEBUG_VALUE_BUDGET_EXCEEDED", 413, "Provider Debug result exceeds its byte budget");
+        long beforeRevision = payload.get("providerRevisionBefore").getAsLong();
+        long afterRevision = payload.get("providerRevisionAfter").getAsLong();
+        if (afterRevision <= beforeRevision) {
+            this.quarantined.add(descriptor.providerId());
+            throw new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_REVISION_DID_NOT_ADVANCE", 409,
+                    "Provider Debug mutation must advance native revision");
+        }
+        JsonObject beforeState = payload.getAsJsonObject("revisionStateBefore");
+        JsonObject afterState = payload.getAsJsonObject("revisionStateAfter");
+        for (JsonObject state : List.of(beforeState, afterState)) {
+            ProviderSchemaRegistry.ValidationResult revisionSchema =
+                    ProviderSchemaRegistry.validate(descriptor.revisionSchema(), state);
+            if (!revisionSchema.valid()) {
+                this.quarantined.add(descriptor.providerId());
+                throw new ProtocolState.ProtocolException(
+                        "PROVIDER_DEBUG_REVISION_STATE_INVALID", 409, revisionSchema.reason());
+            }
+        }
+        String lifecycle = "provider:" + descriptor.providerId() + "@runtime_registration";
+        JsonObject beforeRef = this.revisions.nativeRevision(
+                "provider", descriptor.providerId(), lifecycle,
+                beforeRevision, "provider_revision");
+        ResourceVersionVerifier.verify(expectedResourceVersion, beforeRef);
+        String beforeIntegrity = validateNativeRevision(
+                descriptor.providerId(), beforeRevision,
+                ObservationRevisionTracker.fingerprint(beforeState));
+        if (beforeIntegrity != null) {
+            this.quarantined.add(descriptor.providerId());
+            throw new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_REVISION_INTEGRITY_FAILURE", 409, beforeIntegrity);
+        }
+        String afterIntegrity = validateNativeRevision(
+                descriptor.providerId(), afterRevision,
+                ObservationRevisionTracker.fingerprint(afterState));
+        if (afterIntegrity != null) {
+            this.quarantined.add(descriptor.providerId());
+            throw new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_REVISION_INTEGRITY_FAILURE", 409, afterIntegrity);
+        }
+        JsonObject afterRef = this.revisions.nativeRevision(
+                "provider", descriptor.providerId(), lifecycle,
+                afterRevision, "provider_revision");
+        JsonObject result = new JsonObject();
+        result.addProperty("type", "debug.mutation.result");
+        result.addProperty("schemaVersion", "phase9c-debug-v0");
+        result.addProperty("debugOperationId", requestId);
+        result.addProperty("auditReference", requestId);
+        result.addProperty("operation", "provider.mutate");
+        result.addProperty("namespace", "provider");
+        result.addProperty("providerId", descriptor.providerId());
+        result.addProperty("authority", "runtime_internal");
+        result.addProperty("mechanism", "registered_provider_typed_mutation");
+        result.addProperty("invariants", "provider_schema_validated");
+        result.addProperty("synchronization", descriptor.debugDeclaration().synchronizationBehavior());
+        result.addProperty("evidence", "diagnostic");
+        result.addProperty("gameplayEvidence", false);
+        result.addProperty("evidenceContaminated", true);
+        result.addProperty("storageAccessed", false);
+        result.addProperty("principalId", authorization.principalId());
+        result.addProperty("debugArmId", authorization.debugArmId());
+        result.add("before", payload.get("before").deepCopy());
+        result.add("after", payload.get("after").deepCopy());
+        result.add("beforeResourceVersion", ResourceVersionVerifier.token(beforeRef));
+        result.add("afterResourceVersion", ResourceVersionVerifier.token(afterRef));
+        result.addProperty("durationMicros", elapsedMicros(started));
+        return result;
+    }
+
     private JsonObject failure(
             AgentDataProviderV2.Descriptor descriptor,
             DeepObservationRequestContext requestContext,
@@ -512,6 +752,13 @@ final class ProviderExecutionEngine implements AutoCloseable {
             invocation.result().completeExceptionally(new CancellationException("runtime_close"));
         }
         this.pending.clear();
+        for (MutationInvocation invocation : this.pendingMutations.values()) {
+            invocation.retired().set(true);
+            invocation.underlying().cancel(true);
+            invocation.permit().close();
+            invocation.result().completeExceptionally(new CancellationException("runtime_close"));
+        }
+        this.pendingMutations.clear();
         this.scheduler.shutdownNow();
         this.worker.close();
     }
@@ -522,6 +769,15 @@ final class ProviderExecutionEngine implements AutoCloseable {
                 AgentDataProviderV2 provider,
                 AgentDataProviderV2.ReadContext context,
                 String affinity);
+    }
+
+    @FunctionalInterface
+    interface MutationDispatcher {
+        CompletableFuture<MutationEntry> dispatch(
+                AgentDataProviderV2 provider,
+                AgentDataProviderV2.DebugContext context,
+                String affinity,
+                DebugMutationAuthorization authorization);
     }
 
     record Entry(
@@ -535,6 +791,36 @@ final class ProviderExecutionEngine implements AutoCloseable {
         }
     }
 
+    static MutationEntry enterMutation(
+            AgentDataProviderV2 provider,
+            AgentDataProviderV2.DebugContext context,
+            boolean ownerThreadObserved,
+            DebugMutationAuthorization.Permit permit) {
+        long started = System.nanoTime();
+        try {
+            CompletableFuture<JsonObject> mutation = provider.mutate(context);
+            return new MutationEntry(
+                    true, ownerThreadObserved, Thread.currentThread().getName(),
+                    elapsedMicros(started), mutation, permit);
+        } catch (Throwable throwable) {
+            return new MutationEntry(
+                    true, ownerThreadObserved, Thread.currentThread().getName(),
+                    elapsedMicros(started), CompletableFuture.failedFuture(throwable), permit);
+        }
+    }
+
+    record MutationEntry(
+            boolean supported,
+            boolean ownerThreadObserved,
+            String threadName,
+            long entryDurationMicros,
+            CompletableFuture<JsonObject> mutation,
+            DebugMutationAuthorization.Permit permit) {
+        static MutationEntry unsupported(String affinity) {
+            return new MutationEntry(false, false, affinity, 0L, null, () -> { });
+        }
+    }
+
     private record Decision(boolean allowed, String status, String reason, String perspective) {
     }
 
@@ -545,6 +831,21 @@ final class ProviderExecutionEngine implements AutoCloseable {
             AtomicBoolean retired) {
         Invocation(long generation, CompletableFuture<JsonObject> underlying, CompletableFuture<JsonObject> result) {
             this(generation, underlying, result, new AtomicBoolean());
+        }
+    }
+
+    private record MutationInvocation(
+            long generation,
+            CompletableFuture<JsonObject> underlying,
+            CompletableFuture<JsonObject> result,
+            DebugMutationAuthorization.Permit permit,
+            AtomicBoolean retired) {
+        MutationInvocation(
+                long generation,
+                CompletableFuture<JsonObject> underlying,
+                CompletableFuture<JsonObject> result,
+                DebugMutationAuthorization.Permit permit) {
+            this(generation, underlying, result, permit, new AtomicBoolean());
         }
     }
 

@@ -91,6 +91,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     private NeoForgeProbeRuntime() {
         this.phase9a.installProviderDispatcher(this::dispatchProvider);
+        this.phase9a.installProviderMutationDispatcher(this::dispatchProviderMutation);
     }
 
     public static void onClientTick(Minecraft minecraft) {
@@ -787,6 +788,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
+    public CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.debugScenario(player, request));
+    }
+
+    @Override
     public CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext) {
         String perspective = request.has("perspective")
@@ -809,6 +815,30 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         return client.thenCombine(server, (clientValue, serverValue) ->
                 new JsonObject[] { clientValue, serverValue }).thenCompose(values ->
                 this.phase9a.formalize(request, values[0], values[1], requestContext));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9cDebugCapabilities() {
+        return CompletableFuture.completedFuture(this.phase9a.formalDebugCapabilities());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9cDebugMutation(
+            JsonObject request, DebugMutationAuthorization authorization) {
+        String operation = request.has("operation")
+                ? request.get("operation").getAsString() : "";
+        if (operation.equals("provider.mutate")) {
+            return this.phase9a.debugProviderMutation(request, authorization);
+        }
+        return this.onIntegratedServer((server, player) -> {
+            String domain = operation.contains(".")
+                    ? operation.substring(0, operation.indexOf('.')) : "unknown";
+            String fingerprint = this.phase9cWorldFingerprint(server, player);
+            try (DebugMutationAuthorization.Permit ignored = authorization.authorize(
+                    fingerprint, this.phase9a.sessionEpoch(), domain, domain)) {
+                return this.phase9a.debugMutation(server, player, request, fingerprint);
+            }
+        });
     }
 
     @Override
@@ -1014,6 +1044,24 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         };
     }
 
+    private CompletableFuture<ProviderExecutionEngine.MutationEntry> dispatchProviderMutation(
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2 provider,
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2.DebugContext context,
+            String affinity,
+            DebugMutationAuthorization authorization) {
+        if (!"server_thread".equals(affinity)) {
+            return CompletableFuture.completedFuture(
+                    ProviderExecutionEngine.MutationEntry.unsupported(affinity));
+        }
+        return this.onIntegratedServer((server, player) -> {
+            String fingerprint = this.phase9cWorldFingerprint(server, player);
+            DebugMutationAuthorization.Permit permit = authorization.authorize(
+                    fingerprint, this.phase9a.sessionEpoch(), "provider", "provider");
+            return ProviderExecutionEngine.enterMutation(
+                    provider, context, server.isSameThread(), permit);
+        });
+    }
+
     private <T> CompletableFuture<T> onClient(Supplier<T> supplier) {
         Minecraft client = this.minecraft;
         CompletableFuture<T> result = new CompletableFuture<>();
@@ -1086,6 +1134,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             });
         });
         return result;
+    }
+
+    private String phase9cWorldFingerprint(MinecraftServer server, ServerPlayer player) {
+        String material = "26.1.2-neoforge|" + server.getWorldData().getLevelName()
+                + "|" + player.level().dimension().identifier();
+        return sha256(material);
     }
 
     private Minecraft requireClient() {

@@ -14,6 +14,29 @@ const safeActionAnnotations = { readOnlyHint: false, destructiveHint: false, ide
 const objectSchema = z.record(z.string(), z.unknown());
 const leaseSchema = z.string().min(1).optional();
 const debugArmSchema = z.string().min(1).optional();
+const resourceVersionSchema = z.object({
+  sessionEpoch: z.string().uuid(),
+  resourceType: z.enum(['player', 'menu', 'entity', 'block', 'chunk', 'block_entity', 'block_entity_serialized', 'provider']),
+  resourceKey: z.string().min(1),
+  lifecycleId: z.string().min(1),
+  revision: z.number().int().min(0),
+  revisionSource: z.enum(['native_counter', 'runtime_event_sequence', 'snapshot_change_sequence', 'provider_revision']),
+  revisionScope: z.enum(['resource', 'query_view']),
+  mutationPreconditionEligible: z.boolean()
+});
+const debugMutationBase = {
+  worldFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+  expectedResourceVersion: resourceVersionSchema
+};
+const debugMutationSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('player.health.set'), ...debugMutationBase, health: z.number().min(0).max(2048), expectedHealth: z.number().optional() }),
+  z.object({ operation: z.literal('player.attribute.set'), ...debugMutationBase, attributeId: z.literal('minecraft:max_health'), value: z.number().positive().max(2048), expectedValue: z.number().optional() }),
+  z.object({ operation: z.literal('entity.no_gravity.set'), ...debugMutationBase, entityUuid: z.string().uuid(), value: z.boolean(), expectedNoGravity: z.boolean().optional(), expectedEntityType: z.string().optional() }),
+  z.object({ operation: z.literal('world.block.set'), ...debugMutationBase, x: z.number().int(), y: z.number().int(), z: z.number().int(), blockId: z.string().min(1), expectedBlockId: z.string().optional() }),
+  z.object({ operation: z.literal('block_entity.custom_name.set'), ...debugMutationBase, x: z.number().int(), y: z.number().int(), z: z.number().int(), customName: z.string().max(128).nullable().optional(), expectedCustomName: z.string().max(128).nullable().optional(), expectedBlockEntityType: z.string().optional() }),
+  z.object({ operation: z.literal('menu.slot.set'), ...debugMutationBase, slot: z.number().int().min(0), itemId: z.string().optional(), count: z.number().int().min(0).max(64), expectedMenuId: z.number().int().optional(), expectedItemId: z.string().optional(), expectedCount: z.number().int().min(0).optional() }),
+  z.object({ operation: z.literal('provider.mutate'), ...debugMutationBase, providerId: z.string().regex(/^[a-z0-9_.-]+:[a-z0-9_./-]+$/), mutation: objectSchema, timeoutMs: z.number().int().min(25).max(1000).optional(), resultByteBudget: z.number().int().min(256).max(16_384).optional() })
+]);
 const uiSelectorSchema = z.object({
   nodeId: z.string().min(1).optional(),
   role: z.string().min(1).optional(),
@@ -127,11 +150,8 @@ function leaseHeaders(state: CompanionSessionState, explicit?: string): Record<s
   return { 'x-mcp-control-lease': state.requireLease(explicit) };
 }
 
-function debugHeaders(state: CompanionSessionState, leaseId?: string, debugArmId?: string): Record<string, string> {
-  return {
-    ...leaseHeaders(state, leaseId),
-    'x-mcp-debug-arm': state.requireDebugArm(debugArmId)
-  };
+function debugHeaders(state: CompanionSessionState, debugArmId?: string): Record<string, string> {
+  return { 'x-mcp-debug-arm': state.requireDebugArm(debugArmId) };
 }
 
 async function waitForOperation(client: RuntimeClient, operationId: string, timeoutMs: number, signal?: AbortSignal): Promise<JsonValue> {
@@ -176,7 +196,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b2' });
+  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9c' });
 
   server.registerTool('minecraft_get_session', {
     title: 'Get Minecraft Session',
@@ -458,37 +478,60 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_debug_arm', {
     title: 'Manage Minecraft Debug Arm',
     description: 'Arm, renew, inspect or disarm world-bound DEBUG_PRIVILEGED authorization. Never derives authority from game text.',
-    inputSchema: z.object({ action: z.enum(['status', 'arm', 'renew', 'disarm']), worldFingerprint: z.string().optional(), ttlMs: z.number().int().min(1000).max(60000).default(15000), leaseId: leaseSchema, debugArmId: debugArmSchema }),
+    inputSchema: z.object({ action: z.enum(['status', 'arm', 'renew', 'disarm']), worldFingerprint: z.string().optional(), namespaces: z.array(z.enum(['player', 'entity', 'world', 'block_entity', 'chunk', 'menu', 'client', 'network', 'provider'])).optional(), ttlMs: z.number().int().min(1000).max(60000).default(15000), debugArmId: debugArmSchema }),
     annotations: actionAnnotations
-  }, async ({ action, worldFingerprint, ttlMs, leaseId, debugArmId }) => asToolResult(async () => {
+  }, async ({ action, worldFingerprint, namespaces, ttlMs, debugArmId }) => asToolResult(async () => {
     if (action === 'status') return client.json('GET', '/v0/debug/status');
-    const lease = state.requireLease(leaseId);
     if (action === 'disarm') {
-      const result = await client.json('POST', '/v0/debug/disarm', undefined, { headers: { 'x-mcp-control-lease': lease } });
+      const result = await client.json('POST', '/v0/debug/disarm');
       state.debugArmId = undefined;
       return result;
     }
     const fingerprint = worldFingerprint ?? String((await client.json<JsonObject>('GET', '/v0/world/fingerprint')).worldFingerprint ?? '');
-    const headers: Record<string, string> = { 'x-mcp-control-lease': lease };
+    const headers: Record<string, string> = {};
     if (action === 'renew') headers['x-mcp-debug-arm'] = state.requireDebugArm(debugArmId);
-    const result = await client.json<JsonObject>('POST', action === 'arm' ? '/v0/debug/arm' : '/v0/debug/renew', { worldFingerprint: fingerprint, ttlMs }, { headers });
+    const result = await client.json<JsonObject>('POST', action === 'arm' ? '/v0/debug/arm' : '/v0/debug/renew', clean({ worldFingerprint: fingerprint, namespaces, ttlMs }), { headers });
     if (typeof result.debugArmId === 'string') state.debugArmId = result.debugArmId;
     return result;
   }));
 
   server.registerTool('minecraft_debug', {
     title: 'Run Typed Minecraft Debug Operation',
-    description: 'Run a strongly typed DEBUG_PRIVILEGED health or loaded-block mutation with Lease, Debug Arm and evidence contamination.',
-    inputSchema: z.object({ operation: z.enum(['set_health', 'set_block']), health: z.number().optional(), x: z.number().int().optional(), y: z.number().int().optional(), z: z.number().int().optional(), blockId: z.string().optional(), expectedBlockId: z.string().optional(), leaseId: leaseSchema, debugArmId: debugArmSchema }),
+    description: 'Inspect Debug capabilities, run one typed ResourceVersion-guarded mutation, run a bounded batch, or classify a gameplay Act contamination window. Debug is never gameplay evidence.',
+    inputSchema: z.discriminatedUnion('action', [
+      z.object({ action: z.literal('capabilities') }),
+      z.object({ action: z.literal('mutate'), mutation: debugMutationSchema, debugArmId: debugArmSchema }),
+      z.object({ action: z.literal('batch'), items: z.array(debugMutationSchema).min(1).max(64), failurePolicy: z.enum(['STOP_ON_FAILURE', 'CONTINUE_ON_FAILURE']).default('STOP_ON_FAILURE'), maxPerTickMutations: z.number().int().min(1).max(4).default(4), maxTotalDurationMs: z.number().int().min(1).max(30_000).default(30_000), waitForCompletion: z.boolean().default(true), debugArmId: debugArmSchema }),
+      z.object({ action: z.literal('act_start') }),
+      z.object({ action: z.literal('act_finish'), actId: z.string().uuid() })
+    ]),
     annotations: actionAnnotations
-  }, async args => asToolResult(() => {
-    const headers = debugHeaders(state, args.leaseId, args.debugArmId);
-    if (args.operation === 'set_health') {
-      if (args.health === undefined) throw new Error('set_health requires health');
-      return client.json('POST', '/v0/debug/player/health', { health: args.health }, { headers });
+  }, async (args, context) => asToolResult(async () => {
+    if (args.action === 'capabilities') return client.json('GET', '/v0/debug/capabilities');
+    if (args.action === 'act_start') return client.json('POST', '/v0/debug/evidence/act/start');
+    if (args.action === 'act_finish') return client.json('POST', '/v0/debug/evidence/act/finish', { actId: args.actId });
+    const headers = debugHeaders(state, args.debugArmId);
+    if (args.action === 'mutate') {
+      return client.json('POST', '/v0/debug/mutations', asJson(args.mutation), { headers });
     }
-    if (args.x === undefined || args.y === undefined || args.z === undefined || !args.blockId) throw new Error('set_block requires x, y, z and blockId');
-    return client.json('POST', '/v0/debug/world/block', clean({ x: args.x, y: args.y, z: args.z, blockId: args.blockId, expectedBlockId: args.expectedBlockId }), { headers });
+    const started = await client.json<JsonObject>('POST', '/v0/debug/batches', {
+      items: asJson(args.items),
+      failurePolicy: args.failurePolicy,
+      maxPerTickMutations: args.maxPerTickMutations,
+      maxTotalDurationMs: args.maxTotalDurationMs
+    }, { headers });
+    if (!args.waitForCompletion || typeof started.operationId !== 'string') return started;
+    const operationId = started.operationId;
+    const signal = cancellationSignal(context);
+    const cancelNative = (): void => {
+      void client.json('DELETE', `/v0/operations/${encodeURIComponent(operationId)}`).catch(() => undefined);
+    };
+    signal?.addEventListener('abort', cancelNative, { once: true });
+    try {
+      return await waitForOperation(client, operationId, args.maxTotalDurationMs + 5000, signal);
+    } finally {
+      signal?.removeEventListener('abort', cancelNative);
+    }
   }));
 
   const jsonResource = (name: string, uri: string, path: string): void => {

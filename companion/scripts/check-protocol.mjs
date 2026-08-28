@@ -19,6 +19,9 @@ const requiredPaths = [
   '/v0/server/peer'
   ,'/v0/observe/deep'
   ,'/v0/observe/deep/capabilities'
+  ,'/v0/debug/capabilities'
+  ,'/v0/debug/mutations'
+  ,'/v0/debug/batches'
 ];
 const requiredSchemas = [
   'CapabilitiesResponse',
@@ -31,10 +34,13 @@ const requiredSchemas = [
   ,'DeepObservationRequest'
   ,'DeepObservationResponse'
   ,'ResourceRevisionRef'
+  ,'DebugMutationRequest'
+  ,'DebugMutationResult'
+  ,'DebugBatchRequest'
 ];
 
-if (specification.info?.version !== '0.0.1-phase9b2') {
-  throw new Error(`Companion requires OpenAPI 0.0.1-phase9b2, received ${specification.info?.version ?? 'missing'}`);
+if (specification.info?.version !== '0.0.1-phase9c') {
+  throw new Error(`Companion requires OpenAPI 0.0.1-phase9c, received ${specification.info?.version ?? 'missing'}`);
 }
 for (const path of requiredPaths) {
   if (!specification.paths?.[path]) throw new Error(`Companion-required protocol path is missing: ${path}`);

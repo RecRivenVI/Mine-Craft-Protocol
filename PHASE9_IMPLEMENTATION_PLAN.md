@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9B PASS — CONTRACT + REVISION IDENTITY HARDENED
+> Status: Phase 9C PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9B.2 is complete; Phase 9C is not started and awaits independent review; Phase 10 is not started
+> Current phase boundary: Phase 9C is complete; Phase 9D awaits independent review; Phase 10 is not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -38,13 +38,13 @@ UNAVAILABLE
 REQUIRES_NEW_HOOK
 ```
 
-### 1.1 Platform Charter Boundary
+### 1.1 Core and Optional Extension Boundary
 
-The long-term product definition is now the **Agent-native Minecraft Development, Debugging and Testing Platform** described by `PLATFORM_VISION.md`. The Minecraft Agent Control Runtime remains its Runtime Control, Testing and Observation subsystem.
+The committed product is the **Agent-native Minecraft Autonomous Testing Platform** described by `PLATFORM_VISION.md`. The Minecraft Agent Control Runtime remains its Runtime Control, Testing and Observation subsystem.
 
-This charter evolution does not change Phase 9 scope, implementation order, evidence or exit gates. Source/Mapping/Mod Intelligence, Runtime-to-source correlation, Safe Probe, unsafe Exploratory JVM and Human Inspector are separate `PLANNED` Platform capabilities. They are not Phase 9B deliverables and have not started implementation.
+This governance separation does not change Phase 9 scope, implementation order, evidence or exit gates. E1 Development Intelligence & Exploratory Debug, E2 Autonomous Gameplay and E3 Deterministic Graphics Acceptance & Render Forensics are independently governed Optional Extensions in `PLATFORM_EXTENSION_GOALS.md`. They are outside Phase 9 and have not started implementation.
 
-Phase 9C must still pass its independent entry review and preserve strongly typed Minecraft-domain mutations. A future exploratory path cannot compensate for a missing or incorrect typed Debug contract. Runtime Phase 9C-9G and Phase 10 remain unchanged; Development Intelligence and Platform Integration use separate parallel tracks and separate gates.
+Phase 9C has passed its independent implementation gate with strongly typed Minecraft-domain mutations. An optional exploratory path cannot compensate for a missing or incorrect typed Debug contract. Runtime Phase 9D-9G and Phase 10 remain unchanged. No Extension is a Phase 9 or first Developer Preview blocker.
 
 ## 2. Entry Reconciliation
 
@@ -68,8 +68,8 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 | Provider V2 | IMPLEMENTED | typed descriptor, detached schema-backed snapshot, effects/budget/failure isolation | five Targets | consumed by later Recording/Debug phases |
 | Recording | PARTIAL | frame + selected State Frame + events | five Targets | integrate world Keyframe/Delta later; current codec remains unfrozen |
 | Debug Arm | IMPLEMENTED | Control Lease + world fingerprint + TTL | five Targets | retain as the authority boundary |
-| Debug Player health | IMPLEMENTED | server-thread direct mutation | five Targets | expand by typed domains in 9C |
-| Debug loaded block | IMPLEMENTED | loaded state + value precondition | five Targets | retain no-load policy |
+| Typed Deep Debug core | IMPLEMENTED | Arm/scope/world/resource/value guarded owner-thread mutation | five Targets | retain as the trusted Debug path |
+| Debug loaded block | IMPLEMENTED | loaded state + ResourceVersion/value preconditions | five Targets | retain no-load policy |
 | Deep Player | IMPLEMENTED | formal typed server snapshot plus explicit client-known counterpart | five Targets | optional domains remain limitations |
 | Deep Entity | IMPLEMENTED | formal typed common core; raw tracked data excluded | five Targets | Provider V2 owns custom extensions |
 | Block Entity | IMPLEMENTED | safe default summary; explicit structured serialization opt-in | five Targets | byte-budgeted and effect-labelled |
@@ -441,11 +441,11 @@ Deliver formal typed Player/Entity/Block Entity/Chunk snapshots, client/server c
 
 Exit gate result: PASS — CONTRACT HARDENED. All five Targets expose the formal V0 schema, projection-independent resource-local revision, client/server comparison, no-load observation, normalized loading summary, Target diagnostic tickets, Scheduled Tick detail, enforced Provider V2 contracts and executable budgets.
 
-### Phase 9C — Deep Debug and Batch Boundary State
+### Phase 9C — Deep Debug and Batch Boundary State — COMPLETE
 
-Promote proven debug operations into domain namespaces, add bounded batch execution/cancellation/per-item results and expand Menu/Network/Chunk representatives.
+Promoted proven debug operations into domain namespaces, added bounded batch execution/cancellation/per-item results and established honest Menu/Provider/Chunk/Client/Network capability boundaries.
 
-Exit gate: every mutation has Arm/scope/precondition/before-after/provenance/resync/cleanup evidence and never counts as gameplay.
+Exit gate result: PASS. Every formal mutation has authenticated principal scopes, world/session-bound Arm, ResourceVersion/value preconditions, before/after snapshots, revision advance, provenance, resync/cleanup evidence and never counts as gameplay. Chunk/Client/Network remain explicit `PARTIAL` without raw backdoors. Dedicated Peer retains its separately gated legacy typed health/block subset; full Phase 9C resource-version parity is a later Target limitation, not fabricated.
 
 ### Phase 9D — Persistent Storage
 
@@ -471,7 +471,7 @@ Promote 1.21.1/26.1.2, run five-Target capability matrix, 20-minute mixed stress
 
 Exit gate: Phase 9 DoD is evidence-backed and Phase 10 becomes ready for a separate independent review.
 
-The Platform charter does not append Development Intelligence work to Phase 9 or renumber it as Phase 11+. After a separately authorized Phase 9C establishes stable typed Debug boundaries, later Runtime work and separately authorized DI architecture/implementation may proceed in parallel. Neither track can waive the other's gate.
+The Optional Extension Portfolio does not append E1/E2/E3 work to Phase 9 or renumber it as Phase 11+. Separately authorized extension research may proceed independently, but it cannot waive, expand or block a Runtime gate.
 
 ## 15. Phase 9A Conformance and Exit
 
@@ -506,7 +506,7 @@ Phase 9B Entry Gate: CLOSED (completed)
 Phase 10: NOT STARTED
 ```
 
-Phase 9A stopped at its independent review boundary. Phase 9B was subsequently authorized, completed and now stops at the Phase 9C independent review boundary.
+Phase 9A stopped at its independent review boundary. Phase 9B and Phase 9C were subsequently authorized and completed. Work now stops at the Phase 9D independent review boundary.
 
 ## 16. Phase 9B Formal Deep Observation Evidence
 
@@ -598,7 +598,8 @@ Phase 10 advanced diagnostics/recovery
 Phase 9B.1: PASS
 Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
-Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9C: PASS
+Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 ```
 
@@ -703,3 +704,63 @@ Active Deep Observation requests are bounded at 16. Provider pending work is the
 | Fabric 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
 
 Across the final Phase 9B.1/9B.2 matrices, the worst observed owner-thread capture was 5,839 us, detached revision was 4,656 us and Provider validation was 141 us. Owner-thread work remains below the 12 ms hard budget.
+
+## 19. Phase 9C Typed Deep Debug Evidence
+
+Formal V0 routes are:
+
+```text
+GET  /v0/debug/capabilities
+POST /v0/debug/mutations
+POST /v0/debug/batches
+GET  /v0/debug/evidence
+POST /v0/debug/evidence/act/start
+POST /v0/debug/evidence/act/finish
+```
+
+The typed mutation union covers representative Player health/attribute, Entity no-gravity, loaded Block, container Block Entity custom name, Menu slot and registered Provider mutations. Every item requires `debug`, `debug.write`, a domain scope, a session/world/namespace-bound Debug Arm and an eligible resource-scoped version token. Value preconditions remain independent and composable. Validation and mutation occur under the authoritative owner-thread permit.
+
+Provider Debug is a separate `mutate(DebugContext)` contract with mutation/result schemas, required scope, Arm, affinity, native resource revision integrity, cancellation and audit. It is never hidden in an observation query. Delayed Provider mutation cancellation was live-tested with zero post-cancel state change.
+
+Batch V0 is an ordered, non-transactional, bounded sequence:
+
+```text
+max items:          64
+max request bytes:  256 KiB
+max writes/tick:    4
+max duration:       30 seconds
+failure policy:     STOP_ON_FAILURE | CONTINUE_ON_FAILURE
+```
+
+It reuses native Operation get/wait/cancel, returns per-item results and partial cancellation snapshots, rechecks Arm/world authority for every item and uses a cross-thread stamped cancellation permit. Conformance covers 10-item success, mixed/stale failure, cancellation with zero later mutations, delayed Provider cancellation, Arm expiry, world exit, Runtime shutdown cleanup and both failure policies.
+
+Representative NeoForge 26.2 batch measurements:
+
+| Scenario | Result | Measured evidence |
+|---|---|---|
+| single typed item | PASS | included in per-item timings; no unbounded owner-thread loop |
+| 10 items | PASS | 180 ms total in final five-Target matrix |
+| maximum 64 items | PASS | 2,631 ms total; 2,620 ms Runtime duration; 29,007 us average / 35,224 us maximum item; 127,886 response bytes; -69,632 process working-set delta; cleanup PASS |
+| cancelled batch | PASS | three items completed before accepted cancellation; zero post-cancel mutation |
+
+The development Integrated Server reported a normal idle `world.gameTime` advance near 20/s but accelerated while the mutation workload was scheduled. That counter is therefore not treated as an authoritative TPS benchmark for this scenario. The reliable budget evidence is bounded per-item execution, explicit yielding, responsive Runtime requests, no rejected/blocked owner-thread loop, no persistent working-set growth and complete cleanup. Formal long-duration FPS/TPS stress remains Phase 9G.
+
+Five-Target live results:
+
+| Target | Player | Entity | Block | Block Entity | Menu | Provider | Batch | Evidence | Phase 9B | V1 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Forge 1.20.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 1.21.1 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.1.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| NeoForge 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+| Fabric 26.2 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+
+Chunk, Client and Network are deliberately `PARTIAL`: their capability and safety boundary is formal, but Phase 9C does not expose raw Ticket mutation, arbitrary client-field writes, arbitrary packet classes or ByteBuf injection. Persistent Storage write remains unimplemented for Phase 9D.
+
+```text
+Phase 9C: PASS
+Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 10: NOT STARTED
+Development Intelligence: NOT STARTED
+Wire Protocol v1: NOT FROZEN
+```

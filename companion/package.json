@@ -1,6 +1,6 @@
 {
   "name": "@recrivenvi/minecraft-protocol-companion",
-  "version": "0.0.1-phase8",
+  "version": "0.0.1-phase9c",
   "private": true,
   "type": "module",
   "description": "Independent MCP companion for the Mine-Craft-Protocol Runtime.",

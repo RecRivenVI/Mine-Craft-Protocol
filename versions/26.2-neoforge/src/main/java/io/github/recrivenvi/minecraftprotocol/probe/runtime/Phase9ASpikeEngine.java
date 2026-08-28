@@ -8,6 +8,7 @@ import com.mojang.serialization.JsonOps;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.DistanceManagerAccessor;
+import io.github.recrivenvi.minecraftprotocol.probe.mixin.BaseContainerBlockEntityAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.LevelTicksAccessor;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.io.DataInputStream;
@@ -36,6 +37,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -55,6 +58,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.TicketStorage;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -100,6 +104,63 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     void installProviderDispatcher(ProviderExecutionEngine.Dispatcher dispatcher) {
         this.providerExecution.installDispatcher(dispatcher);
+    }
+
+    void installProviderMutationDispatcher(
+            ProviderExecutionEngine.MutationDispatcher dispatcher) {
+        this.providerExecution.installMutationDispatcher(dispatcher);
+    }
+
+    String sessionEpoch() {
+        return this.revisions.sessionEpoch();
+    }
+
+    JsonObject formalDebugCapabilities() {
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "debug.capabilities");
+        json.addProperty("schemaVersion", "phase9c-debug-v0");
+        json.addProperty("formal", true);
+        json.addProperty("sessionEpoch", this.revisions.sessionEpoch());
+        json.addProperty("requiresDebugArm", true);
+        json.addProperty("requiresWorldFingerprint", true);
+        json.addProperty("requiresResourceVersion", true);
+        json.addProperty("persistentStorageMutation", false);
+        json.addProperty("arbitraryReflection", false);
+        json.addProperty("arbitraryPacketInjection", false);
+        JsonArray operations = new JsonArray();
+        for (String operation : List.of(
+                "player.health.set",
+                "player.attribute.set",
+                "entity.no_gravity.set",
+                "world.block.set",
+                "block_entity.custom_name.set",
+                "menu.slot.set",
+                "provider.mutate")) {
+            JsonObject value = new JsonObject();
+            value.addProperty("operation", operation);
+            value.addProperty("status", "available");
+            value.addProperty("requiresArm", true);
+            value.addProperty("requiredScope", "debug." + operation.substring(0, operation.indexOf('.')));
+            value.addProperty("resourceVersionPrecondition", true);
+            value.addProperty("batch", true);
+            operations.add(value);
+        }
+        for (String domain : List.of("chunk", "client", "network")) {
+            JsonObject value = new JsonObject();
+            value.addProperty("operation", domain + ".representative");
+            value.addProperty("status", "partial");
+            value.addProperty("limitation", domain.equals("network")
+                    ? "typed resync observation only; no arbitrary packet injection"
+                    : "no stable cross-Target public mutation promoted in Phase 9C");
+            operations.add(value);
+        }
+        json.add("operations", operations);
+        JsonObject deployments = new JsonObject();
+        deployments.addProperty("integratedServer", "available");
+        deployments.addProperty("dedicatedServerPeer", "legacy_typed_health_and_block_only");
+        deployments.addProperty("remoteWithoutPeer", "unavailable");
+        json.add("deployments", deployments);
+        return json;
     }
 
     JsonObject inventory() {
@@ -467,6 +528,448 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             default -> throw new ProtocolState.ProtocolException(
                     "UNSUPPORTED_PHASE9A_SCENARIO", 400, "Unsupported Phase 9A scenario action");
         };
+    }
+
+    JsonObject debugMutation(
+            MinecraftServer server,
+            ServerPlayer player,
+            JsonObject request,
+            String currentWorldFingerprint) {
+        String operation = requiredDebugString(request, "operation");
+        String expectedFingerprint = requiredDebugString(request, "worldFingerprint");
+        if (!expectedFingerprint.equals(currentWorldFingerprint)) {
+            throw new ProtocolState.ProtocolException(
+                    "WORLD_FINGERPRINT_MISMATCH", 409,
+                    "Debug mutation belongs to another world");
+        }
+        if (!request.has("expectedResourceVersion")
+                || !request.get("expectedResourceVersion").isJsonObject()) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_RESOURCE_VERSION", 400,
+                    "expectedResourceVersion is required");
+        }
+        return switch (operation) {
+            case "player.health.set" -> this.debugPlayerHealth(player, request);
+            case "player.attribute.set" -> this.debugPlayerAttribute(player, request);
+            case "entity.no_gravity.set" -> this.debugEntityNoGravity(player, request);
+            case "world.block.set" -> this.debugWorldBlock(player, request);
+            case "block_entity.custom_name.set" -> this.debugBlockEntityCustomName(player, request);
+            case "menu.slot.set" -> this.debugMenuSlot(player, request);
+            default -> throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409,
+                    "Unsupported typed Phase 9C Debug operation: " + operation);
+        };
+    }
+
+    CompletableFuture<JsonObject> debugProviderMutation(
+            JsonObject request, DebugMutationAuthorization authorization) {
+        String providerId = requiredDebugString(request, "providerId");
+        if (!request.has("mutation") || !request.get("mutation").isJsonObject()) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "PROVIDER_DEBUG_SCHEMA_VIOLATION", 400,
+                    "provider.mutate requires a typed mutation object"));
+        }
+        if (!request.has("expectedResourceVersion")
+                || !request.get("expectedResourceVersion").isJsonObject()) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "INVALID_RESOURCE_VERSION", 400,
+                    "provider.mutate requires expectedResourceVersion"));
+        }
+        return this.providerExecution.debugMutate(
+                providerId,
+                request.getAsJsonObject("mutation"),
+                request.getAsJsonObject("expectedResourceVersion"),
+                requiredDebugString(request, "worldFingerprint"),
+                request.has("debugOperationId")
+                        ? request.get("debugOperationId").getAsString() : UUID.randomUUID().toString(),
+                authorization,
+                request.has("timeoutMs") ? request.get("timeoutMs").getAsInt() : 250,
+                request.has("resultByteBudget") ? request.get("resultByteBudget").getAsInt() : 16_384);
+    }
+
+    private JsonObject debugPlayerHealth(ServerPlayer player, JsonObject request) {
+        JsonObject before = player(player);
+        JsonObject beforeRef = this.playerRevision(before);
+        verifyExpected(request, beforeRef);
+        double requested = requiredFiniteDouble(request, "health", 0.0D, 2_048.0D);
+        if (request.has("expectedHealth")
+                && Double.compare(request.get("expectedHealth").getAsDouble(), player.getHealth()) != 0) {
+            throw valueMismatch("expectedHealth", player.getHealth());
+        }
+        if (Double.compare(requested, player.getHealth()) == 0) throw noStateChange();
+        player.setHealth((float) requested);
+        JsonObject after = player(player);
+        return mutationResult(request, "player", "server_player_set_health",
+                "normal_network_sync", before, after, beforeRef, this.playerRevision(after));
+    }
+
+    private JsonObject debugPlayerAttribute(ServerPlayer player, JsonObject request) {
+        String attributeId = requiredDebugString(request, "attributeId");
+        if (!"minecraft:max_health".equals(attributeId)) {
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409,
+                    "Phase 9C currently exposes only minecraft:max_health");
+        }
+        AttributeInstance instance = player.getAttribute(Attributes.MAX_HEALTH);
+        if (instance == null) throw new ProtocolState.ProtocolException(
+                "CAPABILITY_UNAVAILABLE", 409, "minecraft:max_health is unavailable");
+        JsonObject before = player(player);
+        JsonObject beforeRef = this.playerRevision(before);
+        verifyExpected(request, beforeRef);
+        double requested = requiredFiniteDouble(request, "value", 0.001D, 2_048.0D);
+        if (request.has("expectedValue")
+                && Double.compare(request.get("expectedValue").getAsDouble(), instance.getBaseValue()) != 0) {
+            throw valueMismatch("expectedValue", instance.getBaseValue());
+        }
+        if (Double.compare(requested, instance.getBaseValue()) == 0) throw noStateChange();
+        instance.setBaseValue(requested);
+        JsonObject after = player(player);
+        return mutationResult(request, "player", "server_attribute_map",
+                "normal_network_sync", before, after, beforeRef, this.playerRevision(after));
+    }
+
+    private JsonObject debugEntityNoGravity(ServerPlayer player, JsonObject request) {
+        String uuid = requiredDebugString(request, "entityUuid");
+        Entity target = loadedEntity(player, uuid);
+        JsonObject before = entity(target);
+        JsonObject beforeRef = this.revisions.revision(
+                "entity", uuid, before.get("lifecycleId").getAsString(), canonicalDebugEntity(before));
+        verifyExpected(request, beforeRef);
+        if (request.has("expectedEntityType")
+                && !request.get("expectedEntityType").getAsString().equals(before.get("type").getAsString())) {
+            throw valueMismatch("expectedEntityType", before.get("type").getAsString());
+        }
+        boolean requested = requiredDebugBoolean(request, "value");
+        if (request.has("expectedNoGravity")
+                && request.get("expectedNoGravity").getAsBoolean() != target.isNoGravity()) {
+            throw valueMismatch("expectedNoGravity", target.isNoGravity());
+        }
+        if (requested == target.isNoGravity()) throw noStateChange();
+        target.setNoGravity(requested);
+        JsonObject after = entity(target);
+        JsonObject afterRef = this.revisions.revision(
+                "entity", uuid, after.get("lifecycleId").getAsString(), canonicalDebugEntity(after));
+        return mutationResult(request, "entity", "server_entity_state",
+                "normal_network_sync", before, after, beforeRef, afterRef);
+    }
+
+    private JsonObject debugWorldBlock(ServerPlayer player, JsonObject request) {
+        ServerLevel level = player.level();
+        BlockPos position = requiredPosition(request);
+        JsonObject before = blockSnapshot(level, position);
+        if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block");
+        JsonObject beforeRef = this.blockRevision(level, before);
+        verifyExpected(request, beforeRef);
+        if (request.has("expectedBlockId")
+                && !request.get("expectedBlockId").getAsString().equals(before.get("blockId").getAsString())) {
+            throw valueMismatch("expectedBlockId", before.get("blockId").getAsString());
+        }
+        String blockId = requiredDebugString(request, "blockId");
+        if (blockId.equals(before.get("blockId").getAsString())) throw noStateChange();
+        Identifier id = Identifier.tryParse(blockId);
+        if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
+            throw new ProtocolState.ProtocolException("UNKNOWN_BLOCK", 400, "Unknown block: " + blockId);
+        }
+        Block block = BuiltInRegistries.BLOCK.getValue(id);
+        level.setBlockAndUpdate(position, block.defaultBlockState());
+        JsonObject after = blockSnapshot(level, position);
+        return mutationResult(request, "world", "vanilla_server_level_set_block",
+                "normal_network_sync", before, after, beforeRef, this.blockRevision(level, after));
+    }
+
+    private JsonObject debugBlockEntityCustomName(ServerPlayer player, JsonObject request) {
+        ServerLevel level = player.level();
+        BlockPos position = requiredPosition(request);
+        JsonObject before = blockEntitySnapshot(level, position, true);
+        if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block_entity");
+        BlockEntity blockEntity = level.getBlockEntity(position);
+        if (!(blockEntity instanceof BaseContainerBlockEntity container)) {
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409,
+                    "custom_name.set requires a loaded container Block Entity");
+        }
+        JsonObject beforeRef = this.blockEntitySerializedRevision(level, before);
+        verifyExpected(request, beforeRef);
+        if (request.has("expectedBlockEntityType")
+                && !request.get("expectedBlockEntityType").getAsString().equals(before.get("type").getAsString())) {
+            throw valueMismatch("expectedBlockEntityType", before.get("type").getAsString());
+        }
+        String requested = request.has("customName") && !request.get("customName").isJsonNull()
+                ? request.get("customName").getAsString() : null;
+        if (requested != null && requested.length() > 128) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "customName is limited to 128 characters");
+        }
+        String current = container.getCustomName() == null ? null : container.getCustomName().getString();
+        if (request.has("expectedCustomName")) {
+            String expected = request.get("expectedCustomName").isJsonNull()
+                    ? null : request.get("expectedCustomName").getAsString();
+            if (!java.util.Objects.equals(expected, current)) {
+                throw valueMismatch("expectedCustomName", current);
+            }
+        }
+        if (java.util.Objects.equals(requested, current)) throw noStateChange();
+        ((BaseContainerBlockEntityAccessor) container).minecraftProtocol$setCustomName(
+                requested == null ? null : Component.literal(requested));
+        container.setChanged();
+        BlockState state = level.getBlockState(position);
+        level.sendBlockUpdated(position, state, state, 3);
+        JsonObject after = blockEntitySnapshot(level, position, true);
+        return mutationResult(request, "block_entity", "typed_block_entity_custom_name",
+                "normal_network_sync", before, after, beforeRef,
+                this.blockEntitySerializedRevision(level, after));
+    }
+
+    private JsonObject debugMenuSlot(ServerPlayer player, JsonObject request) {
+        JsonObject before = menu(player);
+        JsonObject beforeRef = this.menuRevision(before);
+        verifyExpected(request, beforeRef);
+        int slotIndex = request.has("slot") ? request.get("slot").getAsInt() : -1;
+        if (slotIndex < 0 || slotIndex >= player.containerMenu.slots.size()) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "slot is outside the active Menu");
+        }
+        if (request.has("expectedMenuId")
+                && request.get("expectedMenuId").getAsInt() != player.containerMenu.containerId) {
+            throw valueMismatch("expectedMenuId", player.containerMenu.containerId);
+        }
+        ItemStack current = player.containerMenu.slots.get(slotIndex).getItem();
+        String currentId = BuiltInRegistries.ITEM.getKey(current.getItem()).toString();
+        if (request.has("expectedItemId")
+                && !request.get("expectedItemId").getAsString().equals(currentId)) {
+            throw valueMismatch("expectedItemId", currentId);
+        }
+        if (request.has("expectedCount")
+                && request.get("expectedCount").getAsInt() != current.getCount()) {
+            throw valueMismatch("expectedCount", current.getCount());
+        }
+        int count = request.has("count") ? request.get("count").getAsInt() : 0;
+        if (count < 0 || count > 64) throw new ProtocolState.ProtocolException(
+                "VALUE_PRECONDITION_FAILED", 400, "count must be 0 to 64");
+        ItemStack replacement = ItemStack.EMPTY;
+        if (count > 0) {
+            String itemId = requiredDebugString(request, "itemId");
+            Identifier id = Identifier.tryParse(itemId);
+            if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
+                throw new ProtocolState.ProtocolException("UNKNOWN_ITEM", 400, "Unknown item: " + itemId);
+            }
+            replacement = new ItemStack(BuiltInRegistries.ITEM.getValue(id), count);
+        }
+        if (ItemStack.matches(current, replacement)) throw noStateChange();
+        player.containerMenu.slots.get(slotIndex).set(replacement);
+        player.containerMenu.broadcastChanges();
+        JsonObject after = menu(player);
+        return mutationResult(request, "menu", "server_menu_slot_set",
+                "normal_network_sync", before, after, beforeRef, this.menuRevision(after));
+    }
+
+    private JsonObject mutationResult(
+            JsonObject request,
+            String domain,
+            String mechanism,
+            String synchronization,
+            JsonObject before,
+            JsonObject after,
+            JsonObject beforeRef,
+            JsonObject afterRef) {
+        if (beforeRef.get("revision").getAsLong() == afterRef.get("revision").getAsLong()) {
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_REVISION_DID_NOT_ADVANCE", 409,
+                    "Typed Debug mutation did not advance its resource revision");
+        }
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "debug.mutation.result");
+        json.addProperty("schemaVersion", "phase9c-debug-v0");
+        json.addProperty("debugOperationId", request.has("debugOperationId")
+                ? request.get("debugOperationId").getAsString() : UUID.randomUUID().toString());
+        json.addProperty("auditReference", json.get("debugOperationId").getAsString());
+        json.addProperty("operation", request.get("operation").getAsString());
+        json.addProperty("namespace", domain);
+        json.addProperty("authority", "runtime_internal");
+        json.addProperty("mechanism", mechanism);
+        json.addProperty("invariants", "partial_invariants");
+        json.addProperty("synchronization", synchronization);
+        json.addProperty("evidence", "diagnostic");
+        json.addProperty("gameplayEvidence", false);
+        json.addProperty("evidenceContaminated", true);
+        json.addProperty("storageAccessed", false);
+        json.addProperty("worldFingerprint", request.get("worldFingerprint").getAsString());
+        json.add("before", before.deepCopy());
+        json.add("after", after.deepCopy());
+        json.add("beforeResourceVersion", ResourceVersionVerifier.token(beforeRef));
+        json.add("afterResourceVersion", ResourceVersionVerifier.token(afterRef));
+        JsonObject preconditions = new JsonObject();
+        preconditions.addProperty("resourceVersion", "passed");
+        preconditions.addProperty("value", "passed");
+        preconditions.addProperty("ownerThread", "server_thread");
+        json.add("preconditions", preconditions);
+        json.addProperty("resync", synchronization);
+        json.addProperty("cleanup", "caller_must_restore_test_state");
+        return json;
+    }
+
+    private JsonObject playerRevision(JsonObject state) {
+        String key = state.get("uuid").getAsString() + "@server_authoritative";
+        return this.revisions.revision(
+                "player", key, state.get("lifecycleId").getAsString(), canonicalDebugPlayer(state));
+    }
+
+    private static JsonObject canonicalDebugPlayer(JsonObject state) {
+        JsonObject canonical = state.deepCopy();
+        canonical.remove("extendedStatus");
+        canonical.remove("menuClass");
+        return canonical;
+    }
+
+    private static JsonObject canonicalDebugEntity(JsonObject state) {
+        JsonObject canonical = state.deepCopy();
+        canonical.remove("extensions");
+        canonical.remove("nonDefaultTrackedValues");
+        return canonical;
+    }
+
+    private JsonObject menuRevision(JsonObject state) {
+        String key = state.get("ownerUuid").getAsString()
+                + "@menu:" + state.get("menuId").getAsString();
+        return this.revisions.revision(
+                "menu", key, state.get("lifecycleId").getAsString(), state);
+    }
+
+    private JsonObject blockRevision(ServerLevel level, JsonObject state) {
+        String key = level.dimension().identifier() + "@" + state.get("key").getAsString();
+        return this.revisions.revision(
+                "block", key, state.get("lifecycleId").getAsString(), state);
+    }
+
+    private JsonObject blockEntitySerializedRevision(ServerLevel level, JsonObject state) {
+        String key = level.dimension().identifier() + "@" + state.get("key").getAsString();
+        return this.revisions.revision(
+                "block_entity_serialized", key, state.get("lifecycleId").getAsString(),
+                state.get("serializedState"));
+    }
+
+    private static void verifyExpected(JsonObject request, JsonObject current) {
+        ResourceVersionVerifier.verify(request.getAsJsonObject("expectedResourceVersion"), current);
+    }
+
+    private JsonObject blockSnapshot(ServerLevel level, BlockPos position) {
+        JsonObject value = new JsonObject();
+        value.addProperty("key", key(position));
+        value.addProperty("lifecycleId", "block:" + level.dimension().toString() + "@" + key(position));
+        value.addProperty("x", position.getX());
+        value.addProperty("y", position.getY());
+        value.addProperty("z", position.getZ());
+        LevelChunk chunk = level.getChunkSource().getChunkNow(position.getX() >> 4, position.getZ() >> 4);
+        value.addProperty("available", chunk != null);
+        value.addProperty("loadRequested", false);
+        if (chunk != null) {
+            BlockState state = chunk.getBlockState(position);
+            value.addProperty("blockId", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+            JsonObject properties = new JsonObject();
+            state.getValues()
+                    .sorted(Comparator.comparing(propertyValue -> propertyValue.property().getName()))
+                    .forEach(propertyValue -> properties.addProperty(
+                            propertyValue.property().getName(), String.valueOf(propertyValue.value())));
+            value.add("properties", properties);
+        }
+        return value;
+    }
+
+    private JsonObject blockEntitySnapshot(
+            ServerLevel level, BlockPos position, boolean includeSerialized) {
+        JsonObject value = new JsonObject();
+        value.addProperty("key", key(position));
+        LevelChunk chunk = level.getChunkSource().getChunkNow(position.getX() >> 4, position.getZ() >> 4);
+        BlockEntity blockEntity = chunk == null ? null : chunk.getBlockEntity(position);
+        value.addProperty("available", blockEntity != null);
+        value.addProperty("loadRequested", false);
+        if (blockEntity == null) return value;
+        value.addProperty("lifecycleId", this.lifecycles.lifecycleId(
+                "block_entity", key(position), blockEntity));
+        value.addProperty("type", BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()).toString());
+        value.addProperty("loaded", true);
+        value.addProperty("readEffects", includeSerialized ? "serialization_hooks_invoked" : "none");
+        if (includeSerialized) {
+            CompoundTag tag = blockEntity.saveWithFullMetadata(level.registryAccess());
+            JsonElement structured = NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag);
+            int bytes = GSON.toJson(structured).getBytes(StandardCharsets.UTF_8).length;
+            if (bytes > 16_384) throw new ProtocolState.ProtocolException(
+                    "DEBUG_VALUE_BUDGET_EXCEEDED", 413,
+                    "Block Entity serialized state exceeds 16 KiB");
+            value.addProperty("serializedBytes", bytes);
+            value.add("serializedState", structured);
+        }
+        return value;
+    }
+
+    private static Entity loadedEntity(ServerPlayer player, String uuid) {
+        try {
+            Entity entity = player.level().getEntity(UUID.fromString(uuid));
+            if (entity != null) return entity;
+        } catch (IllegalArgumentException exception) {
+            throw new ProtocolState.ProtocolException("INVALID_ENTITY_UUID", 400, "Invalid entity UUID");
+        }
+        throw new ProtocolState.ProtocolException(
+                "TARGET_NOT_LOADED", 409, "Entity is not loaded in the current dimension");
+    }
+
+    private static BlockPos requiredPosition(JsonObject request) {
+        if (!request.has("x") || !request.has("y") || !request.has("z")) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "x, y and z are required");
+        }
+        return new BlockPos(
+                request.get("x").getAsInt(), request.get("y").getAsInt(), request.get("z").getAsInt());
+    }
+
+    private static String requiredDebugString(JsonObject request, String name) {
+        if (!request.has(name) || !request.get(name).isJsonPrimitive()
+                || request.get(name).getAsString().isBlank()) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "Missing " + name);
+        }
+        return request.get(name).getAsString();
+    }
+
+    private static boolean requiredDebugBoolean(JsonObject request, String name) {
+        if (!request.has(name) || !request.get(name).isJsonPrimitive()
+                || !request.getAsJsonPrimitive(name).isBoolean()) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "Missing boolean " + name);
+        }
+        return request.get(name).getAsBoolean();
+    }
+
+    private static double requiredFiniteDouble(
+            JsonObject request, String name, double minimum, double maximum) {
+        if (!request.has(name) || !request.get(name).isJsonPrimitive()
+                || !request.getAsJsonPrimitive(name).isNumber()) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400, "Missing numeric " + name);
+        }
+        double value = request.get(name).getAsDouble();
+        if (!Double.isFinite(value) || value < minimum || value > maximum) {
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED", 400,
+                    name + " must be finite and between " + minimum + " and " + maximum);
+        }
+        return value;
+    }
+
+    private static ProtocolState.ProtocolException valueMismatch(String field, Object actual) {
+        return new ProtocolState.ProtocolException(
+                "VALUE_PRECONDITION_FAILED", 409,
+                field + " does not match current value " + String.valueOf(actual));
+    }
+
+    private static ProtocolState.ProtocolException targetNotLoaded(String target) {
+        return new ProtocolState.ProtocolException(
+                "TARGET_NOT_LOADED", 409, target + " target is not loaded; no chunk load was requested");
+    }
+
+    private static ProtocolState.ProtocolException noStateChange() {
+        return new ProtocolState.ProtocolException(
+                "DEBUG_NO_STATE_CHANGE", 409, "Requested value already matches the current state");
     }
 
     StorageRequest storageRequest(MinecraftServer server, ServerPlayer player, JsonObject request) {

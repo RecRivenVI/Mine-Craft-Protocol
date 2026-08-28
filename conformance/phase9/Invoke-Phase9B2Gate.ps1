@@ -49,7 +49,6 @@ if(-not $SkipLive) {
     Java=$java
     Live=$(if($SkipLive){'SKIPPED'}else{'PASS'})
     Details=$details
-    Phase9C='NOT_STARTED'
+    Phase9C='DOWNSTREAM_PHASE_COMPLETE'
     WireProtocolV1='NOT_FROZEN'
 }
-

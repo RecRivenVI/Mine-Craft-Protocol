@@ -33,6 +33,10 @@ interface ProbeService {
     CompletableFuture<JsonObject> formalObservationCapabilities();
     CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext);
+    CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request);
+    CompletableFuture<JsonObject> phase9cDebugCapabilities();
+    CompletableFuture<JsonObject> phase9cDebugMutation(
+            JsonObject request, DebugMutationAuthorization authorization);
     CompletableFuture<JsonObject> peerStatus();
     CompletableFuture<JsonObject> peerProbe();
     CompletableFuture<JsonObject> waitForScreen(String classContains, long timeoutMillis);

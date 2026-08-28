@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-phase9b2",
-    "description": "Unstable Phase 9B V0 contract with formal Deep Observation and Provider V2. This is not a frozen Wire Protocol v1.",
+    "version": "0.0.1-phase9c",
+    "description": "Unstable Phase 9C V0 contract with formal Deep Observation and typed Debug mutation. This is not a frozen Wire Protocol v1.",
     "x-stability": "unstable"
   },
   "servers": [
@@ -1080,10 +1080,20 @@
         }
       }
     },
+    "/v0/debug/capabilities": {
+      "get": {
+        "operationId": "getDebugCapabilities",
+        "responses": {
+          "200": {
+            "description": "Typed Debug domains, operations, limits and deployment availability",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugCapabilitiesResponse" } } }
+          }
+        }
+      }
+    },
     "/v0/debug/arm": {
       "post": {
         "operationId": "armDebug",
-        "parameters": [ { "$ref": "#/components/parameters/ControlLease" } ],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmRequest" } } }
@@ -1100,10 +1110,7 @@
     "/v0/debug/renew": {
       "post": {
         "operationId": "renewDebugArm",
-        "parameters": [
-          { "$ref": "#/components/parameters/ControlLease" },
-          { "$ref": "#/components/parameters/DebugArm" }
-        ],
+        "parameters": [ { "$ref": "#/components/parameters/DebugArm" } ],
         "requestBody": {
           "required": false,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LeaseTtlRequest" } } }
@@ -1119,11 +1126,80 @@
     "/v0/debug/disarm": {
       "post": {
         "operationId": "disarmDebug",
-        "parameters": [ { "$ref": "#/components/parameters/ControlLease" } ],
         "responses": {
           "200": {
             "description": "Disarmed Debug privileges",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugArmResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/mutations": {
+      "post": {
+        "operationId": "executeTypedDebugMutation",
+        "parameters": [ { "$ref": "#/components/parameters/DebugArm" } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugMutationRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed owner-thread Debug mutation with before/after versions",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugMutationResult" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/v0/debug/batches": {
+      "post": {
+        "operationId": "startTypedDebugBatch",
+        "parameters": [ { "$ref": "#/components/parameters/DebugArm" } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugBatchRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing native Operation handle for a bounded Debug batch",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OperationResponse" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/evidence": {
+      "get": {
+        "operationId": "getDebugEvidenceStatus",
+        "responses": {
+          "200": {
+            "description": "Current Debug contamination sequence",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DebugEvidenceStatus" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/evidence/act/start": {
+      "post": {
+        "operationId": "startGameplayActEvidenceWindow",
+        "responses": {
+          "200": {
+            "description": "Start a gameplay Act contamination window",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameplayActEvidence" } } }
+          }
+        }
+      }
+    },
+    "/v0/debug/evidence/act/finish": {
+      "post": {
+        "operationId": "finishGameplayActEvidenceWindow",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameplayActFinishRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Finish and classify a gameplay Act contamination window",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameplayActEvidence" } } }
           }
         }
       }
@@ -3333,6 +3409,11 @@
         "required": ["worldFingerprint"],
         "properties": {
           "worldFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "namespaces": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "enum": ["player", "entity", "world", "block_entity", "chunk", "menu", "client", "network", "provider"] }
+          },
           "ttlMs": { "type": "integer", "format": "int64", "minimum": 1000, "maximum": 60000, "default": 15000 }
         }
       },
@@ -3344,11 +3425,205 @@
           "status": { "type": "string", "enum": ["armed", "renewed", "disarmed"] },
           "debugArmId": { "type": "string", "format": "uuid" },
           "worldFingerprint": { "type": "string" },
+          "sessionEpoch": { "type": "string", "format": "uuid" },
+          "principalId": { "type": "string" },
+          "namespaces": { "type": "array", "items": { "type": "string" } },
           "expiresAtMillis": { "type": "integer", "format": "int64" },
           "wasArmed": { "type": "boolean" },
           "reason": { "type": "string" },
           "requestId": { "type": "string" },
           "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "DebugCapabilitiesResponse": {
+        "type": "object",
+        "required": ["type", "schemaVersion", "formal", "sessionEpoch", "requiresDebugArm", "operations", "deployments", "batch"],
+        "properties": {
+          "type": { "type": "string", "enum": ["debug.capabilities"] },
+          "schemaVersion": { "type": "string", "enum": ["phase9c-debug-v0"] },
+          "formal": { "type": "boolean", "enum": [true] },
+          "sessionEpoch": { "type": "string", "format": "uuid" },
+          "requiresDebugArm": { "type": "boolean", "enum": [true] },
+          "requiresWorldFingerprint": { "type": "boolean", "enum": [true] },
+          "requiresResourceVersion": { "type": "boolean", "enum": [true] },
+          "persistentStorageMutation": { "type": "boolean", "enum": [false] },
+          "arbitraryReflection": { "type": "boolean", "enum": [false] },
+          "arbitraryPacketInjection": { "type": "boolean", "enum": [false] },
+          "operations": { "type": "array", "items": { "$ref": "#/components/schemas/DebugCapabilityOperation" } },
+          "deployments": { "type": "object", "additionalProperties": { "type": "string" } },
+          "batch": { "$ref": "#/components/schemas/DebugBatchLimits" },
+          "evidence": { "$ref": "#/components/schemas/DebugEvidenceStatus" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
+        }
+      },
+      "DebugCapabilityOperation": {
+        "type": "object",
+        "required": ["operation", "status"],
+        "properties": {
+          "operation": { "type": "string" },
+          "status": { "type": "string", "enum": ["available", "partial", "unavailable", "target_specific"] },
+          "requiresArm": { "type": "boolean" },
+          "requiredScope": { "type": "string" },
+          "resourceVersionPrecondition": { "type": "boolean" },
+          "batch": { "type": "boolean" },
+          "limitation": { "type": "string" }
+        }
+      },
+      "DebugMutationBase": {
+        "type": "object",
+        "required": ["operation", "worldFingerprint", "expectedResourceVersion"],
+        "properties": {
+          "operation": { "type": "string" },
+          "worldFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "expectedResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" }
+        }
+      },
+      "DebugPlayerHealthMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "health"], "properties": { "operation": { "type": "string", "enum": ["player.health.set"] }, "health": { "type": "number", "minimum": 0, "maximum": 2048 }, "expectedHealth": { "type": "number" } } }
+        ]
+      },
+      "DebugPlayerAttributeMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "attributeId", "value"], "properties": { "operation": { "type": "string", "enum": ["player.attribute.set"] }, "attributeId": { "type": "string", "enum": ["minecraft:max_health"] }, "value": { "type": "number", "exclusiveMinimum": true, "minimum": 0, "maximum": 2048 }, "expectedValue": { "type": "number" } } }
+        ]
+      },
+      "DebugEntityNoGravityMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "entityUuid", "value"], "properties": { "operation": { "type": "string", "enum": ["entity.no_gravity.set"] }, "entityUuid": { "type": "string", "format": "uuid" }, "value": { "type": "boolean" }, "expectedNoGravity": { "type": "boolean" }, "expectedEntityType": { "type": "string" } } }
+        ]
+      },
+      "DebugWorldBlockMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "x", "y", "z", "blockId"], "properties": { "operation": { "type": "string", "enum": ["world.block.set"] }, "x": { "type": "integer" }, "y": { "type": "integer" }, "z": { "type": "integer" }, "blockId": { "type": "string" }, "expectedBlockId": { "type": "string" } } }
+        ]
+      },
+      "DebugBlockEntityCustomNameMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "x", "y", "z"], "properties": { "operation": { "type": "string", "enum": ["block_entity.custom_name.set"] }, "x": { "type": "integer" }, "y": { "type": "integer" }, "z": { "type": "integer" }, "customName": { "type": "string", "maxLength": 128, "nullable": true }, "expectedCustomName": { "type": "string", "nullable": true }, "expectedBlockEntityType": { "type": "string" } } }
+        ]
+      },
+      "DebugMenuSlotMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "slot", "count"], "properties": { "operation": { "type": "string", "enum": ["menu.slot.set"] }, "slot": { "type": "integer", "minimum": 0 }, "itemId": { "type": "string" }, "count": { "type": "integer", "minimum": 0, "maximum": 64 }, "expectedMenuId": { "type": "integer" }, "expectedItemId": { "type": "string" }, "expectedCount": { "type": "integer", "minimum": 0 } } }
+        ]
+      },
+      "DebugProviderMutation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/DebugMutationBase" },
+          { "type": "object", "required": ["operation", "providerId", "mutation"], "properties": { "operation": { "type": "string", "enum": ["provider.mutate"] }, "providerId": { "type": "string" }, "mutation": { "type": "object", "description": "Validated against the registered Provider mutation schema." }, "timeoutMs": { "type": "integer", "minimum": 25, "maximum": 1000 }, "resultByteBudget": { "type": "integer", "minimum": 256, "maximum": 16384 } } }
+        ]
+      },
+      "DebugMutationRequest": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/DebugPlayerHealthMutation" },
+          { "$ref": "#/components/schemas/DebugPlayerAttributeMutation" },
+          { "$ref": "#/components/schemas/DebugEntityNoGravityMutation" },
+          { "$ref": "#/components/schemas/DebugWorldBlockMutation" },
+          { "$ref": "#/components/schemas/DebugBlockEntityCustomNameMutation" },
+          { "$ref": "#/components/schemas/DebugMenuSlotMutation" },
+          { "$ref": "#/components/schemas/DebugProviderMutation" }
+        ],
+        "discriminator": { "propertyName": "operation" }
+      },
+      "DebugMutationResult": {
+        "type": "object",
+        "required": ["type", "schemaVersion", "debugOperationId", "operation", "namespace", "authority", "mechanism", "invariants", "synchronization", "evidence", "gameplayEvidence", "before", "after", "beforeResourceVersion", "afterResourceVersion", "preconditions"],
+        "properties": {
+          "type": { "type": "string", "enum": ["debug.mutation.result"] },
+          "schemaVersion": { "type": "string", "enum": ["phase9c-debug-v0"] },
+          "debugOperationId": { "type": "string" },
+          "operation": { "type": "string" },
+          "namespace": { "type": "string" },
+          "authority": { "type": "string", "enum": ["runtime_internal"] },
+          "mechanism": { "type": "string" },
+          "invariants": { "type": "string" },
+          "synchronization": { "type": "string" },
+          "evidence": { "type": "string", "enum": ["diagnostic", "boundary", "invalid_for_acceptance"] },
+          "gameplayEvidence": { "type": "boolean", "enum": [false] },
+          "before": { "type": "object" },
+          "after": { "type": "object" },
+          "beforeResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" },
+          "afterResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" },
+          "preconditions": { "type": "object" },
+          "resync": { "type": "string" },
+          "cleanup": { "type": "string" },
+          "auditReference": { "type": "string" }
+        }
+      },
+      "DebugBatchLimits": {
+        "type": "object",
+        "required": ["maxBatchItems", "maxBatchBytes", "maxPerTickMutations", "maxTotalDurationMs", "transactional", "failurePolicies", "cancellationBarrier"],
+        "properties": {
+          "maxBatchItems": { "type": "integer", "enum": [64] },
+          "maxBatchBytes": { "type": "integer", "enum": [262144] },
+          "maxPerTickMutations": { "type": "integer", "enum": [4] },
+          "maxTotalDurationMs": { "type": "integer", "enum": [30000] },
+          "transactional": { "type": "boolean", "enum": [false] },
+          "failurePolicies": { "type": "string" },
+          "cancellationBarrier": { "type": "string" }
+        }
+      },
+      "DebugBatchRequest": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/components/schemas/DebugMutationRequest" } },
+          "failurePolicy": { "type": "string", "enum": ["STOP_ON_FAILURE", "CONTINUE_ON_FAILURE"], "default": "STOP_ON_FAILURE" },
+          "maxPerTickMutations": { "type": "integer", "minimum": 1, "maximum": 4, "default": 4 },
+          "maxTotalDurationMs": { "type": "integer", "minimum": 1, "maximum": 30000, "default": 30000 }
+        }
+      },
+      "DebugBatchResult": {
+        "type": "object",
+        "required": ["type", "operationId", "status", "itemCount", "completedItems", "succeededItems", "failedItems", "notStartedItems", "items"],
+        "properties": {
+          "type": { "type": "string", "enum": ["debug.batch.result"] },
+          "operationId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["running", "completed", "partial", "failed", "cancelled", "timed_out"] },
+          "itemCount": { "type": "integer" },
+          "completedItems": { "type": "integer" },
+          "succeededItems": { "type": "integer" },
+          "failedItems": { "type": "integer" },
+          "notStartedItems": { "type": "integer" },
+          "postCancelMutations": { "type": "integer", "enum": [0] },
+          "items": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "DebugEvidenceStatus": {
+        "type": "object",
+        "required": ["type", "lastDebugMutationSequence", "activeGameplayActs"],
+        "properties": {
+          "type": { "type": "string", "enum": ["debug.evidence.status"] },
+          "lastDebugMutationSequence": { "type": "integer", "format": "int64" },
+          "activeGameplayActs": { "type": "integer" }
+        }
+      },
+      "GameplayActFinishRequest": {
+        "type": "object",
+        "required": ["actId"],
+        "properties": { "actId": { "type": "string", "format": "uuid" } }
+      },
+      "GameplayActEvidence": {
+        "type": "object",
+        "required": ["type", "actId", "status", "debugSequenceAtStart", "lastDebugMutationSequence", "debugMutationCount", "contaminated", "gameplayEvidence"],
+        "properties": {
+          "type": { "type": "string", "enum": ["debug.evidence.gameplay_act"] },
+          "actId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["active", "completed"] },
+          "debugSequenceAtStart": { "type": "integer", "format": "int64" },
+          "lastDebugMutationSequence": { "type": "integer", "format": "int64" },
+          "debugMutationCount": { "type": "integer", "format": "int64" },
+          "debugOperationDuringAct": { "type": "string" },
+          "contaminated": { "type": "boolean" },
+          "gameplayEvidence": { "type": "string", "enum": ["gameplay", "invalid_for_acceptance"] }
         }
       },
       "TeleportRequest": {

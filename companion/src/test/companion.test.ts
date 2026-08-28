@@ -249,6 +249,54 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(command.isError, undefined);
     assert.equal(JSON.stringify(command.structuredContent).includes('NORMAL_NETWORK'), true);
 
+    const debugCapabilities = await client.callTool({ name: 'minecraft_debug', arguments: { action: 'capabilities' } });
+    assert.equal(debugCapabilities.isError, undefined);
+    const armed = await client.callTool({ name: 'minecraft_debug_arm', arguments: { action: 'arm', namespaces: ['player'], ttlMs: 15000 } });
+    assert.equal(armed.isError, undefined);
+    const resourceVersion = {
+      sessionEpoch: recordingId,
+      resourceType: 'player',
+      resourceKey: 'mock-player@server_authoritative',
+      lifecycleId: 'mock-player@1',
+      revision: 1,
+      revisionSource: 'snapshot_change_sequence',
+      revisionScope: 'resource',
+      mutationPreconditionEligible: true
+    };
+    const debugMutation = await client.callTool({
+      name: 'minecraft_debug',
+      arguments: {
+        action: 'mutate',
+        mutation: {
+          operation: 'player.attribute.set',
+          worldFingerprint: 'a'.repeat(64),
+          expectedResourceVersion: resourceVersion,
+          attributeId: 'minecraft:max_health',
+          value: 21
+        }
+      }
+    });
+    assert.equal(debugMutation.isError, undefined);
+    const debugBatch = await client.callTool({
+      name: 'minecraft_debug',
+      arguments: {
+        action: 'batch',
+        items: [{
+          operation: 'player.health.set',
+          worldFingerprint: 'a'.repeat(64),
+          expectedResourceVersion: resourceVersion,
+          health: 20
+        }],
+        waitForCompletion: false
+      }
+    });
+    assert.equal(debugBatch.isError, undefined);
+    const rawDebug = await client.callTool({
+      name: 'minecraft_debug',
+      arguments: { action: 'mutate', mutation: { operation: 'raw', payload: {} } }
+    });
+    assert.equal(rawDebug.isError, true, 'generic raw Debug must be rejected by MCP schema');
+
     const operationCancelsBeforeSignal = runtime.operationCancels.length;
     const controller = new AbortController();
     const cancellable = client.callTool({

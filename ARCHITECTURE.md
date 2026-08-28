@@ -1,15 +1,15 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B complete; Phase 9C not started
-> Authority: `PROJECT_EXECUTION_PLAN.md` defines Runtime scope, `PLATFORM_VISION.md` defines the long-term Platform boundary, and this file records the current implemented Runtime and Companion architecture.
+> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C complete; Phase 9D not started
+> Authority: `PLATFORM_VISION.md` defines the committed Core, `PLATFORM_EXTENSION_GOALS.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
 
-Mine-Craft-Protocol's long-term product is an **Agent-native Minecraft Development, Debugging and Testing Platform**. The current implemented core is the **Minecraft Agent Control Runtime**, now formally the Platform's Runtime Control, Testing and Observation subsystem.
+Mine-Craft-Protocol's committed product is the **Agent-native Minecraft Autonomous Testing Platform**. **Agent-native Minecraft Development, Debugging and Testing Platform** remains an umbrella positioning. The current implemented core is the **Minecraft Agent Control Runtime**, the Core Runtime Control, Testing and Observation subsystem.
 
-The native HTTP/WebSocket Runtime contract remains independent from MCP. The implemented TypeScript MCP Companion is a separate adapter process and is not part of the in-game Runtime core. This product-boundary upgrade does not claim that Source Intelligence, Mod Intelligence, Exploratory Debug or a Human Inspector is implemented.
+The native HTTP/WebSocket Runtime contract remains independent from MCP. The implemented TypeScript MCP Companion is a separate adapter process and is not part of the in-game Runtime core. E1/E2/E3 are optional external portfolios; none is implemented or required by this architecture baseline.
 
-## Long-Term Platform Boundary — PLANNED
+## Optional Extension Boundary — INACTIVE / NON-BLOCKING
 
 ```text
 Coding Agent / Human Inspector
@@ -34,18 +34,20 @@ Status and ownership are explicit:
 |---|---|---|
 | Runtime Control and Testing | CURRENT | Minecraft Runtime Mod + optional Server Peer |
 | Deep Runtime Observation | CURRENT | Minecraft Runtime Mod + Server authority |
-| Typed Deep Debug | PARTIAL | Minecraft Runtime Mod / Server Peer; Phase 9C planned |
+| Typed Deep Debug | CURRENT | Minecraft Runtime Mod / Integrated Server; Phase 9C core complete, Dedicated Peer parity limited |
 | Evidence / Artifact / Timeline | CURRENT | Runtime plus Companion consumers |
-| Source / Mapping / Mod Intelligence | PLANNED | external Development Intelligence Service |
-| Runtime <-> Source Correlation | PLANNED | Platform Companion / integration layer |
-| Safe Probe / unsafe Exploratory JVM | PLANNED | separate authority and threat boundary |
-| Human Developer Inspector | PLANNED | external consumer of the same typed services |
+| E1 Source / Mapping / Mod Intelligence | OPTIONAL / NOT STARTED | possible external Development Intelligence Service |
+| E1 Runtime <-> Source / Safe Probe / Exploratory / Inspector | OPTIONAL / NOT STARTED | separate authority and threat boundary |
+| E2 Autonomous Gameplay | OPTIONAL / NOT STARTED | Agent skill/navigation layer above Core |
+| E3 Render Forensics | OPTIONAL / NOT STARTED | optional typed render/GPU services and Providers |
 
-The Development Intelligence Service may initially share a process with the Platform Companion, but the Runtime Mod never owns heavyweight decompilation, source corpora, SQLite/full-text indexes, AST parsing, call-graph construction or third-party Mod decompilation.
+If E1 is activated, its Development Intelligence Service may initially share a process with the Platform Companion, but the Runtime Mod never owns heavyweight decompilation, source corpora, SQLite/full-text indexes, AST parsing, call-graph construction or third-party Mod decompilation.
 
 Normal Runtime and typed Debug remain free of arbitrary shell, process, filesystem and Reflection RPC. A future unsafe Exploratory JVM surface is a separate, default-off, loopback-only, explicitly armed and explicitly **not sandboxed** plane; its output is always invalid for gameplay acceptance.
 
-Runtime, Source and Mapping services will share a Target-aware symbol identity consisting of Target, source universe, mapping namespace, owner, member name, descriptor and artifact hash where available. Sharing identity correlates facts; it does not merge Runtime truth with source/decompiler inference.
+If E1 is activated, Runtime/Source/Mapping correlation should use Target-aware symbol identity without merging Runtime truth with source/decompiler inference.
+
+No optional extension creates a Core module, dependency, Release Gate or attack surface merely by being documented. First Developer Preview and Core 1.0 remain Core-only decisions.
 
 ## Explicit Targets
 
@@ -107,6 +109,10 @@ versioned Artifact Bundle and experimental binary canonical store
 streaming Runtime/Companion Artifact transport and aggregate Recording budgets
 scope-gated Fixture and world-bound Debug Arm
 typed player-health and loaded-block Debug mutations
+formal typed Player/Entity/Block/Block Entity/Menu/Provider Debug mutations
+session/world/lifecycle/revision/value mutation preconditions
+bounded non-transactional Debug batch with per-item results and cancellation permit
+Debug contamination windows and EventHub operation/resource correlation
 evidence contamination propagation
 optional peer-v0 custom-payload negotiation
 Dedicated Server-authoritative LIVE query routing

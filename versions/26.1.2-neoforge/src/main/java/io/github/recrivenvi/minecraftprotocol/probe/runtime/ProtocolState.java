@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 final class ProtocolState implements AutoCloseable {
@@ -44,6 +46,8 @@ final class ProtocolState implements AutoCloseable {
     private final Deque<AuditEntry> audit = new ArrayDeque<>();
     private final Deque<JsonObject> providerAudit = new ArrayDeque<>();
     private final AtomicLong auditSequence = new AtomicLong();
+    private final AtomicLong debugMutationSequence = new AtomicLong();
+    private final Map<String, GameplayActWindow> gameplayActs = new ConcurrentHashMap<>();
     private ControlLease lease;
     private DebugArm debugArm;
 
@@ -76,6 +80,24 @@ final class ProtocolState implements AutoCloseable {
     void requireScope(String scope) {
         if (!this.scopes.contains(scope)) {
             throw new ProtocolException("SCOPE_DENIED", 403, "Required scope is not granted: " + scope);
+        }
+    }
+
+    boolean hasScope(String scope) {
+        return this.scopes.contains(scope);
+    }
+
+    String principalId() {
+        return this.principalId;
+    }
+
+    void requireDebugScope(String domain) {
+        for (String scope : List.of("debug", "debug.write", "debug." + domain)) {
+            if (!this.scopes.contains(scope)) {
+                throw new ProtocolException(
+                        "DEBUG_SCOPE_DENIED", 403,
+                        "Typed Debug requires authenticated scope: " + scope);
+            }
         }
     }
 
@@ -192,20 +214,46 @@ final class ProtocolState implements AutoCloseable {
         return this.leaseJson("active");
     }
 
-    synchronized JsonObject armDebug(String expectedFingerprint, String currentFingerprint, long requestedTtlMillis) {
+    synchronized JsonObject armDebug(
+            String expectedFingerprint,
+            String currentFingerprint,
+            String sessionEpoch,
+            Set<String> requestedNamespaces,
+            long requestedTtlMillis) {
         if (currentFingerprint == null || !currentFingerprint.equals(expectedFingerprint)) {
             throw new ProtocolException("WORLD_FINGERPRINT_MISMATCH", 409, "World fingerprint does not match");
         }
+        if (sessionEpoch == null || sessionEpoch.isBlank()) {
+            throw new ProtocolException("INVALID_DEBUG_ARM", 400, "Runtime session epoch is required");
+        }
+        Set<String> namespaces = requestedNamespaces == null || requestedNamespaces.isEmpty()
+                ? Set.of("player", "entity", "world", "block_entity", "chunk", "menu", "client", "network", "provider")
+                : Set.copyOf(requestedNamespaces);
+        for (String namespace : namespaces) {
+            if (!Set.of("player", "entity", "world", "block_entity", "chunk", "menu", "client", "network", "provider")
+                    .contains(namespace)) {
+                throw new ProtocolException(
+                        "INVALID_DEBUG_ARM", 400, "Unsupported Debug namespace: " + namespace);
+            }
+        }
         long ttl = Math.max(1_000L, Math.min(requestedTtlMillis, 60_000L));
-        this.debugArm = new DebugArm(UUID.randomUUID().toString(), currentFingerprint, System.currentTimeMillis() + ttl);
+        this.debugArm = new DebugArm(
+                UUID.randomUUID().toString(), currentFingerprint, sessionEpoch,
+                namespaces, this.principalId, System.currentTimeMillis() + ttl);
         this.scheduleDebugExpiry(this.debugArm);
         return this.debugArmJson("armed");
     }
 
-    synchronized JsonObject renewDebug(String debugArmId, String currentFingerprint, long requestedTtlMillis) {
-        this.requireDebugArm(debugArmId, currentFingerprint);
+    synchronized JsonObject renewDebug(
+            String debugArmId,
+            String currentFingerprint,
+            String sessionEpoch,
+            long requestedTtlMillis) {
+        this.requireDebugArm(debugArmId, currentFingerprint, sessionEpoch, null);
         long ttl = Math.max(1_000L, Math.min(requestedTtlMillis, 60_000L));
-        this.debugArm = new DebugArm(this.debugArm.id(), currentFingerprint, System.currentTimeMillis() + ttl);
+        this.debugArm = new DebugArm(
+                this.debugArm.id(), currentFingerprint, sessionEpoch,
+                this.debugArm.namespaces(), this.principalId, System.currentTimeMillis() + ttl);
         this.scheduleDebugExpiry(this.debugArm);
         return this.debugArmJson("renewed");
     }
@@ -233,13 +281,43 @@ final class ProtocolState implements AutoCloseable {
     }
 
     synchronized void requireDebugArm(String debugArmId, String currentFingerprint) {
+        this.requireDebugArm(debugArmId, currentFingerprint, null, null);
+    }
+
+    synchronized void requireDebugAuthorization(
+            String debugArmId,
+            String currentFingerprint,
+            String sessionEpoch,
+            String domain,
+            String namespace) {
+        this.requireDebugScope(domain);
+        this.requireDebugArm(debugArmId, currentFingerprint, sessionEpoch, namespace);
+    }
+
+    private synchronized void requireDebugArm(
+            String debugArmId,
+            String currentFingerprint,
+            String sessionEpoch,
+            String namespace) {
         this.expireDebugIfNeeded(System.currentTimeMillis());
         if (this.debugArm == null || debugArmId == null || !this.debugArm.id().equals(debugArmId)) {
-            throw new ProtocolException("DEBUG_ARM_REQUIRED", 409, "A valid Debug Arm is required");
+            throw new ProtocolException("DEBUG_NOT_ARMED", 409, "A valid Debug Arm is required");
         }
         if (!this.debugArm.worldFingerprint().equals(currentFingerprint)) {
             this.debugArm = null;
             throw new ProtocolException("WORLD_FINGERPRINT_MISMATCH", 409, "Debug Arm belongs to another world");
+        }
+        if (sessionEpoch != null && !this.debugArm.sessionEpoch().equals(sessionEpoch)) {
+            this.debugArm = null;
+            throw new ProtocolException("STALE_SESSION_EPOCH", 409, "Debug Arm belongs to another Runtime session");
+        }
+        if (!this.debugArm.principalId().equals(this.principalId)) {
+            this.debugArm = null;
+            throw new ProtocolException("DEBUG_SCOPE_DENIED", 403, "Debug Arm principal mismatch");
+        }
+        if (namespace != null && !this.debugArm.namespaces().contains(namespace)) {
+            throw new ProtocolException(
+                    "DEBUG_SCOPE_DENIED", 403, "Debug Arm does not allow namespace: " + namespace);
         }
     }
 
@@ -289,7 +367,20 @@ final class ProtocolState implements AutoCloseable {
         return this.startOperation(future, false);
     }
 
+    JsonObject startOperation(
+            Function<String, CompletableFuture<JsonObject>> factory,
+            boolean leaseBound) {
+        String id = UUID.randomUUID().toString();
+        CompletableFuture<JsonObject> future = factory.apply(id);
+        return this.startOperation(id, future, leaseBound);
+    }
+
     JsonObject startOperation(CompletableFuture<JsonObject> future, boolean leaseBound) {
+        return this.startOperation(UUID.randomUUID().toString(), future, leaseBound);
+    }
+
+    private JsonObject startOperation(
+            String id, CompletableFuture<JsonObject> future, boolean leaseBound) {
         if (this.operations.size() >= 16) {
             this.operations.entrySet().removeIf(entry -> !entry.getValue().isRunning());
         }
@@ -297,7 +388,6 @@ final class ProtocolState implements AutoCloseable {
             future.cancel(true);
             throw new ProtocolException("TOO_MANY_OPERATIONS", 429, "Too many active operations");
         }
-        String id = UUID.randomUUID().toString();
         Operation operation = new Operation(id, future, leaseBound);
         this.operations.put(id, operation);
         future.whenComplete((result, error) -> operation.complete(result, error));
@@ -323,6 +413,53 @@ final class ProtocolState implements AutoCloseable {
         Operation operation = this.requireOperation(operationId);
         operation.cancel("client_cancel");
         return operation.snapshot();
+    }
+
+    synchronized JsonObject noteDebugMutation(
+            String debugOperationId, String namespace, String target) {
+        long sequence = this.debugMutationSequence.incrementAndGet();
+        long now = System.currentTimeMillis();
+        for (GameplayActWindow window : this.gameplayActs.values()) {
+            window.noteMutation(sequence, debugOperationId);
+        }
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "debug.evidence.mutation");
+        json.addProperty("debugMutationSequence", sequence);
+        json.addProperty("timestampMillis", now);
+        json.addProperty("debugOperationId", debugOperationId);
+        json.addProperty("namespace", namespace);
+        json.addProperty("target", target);
+        json.addProperty("evidence", "diagnostic");
+        json.addProperty("gameplayEvidence", false);
+        return json;
+    }
+
+    JsonObject startGameplayAct() {
+        String id = UUID.randomUUID().toString();
+        GameplayActWindow window = new GameplayActWindow(
+                id, this.debugMutationSequence.get(), System.currentTimeMillis());
+        this.gameplayActs.put(id, window);
+        JsonObject json = window.snapshot(false);
+        json.addProperty("status", "active");
+        return json;
+    }
+
+    JsonObject finishGameplayAct(String actId) {
+        GameplayActWindow window = this.gameplayActs.remove(actId);
+        if (window == null) {
+            throw new ProtocolException("GAMEPLAY_ACT_NOT_FOUND", 404, "Unknown gameplay Act: " + actId);
+        }
+        JsonObject json = window.snapshot(true);
+        json.addProperty("status", "completed");
+        return json;
+    }
+
+    JsonObject debugEvidenceStatus() {
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "debug.evidence.status");
+        json.addProperty("lastDebugMutationSequence", this.debugMutationSequence.get());
+        json.addProperty("activeGameplayActs", this.gameplayActs.size());
+        return json;
     }
 
     CompletableFuture<JsonObject> waitOperation(String operationId, long requestedTimeoutMillis) {
@@ -439,6 +576,13 @@ final class ProtocolState implements AutoCloseable {
                 "debugArm", "worldFingerprint"));
         operations.add(descriptor("debug.world.block", "debug", true, false, false,
                 "debugArm", "worldFingerprint", "expectedBlockState"));
+        operations.add(descriptor("debug.mutation", "debug.write", false, true, true,
+                "debugArm", "worldFingerprint", "expectedResourceVersion", "valuePreconditions"));
+        operations.add(descriptor("debug.batch", "debug.write", false, false, true,
+                "debugArmPerItem", "worldFingerprintPerItem", "resourceVersionPerItem",
+                "valuePreconditionsPerItem"));
+        operations.add(descriptor("debug.evidence.gameplay_act", "debug", false, false, false,
+                "debugContaminationWindow"));
         JsonObject json = new JsonObject();
         json.addProperty("type", "operation.descriptors");
         json.add("operations", operations);
@@ -458,6 +602,7 @@ final class ProtocolState implements AutoCloseable {
         json.add("grantedScopes", grantedScopes);
         json.addProperty("activeDeepObservations", this.deepObservations.size());
         json.addProperty("maxActiveDeepObservations", MAX_ACTIVE_DEEP_OBSERVATIONS);
+        json.addProperty("debugMutationSequence", this.debugMutationSequence.get());
         return json;
     }
 
@@ -471,6 +616,7 @@ final class ProtocolState implements AutoCloseable {
             requestContext.cancel("transport_close");
         }
         this.deepObservations.clear();
+        this.gameplayActs.clear();
         this.scheduler.shutdownNow();
     }
 
@@ -535,7 +681,12 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("status", status);
         json.addProperty("debugArmId", this.debugArm.id());
         json.addProperty("worldFingerprint", this.debugArm.worldFingerprint());
+        json.addProperty("sessionEpoch", this.debugArm.sessionEpoch());
+        json.addProperty("principalId", this.debugArm.principalId());
         json.addProperty("expiresAtMillis", this.debugArm.expiresAtMillis());
+        JsonArray namespaces = new JsonArray();
+        this.debugArm.namespaces().stream().sorted().forEach(namespaces::add);
+        json.add("namespaces", namespaces);
         return json;
     }
 
@@ -602,7 +753,70 @@ final class ProtocolState implements AutoCloseable {
     private record ControlLease(String id, long expiresAtMillis) {
     }
 
-    private record DebugArm(String id, String worldFingerprint, long expiresAtMillis) {
+    private record DebugArm(
+            String id,
+            String worldFingerprint,
+            String sessionEpoch,
+            Set<String> namespaces,
+            String principalId,
+            long expiresAtMillis) {
+    }
+
+    static final class CancellableOperationFuture extends CompletableFuture<JsonObject> {
+        private final Runnable cancelHook;
+        private final Supplier<JsonObject> cancellationSnapshot;
+
+        CancellableOperationFuture(Runnable cancelHook, Supplier<JsonObject> cancellationSnapshot) {
+            this.cancelHook = cancelHook;
+            this.cancellationSnapshot = cancellationSnapshot;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            this.cancelHook.run();
+            return super.cancel(mayInterruptIfRunning);
+        }
+
+        JsonObject cancellationSnapshot() {
+            return this.cancellationSnapshot.get();
+        }
+    }
+
+    private static final class GameplayActWindow {
+        private final String id;
+        private final long debugSequenceAtStart;
+        private final long startedAtMillis;
+        private volatile long latestDebugSequence;
+        private volatile String latestDebugOperationId = "";
+
+        private GameplayActWindow(String id, long debugSequenceAtStart, long startedAtMillis) {
+            this.id = id;
+            this.debugSequenceAtStart = debugSequenceAtStart;
+            this.startedAtMillis = startedAtMillis;
+            this.latestDebugSequence = debugSequenceAtStart;
+        }
+
+        private void noteMutation(long sequence, String operationId) {
+            this.latestDebugSequence = sequence;
+            this.latestDebugOperationId = operationId;
+        }
+
+        private JsonObject snapshot(boolean terminal) {
+            boolean contaminated = this.latestDebugSequence > this.debugSequenceAtStart;
+            JsonObject json = new JsonObject();
+            json.addProperty("type", "debug.evidence.gameplay_act");
+            json.addProperty("actId", this.id);
+            json.addProperty("startedAtMillis", this.startedAtMillis);
+            if (terminal) json.addProperty("completedAtMillis", System.currentTimeMillis());
+            json.addProperty("debugSequenceAtStart", this.debugSequenceAtStart);
+            json.addProperty("lastDebugMutationSequence", this.latestDebugSequence);
+            json.addProperty("debugMutationCount",
+                    Math.max(0L, this.latestDebugSequence - this.debugSequenceAtStart));
+            json.addProperty("debugOperationDuringAct", this.latestDebugOperationId);
+            json.addProperty("contaminated", contaminated);
+            json.addProperty("gameplayEvidence", contaminated ? "invalid_for_acceptance" : "gameplay");
+            return json;
+        }
     }
 
     private record AuditEntry(
@@ -673,6 +887,9 @@ final class ProtocolState implements AutoCloseable {
                 this.cancellationReason = reason;
                 this.completedAtMillis = System.currentTimeMillis();
                 this.future.cancel(true);
+                if (this.future instanceof CancellableOperationFuture cancellable) {
+                    this.result = cancellable.cancellationSnapshot();
+                }
                 this.terminal.complete(null);
             }
         }

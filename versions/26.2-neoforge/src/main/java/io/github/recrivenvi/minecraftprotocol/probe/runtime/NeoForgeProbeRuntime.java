@@ -91,6 +91,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     private NeoForgeProbeRuntime() {
         this.phase9a.installProviderDispatcher(this::dispatchProvider);
+        this.phase9a.installProviderMutationDispatcher(this::dispatchProviderMutation);
     }
 
     public static void onClientTick(Minecraft minecraft) {
@@ -881,6 +882,36 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
+    public CompletableFuture<JsonObject> phase9cDebugCapabilities() {
+        return CompletableFuture.completedFuture(this.phase9a.formalDebugCapabilities());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9cDebugMutation(
+            JsonObject request, DebugMutationAuthorization authorization) {
+        if (this.shouldUsePeer()) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409,
+                    "Phase 9C resource-version Debug requires Integrated Server authority; "
+                            + "the Dedicated Peer currently retains only legacy typed health/block Debug"));
+        }
+        String operation = request.has("operation")
+                    ? request.get("operation").getAsString() : "";
+        if (operation.equals("provider.mutate")) {
+            return this.phase9a.debugProviderMutation(request, authorization);
+        }
+        return this.onIntegratedServer((server, player) -> {
+            String domain = operation.contains(".")
+                    ? operation.substring(0, operation.indexOf('.')) : "unknown";
+            String fingerprint = this.phase9cWorldFingerprint(server, player);
+            try (DebugMutationAuthorization.Permit ignored = authorization.authorize(
+                    fingerprint, this.phase9a.sessionEpoch(), domain, domain)) {
+                return this.phase9a.debugMutation(server, player, request, fingerprint);
+            }
+        });
+    }
+
+    @Override
     public CompletableFuture<JsonObject> peerStatus() {
         return this.onClient(() -> {
             JsonObject json = DedicatedPeerClient.status();
@@ -1083,6 +1114,24 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         };
     }
 
+    private CompletableFuture<ProviderExecutionEngine.MutationEntry> dispatchProviderMutation(
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2 provider,
+            io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2.DebugContext context,
+            String affinity,
+            DebugMutationAuthorization authorization) {
+        if (!"server_thread".equals(affinity)) {
+            return CompletableFuture.completedFuture(
+                    ProviderExecutionEngine.MutationEntry.unsupported(affinity));
+        }
+        return this.onIntegratedServer((server, player) -> {
+            String fingerprint = this.phase9cWorldFingerprint(server, player);
+            DebugMutationAuthorization.Permit permit = authorization.authorize(
+                    fingerprint, this.phase9a.sessionEpoch(), "provider", "provider");
+            return ProviderExecutionEngine.enterMutation(
+                    provider, context, server.isSameThread(), permit);
+        });
+    }
+
     private <T> CompletableFuture<T> onClient(Supplier<T> supplier) {
         Minecraft client = this.minecraft;
         CompletableFuture<T> result = new CompletableFuture<>();
@@ -1155,6 +1204,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             });
         });
         return result;
+    }
+
+    private String phase9cWorldFingerprint(MinecraftServer server, ServerPlayer player) {
+        String material = "26.2-neoforge|" + server.getWorldData().getLevelName()
+                + "|" + player.level().dimension().identifier();
+        return sha256(material);
     }
 
     private Minecraft requireClient() {

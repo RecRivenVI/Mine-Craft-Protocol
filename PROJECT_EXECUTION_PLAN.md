@@ -1,21 +1,21 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Platform Charter Adopted；Phase 9B Complete — Contract + Revision Identity Hardened
-> 文档版本：0.6
+> 文档状态：Core Product Goal Separated；Phase 9C Complete — Typed Deep Debug + Bounded Batch Hardened
+> 文档版本：0.8
 > 编制日期：2026-08-27  
 > 修订日期：2026-08-29
-> 项目性质：Agent-native Minecraft 开发、调试、自动测试与源码智能平台
-> 当前阶段：Phase 8/V1 与 Phase 9B.1/9B.2 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
+> 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
+> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2 与 Phase 9C 已完成；Phase 9D 等待独立审查；Phase 10 未开始
 
 ---
 
 ## 1. 执行摘要
 
-本项目的长期产品定义升级为 **Agent-native Minecraft Development, Debugging and Testing Platform**：面向 Coding Agent / Autonomous Agent 的 Minecraft Java 开发、运行时控制、深度调试、自动测试、源码理解、Mod 分析、录制诊断与开发辅助平台。
+本项目唯一 committed 产品目标是 **Agent-native Minecraft Autonomous Testing Platform**。`Agent-native Minecraft Development, Debugging and Testing Platform` 可继续作为 umbrella positioning，但不把所有潜在扩展变成 Core 交付义务。
 
 现有 **Minecraft Agent Control Runtime** 不是被替换的旧产品，而是 Platform 内负责 Runtime Control、Testing 与 Observation 的核心子系统。它在 Minecraft 客户端与可选服务器端 Peer 中提供深度观察、真实 GUI/键鼠操作、世界交互、特权调试、连续画面录制、世界状态录制、事件等待、断言、追踪与诊断能力，并通过独立原生 HTTP/WebSocket 协议以及 MCP Companion 向 Agent 和测试程序开放。
 
-Platform 的新增长期边界包括 Source/Mapping/Mod Intelligence、Runtime 与 Source 双向关联、受控 Exploratory Debug、统一 Agent Surface 和可选 Human Developer Inspector。其工程章程、状态分层和并行路线以 `PLATFORM_VISION.md` 为准；这些 PLANNED/ULTIMATE 能力不构成当前实现声明，也不改变现有 Phase 9/10 Gate。
+Core Product Contract 以 `PLATFORM_VISION.md` 为准。Development Intelligence、Autonomous Gameplay、Deterministic Graphics Acceptance 等独立机会由 `PLATFORM_EXTENSION_GOALS.md` 管理；它们不属于现有 Phase 9/10 Gate，也不阻塞第一次 Developer Preview 或 Core 1.0。
 
 项目不是普通的 Minecraft Bot，也不是简单地把 MCP SDK 嵌入游戏。其目标更接近以下能力的组合：
 
@@ -25,9 +25,7 @@ Platform 的新增长期边界包括 Source/Mapping/Mod Intelligence、Runtime �
 - 画面、输入、世界状态、网络与事件的同步录制器；
 - 面向 Coding Agent 的自动等待、断言、回放和失败诊断平台；
 - 一个独立于 Minecraft 内部类名和 Loader API 的稳定控制协议；
-- 受管 Minecraft/Loader/Mod Artifact、Mapping、Source、Symbol、AST、Reference 与 Call Graph Intelligence；
-- Runtime failure、Source symbol、Mixin/AW/AT 与多 Target Version Diff 的关联平面；
-- 与可信 typed testing path 严格分离的受控 Exploratory Debug，以及可选 Human Developer Inspector。
+- 可由独立 Optional Extensions 进一步扩展源码智能、自主游玩和确定性图形验收，但这些能力不是 Core DoD。
 
 项目核心执行哲学为：
 
@@ -1829,7 +1827,7 @@ diagnostics.*
 
 Runtime Ultimate Scope 是本计划书描述的完整 Runtime 长期目标，包括五 Target、Interaction Tree、Render Tree、Vision、完整键鼠宏与 Pipeline DSL、Live World 查询、世界状态录制、Server Peer、完整 DEBUG_PRIVILEGED、连续录制与 Artifact、Golden Diff、Rolling Recorder、网络追踪、人类操作回放、Tick Step、MCP Companion、持久化世界诊断和高级崩溃恢复。
 
-Runtime Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。新增 Platform Ultimate Scope 叠加 Source/Mapping/Mod Intelligence、Runtime-to-source correlation、Exploratory Debug 与 Human Inspector，其章程见 `PLATFORM_VISION.md`，完成标准见 27.4。
+Runtime Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。任何 Optional Extension 均由 `PLATFORM_EXTENSION_GOALS.md` 独立治理，不叠加到 Runtime Ultimate DoD。
 
 ### 23.2 V1 Product Scope
 
@@ -1922,19 +1920,20 @@ Agent
 得到带 provenance 的结果
 ```
 
-### 23.4 Platform 产品范围层级
+### 23.4 Core 与 Optional Extension 范围层级
 
-新增 Platform 长期目标后，范围使用五个互不替代的层级：
+Committed Core 使用现有 Runtime/V1/Developer Preview/Ultimate 范围；Optional Extensions 使用独立 Portfolio 状态：
 
 ```text
 Runtime V1
 Runtime Ultimate
-Platform Developer Preview
-Platform Beta
-Platform Ultimate
+Core Developer Preview
+Core 1.0
+
+Optional E1 / E2 / E3
 ```
 
-Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory JVM 或 Human Inspector 尚未实现而失效。Platform Developer Preview 可先聚焦成熟 Runtime control/testing、Deep Observation、经独立 Gate 的 typed Deep Debug 与 MCP；Development Intelligence 和 Platform Integration 按 `PLATFORM_VISION.md` 的独立并行 Track 推进，不改写 Phase 9/10 的现有范围、顺序或退出门槛。
+Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不依赖 E1/E2/E3。Extension status 可以是 PLANNED、PARTIAL、DEFERRED 或 CANCELLED，且不得改写 Phase 9/10 的范围、顺序或退出门槛。
 
 ### Phase 0A：最小 Runtime Contracts 草图
 
@@ -2042,7 +2041,7 @@ Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Generic canonicalization 保留 array 顺序，领域无序集合在 capture 层按稳定 ID 归一化；ResourceRevisionRef 绑定 sessionEpoch、resource identity 与 lifecycle generation。Provider resource/query-view revision 明确分层，native revision regression/inconsistency 会被拒绝并 quarantine。Revision/Provider executor、active observation 和生命周期/指纹缓存均有界。Phase 9C 尚未开始，必须经独立审查另行开放。
+执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。Phase 9D 尚未开始，必须经独立审查另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2233,20 +2232,11 @@ Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory
 9. 高级 Crash-safe Finalization 与最后可用诊断资料恢复可用；
 10. Ultimate 各能力通过对应 Target coverage、性能、安全和兼容测试。
 
-### 27.4 Platform Ultimate Definition of Done
+### 27.4 Optional Extension Portfolio（非 Core DoD）
 
-在 Runtime Ultimate 完成的基础上进一步满足：
+E1 Development Intelligence & Exploratory Debug、E2 Autonomous Gameplay、E3 Deterministic Graphics Acceptance & Render Forensics 由 `PLATFORM_EXTENSION_GOALS.md` 独立管理。它们不是 Runtime Ultimate、第一次 Developer Preview 或 Core 1.0 的 Definition of Done。
 
-1. Source Intelligence 能以受管、可重建、带来源与许可元数据的本地缓存解析 Minecraft、Loader、项目与第三方 Mod Source Universe；
-2. Mapping Intelligence 能在五 Target 的版本、namespace、owner、name 和 descriptor 间稳定解析；
-3. Symbol/AST/Reference/Hierarchy/Call Graph 与结构化 Version Diff 可预算、可索引并通过代表性语料验证；
-4. Mod metadata、依赖、entrypoint、Mixin、AW、AT、Accessor 与 Invoker Intelligence 完成并保持 Target 感知；
-5. Runtime event/failure 与 Source symbol、mapping、Mod injection 和 Artifact hash 可双向关联；
-6. Safe Probe 完成只读、预算、权限和审计 Conformance；
-7. 显式不安全的 EXPLORATORY_JVM 在默认关闭、loopback、独立 Exploratory Arm、短 TTL 与 trusted-local-developer Threat Model 下完成验收，并始终标记 `invalid_for_acceptance`；
-8. Native API、MCP/Agent Surface 与 Human Developer Inspector 使用一致能力和权限边界，大数据通过 Resource/Artifact/streaming/index 获取；
-9. Development Intelligence 供应链、缓存完整性、来源、许可、再分发限制和恢复策略完成独立安全/发布审查；
-10. Runtime、Development Intelligence 与 Platform Integration 三条路线通过统一回归、性能、安全和证据门槛。
+Extension 只有在用户明确做出 Product Governance Decision 后才能提升为 Core；部分实现、共享接口或较高战略价值都不能自动扩展 Core Gate。
 
 ---
 
@@ -2254,7 +2244,7 @@ Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory
 
 以下内容视为当前执行基线，后续如修改应记录 ADR：
 
-1. 长期产品是 Agent-native Minecraft Development, Debugging and Testing Platform；Minecraft Agent Control Runtime 是其核心 Runtime Control、Testing 与 Observation 子系统，不是内嵌 MCP Server；
+1. Committed Core 是 Agent-native Minecraft Autonomous Testing Platform；Development, Debugging and Testing Platform 仅作为 umbrella positioning；Minecraft Agent Control Runtime 是其核心 Runtime Control、Testing 与 Observation 子系统；
 2. 原生协议独立于 MCP；
 3. 支持五个指定 Target；
 4. Capability-first / Fidelity-first；Mixin 允许必要侵入但没有默认优先权，Loader API 不构成功能上限；
@@ -2263,7 +2253,7 @@ Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory
 7. UI Tree 用于坐标解析，实际操作走游戏内输入分发；
 8. 截图和多模态坐标点击是 GUI 必备回退路径；
 9. 键鼠引擎以完整宏能力和长流水线为目标；
-10. 世界操作保留 PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 三个受治理平面；长期 EXPLORATORY 是独立调查平面，不能并入 DEBUG_PRIVILEGED 或计为 gameplay evidence；
+10. 世界操作保留 PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 三个 Core 治理平面；可选 E1 Exploratory JVM 不并入 DEBUG_PRIVILEGED，也不计为 gameplay evidence；
 11. 调试级全能读写必须实现并保留；
 12. 所有读取和写入均标记视角、来源、机制、副作用和证据价值；
 13. 连续帧录制、自动拼接和参数化输出必须实现；
@@ -2281,17 +2271,17 @@ Runtime V1 和已有 Phase 8 PASS 不因未来 Source Intelligence、Exploratory
 25. Minecraft 文本只进入数据平面，不能动态改变 Tool、权限、系统指令或 Runtime Policy；
 26. Ultimate Scope、V1 Product Scope 和 Phase 0 Vertical Slice 分层管理；
 27. 不在架构验证前过早冻结 Wire Protocol v1；
-28. Development Intelligence Service 与 Runtime Mod 分离；反编译器、Managed Source Store、索引、AST 和 Call Graph 不进入 Minecraft Runtime；
-29. 生成/反编译源码是带来源、校验和、许可/再分发元数据的受管缓存，不是 Mod 项目 Git 源码；
-30. Runtime/Source/Mapping 使用统一 Target 和 symbol identity，但 Runtime facts 与 Source facts 只关联、不混同；
-31. Native API 可以细粒度，MCP/Agent Surface 保持聚合且高效，大数据通过 Resource、Artifact、streaming 和索引传输；
-32. Runtime Track、Development Intelligence Track 与 Platform Integration Track 并行治理；新增 Platform 目标不得绕过现有 Phase 9/10 Gate。
+28. E1/E2/E3 是彼此独立且不阻塞 Core 的 Optional Extensions；
+29. Extension 可以部分实现、无限期推迟或取消，不使 Core 不完整；
+30. 第一次 Developer Preview 的 Extension requirements 为 NONE；
+31. Extension promotion 必须由用户明确做出 Product Governance Decision；
+32. Optional Extension 不得绕过或扩展现有 Phase 9/10 Gate。
 
 ---
 
 ## 29. 下一步立即执行项
 
-当前唯一允许的下一步是对 **Phase 9C Deep Debug / Batch Boundary State** 进行独立审查；本轮不得自动开始 Phase 9C。
+当前唯一允许的下一步是对 **Phase 9D Persistent Storage** 进行独立审查；本轮不得自动开始 Phase 9D。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2300,11 +2290,12 @@ Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
 Phase 9B.1: PASS
 Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
-Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9C: PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
+Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```
 
 Phase 9 与 Phase 10 必须保持独立：Phase 9 完成 Conformance、Exit Gate 和独立审查后，才能另行启动 Phase 10。
 
-本轮仅记录 Platform 目标升级。当前 Runtime 任务继续遵循既有 Gate；Development Intelligence、Exploratory Debug、Human Inspector 和 Platform Integration 均未开始实现。Development Intelligence 的 DI-0 至 DI-10 与 Platform Integration 的 PI-0 至 PI-5 草案见 `PLATFORM_VISION.md`。
+当前 Runtime 任务继续遵循既有 Gate。E1 Development Intelligence & Exploratory Debug、E2 Autonomous Gameplay、E3 Deterministic Graphics Acceptance & Render Forensics 均未开始实现，见 `PLATFORM_EXTENSION_GOALS.md`。
