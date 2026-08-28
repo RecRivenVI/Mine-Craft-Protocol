@@ -31,9 +31,10 @@ final class ProtocolState implements AutoCloseable {
     static final String DEBUG_ARM_HEADER = "X-MCP-Debug-Arm";
 
     private static final Set<String> DEFAULT_SCOPES = Set.of(
-            "read", "ui", "input", "capture", "event", "diagnostics", "control");
+            "read", "ui", "input", "capture", "event", "diagnostics", "control", "command");
 
     private final Set<String> scopes;
+    private final String principalId;
     private final Consumer<String> inputCleanup;
     private final ScheduledExecutorService scheduler;
     private final Map<String, CompletableFuture<JsonObject>> idempotentResults = new ConcurrentHashMap<>();
@@ -43,8 +44,9 @@ final class ProtocolState implements AutoCloseable {
     private ControlLease lease;
     private DebugArm debugArm;
 
-    ProtocolState(Set<String> scopes, Consumer<String> inputCleanup) {
+    ProtocolState(Set<String> scopes, String principalId, Consumer<String> inputCleanup) {
         this.scopes = Set.copyOf(scopes);
+        this.principalId = principalId;
         this.inputCleanup = inputCleanup;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "minecraft-protocol-control");
@@ -97,6 +99,7 @@ final class ProtocolState implements AutoCloseable {
     synchronized JsonObject releaseLease(String leaseId, String reason) {
         this.requireLease(leaseId);
         this.lease = null;
+        this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
         JsonObject json = new JsonObject();
         json.addProperty("type", "control.lease");
@@ -109,6 +112,7 @@ final class ProtocolState implements AutoCloseable {
         this.expireLeaseIfNeeded(System.currentTimeMillis());
         if (this.lease == null || leaseId == null || !this.lease.id().equals(leaseId)) return false;
         this.lease = null;
+        this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
         return true;
     }
@@ -116,6 +120,7 @@ final class ProtocolState implements AutoCloseable {
     synchronized JsonObject emergencyRelease(String reason) {
         boolean hadLease = this.lease != null;
         this.lease = null;
+        this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
         JsonObject json = new JsonObject();
         json.addProperty("type", "control.lease");
@@ -198,10 +203,29 @@ final class ProtocolState implements AutoCloseable {
         if (deadlineAtMillis <= 0L) return future;
         long remaining = deadlineAtMillis - System.currentTimeMillis();
         if (remaining <= 0L) {
+            future.cancel(true);
             return CompletableFuture.failedFuture(
                     new ProtocolException("REQUEST_DEADLINE_EXCEEDED", 408, "Request deadline has elapsed"));
         }
-        return future.orTimeout(remaining, TimeUnit.MILLISECONDS);
+        CompletableFuture<T> deadline = new CompletableFuture<>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                future.cancel(mayInterruptIfRunning);
+                return super.cancel(mayInterruptIfRunning);
+            }
+        };
+        var timeout = this.scheduler.schedule(() -> {
+            if (deadline.completeExceptionally(new ProtocolException(
+                    "REQUEST_DEADLINE_EXCEEDED", 408, "Request deadline has elapsed"))) {
+                future.cancel(true);
+            }
+        }, remaining, TimeUnit.MILLISECONDS);
+        future.whenComplete((value, error) -> {
+            timeout.cancel(false);
+            if (error == null) deadline.complete(value);
+            else deadline.completeExceptionally(error);
+        });
+        return deadline;
     }
 
     CompletableFuture<JsonObject> idempotent(String key, Supplier<CompletableFuture<JsonObject>> action) {
@@ -211,15 +235,19 @@ final class ProtocolState implements AutoCloseable {
     }
 
     JsonObject startOperation(CompletableFuture<JsonObject> future) {
-        if (this.operations.size() >= 256) {
+        return this.startOperation(future, false);
+    }
+
+    JsonObject startOperation(CompletableFuture<JsonObject> future, boolean leaseBound) {
+        if (this.operations.size() >= 16) {
             this.operations.entrySet().removeIf(entry -> !entry.getValue().isRunning());
         }
-        if (this.operations.size() >= 256) {
+        if (this.operations.size() >= 16) {
             future.cancel(true);
             throw new ProtocolException("TOO_MANY_OPERATIONS", 429, "Too many active operations");
         }
         String id = UUID.randomUUID().toString();
-        Operation operation = new Operation(id, future);
+        Operation operation = new Operation(id, future, leaseBound);
         this.operations.put(id, operation);
         future.whenComplete((result, error) -> operation.complete(result, error));
         return operation.snapshot();
@@ -229,19 +257,48 @@ final class ProtocolState implements AutoCloseable {
         return this.requireOperation(operationId).snapshot();
     }
 
+    JsonObject operationSnapshot() {
+        JsonArray values = new JsonArray();
+        this.operations.values().stream()
+                .sorted((left, right) -> Long.compare(left.receivedAtMillis, right.receivedAtMillis))
+                .forEach(operation -> values.add(operation.snapshot()));
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "operation.snapshot");
+        json.add("operations", values);
+        return json;
+    }
+
     JsonObject cancelOperation(String operationId) {
         Operation operation = this.requireOperation(operationId);
-        operation.cancel();
+        operation.cancel("client_cancel");
         return operation.snapshot();
     }
 
-    synchronized void audit(String requestId, String path, String outcome) {
+    CompletableFuture<JsonObject> waitOperation(String operationId, long requestedTimeoutMillis) {
+        Operation operation = this.requireOperation(operationId);
+        if (!operation.isRunning()) return CompletableFuture.completedFuture(operation.snapshot());
+        CompletableFuture<JsonObject> result = new CompletableFuture<>();
+        operation.terminal.whenComplete((ignored, error) -> result.complete(operation.snapshot()));
+        long timeout = Math.max(1L, Math.min(requestedTimeoutMillis, 300_000L));
+        var timeoutHandle = this.scheduler.schedule(
+                () -> result.complete(operation.snapshot()), timeout, TimeUnit.MILLISECONDS);
+        result.whenComplete((ignored, error) -> timeoutHandle.cancel(false));
+        return result;
+    }
+
+    synchronized void audit(String requestId, String connectionId, String path, String outcome) {
         this.audit.addLast(new AuditEntry(
                 this.auditSequence.incrementAndGet(),
                 System.currentTimeMillis(),
                 requestId,
+                this.principalId,
+                connectionId,
                 path,
-                outcome));
+                outcome,
+                this.lease == null ? "" : this.lease.id(),
+                this.debugArm == null ? "" : this.debugArm.id(),
+                path.startsWith("/v0/operations/")
+                        ? path.substring("/v0/operations/".length()).replace("/wait", "") : ""));
         while (this.audit.size() > 256) this.audit.removeFirst();
     }
 
@@ -256,8 +313,13 @@ final class ProtocolState implements AutoCloseable {
             item.addProperty("sequence", entry.sequence());
             item.addProperty("timestampMillis", entry.timestampMillis());
             item.addProperty("requestId", entry.requestId());
+            item.addProperty("principalId", entry.principalId());
+            item.addProperty("connectionId", entry.connectionId());
             item.addProperty("path", entry.path());
             item.addProperty("outcome", entry.outcome());
+            item.addProperty("leaseId", entry.leaseId());
+            item.addProperty("debugArmId", entry.debugArmId());
+            item.addProperty("operationId", entry.operationId());
             entries.add(item);
         }
         JsonObject json = new JsonObject();
@@ -279,6 +341,8 @@ final class ProtocolState implements AutoCloseable {
                 "screenRevision", "menuRevision"));
         operations.add(descriptor("input.key", "input", true, true, false,
                 "screenRevision", "menuRevision"));
+        operations.add(descriptor("command.player.execute", "command", true, false, false,
+                "currentPlayerPermissions", "normalNetwork", "serverValidation"));
         operations.add(descriptor("capture.composite", "capture", false, false, true));
         operations.add(descriptor("wait.screen", "read", false, false, true));
         operations.add(descriptor("wait.until", "read", false, false, true));
@@ -310,6 +374,8 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("type", "security.context");
         json.addProperty("protocolVersion", PROTOCOL_VERSION);
         json.addProperty("authentication", "bearer");
+        json.addProperty("principalId", this.principalId);
+        json.addProperty("principalLifecycle", "runtime_token_lifetime");
         json.addProperty("bindAddress", "127.0.0.1");
         json.add("grantedScopes", grantedScopes);
         return json;
@@ -320,13 +386,14 @@ final class ProtocolState implements AutoCloseable {
         this.lease = null;
         this.debugArm = null;
         this.inputCleanup.accept("transport_close");
-        for (Operation operation : this.operations.values()) operation.cancel();
+        for (Operation operation : this.operations.values()) operation.cancel("transport_close");
         this.scheduler.shutdownNow();
     }
 
     private synchronized void expireLeaseIfNeeded(long now) {
         if (this.lease != null && this.lease.expiresAtMillis() <= now) {
             this.lease = null;
+            this.cancelLeaseBoundOperations("lease_expired");
             this.inputCleanup.accept("lease_expired");
         }
     }
@@ -335,14 +402,21 @@ final class ProtocolState implements AutoCloseable {
         long delay = Math.max(1L, scheduledLease.expiresAtMillis() - System.currentTimeMillis());
         this.scheduler.schedule(() -> {
             synchronized (this) {
-                if (this.lease != null
+                    if (this.lease != null
                         && this.lease.id().equals(scheduledLease.id())
                         && this.lease.expiresAtMillis() <= System.currentTimeMillis()) {
                     this.lease = null;
+                    this.cancelLeaseBoundOperations("lease_expired");
                     this.inputCleanup.accept("lease_expired");
                 }
             }
         }, delay, TimeUnit.MILLISECONDS);
+    }
+
+    private void cancelLeaseBoundOperations(String reason) {
+        for (Operation operation : this.operations.values()) {
+            if (operation.leaseBound) operation.cancel(reason);
+        }
     }
 
     private synchronized void expireDebugIfNeeded(long now) {
@@ -448,39 +522,74 @@ final class ProtocolState implements AutoCloseable {
     }
 
     private record AuditEntry(
-            long sequence, long timestampMillis, String requestId, String path, String outcome) {
+            long sequence,
+            long timestampMillis,
+            String requestId,
+            String principalId,
+            String connectionId,
+            String path,
+            String outcome,
+            String leaseId,
+            String debugArmId,
+            String operationId) {
     }
 
     private static final class Operation {
         private final String id;
         private final CompletableFuture<JsonObject> future;
+        private final CompletableFuture<Void> terminal = new CompletableFuture<>();
+        private final boolean leaseBound;
+        private final long receivedAtMillis = System.currentTimeMillis();
+        private final long acceptedAtMillis = this.receivedAtMillis;
+        private final long scheduledAtMillis = this.receivedAtMillis;
+        private final long startedAtMillis = this.receivedAtMillis;
         private volatile String status = "running";
+        private volatile String state = "executing";
         private volatile JsonObject result;
         private volatile String error;
+        private volatile String errorCode;
+        private volatile String cancellationReason;
+        private volatile long completedAtMillis;
 
-        private Operation(String id, CompletableFuture<JsonObject> future) {
+        private Operation(String id, CompletableFuture<JsonObject> future, boolean leaseBound) {
             this.id = id;
             this.future = future;
+            this.leaseBound = leaseBound;
         }
 
-        private void complete(JsonObject result, Throwable error) {
-            if (this.status.equals("cancelled")) return;
+        private synchronized void complete(JsonObject result, Throwable error) {
+            if (this.state.equals("cancelled")) return;
+            this.completedAtMillis = System.currentTimeMillis();
             if (error == null) {
                 this.result = result;
                 this.status = "completed";
+                this.state = "completed";
             } else if (error instanceof CancellationException) {
                 this.status = "cancelled";
+                this.state = "cancelled";
             } else {
                 Throwable cause = error.getCause() == null ? error : error.getCause();
                 this.error = cause instanceof TimeoutException ? "operation timed out" : cause.getMessage();
-                this.status = "failed";
+                if (cause instanceof ProtocolException protocolException) this.errorCode = protocolException.code();
+                else if (cause instanceof TimeoutException) this.errorCode = "OPERATION_TIMEOUT";
+                boolean timedOut = cause instanceof TimeoutException
+                        || "PIPELINE_TIMEOUT".equals(this.errorCode)
+                        || "WAIT_TIMEOUT".equals(this.errorCode)
+                        || "REQUEST_DEADLINE_EXCEEDED".equals(this.errorCode);
+                this.status = timedOut ? "timed_out" : "failed";
+                this.state = this.status;
             }
+            this.terminal.complete(null);
         }
 
-        private void cancel() {
-            if (this.status.equals("running")) {
+        private synchronized void cancel(String reason) {
+            if (this.state.equals("executing") || this.state.equals("scheduled") || this.state.equals("accepted")) {
                 this.status = "cancelled";
+                this.state = "cancelled";
+                this.cancellationReason = reason;
+                this.completedAtMillis = System.currentTimeMillis();
                 this.future.cancel(true);
+                this.terminal.complete(null);
             }
         }
 
@@ -493,8 +602,25 @@ final class ProtocolState implements AutoCloseable {
             json.addProperty("type", "operation");
             json.addProperty("operationId", this.id);
             json.addProperty("status", this.status);
+            json.addProperty("state", this.state);
+            json.addProperty("received", true);
+            json.addProperty("accepted", true);
+            json.addProperty("scheduled", true);
+            json.addProperty("executing", this.state.equals("executing"));
+            json.addProperty("completed", this.state.equals("completed"));
+            json.addProperty("failed", this.state.equals("failed"));
+            json.addProperty("cancelled", this.state.equals("cancelled"));
+            json.addProperty("timedOut", this.state.equals("timed_out"));
+            json.addProperty("leaseBound", this.leaseBound);
+            json.addProperty("receivedAtMillis", this.receivedAtMillis);
+            json.addProperty("acceptedAtMillis", this.acceptedAtMillis);
+            json.addProperty("scheduledAtMillis", this.scheduledAtMillis);
+            json.addProperty("startedAtMillis", this.startedAtMillis);
+            if (this.completedAtMillis > 0L) json.addProperty("completedAtMillis", this.completedAtMillis);
             if (this.result != null) json.add("result", this.result.deepCopy());
             if (this.error != null) json.addProperty("error", this.error);
+            if (this.errorCode != null) json.addProperty("errorCode", this.errorCode);
+            if (this.cancellationReason != null) json.addProperty("cancellationReason", this.cancellationReason);
             return json;
         }
     }

@@ -54,7 +54,7 @@ Minecraft-provided content is untrusted even when it originates from a locally l
 - Do not expose arbitrary filesystem, shell, process, ClassLoader or reflection operations.
 - Report actual input provenance and direct-mutation flags.
 
-No default credential is tracked. The token file is still readable by processes with the same user authority; loopback does not defend against a fully compromised local account. LAN exposure remains disabled and is outside the current implementation.
+No default credential is tracked. The token file is still readable by processes with the same user authority; loopback does not defend against a fully compromised local account. V1 is formally loopback-only under ADR-0001. LAN exposure remains unavailable and in Ultimate Scope.
 
 ## Prompt Injection Isolation
 
@@ -83,25 +83,25 @@ The Companion preserves trust/provenance metadata and adds a data-plane-only bou
 
 Another local process may discover the port or token and inject input.
 
-Implemented controls: random per-run token, loopback-only listener, scopes, Control Lease, TTL, constant-time credential comparison and audit. Remaining V1 work: stronger platform-specific token-file protection, rate limiting and explicit session principals.
+Implemented controls: random per-run token, loopback-only listener, scopes, Control Lease, TTL, constant-time credential comparison, stable token-lifetime principal identity, per-principal/per-connection request budgets, category-specific expensive-operation budgets, bounded active operations and audit correlation across principal/connection/Lease/Debug Arm/Operation. Stronger platform-specific token-file ACL hardening is defense-in-depth beyond the portable V1 baseline.
 
 ### LAN Exposure
 
 Binding beyond loopback exposes full player control to the network.
 
-Current status: LAN binding is not implemented. Host/Origin validation, audit and scopes are already active on loopback. TLS/pairing and IP allowlists are required before any future LAN enablement.
+Current status: LAN binding is deliberately unavailable in the V1 Release Profile under ADR-0001. Host/Origin validation, audit, scopes and rate budgets are active on loopback. TLS, pairing, revocable persistent principals, IP allowlists and a separate LAN conformance gate are required before future LAN enablement.
 
 ### Input State Sticking
 
 Disconnect or cancellation may leave keys/buttons held.
 
-Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport-close cleanup, emergency release, observable Runtime-owned input state and Pipeline finally cleanup. Cancellation cleanup is verified while a virtual key is held.
+Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport-close cleanup, emergency release, observable Runtime-owned input dispatch sequence/state, a Pipeline cancellation token, tracked current child and scheduled handles, owner-thread cancellation barriers and deferred-callback checks. Hardening conformance covers delay, single/multi-key hold, mouse hold, mid-drag, multi-step, wait, UI hold, immediate/near completion, disconnect and Lease expiry, and verifies no later input sequence after cleanup.
 
 ### Malicious Automation Pipeline
 
 A caller may submit very large, slow or deliberately stuck macro programs.
 
-Controls: bounded body size, maximum 256 steps, per-step delay limits, maximum five-minute Pipeline lifetime, operation cancellation, Lease validation before every step and bounded operation registry. Unknown step and condition types fail closed.
+Controls: bounded body size, maximum 256 steps, per-step delay limits, maximum five-minute Pipeline lifetime, propagated operation cancellation, Lease validation before every step and a maximum of 16 concurrently retained operations before terminal eviction. Unknown step and condition types fail closed.
 
 ### Vision Coordinate Confusion
 
@@ -250,6 +250,6 @@ Internal invasive implementation remains restricted behind typed Minecraft-domai
 
 - A process running as the same OS user may read the token handoff file or inspect the game process.
 - The audit ring is volatile and bounded; it is not a tamper-evident security log.
-- Rate limiting, LAN pairing/TLS and persistent principal identity are not implemented.
+- LAN pairing/TLS and persistent, independently revocable account principals are Ultimate/deferred; V1 remains loopback-only and uses a token-lifetime authenticated principal.
 - Idempotency storage is in-memory and process-local.
-- Scope configuration is per Runtime process; fine-grained per-client principals are deferred.
+- Scope configuration is per Runtime process; fine-grained multi-account principals are deferred.

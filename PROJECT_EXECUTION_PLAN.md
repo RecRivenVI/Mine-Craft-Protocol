@@ -1571,6 +1571,8 @@ Runtime 启动后执行 Hook Self-Test：
 
 ### 19.1 网络安全
 
+下列清单描述 Ultimate 网络安全目标。V1 Release Profile 按 ADR-0001 仅开放 loopback；其中 LAN、配对、TLS、IP allowlist 与持久可撤销 Principal 不得被误报为 V1 已实现。
+
 - 默认 loopback；
 - LAN 显式启用；
 - 高强度随机 Token；
@@ -1817,7 +1819,7 @@ Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中�
 V1 是首个可称为完整可用产品的范围，重点建立 Coding Agent 自主测试闭环：
 
 - 五 Target 共享外部核心契约并通过 V1 Conformance；
-- Runtime 启动、loopback/LAN 安全基线、Capability Self-Test；
+- Runtime 启动、V1 loopback-only 安全基线、Capability Self-Test；LAN 按 ADR-0001 保留在 Ultimate Scope；
 - get session/get capabilities；
 - Vanilla 与标准 Mod GUI 的 Interaction Tree；
 - Render Facts 基线和真实可执行的 Screenshot/Vision fallback；
@@ -2001,7 +2003,7 @@ Agent
 
 ### Phase 8：MCP Companion 与 V1 发布硬化
 
-执行状态（2026-08-28）：已完成。独立 TypeScript MCP v2 Companion、stdio、19 Tools、Resources/Artifact、静态 Prompt、协议兼容检查、错误映射、Prompt Injection 隔离、真实 Minecraft 自主世界闭环、安全审计与性能预算均已通过；§27.2 V1 Definition of Done 已满足，但原生 Wire Protocol v1 仍按既定决策保持未冻结。
+执行状态（2026-08-28）：已完成并通过 V1 Release Hardening。独立 TypeScript MCP v2 Companion、stdio、23 Tools、原生 Operation get/wait/cancel、Resources/streaming Artifact、静态 Prompt、typed schemas、Prompt Injection 隔离、EventHub 可靠性、Recording 总资源预算与关闭 finalization、current-player command、五 Target 当前 Artifact 世界闭环及 NeoForge/Fabric 26.2 OpenGL/Vulkan Capture 均已通过；§27.2 V1 Definition of Done 在 ADR-0001 的 loopback-only V1 Profile 下满足，原生 Wire Protocol v1 仍保持未冻结。
 
 交付 MCP Tools/Resources、stdio、协议代际兼容、Artifact 获取、Agent-friendly 错误、完整自主测试工作流、安全审计和性能基线。
 
@@ -2176,7 +2178,7 @@ Agent
 14. Dedicated Peer 可扩展服务器权威查询、权限和受控 Fixture/Debug；
 15. PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 和证据污染检测有效；
 16. HTTP/WS 与 MCP Companion 能让 Coding Agent 完成自主测试闭环；
-17. Auth、Scope、Control Lease、Debug Arm、Prompt Injection 隔离、审计和断线清理有效；
+17. V1 loopback-only Profile 下 Auth、Principal、Scope、Host/Origin 校验、速率/并发预算、Control Lease、Debug Arm、Prompt Injection 隔离、审计关联和断线清理有效；LAN 不得被宣称为 V1 Ready；
 18. Hook/Capability Self-Test 失败会诚实降级，不伪装完整能力；
 19. 录制、查询和网络压力不产生不可控主线程阻塞；
 20. 未进入 V1 的 Ultimate 能力在 capability 和文档中明确，不以占位实现冒充完成。
@@ -2219,7 +2221,7 @@ Agent
 15. 世界状态录制必须支持自定义轨道、选择器、Keyframe 和 Delta；
 16. 输入、帧、世界状态、事件、网络和日志共享统一时间线；
 17. Server Peer 用于服务器权威观察、录制、Fixture 和 Debug；
-18. 默认 loopback，LAN 显式启用；
+18. 默认 loopback；V1 Release Profile 仅允许 loopback。LAN 显式启用能力保留在 Ultimate Scope，并须先完成 ADR-0001 所列 TLS、配对、可撤销 Principal、IP Policy 和独立 Conformance；
 19. 不提供任意 Shell、任意文件系统和通用 JVM RAT 能力；
 20. 不使用全局 `expectedWorldRevision` 作为普通 optimistic concurrency，采用资源级 revision 与 value precondition；
 21. Request Envelope 公共层最小化，Lease、Idempotency、Precondition、Operation Handle 和 Debug Context 按能力声明；
@@ -2234,15 +2236,16 @@ Agent
 
 ## 29. 下一步立即执行项
 
-下一步进入 Phase 0，而不是继续扩展顶层架构。实际顺序：
+Phase 0–8 主体已经完成；当前唯一允许的下一步是 **Phase 8 / V1 Release Hardening**，不得用 Phase 9 功能扩展替代 release gate。执行顺序：
 
-1. Phase 0A：只形成支撑 Probe 的最小 Runtime Contracts 草图；
-2. Phase 0B：Forge 1.20.1 Interaction Tree、GAME_ROUTED、Container、Player Control、Capture 与线程 Probe；
-3. Phase 0C：NeoForge 26.2 UI、Input、Render、OpenGL/Vulkan Capture 与线程 Probe；
-4. Phase 0D：Fabric 26.2 同等 Probe；
-5. Phase 0E：汇总三个 Target 的真实调用链和差异；
-6. Phase 0F：依据样片事实形成 Protocol V0 Draft；
-7. Phase 0G：形成正式 Multi-Target Repository Skeleton；
+1. 完成 Pipeline/Operation cancellation propagation 与无 post-cancel side effect 证据；
+2. 完成 MCP operation get/wait/cancel 与 MCP cancellation propagation；
+3. 完成 EventHub filter/backpressure/ring/resume/gap/resync；
+4. 完成 Recording 会话级资源预算、Contact Sheet 分片、Artifact 双端 streaming 和关闭竞态修复；
+5. 完成 V1 Wait/Assert typed core、current-player command、principal/rate limit/audit 关联；
+6. 通过 schema、Java、Companion、hardening static 和资源压力 gate；
+7. 使用当前最终 Artifact 在五 Target 重跑 minimal live smoke，并对 NeoForge/Fabric 26.2 分别记录 OpenGL/Vulkan；
+8. 只有 Release Gate 全部通过后，才可重新声明 `Phase 8 Complete` 与 `V1 Release Candidate PASS`，随后再讨论 Phase 9。
 8. Phase 0H：形成并运行 Conformance V0。
 
 优先回答的事实问题：

@@ -56,7 +56,9 @@ public final class ForgeProbeRuntime implements ProbeService {
     });
 
     private final AtomicBoolean initialized = new AtomicBoolean();
+    private final AtomicBoolean shutdownRegistered = new AtomicBoolean();
     private final AtomicBoolean captureVerified = new AtomicBoolean();
+    private final AtomicLong inputDispatchSequence = new AtomicLong();
     private volatile Minecraft minecraft;
     private volatile ProbeTransport transport;
     private volatile Screen lastScreen;
@@ -114,10 +116,19 @@ public final class ForgeProbeRuntime implements ProbeService {
             int port = Integer.getInteger("minecraft.protocol.probe.port", 25581);
             this.transport = new ProbeTransport(this, token, port);
             this.transport.startAsync();
+            if (this.shutdownRegistered.compareAndSet(false, true)) {
+                Runtime.getRuntime().addShutdownHook(new Thread(
+                        this::shutdown, "minecraft-protocol-shutdown"));
+            }
         }
 
         this.refreshScreen(minecraft);
         this.refreshMenu(minecraft);
+    }
+
+    private void shutdown() {
+        ProbeTransport current = this.transport;
+        if (current != null) current.close();
     }
 
     @Override
@@ -156,6 +167,7 @@ public final class ForgeProbeRuntime implements ProbeService {
             capabilities.addProperty("input.pipeline", "runtime_verified");
             capabilities.addProperty("input.multi_key", "runtime_verified");
             capabilities.addProperty("input.drag_scroll", "runtime_verified");
+            capabilities.addProperty("command.player.execute", "normal_network_current_permissions");
             capabilities.addProperty("wait.assert", "runtime_verified");
             capabilities.addProperty("fixture.standard_mod_gui", "runtime_verified_contaminated");
             capabilities.addProperty("ui.standard_mod_gui_extended", "runtime_verified_fixture");
@@ -427,6 +439,35 @@ public final class ForgeProbeRuntime implements ProbeService {
             json.addProperty("velocityZ", player.getDeltaMovement().z);
             json.addProperty("selectedSlot", player.getInventory().selected);
             json.addProperty("dimension", player.level().dimension().location().toString());
+            return json;
+        });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> playerCommand(String rawCommand) {
+        return this.onClient(() -> {
+            Minecraft client = requireClient();
+            if (client.player == null || client.getConnection() == null) {
+                throw new ProtocolState.ProtocolException(
+                        "PLAYER_UNAVAILABLE", 409, "A connected current player is required");
+            }
+            String command = rawCommand == null ? "" : rawCommand.trim();
+            if (command.startsWith("/")) command = command.substring(1);
+            if (command.isBlank() || command.length() > 2048
+                    || command.chars().anyMatch(character -> character == 10 || character == 13)) {
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_PLAYER_COMMAND", 400, "Command must be one non-empty line of at most 2048 characters");
+            }
+            client.getConnection().sendCommand(command);
+            JsonObject json = base("command.player.execute");
+            json.addProperty("accepted", true);
+            json.addProperty("perspective", "current_player");
+            json.addProperty("mode", "PLAYTEST");
+            json.addProperty("mechanism", "NORMAL_NETWORK");
+            json.addProperty("normalPacket", true);
+            json.addProperty("serverValidation", true);
+            json.addProperty("permissionEscalated", false);
+            json.addProperty("evidenceContaminated", false);
             return json;
         });
     }
@@ -764,6 +805,7 @@ public final class ForgeProbeRuntime implements ProbeService {
             json.add("pressedButtons", buttons);
             json.addProperty("pressedKeyCount", this.pressedKeys.size());
             json.addProperty("pressedButtonCount", this.pressedButtons.size());
+            json.addProperty("inputDispatchSequence", this.inputDispatchSequence.get());
             return json;
         });
     }
@@ -842,10 +884,12 @@ public final class ForgeProbeRuntime implements ProbeService {
             }
             this.pressedKeys.clear();
             this.pressedButtons.clear();
+            long inputSequence = this.inputDispatchSequence.incrementAndGet();
             JsonObject json = base("input.release_all");
             json.addProperty("reason", reason);
             json.addProperty("releasedKeys", releasedKeys);
             json.addProperty("releasedButtons", releasedButtons);
+            json.addProperty("inputDispatchSequence", inputSequence);
             return json;
         });
     }
@@ -858,6 +902,7 @@ public final class ForgeProbeRuntime implements ProbeService {
             return result;
         }
         client.execute(() -> {
+            if (result.isDone()) return;
             try {
                 result.complete(supplier.get());
             } catch (Throwable throwable) {
@@ -1002,6 +1047,7 @@ public final class ForgeProbeRuntime implements ProbeService {
 
     private JsonObject inputEvidence(String entryLayer, boolean screen, boolean menu) {
         JsonObject json = base("input.result");
+        long inputSequence = this.inputDispatchSequence.incrementAndGet();
         json.addProperty("entryLayer", entryLayer);
         json.addProperty("screenObserved", screen);
         json.addProperty("menuObserved", menu);
@@ -1011,6 +1057,7 @@ public final class ForgeProbeRuntime implements ProbeService {
         json.addProperty("directMutationUsed", false);
         json.addProperty("screenRevision", this.screenRevision);
         json.addProperty("menuRevision", this.menuRevision);
+        json.addProperty("inputDispatchSequence", inputSequence);
         return json;
     }
 

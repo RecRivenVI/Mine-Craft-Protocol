@@ -25,6 +25,22 @@ try {
     $schema = Get-Content 'protocol-schema\src\main\openapi\minecraft-control-v0.json' -Raw | ConvertFrom-Json
     Assert-True ($schema.info.version -eq '0.0.1-phase8') 'OpenAPI must identify Phase 8'
     Assert-True ($null -ne $schema.paths.'/v0/diagnostics/hooks') 'Phase 7 Hook contract must remain present'
+    Assert-True ($null -ne $schema.paths.'/v0/operations/{operationId}/wait') 'native operation wait contract must exist'
+    Assert-True ($null -ne $schema.paths.'/v0/events/resync') 'event resync contract must exist'
+    Assert-True ($null -ne $schema.paths.'/v0/command/player') 'current-player command contract must exist'
+
+    $hardening = & '.\conformance\phase8\Invoke-Phase8HardeningStaticGate.ps1'
+    Assert-True ($hardening.Result -eq 'PASS') 'Phase 8 hardening static gate must pass'
+
+    $javaTestReports = @(Get-ChildItem 'versions\26.2-neoforge\build\test-results\test' -Filter 'TEST-*.xml' -File)
+    $javaTests = 0
+    $javaFailures = 0
+    foreach ($reportFile in $javaTestReports) {
+        [xml]$report = Get-Content -LiteralPath $reportFile.FullName
+        $javaTests += [int]$report.testsuite.tests
+        $javaFailures += [int]$report.testsuite.failures + [int]$report.testsuite.errors
+    }
+    Assert-True ($javaTests -ge 8 -and $javaFailures -eq 0) 'Java hardening unit tests must execute and pass'
 
     $artifacts = foreach ($target in $targets) {
         $jar = Get-ChildItem "versions\$target\build\libs" -Filter '*.jar' -File |
@@ -62,7 +78,7 @@ try {
     Assert-True ($production -notmatch 'console\.log\s*\(') 'stdio production code must not write logs to stdout'
     Assert-True ($production -notmatch 'node:child_process|\bexecSync?\s*\(|\bspawnSync?\s*\(') 'Companion production code must not expose process execution'
     Assert-True ($production -notmatch 'registerTool\s*\([^''\"]') 'MCP Tool names must be static literals'
-    Assert-True (([regex]::Matches($production, "registerTool\('")).Count -eq 19) 'Companion must expose the reviewed 19-Tool surface'
+    Assert-True (([regex]::Matches($production, "registerTool\('")).Count -eq 23) 'Companion must expose the reviewed 23-Tool surface'
     Assert-True (([regex]::Matches($production, "registerPrompt\('")).Count -eq 1) 'Companion must expose one static Prompt'
     Assert-True ($production -match 'dataPlaneOnly:\s*true') 'Companion must propagate the data-plane trust boundary'
     Assert-True ($production -match 'validatePath\(path') 'Runtime paths must pass typed namespace validation'
@@ -75,11 +91,14 @@ try {
         Result = 'PASS'
         Protocol = $schema.info.version
         Targets = $artifacts
-        CompanionTools = 19
+        CompanionTools = 23
         CompanionResources = 4
         CompanionResourceTemplates = 2
         CompanionPrompts = 1
         DependencyVulnerabilities = 0
+        HardeningStatic = $hardening.Result
+        JavaTests = $javaTests
+        JavaTestFailures = $javaFailures
         JavaModels = @(Get-ChildItem 'protocol-schema\build\generated\java' -Recurse -Filter '*.java').Count
         TypeScriptFiles = @(Get-ChildItem 'protocol-schema\build\generated\typescript' -Recurse -Filter '*.ts').Count
     }

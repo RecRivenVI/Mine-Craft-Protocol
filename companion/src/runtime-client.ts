@@ -37,9 +37,8 @@ export class RuntimeClient {
     options: RuntimeRequestOptions = {}
   ): Promise<T> {
     const response = await this.request(method, path, body, options);
-    const bytes = new Uint8Array(await response.arrayBuffer());
     const limit = options.maxResponseBytes ?? this.config.maxJsonBytes;
-    if (bytes.byteLength > limit) throw new RuntimeError('COMPANION_RESPONSE_TOO_LARGE', 502, 'Runtime JSON response exceeded Companion limit');
+    const bytes = await this.readBounded(response, limit, 'Runtime JSON response exceeded Companion limit');
     const text = new TextDecoder().decode(bytes);
     let parsed: JsonObject;
     try {
@@ -62,9 +61,8 @@ export class RuntimeClient {
     options: RuntimeRequestOptions = {}
   ): Promise<RuntimeBinary> {
     const response = await this.request(method, path, undefined, options);
-    const bytes = new Uint8Array(await response.arrayBuffer());
     const limit = options.maxResponseBytes ?? this.config.maxArtifactBytes;
-    if (bytes.byteLength > limit) throw new RuntimeError('COMPANION_RESPONSE_TOO_LARGE', 502, 'Runtime binary response exceeded Companion limit');
+    const bytes = await this.readBounded(response, limit, 'Runtime binary response exceeded Companion limit');
     if (!response.ok) {
       throw new RuntimeError('RUNTIME_HTTP_ERROR', response.status, `Runtime binary request failed with HTTP ${response.status}`);
     }
@@ -96,7 +94,9 @@ export class RuntimeClient {
     const init: RequestInit = {
       method,
       headers,
-      signal: AbortSignal.timeout(options.timeoutMs ?? this.config.timeoutMs)
+      signal: options.signal
+        ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs ?? this.config.timeoutMs)])
+        : AbortSignal.timeout(options.timeoutMs ?? this.config.timeoutMs)
     };
     if (body !== undefined) {
       headers.set('content-type', 'application/json');
@@ -110,5 +110,41 @@ export class RuntimeClient {
         : 'Minecraft Runtime is unavailable';
       throw new RuntimeError(error instanceof Error && error.name === 'TimeoutError' ? 'COMPANION_RUNTIME_TIMEOUT' : 'COMPANION_RUNTIME_UNAVAILABLE', 503, message);
     }
+  }
+
+  private async readBounded(response: Response, limit: number, message: string): Promise<Uint8Array> {
+    const declared = response.headers.get('content-length');
+    if (declared !== null) {
+      const length = Number(declared);
+      if (!Number.isSafeInteger(length) || length < 0 || length > limit) {
+        await response.body?.cancel('response budget exceeded').catch(() => undefined);
+        throw new RuntimeError('COMPANION_RESPONSE_TOO_LARGE', 502, message);
+      }
+    }
+    if (!response.body) return new Uint8Array();
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (!Number.isSafeInteger(total) || total > limit) {
+          await reader.cancel('response budget exceeded').catch(() => undefined);
+          throw new RuntimeError('COMPANION_RESPONSE_TOO_LARGE', 502, message);
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return bytes;
   }
 }

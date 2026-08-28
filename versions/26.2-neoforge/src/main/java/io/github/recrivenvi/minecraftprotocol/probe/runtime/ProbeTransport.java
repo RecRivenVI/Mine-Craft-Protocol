@@ -16,10 +16,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpChunkedInput;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -30,23 +32,26 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedNioFile;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 final class ProbeTransport implements AutoCloseable {
@@ -54,17 +59,21 @@ final class ProbeTransport implements AutoCloseable {
     private static final int MAX_BODY_BYTES = 1024 * 1024;
     private static final AttributeKey<String> CONTROL_LEASE_CHANNEL =
             AttributeKey.valueOf("minecraft-protocol-control-lease");
+    private static final AttributeKey<String> EVENT_REQUEST_URI =
+            AttributeKey.valueOf("minecraft-protocol-event-request-uri");
 
     private final ProbeService service;
     private final String token;
     private final int port;
+    private final SecurityGate securityGate;
     private final ProtocolState protocolState;
     private final AutomationEngine automation;
     private final ObservationEngine observation;
     private final RecordingEngine recording;
-    private final Set<Channel> eventChannels = ConcurrentHashMap.newKeySet();
+    private final EventHub eventHub;
+    private final ConditionEngine conditions;
     private final AtomicBoolean started = new AtomicBoolean();
-    private final AtomicLong eventSequence = new AtomicLong();
+    private final AtomicBoolean closed = new AtomicBoolean();
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
@@ -73,12 +82,19 @@ final class ProbeTransport implements AutoCloseable {
         this.service = service;
         this.token = token;
         this.port = port;
+        this.securityGate = new SecurityGate(
+                "token:" + UUID.nameUUIDFromBytes(token.getBytes(StandardCharsets.UTF_8)));
         this.protocolState = new ProtocolState(
                 ProtocolState.configuredScopes(),
+                this.securityGate.principalId(),
                 reason -> service.releaseAllInput(reason));
         this.automation = new AutomationEngine(service);
         this.observation = new ObservationEngine(service);
         this.recording = new RecordingEngine(service, this.observation);
+        this.eventHub = new EventHub("26.2-neoforge", this::resyncSnapshot);
+        this.conditions = new ConditionEngine(
+                service, this.protocolState, this.eventHub, this.recording, this.observation);
+        this.automation.setConditionEngine(this.conditions);
     }
 
     void startAsync() {
@@ -101,6 +117,7 @@ final class ProbeTransport implements AutoCloseable {
                         protected void initChannel(SocketChannel channel) {
                             channel.pipeline().addLast(new HttpServerCodec());
                             channel.pipeline().addLast(new HttpObjectAggregator(MAX_BODY_BYTES));
+                            channel.pipeline().addLast(new ChunkedWriteHandler());
                             channel.pipeline().addLast(new AuthorizationHandler());
                             channel.pipeline().addLast(new WebSocketServerProtocolHandler("/v0/events", null, true));
                             channel.pipeline().addLast(new RequestHandler());
@@ -116,20 +133,18 @@ final class ProbeTransport implements AutoCloseable {
     }
 
     void broadcast(JsonObject event) {
-        event.addProperty("sequence", this.eventSequence.incrementAndGet());
-        this.recording.recordEvent("runtime.event", event);
-        String payload = GSON.toJson(event);
-        for (Channel channel : this.eventChannels) {
-            if (channel.isActive()) channel.writeAndFlush(new TextWebSocketFrame(payload));
-            else this.eventChannels.remove(channel);
-        }
+        JsonObject published = this.eventHub.publish(event);
+        this.recording.recordEvent("runtime.event", published);
     }
 
     @Override
     public void close() {
-        this.recording.close();
+        if (!this.closed.compareAndSet(false, true)) return;
+        this.eventHub.close();
+        this.conditions.close();
         this.automation.close();
         this.protocolState.close();
+        this.recording.close();
         if (this.serverChannel != null) this.serverChannel.close();
         if (this.workerGroup != null) this.workerGroup.shutdownGracefully();
         if (this.bossGroup != null) this.bossGroup.shutdownGracefully();
@@ -154,8 +169,12 @@ final class ProbeTransport implements AutoCloseable {
                         this.expected, authorization.getBytes(StandardCharsets.UTF_8))) {
                     throw new ProtocolState.ProtocolException("UNAUTHORIZED", 401, "Missing or invalid Bearer token");
                 }
+                securityGate.admit(context.channel(), request.method().name(),
+                        new QueryStringDecoder(request.uri()).path());
                 if (new QueryStringDecoder(request.uri()).path().equals("/v0/events")) {
                     protocolState.requireScope("event");
+                    context.channel().attr(EVENT_REQUEST_URI).set(request.uri());
+                    request.setUri("/v0/events");
                     String leaseId = boundedHeader(request, ProtocolState.LEASE_HEADER);
                     if (leaseId != null) {
                         protocolState.requireLease(leaseId);
@@ -164,7 +183,8 @@ final class ProbeTransport implements AutoCloseable {
                 }
                 context.fireChannelRead(message);
             } catch (Throwable throwable) {
-                protocolState.audit(requestId, new QueryStringDecoder(request.uri()).path(), "rejected");
+                protocolState.audit(requestId, auditConnectionId(context.channel()),
+                        new QueryStringDecoder(request.uri()).path(), "rejected");
                 sendError(context, requestId, throwable);
                 ReferenceCountUtil.release(message);
             }
@@ -176,6 +196,8 @@ final class ProbeTransport implements AutoCloseable {
         protected void channelRead0(ChannelHandlerContext context, Object message) {
             if (message instanceof FullHttpRequest request) {
                 this.handleHttp(context, request);
+            } else if (message instanceof TextWebSocketFrame frame) {
+                eventHub.accept(context.channel(), frame.text());
             } else if (message instanceof WebSocketFrame frame && !(frame instanceof TextWebSocketFrame)) {
                 frame.retain();
                 context.fireChannelRead(frame);
@@ -185,22 +207,26 @@ final class ProbeTransport implements AutoCloseable {
         @Override
         public void userEventTriggered(ChannelHandlerContext context, Object event) throws Exception {
             if (event == WebSocketServerProtocolHandler.ServerHandshakeStateEvent.HANDSHAKE_COMPLETE) {
-                eventChannels.add(context.channel());
-                JsonObject hello = new JsonObject();
-                hello.addProperty("type", "event.hello");
-                hello.addProperty("target", "26.2-neoforge");
-                hello.addProperty("sequence", eventSequence.incrementAndGet());
-                context.writeAndFlush(new TextWebSocketFrame(GSON.toJson(hello)));
+                String requestUri = context.channel().attr(EVENT_REQUEST_URI).get();
+                eventHub.register(context.channel(), new QueryStringDecoder(
+                        requestUri == null ? "/v0/events" : requestUri));
             }
             super.userEventTriggered(context, event);
         }
 
         @Override
         public void channelInactive(ChannelHandlerContext context) throws Exception {
-            eventChannels.remove(context.channel());
+            eventHub.unregister(context.channel());
+            securityGate.remove(context.channel());
             protocolState.releaseLeaseIfMatches(
                     context.channel().attr(CONTROL_LEASE_CHANNEL).get(), "control_channel_disconnected");
             super.channelInactive(context);
+        }
+
+        @Override
+        public void channelWritabilityChanged(ChannelHandlerContext context) throws Exception {
+            eventHub.channelWritable(context.channel());
+            super.channelWritabilityChanged(context);
         }
 
         private void handleHttp(ChannelHandlerContext context, FullHttpRequest request) {
@@ -212,7 +238,7 @@ final class ProbeTransport implements AutoCloseable {
                 this.dispatch(context, request, uri, path, metadata);
             } catch (Throwable throwable) {
                 String requestId = safeRequestId(request);
-                protocolState.audit(requestId, path, "rejected");
+                protocolState.audit(requestId, auditConnectionId(context.channel()), path, "rejected");
                 sendError(context, requestId, throwable);
             }
         }
@@ -231,6 +257,30 @@ final class ProbeTransport implements AutoCloseable {
                 read(context, metadata, path, "read", service::readiness);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/diagnostics/hooks")) {
                 read(context, metadata, path, "diagnostics", service::hookManifest);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/events/stress")) {
+                protocolState.requireScope("diagnostics");
+                JsonObject body = jsonBody(request);
+                int count = body.has("count") ? body.get("count").getAsInt() : 1;
+                int payloadBytes = body.has("payloadBytes") ? body.get("payloadBytes").getAsInt() : 0;
+                if (count < 1 || count > 8192 || payloadBytes < 0 || payloadBytes > 4096) {
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_EVENT_STRESS", 400, "count must be 1..8192 and payloadBytes 0..4096");
+                }
+                String filler = "x".repeat(payloadBytes);
+                for (int index = 0; index < count; index++) {
+                    JsonObject event = new JsonObject();
+                    event.addProperty("type", "diagnostics.event.self_test");
+                    event.addProperty("category", "diagnostics");
+                    event.addProperty("index", index);
+                    if (!filler.isEmpty()) event.addProperty("payload", filler);
+                    broadcast(event);
+                }
+                JsonObject result = new JsonObject();
+                result.addProperty("type", "diagnostics.event_stress");
+                result.addProperty("published", count);
+                result.addProperty("payloadBytes", payloadBytes);
+                result.addProperty("resumeCursor", eventHub.currentSequence());
+                sendImmediate(context, metadata, path, result);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/server/peer")) {
                 read(context, metadata, path, "read", service::peerStatus);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/server/peer/probe")) {
@@ -258,6 +308,9 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/security/context")) {
                 protocolState.requireScope("diagnostics");
                 sendImmediate(context, metadata, path, protocolState.securityContext());
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/events/resync")) {
+                protocolState.requireScope("event");
+                sendJsonFuture(context, metadata, path, resyncSnapshot());
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/ui/tree")) {
                 read(context, metadata, path, "ui", service::uiTree);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/ui/resolve")) {
@@ -287,6 +340,18 @@ final class ProbeTransport implements AutoCloseable {
                 read(context, metadata, path, "read", service::renderFacts);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/player")) {
                 read(context, metadata, path, "read", service::playerState);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/command/player")) {
+                protocolState.requireScope("command");
+                protocolState.requireScope("control");
+                protocolState.requireLease(metadata.leaseId());
+                JsonObject body = jsonBody(request);
+                if (!body.has("command")) {
+                    throw new ProtocolState.ProtocolException("INVALID_PLAYER_COMMAND", 400, "Missing command");
+                }
+                CompletableFuture<JsonObject> command = service.playerCommand(body.get("command").getAsString());
+                command.thenAccept(result -> recording.recordEvent("command.player.executed", result));
+                sendJsonFuture(context, metadata, path,
+                        protocolState.applyDeadline(command, metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/server/player")) {
                 read(context, metadata, path, "read", service::serverPlayerState);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/world/block")) {
@@ -423,9 +488,15 @@ final class ProbeTransport implements AutoCloseable {
                 JsonObject body = jsonBody(request);
                 CompletableFuture<JsonObject> pipeline = automation.executePipeline(
                         body, () -> protocolState.requireLease(metadata.leaseId()));
-                JsonObject operation = protocolState.startOperation(pipeline);
-                recording.recordEvent("pipeline.started", operation);
-                pipeline.thenAccept(result -> recording.recordEvent("pipeline.completed", result));
+                JsonObject operation = protocolState.startOperation(pipeline, true);
+                JsonObject startedEvent = operation.deepCopy();
+                startedEvent.addProperty("type", "event.pipeline.started");
+                broadcast(startedEvent);
+                pipeline.whenComplete((result, failure) -> {
+                    JsonObject event = protocolState.operationStatus(operation.get("operationId").getAsString());
+                    event.addProperty("type", "event.pipeline.terminal");
+                    broadcast(event);
+                });
                 sendImmediate(context, metadata, path, operation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/operations/wait/screen")) {
                 protocolState.requireScope("read");
@@ -437,12 +508,20 @@ final class ProbeTransport implements AutoCloseable {
                         metadata.deadlineAtMillis());
                 sendImmediate(context, metadata, path, protocolState.startOperation(future));
             } else if (path.startsWith("/v0/operations/")) {
-                String operationId = path.substring("/v0/operations/".length());
+                String operationPath = path.substring("/v0/operations/".length());
+                boolean waitRequest = operationPath.endsWith("/wait");
+                String operationId = waitRequest
+                        ? operationPath.substring(0, operationPath.length() - "/wait".length())
+                        : operationPath;
                 protocolState.requireScope("read");
                 if (request.method() == HttpMethod.GET) {
                     sendImmediate(context, metadata, path, protocolState.operationStatus(operationId));
                 } else if (request.method() == HttpMethod.DELETE) {
                     sendImmediate(context, metadata, path, protocolState.cancelOperation(operationId));
+                } else if (request.method() == HttpMethod.POST && waitRequest) {
+                    JsonObject body = jsonBody(request);
+                    sendJsonFuture(context, metadata, path, protocolState.waitOperation(
+                            operationId, optionalLong(body, "timeoutMs", 60_000L)));
                 } else {
                     throw new ProtocolState.ProtocolException("METHOD_NOT_ALLOWED", 405, "Unsupported operation method");
                 }
@@ -512,7 +591,11 @@ final class ProbeTransport implements AutoCloseable {
             String idempotencyKey = metadata.idempotencyKey() == null
                     ? null : path + ":" + metadata.idempotencyKey();
             CompletableFuture<JsonObject> future = protocolState.idempotent(idempotencyKey, action);
-            future.thenAccept(result -> recording.recordEvent("input.dispatched", result));
+            future.thenAccept(result -> {
+                JsonObject event = result.deepCopy();
+                event.addProperty("type", "event.input.dispatched");
+                broadcast(event);
+            });
             sendJsonFuture(context, metadata, path, protocolState.applyDeadline(future, metadata.deadlineAtMillis()));
         }
 
@@ -526,6 +609,25 @@ final class ProbeTransport implements AutoCloseable {
             sendJsonFuture(context, metadata, path,
                     protocolState.applyDeadline(action.get(), metadata.deadlineAtMillis()));
         }
+    }
+
+    private CompletableFuture<JsonObject> resyncSnapshot() {
+        CompletableFuture<JsonObject> session = this.service.session();
+        CompletableFuture<JsonObject> capabilities = this.service.capabilities();
+        CompletableFuture<JsonObject> ui = this.service.uiTree();
+        CompletableFuture<JsonObject> player = this.service.playerState();
+        return CompletableFuture.allOf(session, capabilities, ui, player).thenApply(ignored -> {
+            JsonObject snapshot = new JsonObject();
+            snapshot.addProperty("type", "event.resync");
+            snapshot.addProperty("resumeCursor", this.eventHub.currentSequence());
+            snapshot.addProperty("subscriptionCount", this.eventHub.subscriptionCount());
+            snapshot.add("session", session.join());
+            snapshot.add("capabilities", capabilities.join());
+            snapshot.add("ui", ui.join());
+            snapshot.add("player", player.join());
+            snapshot.add("operations", this.protocolState.operationSnapshot());
+            return snapshot;
+        });
     }
 
     private ProtocolState.RequestMetadata metadata(FullHttpRequest request) {
@@ -561,7 +663,7 @@ final class ProbeTransport implements AutoCloseable {
             JsonObject json) {
         json.addProperty("requestId", metadata.requestId());
         json.addProperty("protocolVersion", metadata.protocolVersion());
-        protocolState.audit(metadata.requestId(), path, "completed");
+        protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "completed");
         sendBytes(context, metadata.requestId(), GSON.toJson(json).getBytes(CharsetUtil.UTF_8),
                 "application/json; charset=utf-8", HttpResponseStatus.OK);
     }
@@ -573,7 +675,7 @@ final class ProbeTransport implements AutoCloseable {
             CompletableFuture<JsonObject> future) {
         future.whenComplete((json, error) -> {
             if (error != null) {
-                protocolState.audit(metadata.requestId(), path, "failed");
+                protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "failed");
                 sendError(context, metadata.requestId(), error);
             } else {
                 sendImmediate(context, metadata, path, json);
@@ -588,10 +690,10 @@ final class ProbeTransport implements AutoCloseable {
             CompletableFuture<byte[]> future) {
         future.whenComplete((bytes, error) -> {
             if (error != null) {
-                protocolState.audit(metadata.requestId(), path, "failed");
+                protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "failed");
                 sendError(context, metadata.requestId(), error);
             } else {
-                protocolState.audit(metadata.requestId(), path, "completed");
+                protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "completed");
                 sendBytes(context, metadata.requestId(), bytes, "image/png", HttpResponseStatus.OK);
             }
         });
@@ -601,14 +703,28 @@ final class ProbeTransport implements AutoCloseable {
             ChannelHandlerContext context,
             ProtocolState.RequestMetadata metadata,
             String path,
-            CompletableFuture<byte[]> future) {
-        future.whenComplete((bytes, error) -> {
+            CompletableFuture<Path> future) {
+        future.whenComplete((artifact, error) -> {
             if (error != null) {
-                protocolState.audit(metadata.requestId(), path, "failed");
+                protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "failed");
                 sendError(context, metadata.requestId(), error);
             } else {
-                protocolState.audit(metadata.requestId(), path, "completed");
-                sendBytes(context, metadata.requestId(), bytes, "application/zip", HttpResponseStatus.OK);
+                try {
+                    long length = Files.size(artifact);
+                    FileChannel file = FileChannel.open(artifact, StandardOpenOption.READ);
+                    DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+                    response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/zip");
+                    response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+                    response.headers().set(ProtocolState.REQUEST_ID_HEADER, metadata.requestId());
+                    response.headers().set(ProtocolState.PROTOCOL_HEADER, ProtocolState.PROTOCOL_VERSION);
+                    HttpUtil.setContentLength(response, length);
+                    protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "completed");
+                    context.write(response);
+                    context.writeAndFlush(new HttpChunkedInput(new ChunkedNioFile(file, 0L, length, 8192)));
+                } catch (Throwable throwable) {
+                    protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "failed");
+                    sendError(context, metadata.requestId(), throwable);
+                }
             }
         });
     }
@@ -616,6 +732,11 @@ final class ProbeTransport implements AutoCloseable {
     private static JsonObject jsonBody(FullHttpRequest request) {
         if (!request.content().isReadable()) return new JsonObject();
         return JsonParser.parseString(request.content().toString(CharsetUtil.UTF_8)).getAsJsonObject();
+    }
+
+    private static String auditConnectionId(Channel channel) {
+        String connectionId = channel.attr(SecurityGate.CONNECTION_ID).get();
+        return connectionId == null ? "unauthenticated" : connectionId;
     }
 
     private static void validateHostAndOrigin(FullHttpRequest request) {

@@ -7,12 +7,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 final class AutomationEngine implements AutoCloseable {
     private static final int MAX_PIPELINE_STEPS = 256;
@@ -21,6 +27,8 @@ final class AutomationEngine implements AutoCloseable {
 
     private final ProbeService service;
     private final ScheduledExecutorService scheduler;
+    private final Set<PipelineExecution> activeExecutions = ConcurrentHashMap.newKeySet();
+    private volatile ConditionEngine conditionEngine;
 
     AutomationEngine(ProbeService service) {
         this.service = service;
@@ -29,6 +37,10 @@ final class AutomationEngine implements AutoCloseable {
             thread.setDaemon(true);
             return thread;
         });
+    }
+
+    void setConditionEngine(ConditionEngine conditionEngine) {
+        this.conditionEngine = conditionEngine;
     }
 
     CompletableFuture<JsonObject> resolve(JsonObject selector) {
@@ -90,6 +102,7 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     CompletableFuture<JsonObject> assertThat(JsonObject condition) {
+        if (!isUiCondition(condition)) return requireConditionEngine().assertThat(condition);
         return this.service.uiTree().thenApply(tree -> {
             JsonObject evaluation = evaluate(tree, condition);
             if (!evaluation.get("passed").getAsBoolean()) {
@@ -101,6 +114,7 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     CompletableFuture<JsonObject> waitUntil(JsonObject condition, long timeoutMillis) {
+        if (!isUiCondition(condition)) return requireConditionEngine().waitUntil(condition, timeoutMillis);
         CompletableFuture<JsonObject> result = new CompletableFuture<>();
         long timeout = bounded(timeoutMillis, 1L, 60_000L);
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
@@ -148,11 +162,17 @@ final class AutomationEngine implements AutoCloseable {
         boolean cleanupOnComplete = bool(request, "cleanupOnComplete", true);
         PipelineExecution execution = new PipelineExecution(
                 steps.deepCopy(), leaseCheck, timeout, cleanupOnComplete);
-        return execution.start();
+        this.activeExecutions.add(execution);
+        CompletableFuture<JsonObject> result = execution.start();
+        result.whenComplete((ignored, error) -> this.activeExecutions.remove(execution));
+        return result;
     }
 
     @Override
     public void close() {
+        for (PipelineExecution execution : this.activeExecutions) {
+            execution.requestCancellation("runtime_shutdown");
+        }
         this.scheduler.shutdownNow();
     }
 
@@ -203,46 +223,155 @@ final class AutomationEngine implements AutoCloseable {
                 .thenCompose(ignored -> this.service.mouseButton(button, 0, modifiers));
     }
 
-    private CompletableFuture<JsonObject> runStep(JsonObject step) {
+    private CompletableFuture<JsonObject> resolve(JsonObject selector, PipelineExecution execution) {
+        return execution.effect(this.service::uiTree).thenApply(tree -> resolveTree(tree, selector));
+    }
+
+    private CompletableFuture<JsonObject> uiAction(JsonObject request, PipelineExecution execution) {
+        String action = string(request, "action", "click");
+        int button = integer(request, "button", 0);
+        int modifiers = integer(request, "modifiers", 0);
+        long holdMillis = bounded(longValue(request, "holdMs", 40L), 0L, 5_000L);
+        if (request.has("coordinates")) {
+            JsonObject coordinates = request.getAsJsonObject("coordinates");
+            double x = requiredDouble(coordinates, "x");
+            double y = requiredDouble(coordinates, "y");
+            String source = string(request, "source", "explicit_coordinate");
+            return this.performUiAction(action, x, y, button, modifiers, holdMillis, request, execution)
+                    .thenApply(result -> decorateAction(result, null, x, y, source, action));
+        }
+        if (!request.has("selector")) return failed("INVALID_UI_ACTION", 400, "ui.action requires selector or coordinates");
+        JsonObject selector = request.getAsJsonObject("selector");
+        return this.resolve(selector, execution).thenCompose(resolution -> {
+            JsonObject node = resolution.getAsJsonObject("node");
+            requireActionable(node, action);
+            JsonObject point = resolution.getAsJsonObject("interactionPoint");
+            double x = point.get("x").getAsDouble();
+            double y = point.get("y").getAsDouble();
+            Long screenRevision = resolution.has("screenRevision") ? resolution.get("screenRevision").getAsLong() : null;
+            Long menuRevision = resolution.has("menuRevision") ? resolution.get("menuRevision").getAsLong() : null;
+            return execution.effect(() -> this.service.validatePreconditions(screenRevision, menuRevision))
+                    .thenCompose(ignored -> this.performUiAction(
+                            action, x, y, button, modifiers, holdMillis, request, execution))
+                    .thenApply(result -> decorateAction(result, node, x, y, "interaction_tree", action));
+        });
+    }
+
+    private CompletableFuture<JsonObject> performUiAction(
+            String action, double x, double y, int button, int modifiers, long holdMillis,
+            JsonObject request, PipelineExecution execution) {
+        return switch (action) {
+            case "click" -> this.click(x, y, button, modifiers, holdMillis, execution);
+            case "double_click" -> this.click(x, y, button, modifiers, holdMillis, execution)
+                    .thenCompose(ignored -> execution.delay(50L))
+                    .thenCompose(ignored -> this.click(x, y, button, modifiers, holdMillis, execution));
+            case "mouse_down" -> execution.effect(() -> this.service.mouseMove(x, y))
+                    .thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 1, modifiers)));
+            case "mouse_up" -> execution.effect(() -> this.service.mouseMove(x, y))
+                    .thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 0, modifiers)));
+            case "scroll" -> execution.effect(() -> this.service.mouseMove(x, y))
+                    .thenCompose(ignored -> execution.effect(() -> this.service.mouseScroll(
+                            doubleValue(request, "xOffset", 0.0), doubleValue(request, "yOffset", 0.0))));
+            default -> failed("UNSUPPORTED_UI_ACTION", 400, "Unsupported UI action: " + action);
+        };
+    }
+
+    private CompletableFuture<JsonObject> click(
+            double x, double y, int button, int modifiers, long holdMillis, PipelineExecution execution) {
+        return execution.effect(() -> this.service.mouseMove(x, y))
+                .thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 1, modifiers)))
+                .thenCompose(ignored -> execution.delay(holdMillis))
+                .thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 0, modifiers)));
+    }
+
+    private CompletableFuture<JsonObject> assertThat(JsonObject condition, PipelineExecution execution) {
+        if (!isUiCondition(condition)) return execution.track(requireConditionEngine().assertThat(condition));
+        return execution.effect(this.service::uiTree).thenApply(tree -> {
+            execution.checkActive();
+            JsonObject evaluation = evaluate(tree, condition);
+            if (!evaluation.get("passed").getAsBoolean()) {
+                throw new ProtocolState.ProtocolException(
+                        "ASSERTION_FAILED", 412, evaluation.get("message").getAsString());
+            }
+            return evaluation;
+        });
+    }
+
+    private CompletableFuture<JsonObject> waitUntil(
+            JsonObject condition, long timeoutMillis, PipelineExecution execution) {
+        if (!isUiCondition(condition)) return execution.track(requireConditionEngine().waitUntil(condition, timeoutMillis));
+        CompletableFuture<JsonObject> result = execution.track(new CompletableFuture<>());
+        long timeout = bounded(timeoutMillis, 1L, 60_000L);
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+        Runnable[] poll = new Runnable[1];
+        poll[0] = () -> {
+            if (result.isDone()) return;
+            execution.effect(this.service::uiTree).whenComplete((tree, error) -> {
+                if (result.isDone()) return;
+                if (error != null) {
+                    result.completeExceptionally(unwrap(error));
+                    return;
+                }
+                JsonObject evaluation = evaluate(tree, condition);
+                if (evaluation.get("passed").getAsBoolean()) {
+                    evaluation.addProperty("waited", true);
+                    result.complete(evaluation);
+                } else if (System.nanoTime() >= deadline) {
+                    result.completeExceptionally(new ProtocolState.ProtocolException(
+                            "WAIT_TIMEOUT", 408, evaluation.get("message").getAsString()));
+                } else {
+                    execution.delay(25L).whenComplete((ignored, delayError) -> {
+                        if (delayError != null) result.completeExceptionally(unwrap(delayError));
+                        else poll[0].run();
+                    });
+                }
+            });
+        };
+        poll[0].run();
+        return result;
+    }
+
+    private CompletableFuture<JsonObject> runStep(JsonObject step, PipelineExecution execution) {
         String type = step.get("type").getAsString();
         return switch (type) {
-            case "delay" -> delay(bounded(longValue(step, "durationMs", 0L), 0L, MAX_STEP_DELAY_MILLIS))
+            case "delay" -> execution.delay(bounded(longValue(step, "durationMs", 0L), 0L, MAX_STEP_DELAY_MILLIS))
                     .thenApply(ignored -> simpleResult("delay"));
-            case "mouse.move" -> this.service.mouseMove(requiredDouble(step, "x"), requiredDouble(step, "y"));
-            case "mouse.button" -> this.service.mouseButton(
-                    requiredInt(step, "button"), requiredInt(step, "action"), integer(step, "modifiers", 0));
+            case "mouse.move" -> execution.effect(() -> this.service.mouseMove(
+                    requiredDouble(step, "x"), requiredDouble(step, "y")));
+            case "mouse.button" -> execution.effect(() -> this.service.mouseButton(
+                    requiredInt(step, "button"), requiredInt(step, "action"), integer(step, "modifiers", 0)));
             case "mouse.click" -> this.click(
                     requiredDouble(step, "x"), requiredDouble(step, "y"),
                     integer(step, "button", 0), integer(step, "modifiers", 0),
-                    bounded(longValue(step, "holdMs", 40L), 0L, 5_000L));
-            case "mouse.scroll" -> this.service.mouseScroll(
-                    doubleValue(step, "xOffset", 0.0), doubleValue(step, "yOffset", 0.0));
-            case "mouse.drag" -> this.drag(step);
-            case "key" -> this.service.key(
+                    bounded(longValue(step, "holdMs", 40L), 0L, 5_000L), execution);
+            case "mouse.scroll" -> execution.effect(() -> this.service.mouseScroll(
+                    doubleValue(step, "xOffset", 0.0), doubleValue(step, "yOffset", 0.0)));
+            case "mouse.drag" -> this.drag(step, execution);
+            case "key" -> execution.effect(() -> this.service.key(
                     requiredInt(step, "key"), integer(step, "scanCode", 0),
-                    requiredInt(step, "action"), integer(step, "modifiers", 0));
-            case "key.tap" -> this.keyTap(step);
-            case "key.chord" -> this.keyChord(step);
-            case "ui.action" -> this.uiAction(step);
-            case "ui.drag" -> this.uiDrag(step);
+                    requiredInt(step, "action"), integer(step, "modifiers", 0)));
+            case "key.tap" -> this.keyTap(step, execution);
+            case "key.chord" -> this.keyChord(step, execution);
+            case "ui.action" -> this.uiAction(step, execution);
+            case "ui.drag" -> this.uiDrag(step, execution);
             case "wait.until" -> this.waitUntil(
-                    requiredObject(step, "condition"), longValue(step, "timeoutMs", 5_000L));
-            case "assert.that" -> this.assertThat(requiredObject(step, "condition"));
+                    requiredObject(step, "condition"), longValue(step, "timeoutMs", 5_000L), execution);
+            case "assert.that" -> this.assertThat(requiredObject(step, "condition"), execution);
             default -> failed("UNSUPPORTED_PIPELINE_STEP", 400, "Unsupported pipeline step: " + type);
         };
     }
 
-    private CompletableFuture<JsonObject> keyTap(JsonObject step) {
+    private CompletableFuture<JsonObject> keyTap(JsonObject step, PipelineExecution execution) {
         int key = requiredInt(step, "key");
         int scanCode = integer(step, "scanCode", 0);
         int modifiers = integer(step, "modifiers", 0);
         long hold = bounded(longValue(step, "holdMs", 40L), 0L, 5_000L);
-        return this.service.key(key, scanCode, 1, modifiers)
-                .thenCompose(ignored -> delay(hold))
-                .thenCompose(ignored -> this.service.key(key, scanCode, 0, modifiers));
+        return execution.effect(() -> this.service.key(key, scanCode, 1, modifiers))
+                .thenCompose(ignored -> execution.delay(hold))
+                .thenCompose(ignored -> execution.effect(() -> this.service.key(key, scanCode, 0, modifiers)));
     }
 
-    private CompletableFuture<JsonObject> keyChord(JsonObject step) {
+    private CompletableFuture<JsonObject> keyChord(JsonObject step, PipelineExecution execution) {
         if (!step.has("keys") || !step.get("keys").isJsonArray()) {
             return failed("INVALID_KEY_CHORD", 400, "key.chord requires keys");
         }
@@ -253,20 +382,20 @@ final class AutomationEngine implements AutoCloseable {
         }
         CompletableFuture<JsonObject> chain = CompletableFuture.completedFuture(simpleResult("key.chord"));
         for (JsonObject key : keys) {
-            chain = chain.thenCompose(ignored -> this.service.key(
-                    requiredInt(key, "key"), integer(key, "scanCode", 0), 1, integer(key, "modifiers", 0)));
+            chain = chain.thenCompose(ignored -> execution.effect(() -> this.service.key(
+                    requiredInt(key, "key"), integer(key, "scanCode", 0), 1, integer(key, "modifiers", 0))));
         }
-        chain = chain.thenCompose(ignored -> delay(bounded(longValue(step, "holdMs", 40L), 0L, 60_000L)))
+        chain = chain.thenCompose(ignored -> execution.delay(bounded(longValue(step, "holdMs", 40L), 0L, 60_000L)))
                 .thenApply(ignored -> simpleResult("key.chord"));
         Collections.reverse(keys);
         for (JsonObject key : keys) {
-            chain = chain.thenCompose(ignored -> this.service.key(
-                    requiredInt(key, "key"), integer(key, "scanCode", 0), 0, integer(key, "modifiers", 0)));
+            chain = chain.thenCompose(ignored -> execution.effect(() -> this.service.key(
+                    requiredInt(key, "key"), integer(key, "scanCode", 0), 0, integer(key, "modifiers", 0))));
         }
         return chain;
     }
 
-    private CompletableFuture<JsonObject> drag(JsonObject step) {
+    private CompletableFuture<JsonObject> drag(JsonObject step, PipelineExecution execution) {
         double fromX = requiredDouble(step, "fromX");
         double fromY = requiredDouble(step, "fromY");
         double toX = requiredDouble(step, "toX");
@@ -276,22 +405,22 @@ final class AutomationEngine implements AutoCloseable {
         int segments = (int) bounded(longValue(step, "segments", 8L), 1L, 120L);
         long duration = bounded(longValue(step, "durationMs", 250L), 0L, 60_000L);
         long segmentDelay = segments == 0 ? 0L : duration / segments;
-        CompletableFuture<JsonObject> chain = this.service.mouseMove(fromX, fromY)
-                .thenCompose(ignored -> this.service.mouseButton(button, 1, modifiers));
+        CompletableFuture<JsonObject> chain = execution.effect(() -> this.service.mouseMove(fromX, fromY))
+                .thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 1, modifiers)));
         for (int index = 1; index <= segments; index++) {
             double progress = (double) index / segments;
             double x = fromX + (toX - fromX) * progress;
             double y = fromY + (toY - fromY) * progress;
-            chain = chain.thenCompose(ignored -> delay(segmentDelay))
-                    .thenCompose(ignored -> this.service.mouseMove(x, y));
+            chain = chain.thenCompose(ignored -> execution.delay(segmentDelay))
+                    .thenCompose(ignored -> execution.effect(() -> this.service.mouseMove(x, y)));
         }
-        return chain.thenCompose(ignored -> this.service.mouseButton(button, 0, modifiers));
+        return chain.thenCompose(ignored -> execution.effect(() -> this.service.mouseButton(button, 0, modifiers)));
     }
 
-    private CompletableFuture<JsonObject> uiDrag(JsonObject step) {
+    private CompletableFuture<JsonObject> uiDrag(JsonObject step, PipelineExecution execution) {
         JsonObject fromSelector = requiredObject(step, "fromSelector");
         JsonObject toSelector = requiredObject(step, "toSelector");
-        return this.resolve(fromSelector).thenCompose(from -> this.resolve(toSelector).thenCompose(to -> {
+        return this.resolve(fromSelector, execution).thenCompose(from -> this.resolve(toSelector, execution).thenCompose(to -> {
             JsonObject fromPoint = from.getAsJsonObject("interactionPoint");
             JsonObject toPoint = to.getAsJsonObject("interactionPoint");
             JsonObject drag = step.deepCopy();
@@ -299,7 +428,7 @@ final class AutomationEngine implements AutoCloseable {
             drag.addProperty("fromY", fromPoint.get("y").getAsDouble());
             drag.addProperty("toX", toPoint.get("x").getAsDouble());
             drag.addProperty("toY", toPoint.get("y").getAsDouble());
-            return this.drag(drag);
+            return this.drag(drag, execution);
         }));
     }
 
@@ -404,6 +533,20 @@ final class AutomationEngine implements AutoCloseable {
         json.addProperty("passed", passed);
         json.addProperty("message", message);
         return json;
+    }
+
+    private static boolean isUiCondition(JsonObject condition) {
+        String type = string(condition, "type", "screen");
+        return type.equals("screen") || type.equals("ui.exists");
+    }
+
+    private ConditionEngine requireConditionEngine() {
+        ConditionEngine engine = this.conditionEngine;
+        if (engine == null) {
+            throw new ProtocolState.ProtocolException(
+                    "CONDITION_ENGINE_UNAVAILABLE", 503, "Typed condition engine is unavailable");
+        }
+        return engine;
     }
 
     private static JsonObject decorateAction(
@@ -527,9 +670,15 @@ final class AutomationEngine implements AutoCloseable {
         private final long timeoutMillis;
         private final boolean cleanupOnComplete;
         private final long startedAtMillis = System.currentTimeMillis();
-        private final CompletableFuture<JsonObject> result = new CompletableFuture<>();
+        private final CompletableFuture<JsonObject> result;
         private final JsonArray stepResults = new JsonArray();
         private final AtomicBoolean cleanupStarted = new AtomicBoolean();
+        private final AtomicBoolean cancellationRequested = new AtomicBoolean();
+        private final AtomicBoolean finishing = new AtomicBoolean();
+        private final Set<CompletableFuture<?>> children = ConcurrentHashMap.newKeySet();
+        private final Set<ScheduledFuture<?>> scheduled = ConcurrentHashMap.newKeySet();
+        private volatile CompletableFuture<?> currentStep;
+        private volatile String cancellationReason;
         private int index;
 
         private PipelineExecution(
@@ -538,18 +687,16 @@ final class AutomationEngine implements AutoCloseable {
             this.leaseCheck = leaseCheck;
             this.timeoutMillis = timeoutMillis;
             this.cleanupOnComplete = cleanupOnComplete;
+            this.result = new PipelineFuture(this);
         }
 
         private CompletableFuture<JsonObject> start() {
-            this.result.whenComplete((ignored, error) -> {
-                if (this.result.isCancelled()) this.cleanup("pipeline_cancelled");
-            });
             scheduler.execute(this::next);
             return this.result;
         }
 
         private void next() {
-            if (this.result.isDone()) return;
+            if (this.result.isDone() || this.cancellationRequested.get() || this.finishing.get()) return;
             if (System.currentTimeMillis() - this.startedAtMillis > this.timeoutMillis) {
                 this.fail(new ProtocolState.ProtocolException(
                         "PIPELINE_TIMEOUT", 408, "Pipeline exceeded its timeout"));
@@ -563,8 +710,11 @@ final class AutomationEngine implements AutoCloseable {
                 this.leaseCheck.run();
                 JsonObject step = this.steps.get(this.index).getAsJsonObject();
                 int stepIndex = this.index++;
-                runStep(step).whenComplete((stepResult, error) -> scheduler.execute(() -> {
-                    if (this.result.isDone()) return;
+                CompletableFuture<JsonObject> stepFuture = this.track(runStep(step, this));
+                this.currentStep = stepFuture;
+                stepFuture.whenComplete((stepResult, error) -> scheduler.execute(() -> {
+                    this.currentStep = null;
+                    if (this.result.isDone() || this.cancellationRequested.get() || this.finishing.get()) return;
                     if (error != null) {
                         this.fail(unwrap(error));
                         return;
@@ -583,10 +733,12 @@ final class AutomationEngine implements AutoCloseable {
         }
 
         private void complete() {
+            if (!this.finishing.compareAndSet(false, true)) return;
             CompletableFuture<JsonObject> cleanup = this.cleanupOnComplete
                     ? this.cleanup("pipeline_completed")
                     : CompletableFuture.completedFuture(simpleResult("input.preserved"));
             cleanup.whenComplete((cleanupResult, error) -> {
+                if (this.result.isDone()) return;
                 if (error != null) {
                     this.result.completeExceptionally(unwrap(error));
                     return;
@@ -604,8 +756,79 @@ final class AutomationEngine implements AutoCloseable {
         }
 
         private void fail(Throwable throwable) {
+            if (throwable instanceof CancellationException) {
+                this.requestCancellation("child_cancelled");
+                return;
+            }
+            if (!this.finishing.compareAndSet(false, true)) return;
+            this.stopPendingWork();
             this.cleanup("pipeline_failed").whenComplete((ignored, cleanupError) ->
                     this.result.completeExceptionally(throwable));
+        }
+
+        private boolean requestCancellation(String reason) {
+            if (!this.cancellationRequested.compareAndSet(false, true)) return false;
+            this.cancellationReason = reason;
+            this.finishing.set(true);
+            this.stopPendingWork();
+            this.cleanup("pipeline_cancelled:" + reason);
+            return true;
+        }
+
+        private void stopPendingWork() {
+            CompletableFuture<?> active = this.currentStep;
+            if (active != null) active.cancel(true);
+            for (ScheduledFuture<?> future : this.scheduled) future.cancel(false);
+            this.scheduled.clear();
+            for (CompletableFuture<?> future : this.children) future.cancel(true);
+            this.children.clear();
+        }
+
+        private void checkActive() {
+            if (this.cancellationRequested.get() || this.result.isCancelled()) {
+                throw new CancellationException(this.cancellationReason == null
+                        ? "Pipeline cancelled" : "Pipeline cancelled: " + this.cancellationReason);
+            }
+            if (this.finishing.get()) throw new CancellationException("Pipeline is terminating");
+        }
+
+        private <T> CompletableFuture<T> effect(Supplier<CompletableFuture<T>> supplier) {
+            this.checkActive();
+            CompletableFuture<T> future;
+            try {
+                future = supplier.get();
+            } catch (Throwable throwable) {
+                return CompletableFuture.failedFuture(throwable);
+            }
+            this.track(future);
+            if (this.cancellationRequested.get()) future.cancel(true);
+            return future;
+        }
+
+        private <T> CompletableFuture<T> track(CompletableFuture<T> future) {
+            this.children.add(future);
+            future.whenComplete((ignored, error) -> this.children.remove(future));
+            if (this.cancellationRequested.get()) future.cancel(true);
+            return future;
+        }
+
+        private CompletableFuture<Void> delay(long millis) {
+            this.checkActive();
+            CompletableFuture<Void> future = this.track(new CompletableFuture<>());
+            AtomicReference<ScheduledFuture<?>> reference = new AtomicReference<>();
+            ScheduledFuture<?> handle = scheduler.schedule(() -> {
+                ScheduledFuture<?> scheduledFuture = reference.get();
+                if (scheduledFuture != null) this.scheduled.remove(scheduledFuture);
+                if (this.cancellationRequested.get()) future.cancel(false);
+                else future.complete(null);
+            }, Math.max(0L, millis), TimeUnit.MILLISECONDS);
+            reference.set(handle);
+            this.scheduled.add(handle);
+            if (this.cancellationRequested.get() && handle.cancel(false)) {
+                this.scheduled.remove(handle);
+                future.cancel(false);
+            }
+            return future;
         }
 
         private CompletableFuture<JsonObject> cleanup(String reason) {
@@ -615,5 +838,18 @@ final class AutomationEngine implements AutoCloseable {
             return service.releaseAllInput(reason);
         }
     }
-}
 
+    private static final class PipelineFuture extends CompletableFuture<JsonObject> {
+        private final PipelineExecution execution;
+
+        private PipelineFuture(PipelineExecution execution) {
+            this.execution = execution;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            this.execution.requestCancellation("operation_cancelled");
+            return super.cancel(mayInterruptIfRunning);
+        }
+    }
+}

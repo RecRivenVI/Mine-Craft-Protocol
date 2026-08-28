@@ -13,6 +13,77 @@ const safeActionAnnotations = { readOnlyHint: false, destructiveHint: false, ide
 const objectSchema = z.record(z.string(), z.unknown());
 const leaseSchema = z.string().min(1).optional();
 const debugArmSchema = z.string().min(1).optional();
+const uiSelectorSchema = z.object({
+  nodeId: z.string().min(1).optional(),
+  role: z.string().min(1).optional(),
+  label: z.string().optional(),
+  labelContains: z.string().optional(),
+  class: z.string().optional(),
+  classContains: z.string().optional(),
+  slot: z.number().int().min(0).optional(),
+  nth: z.number().int().min(0).optional(),
+  caseSensitive: z.boolean().optional(),
+  visibleOnly: z.boolean().optional(),
+  activeOnly: z.boolean().optional()
+});
+const screenConditionSchema = z.object({
+  type: z.literal('screen'),
+  classContains: z.string().optional(),
+  titleContains: z.string().optional(),
+  open: z.boolean().optional()
+});
+const uiConditionSchema = z.object({
+  type: z.literal('ui.exists'),
+  selector: uiSelectorSchema,
+  exists: z.boolean().optional()
+});
+const expectedStateSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]));
+const conditionSchema = z.discriminatedUnion('type', [
+  screenConditionSchema,
+  uiConditionSchema,
+  z.object({ type: z.literal('player'), perspective: z.enum(['client', 'server']).optional(), expected: expectedStateSchema.optional(), healthMin: z.number().optional(), healthMax: z.number().optional(), position: z.object({ x: z.number().optional(), y: z.number().optional(), z: z.number().optional(), tolerance: z.number().min(0).optional() }).optional() }),
+  z.object({ type: z.literal('block'), perspective: z.enum(['client', 'server']).optional(), x: z.number().int(), y: z.number().int(), z: z.number().int(), blockId: z.string().optional(), available: z.boolean().optional(), expected: expectedStateSchema.optional() }),
+  z.object({ type: z.literal('entity'), perspective: z.enum(['client', 'server']).optional(), radius: z.number().min(0).max(128).optional(), entityType: z.string().optional(), uuid: z.string().uuid().optional(), exists: z.boolean().optional(), minCount: z.number().int().min(0).optional(), expected: expectedStateSchema.optional() }),
+  z.object({ type: z.enum(['menu', 'inventory']), menuId: z.number().int().optional(), open: z.boolean().optional(), slot: z.number().int().min(0).optional(), itemId: z.string().optional(), countMin: z.number().int().min(0).optional(), expected: expectedStateSchema.optional() }),
+  z.object({ type: z.literal('event'), eventType: z.string().optional(), category: z.string().optional(), afterSequence: z.number().int().min(0).optional() }),
+  z.object({ type: z.literal('operation'), operationId: z.string().uuid(), expected: expectedStateSchema }),
+  z.object({ type: z.literal('recording'), recordingId: z.string().uuid(), expected: expectedStateSchema }),
+  z.object({ type: z.literal('provider'), providerId: z.string().min(1), params: objectSchema.optional(), expected: expectedStateSchema.optional() })
+]);
+const keyDescriptorSchema = z.object({
+  key: z.number().int(),
+  scanCode: z.number().int().optional(),
+  modifiers: z.number().int().optional()
+});
+const pipelineStepSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('delay'), durationMs: z.number().int().min(0).max(60_000) }),
+  z.object({ type: z.literal('mouse.move'), x: z.number(), y: z.number() }),
+  z.object({ type: z.literal('mouse.button'), button: z.number().int().min(0).max(8), action: z.number().int().min(0).max(2), modifiers: z.number().int().optional() }),
+  z.object({ type: z.literal('mouse.click'), x: z.number(), y: z.number(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional() }),
+  z.object({ type: z.literal('mouse.scroll'), xOffset: z.number().optional(), yOffset: z.number().optional() }),
+  z.object({ type: z.literal('mouse.drag'), fromX: z.number(), fromY: z.number(), toX: z.number(), toY: z.number(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), segments: z.number().int().min(1).max(120).optional(), durationMs: z.number().int().min(0).max(60_000).optional() }),
+  z.object({ type: z.literal('key'), key: z.number().int(), scanCode: z.number().int().optional(), action: z.number().int().min(0).max(2), modifiers: z.number().int().optional() }),
+  z.object({ type: z.literal('key.tap'), key: z.number().int(), scanCode: z.number().int().optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional() }),
+  z.object({ type: z.literal('key.chord'), keys: z.array(keyDescriptorSchema).min(1).max(16), holdMs: z.number().int().min(0).max(60_000).optional() }),
+  z.object({ type: z.literal('ui.action'), action: z.enum(['click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).optional(), selector: uiSelectorSchema.optional(), coordinates: z.object({ x: z.number(), y: z.number() }).optional(), source: z.enum(['interaction_tree', 'explicit_coordinate', 'vision']).optional(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional(), xOffset: z.number().optional(), yOffset: z.number().optional() }),
+  z.object({ type: z.literal('ui.drag'), fromSelector: uiSelectorSchema, toSelector: uiSelectorSchema, button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), segments: z.number().int().min(1).max(120).optional(), durationMs: z.number().int().min(0).max(60_000).optional() }),
+  z.object({ type: z.literal('wait.until'), condition: conditionSchema, timeoutMs: z.number().int().min(1).max(60_000).optional() }),
+  z.object({ type: z.literal('assert.that'), condition: conditionSchema })
+]);
+const recordingConfigSchema = z.object({
+  intervalMs: z.number().int().min(50).max(60_000).optional(),
+  durationMs: z.number().int().min(100).max(300_000).optional(),
+  maxSamples: z.number().int().min(1).max(512).optional(),
+  captureFrames: z.boolean().optional(),
+  stateReads: z.array(objectSchema).max(32).optional(),
+  contactSheet: z.object({
+    enabled: z.boolean().optional(),
+    columns: z.number().int().min(1).max(16).optional(),
+    cellWidth: z.number().int().min(16).max(1024).optional(),
+    cellHeight: z.number().int().min(16).max(1024).optional(),
+    spacing: z.number().int().min(0).max(32).optional()
+  }).optional()
+});
 
 function asJson(value: unknown): JsonValue {
   return value as JsonValue;
@@ -33,16 +104,19 @@ function debugHeaders(state: CompanionSessionState, leaseId?: string, debugArmId
   };
 }
 
-async function waitForOperation(client: RuntimeClient, operationId: string, timeoutMs: number): Promise<JsonValue> {
-  const deadline = Date.now() + Math.min(Math.max(timeoutMs, 1), 300_000);
-  let interval = 25;
-  while (true) {
-    const status = await client.json<JsonObject>('GET', `/v0/operations/${encodeURIComponent(operationId)}`);
-    if (status.status !== 'running') return status;
-    if (Date.now() >= deadline) return status;
-    await new Promise(resolve => setTimeout(resolve, interval));
-    interval = Math.min(interval * 2, 250);
-  }
+async function waitForOperation(client: RuntimeClient, operationId: string, timeoutMs: number, signal?: AbortSignal): Promise<JsonValue> {
+  const boundedTimeout = Math.min(Math.max(timeoutMs, 1), 300_000);
+  const options = signal === undefined
+    ? { timeoutMs: boundedTimeout + 1000 }
+    : { timeoutMs: boundedTimeout + 1000, signal };
+  return client.json('POST', `/v0/operations/${encodeURIComponent(operationId)}/wait`,
+    { timeoutMs: boundedTimeout }, options);
+}
+
+function cancellationSignal(context: unknown): AbortSignal | undefined {
+  if (typeof context !== 'object' || context === null || !('signal' in context)) return undefined;
+  const signal = (context as { signal?: unknown }).signal;
+  return signal instanceof AbortSignal ? signal : undefined;
 }
 
 function resourceLink(name: string, uri: string, mimeType: string, data: JsonValue): CallToolResult {
@@ -122,6 +196,14 @@ export function buildServer(config: CompanionConfig): McpServer {
     return client.json('GET', `${prefix}/block?x=${x}&y=${y}&z=${zValue}`);
   }));
 
+  server.registerTool('minecraft_execute_player_command', {
+    title: 'Execute Current Player Command',
+    description: 'Send one command through the current player normal command packet path with only that player permissions.',
+    inputSchema: z.object({ command: z.string().min(1).max(2048), leaseId: leaseSchema }),
+    annotations: actionAnnotations
+  }, async ({ command, leaseId }) => asToolResult(() => client.json(
+    'POST', '/v0/command/player', { command }, { headers: leaseHeaders(state, leaseId) })));
+
   server.registerTool('minecraft_control', {
     title: 'Manage Minecraft Control Lease',
     description: 'Acquire, renew, release, inspect, or emergency-release the single-writer Runtime input lease.',
@@ -151,7 +233,7 @@ export function buildServer(config: CompanionConfig): McpServer {
     description: 'Activate a semantic UI node or explicit/Vision coordinate through GAME_ROUTED input. Requires the control lease.',
     inputSchema: z.object({
       action: z.enum(['click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).default('click'),
-      selector: objectSchema.optional(),
+      selector: uiSelectorSchema.optional(),
       coordinates: z.object({ x: z.number(), y: z.number() }).optional(),
       source: z.enum(['interaction_tree', 'explicit_coordinate', 'vision']).optional(),
       button: z.number().int().min(0).max(8).default(0),
@@ -168,30 +250,61 @@ export function buildServer(config: CompanionConfig): McpServer {
     title: 'Run Minecraft Input Pipeline',
     description: 'Run a bounded macro of routed key, mouse, UI, wait and assert steps with cancellation-safe input cleanup.',
     inputSchema: z.object({
-      steps: z.array(objectSchema).min(1).max(256),
+      steps: z.array(pipelineStepSchema).min(1).max(256),
       timeoutMs: z.number().int().min(1).max(300000).default(60000),
       cleanupOnComplete: z.boolean().default(true),
       waitForCompletion: z.boolean().default(true),
       leaseId: leaseSchema
     }),
     annotations: actionAnnotations
-  }, async ({ steps, timeoutMs, cleanupOnComplete, waitForCompletion, leaseId }) => asToolResult(async () => {
+  }, async ({ steps, timeoutMs, cleanupOnComplete, waitForCompletion, leaseId }, context) => asToolResult(async () => {
     const started = await client.json<JsonObject>('POST', '/v0/pipelines', { steps: asJson(steps), timeoutMs, cleanupOnComplete }, { headers: leaseHeaders(state, leaseId) });
     if (!waitForCompletion || typeof started.operationId !== 'string') return started;
-    return waitForOperation(client, started.operationId, timeoutMs + 5000);
+    const operationId = started.operationId;
+    const signal = cancellationSignal(context);
+    const cancelNative = (): void => {
+      void client.json('DELETE', `/v0/operations/${encodeURIComponent(operationId)}`).catch(() => undefined);
+    };
+    signal?.addEventListener('abort', cancelNative, { once: true });
+    try {
+      return await waitForOperation(client, operationId, timeoutMs + 5000, signal);
+    } finally {
+      signal?.removeEventListener('abort', cancelNative);
+    }
   }));
+
+  server.registerTool('minecraft_get_operation', {
+    title: 'Get Minecraft Operation',
+    description: 'Read the native Runtime lifecycle state for an asynchronous operation.',
+    inputSchema: z.object({ operationId: z.string().uuid() }),
+    annotations: readAnnotations
+  }, async ({ operationId }) => asToolResult(() => client.json('GET', `/v0/operations/${encodeURIComponent(operationId)}`)));
+
+  server.registerTool('minecraft_wait_operation', {
+    title: 'Wait for Minecraft Operation',
+    description: 'Wait through the native Runtime operation lifecycle without creating a second Companion state machine.',
+    inputSchema: z.object({ operationId: z.string().uuid(), timeoutMs: z.number().int().min(1).max(300_000).default(60_000) }),
+    annotations: readAnnotations
+  }, async ({ operationId, timeoutMs }, context) => asToolResult(() => waitForOperation(client, operationId, timeoutMs, cancellationSignal(context))));
+
+  server.registerTool('minecraft_cancel_operation', {
+    title: 'Cancel Minecraft Operation',
+    description: 'Cancel a native Runtime operation and propagate cancellation into active and pending child work.',
+    inputSchema: z.object({ operationId: z.string().uuid() }),
+    annotations: safeActionAnnotations
+  }, async ({ operationId }) => asToolResult(() => client.json('DELETE', `/v0/operations/${encodeURIComponent(operationId)}`)));
 
   server.registerTool('minecraft_wait', {
     title: 'Wait for Minecraft Condition',
     description: 'Wait inside the Runtime for a Screen or UI condition instead of using a fixed Agent sleep.',
-    inputSchema: z.object({ condition: objectSchema, timeoutMs: z.number().int().min(1).max(60000).default(5000) }),
+    inputSchema: z.object({ condition: conditionSchema, timeoutMs: z.number().int().min(1).max(60000).default(5000) }),
     annotations: readAnnotations
   }, async ({ condition, timeoutMs }) => asToolResult(() => client.json('POST', '/v0/wait/until', { condition: asJson(condition), timeoutMs })));
 
   server.registerTool('minecraft_assert', {
     title: 'Assert Minecraft Condition',
     description: 'Evaluate a Runtime condition and return typed assertion evidence.',
-    inputSchema: z.object({ condition: objectSchema }),
+    inputSchema: z.object({ condition: conditionSchema }),
     annotations: readAnnotations
   }, async ({ condition }) => asToolResult(() => client.json('POST', '/v0/assert', { condition: asJson(condition) })));
 
@@ -211,7 +324,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_start_recording', {
     title: 'Start Minecraft Recording',
     description: 'Start a bounded frame/state Recording with backpressure and evidence contamination tracking.',
-    inputSchema: z.object({ config: objectSchema }),
+    inputSchema: z.object({ config: recordingConfigSchema }),
     annotations: safeActionAnnotations
   }, async ({ config: recordingConfig }) => asToolResult(() => client.json('POST', '/v0/recordings', asJson(recordingConfig))));
 

@@ -1,6 +1,6 @@
 # Phase 8 MCP Companion and V1 Release Hardening
 
-> Status: implemented and verified  
+> Status: Phase 8 Hardening PASS; V1 Release Candidate PASS
 > Date: 2026-08-28  
 > Product baseline: V1 capability set complete; native Wire Protocol v1 remains unfrozen
 
@@ -22,7 +22,7 @@ The server uses `serveStdio(factory)`, keeps stdout exclusively for MCP JSON-RPC
 
 ## MCP Surface
 
-The Companion exposes 19 statically declared Tools:
+The Companion exposes 23 statically declared Tools:
 
 ```text
 minecraft_get_session
@@ -33,6 +33,9 @@ minecraft_query_world
 minecraft_control
 minecraft_interact_ui
 minecraft_run_input_pipeline
+minecraft_get_operation
+minecraft_wait_operation
+minecraft_cancel_operation
 minecraft_wait
 minecraft_assert
 minecraft_capture
@@ -44,6 +47,7 @@ minecraft_peer
 minecraft_fixture
 minecraft_debug_arm
 minecraft_debug
+minecraft_execute_player_command
 ```
 
 It exposes four static Resources:
@@ -66,7 +70,7 @@ PNG and Artifact ZIP bytes are Resources rather than large Tool text. Recording 
 
 One static `minecraft_mod_acceptance` Prompt describes the safe acceptance workflow. It never reads Minecraft content while constructing its instructions.
 
-No `minecraft_execute_command` Tool is advertised because the current native V1 Runtime does not yet expose a typed command endpoint. The Companion does not fabricate an unavailable capability.
+`minecraft_execute_player_command` maps only to `command.player.execute`: current player identity, current permissions, normal command packet/server validation, PLAYTEST provenance and no privilege escalation. Fixture/admin and Debug commands remain separate domains and are not fabricated.
 
 ## Session and Authorization
 
@@ -121,9 +125,12 @@ This compatibility statement does not freeze the native Minecraft Wire Protocol 
 The official v2 MCP Client verifies:
 
 - stdio initialization without stdout corruption;
-- 19 Tools, four Resources, two templates and one Prompt;
+- 23 Tools, four Resources, two templates and one Prompt;
 - Lease state reuse across Tool calls;
-- Pipeline operation polling;
+- native Pipeline operation get/wait/cancel and MCP-to-native cancellation propagation;
+- discriminated Pipeline/selector/condition/Recording schemas;
+- current-player command provenance;
+- Content-Length preflight and bounded streaming for declared, chunked and unknown-size Runtime responses;
 - PNG and Artifact binary Resources;
 - Runtime error mapping and credential redaction;
 - Prompt Injection isolation;
@@ -132,9 +139,9 @@ The official v2 MCP Client verifies:
 
 40 sequential Tool calls produced a 16.21 ms p95 against the mock Runtime, below the 250 ms release budget.
 
-### Live Minecraft Runtime
+### Historical Live Minecraft Runtime Evidence
 
-The final Phase 8 Fabric 26.2 Runtime passed:
+The earlier Phase 8 Fabric 26.2 Runtime passed the following workflow, but this evidence predates the hardening patch set and is not accepted as the final Release Artifact gate:
 
 ```text
 MCP initialize/list
@@ -158,7 +165,21 @@ p95 = 33.61 ms
 budget = 250 ms
 ```
 
-The Companion is Target-independent; five-Target native contract/build/runtime evidence remains supplied by Phases 6–7.
+Final acceptance was re-run on current hardened artifacts across all five Targets, plus OpenGL/Vulkan variants for NeoForge/Fabric 26.2. Historical Phase 6–8 evidence was not used as a substitute.
+
+### Current Hardening Release Evidence
+
+The final current-artifact run passed:
+
+- five Target build, launch, readiness, authenticated session/capability/UI, GAME_ROUTED input, integrated-world Player/Block/Entity observation, server-authoritative Player/Block observation, current-player command, Composite Capture, WS event, Lease release and clean shutdown;
+- NeoForge 26.2 OpenGL and Vulkan capture;
+- Fabric 26.2 OpenGL and Vulkan capture;
+- 12 cancellation scenarios with zero post-cancel input dispatches, including disconnect and Lease expiry;
+- EventHub typed filter, fast/stalled consumer, bounded queue gap, resume in ring, expired resume and full resync;
+- Player/Block/Entity/Menu/Inventory/Event/Operation typed Wait/Assert conditions;
+- Host/Origin, principal identity, body budget, expensive-operation budget, active-operation limit and audit correlation;
+- 64-frame Recording using maximum accepted Contact Sheet dimensions, split into three sheets, streamed Artifact download and `CLOSED` lifecycle;
+- active Recording during actual client shutdown produced a completed manifest and Bundle without `RejectedExecutionException`.
 
 ## Security and Release Gates
 
@@ -167,33 +188,36 @@ The Companion is Target-independent; five-Target native contract/build/runtime e
 - Production Companion code contains no shell/process execution API.
 - Runtime paths are restricted to the typed `/v0/` namespace and reject traversal.
 - Non-loopback transport is explicit.
-- Response sizes are bounded separately for JSON and Artifacts.
+- Response sizes are bounded before allocation when Content-Length is known and incrementally while streaming otherwise.
 - stdio production code has no `console.log`.
 - Tool names are static literals and the reviewed surface count is gated.
-- Five Phase 8 Minecraft artifacts and 72 Java/72 TypeScript protocol models build successfully.
+- Native Artifact HTTP uses chunked file streaming; Recording has per-frame/state, Session, Contact Sheet and Bundle-source aggregate budgets.
+- Runtime requests have token-lifetime principal identity, per-principal/per-connection and expensive-category budgets, bounded active operations, and correlated audit entries.
+- EventHub provides typed filters, a bounded ring, bounded client queues, resume, explicit gaps and minimum full resync.
+- Five hardened Phase 8 artifacts must build successfully in the current gate run.
 
-## V1 Definition of Done
+## V1 Definition of Done Status
 
-The 20 V1 criteria in §27.2 are satisfied by cumulative evidence:
+The 20 V1 criteria are satisfied under ADR-0001's loopback-only V1 Release Profile. The final decision is based on current hardened artifacts and the Phase 8 hardening gates, not historical-only evidence.
 
-1. five-Target load/conformance: Phases 6–7;
+1. five-Target load/conformance: current hardened-artifact world smoke PASS;
 2. shared external contract and honest capability matrix: Phase 7;
 3–10. title/world, GUI, Vision, input, Container, observation and wait/assert: Phases 0–4;
 11. Capture/Recording/Contact Sheet/Artifact and input concurrency: Phases 4–5 plus Vulkan revalidation;
 12. provenance/evidence: all Runtime and Companion results;
 13–15. Integrated/Peer authority and operation planes: Phases 5–6;
-16. HTTP/WS plus MCP autonomous workflow: Phase 8 live conformance;
+16. HTTP/WS plus MCP autonomous workflow: official MCP mock/client lifecycle PASS and current five-Target native live smoke PASS;
 17. Auth/Scope/Lease/Arm/prompt isolation/audit/disconnect: Phases 2, 5, 6 and 8;
 18. Hook/Capability self-test: Phase 7;
-19. bounded pressure and latency: Recording backpressure plus Phase 8 performance budgets;
+19. bounded pressure and latency: static/Companion/live EventHub and Recording stress PASS;
 20. Ultimate-only features remain explicitly unavailable or deferred.
 
 ## Remaining Boundaries
 
 - Wire Protocol v1 is still intentionally unfrozen.
 - A dedicated 2026-07-28-era MCP Client gate remains to be added when a suitable host/client fixture is available.
-- TLS, pairing and LAN proxying are not provided by merely enabling a non-loopback URL.
-- Command execution is not advertised until the native Runtime has a typed command capability.
+- V1 is loopback-only under ADR-0001. TLS, pairing and LAN proxying remain Ultimate/deferred.
+- Current-player command execution is implemented; Fixture/admin and Debug command domains remain separately scoped.
 - Ultimate Storage, full World Delta recording, replay, rolling recovery and advanced diagnostics remain Phases 9–10.
 
 Official SDK references: [v2 server package](https://github.com/modelcontextprotocol/typescript-sdk/tree/main/packages/server), [stdio serving](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/serving/stdio.md), [v2 migration and protocol serving](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/migration/support-2026-07-28.md).

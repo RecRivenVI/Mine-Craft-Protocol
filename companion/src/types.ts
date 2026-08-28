@@ -6,6 +6,7 @@ export interface RuntimeRequestOptions {
   headers?: Record<string, string>;
   timeoutMs?: number;
   maxResponseBytes?: number;
+  signal?: AbortSignal;
 }
 
 export interface RuntimeBinary {

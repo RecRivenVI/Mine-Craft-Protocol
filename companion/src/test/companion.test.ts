@@ -32,8 +32,10 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(bytes);
 }
 
-async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<void>; leases: string[] }> {
+async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[] }> {
   const leases: string[] = [];
+  const operationCancels: number[] = [];
+  let longOperation = false;
   const server = createServer(async (request, response) => {
     if (request.headers.authorization !== `Bearer ${token}`) {
       json(response, 401, { error: 'UNAUTHORIZED', message: 'invalid token', requestId: 'mock-request' });
@@ -71,8 +73,28 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
       if (request.headers['x-mcp-control-lease'] !== 'mock-lease') return json(response, 409, { error: 'CONTROL_LEASE_REQUIRED', message: 'lease required', requestId: 'mock-request' });
       return json(response, 200, { ...base, type: 'ui.action_result', entryLayer: 'GAME_ROUTED_RAW', targetingSource: 'interaction_tree', payload });
     }
-    if (path === '/v0/pipelines') return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'running' });
+    if (path === '/v0/pipelines') {
+      const steps = Array.isArray(payload.steps) ? payload.steps as Array<Record<string, unknown>> : [];
+      longOperation = steps.some(step => step.type === 'delay' && Number(step.durationMs) > 10_000);
+      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'running' });
+    }
+    if (path === `/v0/operations/${recordingId}/wait`) {
+      if (longOperation) {
+        await new Promise<void>(resolveWait => {
+          request.once('close', resolveWait);
+          setTimeout(resolveWait, 10_000).unref();
+        });
+        if (response.destroyed) return;
+      }
+      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: longOperation ? 'running' : 'completed', state: longOperation ? 'executing' : 'completed', result: { stepCount: 1 } });
+    }
+    if (path === `/v0/operations/${recordingId}` && request.method === 'DELETE') {
+      longOperation = false;
+      operationCancels.push(Date.now());
+      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'cancelled', state: 'cancelled' });
+    }
     if (path === `/v0/operations/${recordingId}`) return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'completed', result: { stepCount: 1 } });
+    if (path === '/v0/command/player') return json(response, 200, { ...base, type: 'command.player.execute', accepted: true, mode: 'PLAYTEST', mechanism: 'NORMAL_NETWORK', permissionEscalated: false });
     if (path === '/v0/wait/until' || path === '/v0/assert') return json(response, 200, { ...base, type: 'assert.result', passed: true, condition: payload.condition });
     if (path === '/v0/readiness') return json(response, 200, { ...base, type: 'readiness', overall: 'ready', hooks: {} });
     if (path === '/v0/trace') return json(response, 200, { ...base, type: 'trace', screenRevision: 3, menuRevision: 1 });
@@ -108,6 +130,7 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
   return {
     baseUrl: `http://127.0.0.1:${address.port}`,
     leases,
+    operationCancels,
     close: async () => { server.close(); await once(server, 'close'); }
   };
 }
@@ -133,7 +156,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.ok(negotiated, 'official v2 Client must negotiate a protocol version');
 
     const listed = await client.listTools();
-    assert.equal(listed.tools.length, 19);
+    assert.equal(listed.tools.length, 23);
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_get_session'));
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_debug'));
     assert.equal(JSON.stringify(listed.tools).includes(maliciousText), false);
@@ -153,6 +176,28 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const pipeline = await client.callTool({ name: 'minecraft_run_input_pipeline', arguments: { steps: [{ type: 'delay', durationMs: 1 }], waitForCompletion: true } });
     assert.equal(pipeline.isError, undefined);
     assert.equal(JSON.stringify(pipeline.structuredContent).includes('completed'), true);
+    const operation = await client.callTool({ name: 'minecraft_get_operation', arguments: { operationId: recordingId } });
+    assert.equal(operation.isError, undefined);
+    const waited = await client.callTool({ name: 'minecraft_wait_operation', arguments: { operationId: recordingId, timeoutMs: 1000 } });
+    assert.equal(waited.isError, undefined);
+    const cancelled = await client.callTool({ name: 'minecraft_cancel_operation', arguments: { operationId: recordingId } });
+    assert.equal(cancelled.isError, undefined);
+    const command = await client.callTool({ name: 'minecraft_execute_player_command', arguments: { command: 'help' } });
+    assert.equal(command.isError, undefined);
+    assert.equal(JSON.stringify(command.structuredContent).includes('NORMAL_NETWORK'), true);
+
+    const controller = new AbortController();
+    const cancellable = client.callTool({
+      name: 'minecraft_run_input_pipeline',
+      arguments: { steps: [{ type: 'delay', durationMs: 30_000 }], timeoutMs: 60_000, waitForCompletion: true }
+    }, { signal: controller.signal });
+    setTimeout(() => controller.abort(), 100).unref();
+    await cancellable.catch(() => undefined);
+    const cancelDeadline = Date.now() + 3000;
+    while (runtime.operationCancels.length === 0 && Date.now() < cancelDeadline) {
+      await new Promise(resolveWait => setTimeout(resolveWait, 25));
+    }
+    assert.equal(runtime.operationCancels.length, 1, 'MCP cancellation must DELETE the native Runtime operation');
 
     const captureTool = await client.callTool({ name: 'minecraft_capture', arguments: {} });
     assert.ok(captureTool.content.some(block => block.type === 'resource_link' && block.uri === 'minecraft://capture/latest'));

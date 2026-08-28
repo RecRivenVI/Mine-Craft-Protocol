@@ -10,9 +10,9 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.DigestInputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,11 +42,23 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 final class RecordingEngine implements AutoCloseable {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Gson COMPACT_GSON = new Gson();
     private static final int WRITER_QUEUE_CAPACITY = 64;
+    private static final int MAX_SHEET_WIDTH = 8192;
+    private static final int MAX_SHEET_HEIGHT = 8192;
+    private static final long MAX_SHEET_PIXELS = 33_554_432L;
+    private static final long MAX_DECODED_SOURCE_BYTES = 268_435_456L;
+    private static final long MAX_ESTIMATED_RAW_BYTES = 134_217_728L;
+    private static final long MAX_OUTPUT_BYTES = 268_435_456L;
+    private static final long MAX_FRAME_BYTES = 33_554_432L;
+    private static final long MAX_STATE_BYTES = 8_388_608L;
+    private static final long MAX_RECORDING_BYTES = 536_870_912L;
+    private static final long MAX_BUNDLE_SOURCE_BYTES = 805_306_368L;
 
     private final ProbeService service;
     private final ObservationEngine observation;
@@ -127,19 +140,13 @@ final class RecordingEngine implements AutoCloseable {
         return session.statusJson();
     }
 
-    CompletableFuture<byte[]> artifact(String id) {
+    CompletableFuture<Path> artifact(String id) {
         RecordingSession session = this.require(id);
         if (!session.status.equals("completed") || !Files.isRegularFile(session.bundlePath())) {
             return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
                     "ARTIFACT_NOT_READY", 409, "Recording Artifact is not finalized"));
         }
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return Files.readAllBytes(session.bundlePath());
-            } catch (IOException exception) {
-                throw new IllegalStateException("Unable to read Artifact Bundle", exception);
-            }
-        }, this.finalizer);
+        return CompletableFuture.completedFuture(session.bundlePath());
     }
 
     void recordEvent(String category, JsonObject payload) {
@@ -172,8 +179,33 @@ final class RecordingEngine implements AutoCloseable {
     public void close() {
         for (RecordingSession session : this.sessions.values()) this.finalizeSession(session, "transport_close");
         this.scheduler.shutdownNow();
+        for (RecordingSession session : this.sessions.values()) {
+            try {
+                session.finalization.get(15L, TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException exception) {
+                session.status = "failed";
+                session.lifecycle = "CLOSE_TIMEOUT";
+                session.writerErrors.incrementAndGet();
+            } catch (Exception exception) {
+                session.status = "failed";
+                session.lifecycle = "FAILED";
+                session.writerErrors.incrementAndGet();
+            }
+        }
         this.writer.shutdown();
+        try {
+            if (!this.writer.awaitTermination(5L, TimeUnit.SECONDS)) this.writer.shutdownNow();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            this.writer.shutdownNow();
+        }
         this.finalizer.shutdown();
+        try {
+            if (!this.finalizer.awaitTermination(5L, TimeUnit.SECONDS)) this.finalizer.shutdownNow();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            this.finalizer.shutdownNow();
+        }
     }
 
     private void sample(RecordingSession session) {
@@ -219,6 +251,12 @@ final class RecordingEngine implements AutoCloseable {
                     task.run();
                 } catch (Throwable throwable) {
                     session.writerErrors.incrementAndGet();
+                    if (throwable instanceof ProtocolState.ProtocolException protocolException
+                            && protocolException.code().equals("RECORDING_BUDGET_EXCEEDED")) {
+                        session.gapCount.incrementAndGet();
+                        session.lastGapTrack = track;
+                        RecordingEngine.this.finalizeSession(session, "resource_budget");
+                    }
                 }
             });
         } catch (RejectedExecutionException exception) {
@@ -230,16 +268,23 @@ final class RecordingEngine implements AutoCloseable {
     private void finalizeSession(RecordingSession session, String reason) {
         if (!session.finalizationStarted.compareAndSet(false, true)) return;
         session.status = "finalizing";
+        session.lifecycle = "STOPPING_CAPTURE";
         session.stopReason = reason;
         session.completedAtMillis = System.currentTimeMillis();
         if (session.timer != null) session.timer.cancel(false);
         this.finalizer.execute(() -> {
             try {
                 while (session.inFlight.get() > 0) Thread.sleep(10L);
-                this.writer.getQueue().put(() -> session.finalizeBundle());
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
+                session.lifecycle = "DRAINING_ENCODERS";
+                while (this.writer.getActiveCount() > 0 || !this.writer.getQueue().isEmpty()) Thread.sleep(10L);
+                session.lifecycle = "FINALIZING";
+                session.finalizeBundle();
+                session.finalization.complete(null);
+            } catch (Throwable exception) {
+                if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
                 session.status = "failed";
+                session.lifecycle = "FAILED";
+                session.finalization.completeExceptionally(exception);
             }
         });
     }
@@ -268,13 +313,17 @@ final class RecordingEngine implements AutoCloseable {
         private final AtomicLong writtenStates = new AtomicLong();
         private final AtomicLong gapCount = new AtomicLong();
         private final AtomicLong writerErrors = new AtomicLong();
+        private final AtomicLong writtenBytes = new AtomicLong();
         private final AtomicInteger inFlight = new AtomicInteger();
         private final AtomicBoolean evidenceContaminated = new AtomicBoolean();
         private final AtomicBoolean finalizationStarted = new AtomicBoolean();
+        private final CompletableFuture<Void> finalization = new CompletableFuture<>();
         private final JsonArray frameIndex = new JsonArray();
+        private final JsonArray contactSheets = new JsonArray();
         private final CanonicalStore canonical;
         private final BufferedWriter timeline;
         private volatile String status = "recording";
+        private volatile String lifecycle = "RUNNING";
         private volatile String stopReason = "";
         private volatile String lastGapTrack = "";
         private volatile long completedAtMillis;
@@ -299,7 +348,12 @@ final class RecordingEngine implements AutoCloseable {
             }
             if (sample.input() != null) index.add("input", sample.input().deepCopy());
             if (sample.frame() != null) {
+                if (sample.frame().length > MAX_FRAME_BYTES) {
+                    throw new ProtocolState.ProtocolException(
+                            "RECORDING_BUDGET_EXCEEDED", 413, "Captured frame exceeds per-frame budget");
+                }
                 String name = String.format("%06d.png", sample.sequence());
+                this.reserve(Math.multiplyExact((long) sample.frame().length, 2L));
                 Files.write(this.directory.resolve("frames").resolve(name), sample.frame());
                 index.addProperty("frame", "frames/" + name);
                 this.writtenFrames.incrementAndGet();
@@ -308,6 +362,11 @@ final class RecordingEngine implements AutoCloseable {
             if (sample.state() != null) {
                 String name = String.format("%06d.json", sample.sequence());
                 byte[] bytes = GSON.toJson(sample.state()).getBytes(StandardCharsets.UTF_8);
+                if (bytes.length > MAX_STATE_BYTES) {
+                    throw new ProtocolState.ProtocolException(
+                            "RECORDING_BUDGET_EXCEEDED", 413, "State sample exceeds per-sample budget");
+                }
+                this.reserve(Math.multiplyExact((long) bytes.length, 2L));
                 Files.write(this.directory.resolve("state").resolve(name), bytes);
                 index.addProperty("state", "state/" + name);
                 this.writtenStates.incrementAndGet();
@@ -317,14 +376,17 @@ final class RecordingEngine implements AutoCloseable {
         }
 
         private void writeEvent(JsonObject event) throws IOException {
-            this.timeline.write(COMPACT_GSON.toJson(event));
+            String encoded = COMPACT_GSON.toJson(event);
+            byte[] bytes = encoded.getBytes(StandardCharsets.UTF_8);
+            this.reserve(Math.addExact(Math.multiplyExact((long) bytes.length, 2L), 64L));
+            this.timeline.write(encoded);
             this.timeline.newLine();
             this.timeline.flush();
             this.canonical.write(
                     3,
                     this.sampleSequence.get(),
                     event.get("timestampMillis").getAsLong(),
-                    COMPACT_GSON.toJson(event).getBytes(StandardCharsets.UTF_8));
+                    bytes);
         }
 
         private void finalizeBundle() {
@@ -332,6 +394,7 @@ final class RecordingEngine implements AutoCloseable {
                 this.timeline.flush();
                 this.timeline.close();
                 this.canonical.close();
+                this.lifecycle = "WRITING_MANIFEST";
                 Files.writeString(
                         this.directory.resolve("frame-index.json"), GSON.toJson(this.frameIndex), StandardCharsets.UTF_8);
                 if (this.config.contactSheet() && this.writtenFrames.get() > 0) this.composeContactSheet();
@@ -339,9 +402,12 @@ final class RecordingEngine implements AutoCloseable {
                 Files.writeString(this.directory.resolve("checksums.json"), GSON.toJson(this.checksums()), StandardCharsets.UTF_8);
                 this.zipBundle();
                 this.status = "completed";
+                this.lifecycle = "CLOSED";
             } catch (Throwable throwable) {
                 this.status = "failed";
+                this.lifecycle = "FAILED";
                 this.writerErrors.incrementAndGet();
+                throw new IllegalStateException("Unable to finalize recording", throwable);
             }
         }
 
@@ -359,6 +425,7 @@ final class RecordingEngine implements AutoCloseable {
             json.addProperty("writtenStates", this.writtenStates.get());
             json.addProperty("gaps", this.gapCount.get());
             json.addProperty("writerErrors", this.writerErrors.get());
+            json.addProperty("writtenBytes", this.writtenBytes.get());
             json.addProperty("lastGapTrack", this.lastGapTrack);
             json.addProperty("backpressurePolicy", "drop_sample_and_record_gap");
             json.addProperty("evidenceContaminated", this.evidenceContaminated.get());
@@ -368,6 +435,20 @@ final class RecordingEngine implements AutoCloseable {
             store.addProperty("path", "canonical/store-v0.bin");
             store.addProperty("readableExport", "timeline/timeline.ndjson");
             json.add("canonicalStore", store);
+            JsonObject contactSheet = new JsonObject();
+            contactSheet.addProperty("sheetCount", this.contactSheets.size());
+            contactSheet.add("sheets", this.contactSheets.deepCopy());
+            contactSheet.addProperty("maxSheetWidth", MAX_SHEET_WIDTH);
+            contactSheet.addProperty("maxSheetHeight", MAX_SHEET_HEIGHT);
+            contactSheet.addProperty("maxSheetPixels", MAX_SHEET_PIXELS);
+            contactSheet.addProperty("maxDecodedSourceBytes", MAX_DECODED_SOURCE_BYTES);
+            contactSheet.addProperty("maxEstimatedRawBytes", MAX_ESTIMATED_RAW_BYTES);
+            contactSheet.addProperty("maxOutputBytes", MAX_OUTPUT_BYTES);
+            contactSheet.addProperty("maxFrameBytes", MAX_FRAME_BYTES);
+            contactSheet.addProperty("maxStateBytes", MAX_STATE_BYTES);
+            contactSheet.addProperty("maxRecordingBytes", MAX_RECORDING_BYTES);
+            contactSheet.addProperty("maxBundleSourceBytes", MAX_BUNDLE_SOURCE_BYTES);
+            json.add("contactSheetArtifacts", contactSheet);
             json.add("config", this.config.toJson());
             return json;
         }
@@ -377,12 +458,14 @@ final class RecordingEngine implements AutoCloseable {
             json.addProperty("type", "recording.session");
             json.addProperty("recordingId", this.id);
             json.addProperty("status", this.status);
+            json.addProperty("lifecycle", this.lifecycle);
             json.addProperty("startedAtMillis", this.startedAtMillis);
             json.addProperty("completedAtMillis", this.completedAtMillis);
             json.addProperty("samples", this.sampleSequence.get());
             json.addProperty("writtenFrames", this.writtenFrames.get());
             json.addProperty("writtenStates", this.writtenStates.get());
             json.addProperty("gaps", this.gapCount.get());
+            json.addProperty("writtenBytes", this.writtenBytes.get());
             json.addProperty("writerQueueDepth", writer.getQueue().size());
             json.addProperty("writerQueueCapacity", WRITER_QUEUE_CAPACITY);
             json.addProperty("evidenceContaminated", this.evidenceContaminated.get());
@@ -396,33 +479,74 @@ final class RecordingEngine implements AutoCloseable {
                 frames = stream.filter(path -> path.getFileName().toString().endsWith(".png"))
                         .sorted().toList();
             }
-            int columns = Math.min(this.config.columns(), Math.max(1, frames.size()));
-            int rows = (frames.size() + columns - 1) / columns;
-            int width = columns * this.config.cellWidth() + Math.max(0, columns - 1) * this.config.spacing();
-            int height = rows * this.config.cellHeight() + Math.max(0, rows - 1) * this.config.spacing();
-            BufferedImage sheet = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D graphics = sheet.createGraphics();
-            try {
-                graphics.setColor(Color.BLACK);
-                graphics.fillRect(0, 0, width, height);
-                graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                for (int index = 0; index < frames.size(); index++) {
-                    BufferedImage source = ImageIO.read(frames.get(index).toFile());
-                    int cellX = (index % columns) * (this.config.cellWidth() + this.config.spacing());
-                    int cellY = (index / columns) * (this.config.cellHeight() + this.config.spacing());
-                    double scale = Math.min(
-                            (double) this.config.cellWidth() / source.getWidth(),
-                            (double) this.config.cellHeight() / source.getHeight());
-                    int drawWidth = Math.max(1, (int) Math.round(source.getWidth() * scale));
-                    int drawHeight = Math.max(1, (int) Math.round(source.getHeight() * scale));
-                    int drawX = cellX + (this.config.cellWidth() - drawWidth) / 2;
-                    int drawY = cellY + (this.config.cellHeight() - drawHeight) / 2;
-                    graphics.drawImage(source, drawX, drawY, drawWidth, drawHeight, null);
+            int requestedColumns = Math.min(this.config.columns(), Math.max(1, frames.size()));
+            int columns = Math.min(requestedColumns, maxCells(MAX_SHEET_WIDTH, this.config.cellWidth(), this.config.spacing()));
+            int width = sheetDimension(columns, this.config.cellWidth(), this.config.spacing());
+            int rowsByHeight = maxCells(MAX_SHEET_HEIGHT, this.config.cellHeight(), this.config.spacing());
+            int rowsByPixels = Math.max(1, (int) Math.min(Integer.MAX_VALUE,
+                    MAX_SHEET_PIXELS / Math.max(1L, (long) width * this.config.cellHeight())));
+            int rowsPerSheet = Math.max(1, Math.min(rowsByHeight, rowsByPixels));
+            int framesPerSheet = Math.multiplyExact(columns, rowsPerSheet);
+            long outputBytes = 0L;
+            for (int start = 0, sheetIndex = 0; start < frames.size(); start += framesPerSheet, sheetIndex++) {
+                int end = Math.min(frames.size(), start + framesPerSheet);
+                int rows = (end - start + columns - 1) / columns;
+                int height = sheetDimension(rows, this.config.cellHeight(), this.config.spacing());
+                checkedSheetBudget(width, height);
+                BufferedImage sheet = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D graphics = sheet.createGraphics();
+                long decodedBytes = 0L;
+                try {
+                    graphics.setColor(Color.BLACK);
+                    graphics.fillRect(0, 0, width, height);
+                    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    for (int index = start; index < end; index++) {
+                        Path frame = frames.get(index);
+                        ImageDimensions dimensions = imageDimensions(frame);
+                        long sourceBytes = Math.multiplyExact(Math.multiplyExact(
+                                (long) dimensions.width(), dimensions.height()), 4L);
+                        decodedBytes = Math.addExact(decodedBytes, sourceBytes);
+                        if (decodedBytes > MAX_DECODED_SOURCE_BYTES) {
+                            throw new ProtocolState.ProtocolException(
+                                    "RECORDING_BUDGET_EXCEEDED", 413, "Decoded contact-sheet sources exceed budget");
+                        }
+                        BufferedImage source = ImageIO.read(frame.toFile());
+                        int localIndex = index - start;
+                        int cellX = (localIndex % columns) * (this.config.cellWidth() + this.config.spacing());
+                        int cellY = (localIndex / columns) * (this.config.cellHeight() + this.config.spacing());
+                        double scale = Math.min(
+                                (double) this.config.cellWidth() / source.getWidth(),
+                                (double) this.config.cellHeight() / source.getHeight());
+                        int drawWidth = Math.max(1, (int) Math.round(source.getWidth() * scale));
+                        int drawHeight = Math.max(1, (int) Math.round(source.getHeight() * scale));
+                        int drawX = cellX + (this.config.cellWidth() - drawWidth) / 2;
+                        int drawY = cellY + (this.config.cellHeight() - drawHeight) / 2;
+                        graphics.drawImage(source, drawX, drawY, drawWidth, drawHeight, null);
+                        source.flush();
+                    }
+                } finally {
+                    graphics.dispose();
                 }
-            } finally {
-                graphics.dispose();
+                String name = sheetIndex == 0 ? "contact-sheet.png"
+                        : String.format("contact-sheet-%04d.png", sheetIndex + 1);
+                Path output = this.directory.resolve("derivatives").resolve(name);
+                ImageIO.write(sheet, "PNG", output.toFile());
+                sheet.flush();
+                outputBytes = Math.addExact(outputBytes, Files.size(output));
+                if (outputBytes > MAX_OUTPUT_BYTES) {
+                    throw new ProtocolState.ProtocolException(
+                            "RECORDING_BUDGET_EXCEEDED", 413, "Contact-sheet output exceeds budget");
+                }
+                JsonObject item = new JsonObject();
+                item.addProperty("path", "derivatives/" + name);
+                item.addProperty("frameStart", start + 1);
+                item.addProperty("frameEnd", end);
+                item.addProperty("columns", columns);
+                item.addProperty("rows", rows);
+                item.addProperty("width", width);
+                item.addProperty("height", height);
+                this.contactSheets.add(item);
             }
-            ImageIO.write(sheet, "PNG", this.directory.resolve("derivatives/contact-sheet.png").toFile());
         }
 
         private JsonObject checksums() throws IOException {
@@ -433,13 +557,29 @@ final class RecordingEngine implements AutoCloseable {
                         .sorted().toList()) {
                     checksums.addProperty(
                             this.directory.relativize(path).toString().replace('\\', '/'),
-                            sha256(Files.readAllBytes(path)));
+                            sha256(path));
                 }
             }
             return checksums;
         }
 
         private void zipBundle() throws IOException {
+            long sourceBytes = 0L;
+            try (var sizing = Files.walk(this.directory)) {
+                for (Path path : sizing.filter(Files::isRegularFile)
+                        .filter(path -> !path.equals(this.bundlePath())).toList()) {
+                    try {
+                        sourceBytes = Math.addExact(sourceBytes, Files.size(path));
+                    } catch (ArithmeticException exception) {
+                        throw new ProtocolState.ProtocolException(
+                                "RECORDING_BUDGET_EXCEEDED", 413, "Artifact source size overflow");
+                    }
+                    if (sourceBytes > MAX_BUNDLE_SOURCE_BYTES) {
+                        throw new ProtocolState.ProtocolException(
+                                "RECORDING_BUDGET_EXCEEDED", 413, "Artifact Bundle source exceeds budget");
+                    }
+                }
+            }
             try (OutputStream output = Files.newOutputStream(
                     this.bundlePath(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                  ZipOutputStream zip = new ZipOutputStream(output, StandardCharsets.UTF_8);
@@ -458,6 +598,69 @@ final class RecordingEngine implements AutoCloseable {
         private Path bundlePath() {
             return this.directory.resolve("bundle.zip");
         }
+
+        private void reserve(long bytes) {
+            long total;
+            try {
+                total = Math.addExact(this.writtenBytes.get(), bytes);
+            } catch (ArithmeticException exception) {
+                throw new ProtocolState.ProtocolException(
+                        "RECORDING_BUDGET_EXCEEDED", 413, "Recording byte count overflow");
+            }
+            if (total > MAX_RECORDING_BYTES) {
+                throw new ProtocolState.ProtocolException(
+                        "RECORDING_BUDGET_EXCEEDED", 413, "Recording Session byte budget exceeded");
+            }
+            this.writtenBytes.set(total);
+        }
+    }
+
+    private static int maxCells(int maximumDimension, int cellDimension, int spacing) {
+        return Math.max(1, (maximumDimension + spacing) / (cellDimension + spacing));
+    }
+
+    private static int sheetDimension(int cells, int cellDimension, int spacing) {
+        try {
+            return Math.toIntExact(Math.addExact(
+                    Math.multiplyExact((long) cells, cellDimension),
+                    Math.multiplyExact((long) Math.max(0, cells - 1), spacing)));
+        } catch (ArithmeticException exception) {
+            throw new ProtocolState.ProtocolException(
+                    "RECORDING_BUDGET_EXCEEDED", 413, "Contact-sheet dimensions overflow");
+        }
+    }
+
+    private static void checkedSheetBudget(int width, int height) {
+        try {
+            long pixels = Math.multiplyExact((long) width, height);
+            long rawBytes = Math.multiplyExact(pixels, 4L);
+            if (width > MAX_SHEET_WIDTH || height > MAX_SHEET_HEIGHT
+                    || pixels > MAX_SHEET_PIXELS || rawBytes > MAX_ESTIMATED_RAW_BYTES) {
+                throw new ProtocolState.ProtocolException(
+                        "RECORDING_BUDGET_EXCEEDED", 413, "Contact-sheet aggregate budget exceeded");
+            }
+        } catch (ArithmeticException exception) {
+            throw new ProtocolState.ProtocolException(
+                    "RECORDING_BUDGET_EXCEEDED", 413, "Contact-sheet allocation estimate overflow");
+        }
+    }
+
+    private static ImageDimensions imageDimensions(Path path) throws IOException {
+        try (ImageInputStream input = ImageIO.createImageInputStream(path.toFile())) {
+            if (input == null) throw new IOException("Unable to inspect image dimensions");
+            var readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) throw new IOException("Unsupported frame image");
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input, true, true);
+                return new ImageDimensions(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        }
+    }
+
+    private record ImageDimensions(int width, int height) {
     }
 
     private interface CanonicalStore extends AutoCloseable {
@@ -580,9 +783,13 @@ final class RecordingEngine implements AutoCloseable {
         for (String field : fields) if (source.has(field)) target.add(field, source.get(field).deepCopy());
     }
 
-    private static String sha256(byte[] bytes) {
+    private static String sha256(Path path) throws IOException {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+            MessageDigest algorithm = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = new DigestInputStream(Files.newInputStream(path), algorithm)) {
+                input.transferTo(OutputStream.nullOutputStream());
+            }
+            byte[] digest = algorithm.digest();
             StringBuilder value = new StringBuilder(digest.length * 2);
             for (byte item : digest) value.append(String.format("%02x", item));
             return value.toString();
@@ -596,4 +803,3 @@ final class RecordingEngine implements AutoCloseable {
         void run() throws Exception;
     }
 }
-

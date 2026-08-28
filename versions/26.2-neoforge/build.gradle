@@ -3,6 +3,17 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.144'
 }
 
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
+    testImplementation 'com.google.code.gson:gson:2.14.0'
+    testImplementation 'io.netty:netty-codec-http:4.2.15.Final'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.14.4'
+}
+
+tasks.named('test').configure {
+    useJUnitPlatform()
+}
+
 def targetProperties = new Properties()
 file('target.properties').withInputStream { targetProperties.load(it) }
 targetProperties.each { key, value -> project.ext.set(key.toString(), value) }

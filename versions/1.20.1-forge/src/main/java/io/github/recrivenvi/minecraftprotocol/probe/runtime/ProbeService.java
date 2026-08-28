@@ -25,6 +25,7 @@ interface ProbeService {
     CompletableFuture<JsonObject> mouseScroll(double xOffset, double yOffset);
 
     CompletableFuture<JsonObject> key(int key, int scanCode, int action, int modifiers);
+    CompletableFuture<JsonObject> playerCommand(String command);
 
     CompletableFuture<JsonObject> playerState();
 

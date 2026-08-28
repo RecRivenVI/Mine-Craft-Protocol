@@ -215,6 +215,45 @@
         }
       }
     },
+    "/v0/events/resync": {
+      "get": {
+        "operationId": "getEventResyncSnapshot",
+        "responses": {
+          "200": {
+            "description": "Minimum authoritative snapshot after a WebSocket sequence gap",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventResyncResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/diagnostics/events/stress": {
+      "post": {
+        "operationId": "runBoundedEventStressProbe",
+        "description": "Bounded diagnostics-only event publication used to verify filtering, backpressure, gaps and resume.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventStressRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event stress probe completed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventStressResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/operations": {
       "get": {
         "operationId": "getOperationDescriptors",
@@ -307,6 +346,37 @@
                 "schema": {
                   "$ref": "#/components/schemas/OperationResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/operations/{operationId}/wait": {
+      "parameters": [
+        {
+          "name": "operationId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "post": {
+        "operationId": "waitOperation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WaitOperationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current terminal state or latest state when the bounded wait expires",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationResponse" }
               }
             }
           }
@@ -682,6 +752,35 @@
                 "schema": {
                   "$ref": "#/components/schemas/PlayerStateResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/command/player": {
+      "post": {
+        "operationId": "executeCurrentPlayerCommand",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" },
+          { "$ref": "#/components/parameters/ControlLease" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlayerCommandRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Command accepted through the current player normal network path",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlayerCommandResponse" }
               }
             }
           }
@@ -2130,6 +2229,72 @@
           }
         ]
       },
+      "PlayerCommandRequest": {
+        "type": "object",
+        "required": ["command"],
+        "properties": {
+          "command": { "type": "string", "minLength": 1, "maxLength": 2048 }
+        }
+      },
+      "PlayerCommandResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["accepted", "perspective", "mode", "mechanism", "normalPacket", "serverValidation", "permissionEscalated", "evidenceContaminated"],
+            "properties": {
+              "accepted": { "type": "boolean" },
+              "perspective": { "type": "string", "enum": ["current_player"] },
+              "mode": { "type": "string", "enum": ["PLAYTEST"] },
+              "mechanism": { "type": "string", "enum": ["NORMAL_NETWORK"] },
+              "normalPacket": { "type": "boolean", "enum": [true] },
+              "serverValidation": { "type": "boolean", "enum": [true] },
+              "permissionEscalated": { "type": "boolean", "enum": [false] },
+              "evidenceContaminated": { "type": "boolean", "enum": [false] }
+            }
+          }
+        ]
+      },
+      "EventStressRequest": {
+        "type": "object",
+        "required": ["count"],
+        "properties": {
+          "count": { "type": "integer", "minimum": 1, "maximum": 8192 },
+          "payloadBytes": { "type": "integer", "minimum": 0, "maximum": 4096, "default": 0 }
+        }
+      },
+      "EventStressResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["published", "payloadBytes", "resumeCursor"],
+            "properties": {
+              "published": { "type": "integer" },
+              "payloadBytes": { "type": "integer" },
+              "resumeCursor": { "type": "integer", "format": "int64" }
+            }
+          }
+        ]
+      },
+      "EventResyncResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["resumeCursor", "subscriptionCount", "session", "capabilities", "ui", "player", "operations"],
+            "properties": {
+              "resumeCursor": { "type": "integer", "format": "int64" },
+              "subscriptionCount": { "type": "integer" },
+              "session": { "type": "object", "additionalProperties": true },
+              "capabilities": { "type": "object", "additionalProperties": true },
+              "ui": { "type": "object", "additionalProperties": true },
+              "player": { "type": "object", "additionalProperties": true },
+              "operations": { "type": "object", "additionalProperties": true }
+            }
+          }
+        ]
+      },
       "PlayerStateResponse": {
         "allOf": [
           {
@@ -2398,6 +2563,8 @@
           "type",
           "protocolVersion",
           "authentication",
+          "principalId",
+          "principalLifecycle",
           "bindAddress",
           "grantedScopes",
           "requestId"
@@ -2406,6 +2573,8 @@
           "type": { "type": "string" },
           "protocolVersion": { "type": "string", "enum": ["v0"] },
           "authentication": { "type": "string", "enum": ["bearer"] },
+          "principalId": { "type": "string" },
+          "principalLifecycle": { "type": "string", "enum": ["runtime_token_lifetime"] },
           "bindAddress": { "type": "string", "enum": ["127.0.0.1"] },
           "grantedScopes": {
             "type": "array",
@@ -2496,6 +2665,18 @@
           }
         }
       },
+      "WaitOperationRequest": {
+        "type": "object",
+        "properties": {
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 300000,
+            "default": 60000
+          }
+        }
+      },
       "OperationResponse": {
         "type": "object",
         "required": ["type", "operationId", "status", "requestId", "protocolVersion"],
@@ -2504,8 +2685,27 @@
           "operationId": { "type": "string", "format": "uuid" },
           "status": {
             "type": "string",
-            "enum": ["running", "completed", "failed", "cancelled"]
+            "enum": ["running", "completed", "failed", "cancelled", "timed_out"]
           },
+          "state": {
+            "type": "string",
+            "enum": ["received", "accepted", "scheduled", "executing", "completed", "failed", "cancelled", "timed_out"]
+          },
+          "received": { "type": "boolean" },
+          "accepted": { "type": "boolean" },
+          "scheduled": { "type": "boolean" },
+          "executing": { "type": "boolean" },
+          "completed": { "type": "boolean" },
+          "failed": { "type": "boolean" },
+          "cancelled": { "type": "boolean" },
+          "timedOut": { "type": "boolean" },
+          "receivedAtMillis": { "type": "integer", "format": "int64" },
+          "acceptedAtMillis": { "type": "integer", "format": "int64" },
+          "scheduledAtMillis": { "type": "integer", "format": "int64" },
+          "startedAtMillis": { "type": "integer", "format": "int64" },
+          "completedAtMillis": { "type": "integer", "format": "int64" },
+          "cancellationReason": { "type": "string" },
+          "errorCode": { "type": "string" },
           "result": { "type": "object", "additionalProperties": true },
           "error": { "type": "string" },
           "requestId": { "type": "string" },
@@ -2550,13 +2750,18 @@
       },
       "AuditEntry": {
         "type": "object",
-        "required": ["sequence", "timestampMillis", "requestId", "path", "outcome"],
+        "required": ["sequence", "timestampMillis", "requestId", "principalId", "connectionId", "path", "outcome", "leaseId", "debugArmId", "operationId"],
         "properties": {
           "sequence": { "type": "integer", "format": "int64" },
           "timestampMillis": { "type": "integer", "format": "int64" },
           "requestId": { "type": "string" },
+          "principalId": { "type": "string" },
+          "connectionId": { "type": "string" },
           "path": { "type": "string" },
-          "outcome": { "type": "string" }
+          "outcome": { "type": "string" },
+          "leaseId": { "type": "string" },
+          "debugArmId": { "type": "string" },
+          "operationId": { "type": "string" }
         }
       },
       "AuditResponse": {
@@ -2576,13 +2781,35 @@
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "type": "string", "enum": ["screen", "ui.exists"] },
+          "type": { "type": "string", "enum": ["screen", "ui.exists", "player", "block", "entity", "menu", "inventory", "event", "operation", "recording", "provider"] },
           "classContains": { "type": "string" },
           "titleContains": { "type": "string" },
           "open": { "type": "boolean" },
           "selector": { "$ref": "#/components/schemas/UiSelector" },
-          "exists": { "type": "boolean", "default": true }
-        }
+          "exists": { "type": "boolean", "default": true },
+          "perspective": { "type": "string", "enum": ["client", "server"] },
+          "x": { "type": "integer" },
+          "y": { "type": "integer" },
+          "z": { "type": "integer" },
+          "radius": { "type": "number", "minimum": 0, "maximum": 128 },
+          "blockId": { "type": "string" },
+          "entityType": { "type": "string" },
+          "uuid": { "type": "string", "format": "uuid" },
+          "minCount": { "type": "integer", "minimum": 0 },
+          "menuId": { "type": "integer" },
+          "slot": { "type": "integer", "minimum": 0 },
+          "itemId": { "type": "string" },
+          "countMin": { "type": "integer", "minimum": 0 },
+          "eventType": { "type": "string" },
+          "category": { "type": "string" },
+          "afterSequence": { "type": "integer", "format": "int64", "minimum": 0 },
+          "operationId": { "type": "string", "format": "uuid" },
+          "recordingId": { "type": "string", "format": "uuid" },
+          "providerId": { "type": "string" },
+          "params": { "type": "object", "additionalProperties": true },
+          "expected": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": true
       },
       "WaitUntilRequest": {
         "type": "object",
@@ -2924,18 +3151,23 @@
       "RecordingStatusResponse": {
         "type": "object",
         "required": [
-          "type", "recordingId", "status", "startedAtMillis", "samples", "writtenFrames", "writtenStates",
+          "type", "recordingId", "status", "lifecycle", "startedAtMillis", "samples", "writtenFrames", "writtenStates", "writtenBytes",
           "gaps", "writerQueueDepth", "writerQueueCapacity", "evidenceContaminated", "artifactReady"
         ],
         "properties": {
           "type": { "type": "string" },
           "recordingId": { "type": "string", "format": "uuid" },
           "status": { "type": "string", "enum": ["recording", "finalizing", "completed", "failed"] },
+          "lifecycle": {
+            "type": "string",
+            "enum": ["RUNNING", "STOPPING_CAPTURE", "DRAINING_ENCODERS", "FINALIZING", "WRITING_MANIFEST", "CLOSED", "FAILED", "CLOSE_TIMEOUT"]
+          },
           "startedAtMillis": { "type": "integer", "format": "int64" },
           "completedAtMillis": { "type": "integer", "format": "int64" },
           "samples": { "type": "integer", "format": "int64" },
           "writtenFrames": { "type": "integer", "format": "int64" },
           "writtenStates": { "type": "integer", "format": "int64" },
+          "writtenBytes": { "type": "integer", "format": "int64" },
           "gaps": { "type": "integer", "format": "int64" },
           "writerQueueDepth": { "type": "integer" },
           "writerQueueCapacity": { "type": "integer", "enum": [64] },
