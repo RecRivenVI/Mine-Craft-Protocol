@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-phase8",
-    "description": "Unstable, evidence-based Phase 8 V1 release-hardening contract with an independent MCP Companion. This is not a frozen Wire Protocol v1.",
+    "version": "0.0.1-phase9b",
+    "description": "Unstable Phase 9B V0 contract with formal Deep Observation and Provider V2. This is not a frozen Wire Protocol v1.",
     "x-stability": "unstable"
   },
   "servers": [
@@ -1344,6 +1344,35 @@
         }
       }
     },
+    "/v0/observe/deep/capabilities": {
+      "get": {
+        "operationId": "getDeepObservationCapabilities",
+        "responses": {
+          "200": {
+            "description": "Formal Deep Observation domains, perspectives, providers and budgets",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeepObservationCapabilitiesResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v0/observe/deep": {
+      "post": {
+        "operationId": "deepObserve",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeepObservationRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Budgeted typed client/server Deep Observation snapshot",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeepObservationResponse" } } }
+          },
+          "413": { "description": "Observation budget exceeded", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
     "/v0/pipelines": {
       "post": {
         "operationId": "startInputPipeline",
@@ -1506,6 +1535,175 @@
       }
     },
     "schemas": {
+      "DeepObservationRequest": {
+        "type": "object",
+        "required": ["perspective", "domains"],
+        "additionalProperties": false,
+        "properties": {
+          "perspective": { "type": "string", "enum": ["client_known", "server_authoritative", "both"] },
+          "domains": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/components/schemas/DeepObservationDomain" } },
+          "selector": { "$ref": "#/components/schemas/DeepObservationSelector" },
+          "projection": { "$ref": "#/components/schemas/DeepObservationProjection" },
+          "includeSerializedBlockEntities": { "type": "boolean", "default": false },
+          "includeProviderData": { "type": "boolean", "default": false },
+          "allowReadEffects": { "type": "boolean", "default": false },
+          "providerIds": { "type": "array", "maxItems": 8, "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" } },
+          "providerQuery": { "type": "object", "description": "Provider-schema-backed detached query payload" },
+          "budgets": { "$ref": "#/components/schemas/DeepObservationBudgets" }
+        }
+      },
+      "DeepObservationDomain": {
+        "type": "string",
+        "enum": ["player", "entities", "blocks", "block_entities", "chunks", "world", "menu", "providers"]
+      },
+      "DeepObservationSelector": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "chunkRadius": { "type": "integer", "minimum": 0, "maximum": 2, "default": 0 },
+          "entityRadius": { "type": "integer", "minimum": 0, "maximum": 64, "default": 16 },
+          "blocks": { "type": "array", "maxItems": 64, "items": { "$ref": "#/components/schemas/BlockPosition" } }
+        }
+      },
+      "DeepObservationProjection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "enum": ["identity", "transform", "environment", "vitals", "authority", "inventory", "attributes", "effects", "relationships", "menu", "dimension", "respawn"] } },
+          "entityFields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "enum": ["identity", "transform", "living", "equipment", "effects", "attributes", "relationships", "common_state"] } }
+        }
+      },
+      "DeepObservationBudgets": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxEntities": { "type": "integer", "minimum": 1, "maximum": 128, "default": 64 },
+          "maxBlockEntities": { "type": "integer", "minimum": 1, "maximum": 128, "default": 64 },
+          "maxProviders": { "type": "integer", "minimum": 1, "maximum": 8, "default": 4 },
+          "maxSerializedBytesPerBlockEntity": { "type": "integer", "minimum": 256, "maximum": 16384, "default": 16384 },
+          "maxTotalSerializedBlockEntityBytes": { "type": "integer", "minimum": 1024, "maximum": 65536, "default": 65536 },
+          "maxProviderBytes": { "type": "integer", "minimum": 256, "maximum": 16384, "default": 16384 },
+          "maxTotalProviderBytes": { "type": "integer", "minimum": 1024, "maximum": 65536, "default": 65536 },
+          "maxResponseBytes": { "type": "integer", "minimum": 16384, "maximum": 524288, "default": 524288 },
+          "providerTimeoutMs": { "type": "integer", "minimum": 25, "maximum": 1000, "default": 250 }
+        }
+      },
+      "ObservationMetadata": {
+        "type": "object",
+        "required": ["perspective", "acquisition", "completeness", "readEffects", "consistency", "capturedAt", "snapshotId", "sessionEpoch", "alignmentQuality"],
+        "properties": {
+          "perspective": { "type": "string", "enum": ["client_known", "server_authoritative", "both"] },
+          "acquisition": { "type": "string", "enum": ["owner_thread_snapshot", "public_api", "mixin_accessor", "provider"] },
+          "completeness": { "type": "string", "enum": ["complete", "projected", "partial"] },
+          "readEffects": { "type": "string", "enum": ["none", "lazy_initialization", "serialization_hooks_invoked", "storage_access"] },
+          "consistency": { "type": "string", "enum": ["owner_thread_snapshot", "coordinated_best_effort", "partial"] },
+          "capturedAt": { "type": "integer", "format": "int64" },
+          "clientTick": { "type": "integer", "format": "int64" },
+          "serverTick": { "type": "integer", "format": "int64" },
+          "snapshotId": { "type": "string", "format": "uuid" },
+          "sessionEpoch": { "type": "string", "format": "uuid" },
+          "alignmentQuality": { "type": "string" }
+        }
+      },
+      "ResourceRevisionRef": {
+        "type": "object",
+        "required": ["resourceType", "resourceKey", "revision", "revisionSource"],
+        "properties": {
+          "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "chunk", "block_entity", "provider"] },
+          "resourceKey": { "type": "string" },
+          "revision": { "type": "integer", "format": "int64", "minimum": 1 },
+          "revisionSource": { "type": "string", "enum": ["native_counter", "runtime_event_sequence", "snapshot_change_sequence", "provider_revision"] }
+        }
+      },
+      "CapabilityLimitation": {
+        "type": "object",
+        "required": ["domain", "status", "reason"],
+        "properties": {
+          "domain": { "type": "string" },
+          "status": { "type": "string", "enum": ["PARTIAL", "UNAVAILABLE", "TARGET_DIAGNOSTIC_ONLY"] },
+          "reason": { "type": "string" }
+        }
+      },
+      "BlockPosition": {
+        "type": "object",
+        "required": ["x", "y", "z"],
+        "additionalProperties": false,
+        "properties": { "x": { "type": "integer" }, "y": { "type": "integer" }, "z": { "type": "integer" } }
+      },
+      "ItemSnapshot": {
+        "type": "object",
+        "required": ["empty", "id", "count"],
+        "properties": { "empty": { "type": "boolean" }, "id": { "type": "string" }, "count": { "type": "integer" }, "slot": { "type": "integer" }, "componentsHash": { "type": "string" } }
+      },
+      "ClientKnownPlayerSnapshot": {
+        "type":"object", "required":["available"],
+        "properties":{"available":{"type":"boolean"},"uuid":{"type":"string","format":"uuid"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"health":{"type":"number"},"maxHealth":{"type":"number"},"absorption":{"type":"number"},"food":{"type":"integer"},"air":{"type":"integer"},"velocityX":{"type":"number"},"velocityY":{"type":"number"},"velocityZ":{"type":"number"},"selectedSlot":{"type":"integer"},"dimension":{"type":"string"},"clientTick":{"type":"integer","format":"int64"}}
+      },
+      "PlayerSnapshot": {
+        "type": "object",
+        "required": ["uuid", "name", "position", "pose", "health", "maxHealth", "inventory", "equipment", "dimension"],
+        "properties": {
+          "uuid": { "type": "string", "format": "uuid" }, "name": { "type": "string" },
+          "position": { "type": "object", "required": ["x", "y", "z", "velocityX", "velocityY", "velocityZ", "yaw", "pitch"], "properties": { "x": {"type":"number"}, "y":{"type":"number"}, "z":{"type":"number"}, "previousX":{"type":"number"}, "previousY":{"type":"number"}, "previousZ":{"type":"number"}, "velocityX":{"type":"number"}, "velocityY":{"type":"number"}, "velocityZ":{"type":"number"}, "yaw":{"type":"number"}, "pitch":{"type":"number"} } },
+          "pose": { "type": "string" }, "onGround": {"type":"boolean"}, "inWater":{"type":"boolean"}, "fallFlying":{"type":"boolean"},
+          "health":{"type":"number"}, "maxHealth":{"type":"number"}, "absorption":{"type":"number"}, "food":{"type":"integer"}, "air":{"type":"integer"},
+          "experienceLevel":{"type":"integer"}, "totalExperience":{"type":"integer"}, "experienceProgress":{"type":"number"}, "gameMode":{"type":"string"},
+          "mayFly":{"type":"boolean"}, "flying":{"type":"boolean"}, "instabuild":{"type":"boolean"}, "selectedSlot":{"type":"integer"},
+          "inventory":{"type":"array","items":{"$ref":"#/components/schemas/ItemSnapshot"}}, "carriedStack":{"$ref":"#/components/schemas/ItemSnapshot"},
+          "equipment":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/ItemSnapshot"}},
+          "attributes":{"type":"array","items":{"type":"object","required":["id","base","value"],"properties":{"id":{"type":"string"},"base":{"type":"number"},"value":{"type":"number"}}}},
+          "effects":{"type":"array","items":{"type":"object","required":["id","duration","amplifier"],"properties":{"id":{"type":"string"},"duration":{"type":"integer"},"amplifier":{"type":"integer"}}}},
+          "vehicle":{"type":"string"}, "passengers":{"type":"array","items":{"type":"string","format":"uuid"}}, "menuId":{"type":"integer"}, "menuRole":{"type":"string","enum":["player_inventory","container"]}, "dimension":{"type":"string"}, "respawn":{"type":"string"}
+        }
+      },
+      "EntitySnapshot": {
+        "type":"object", "required":["uuid","runtimeId","type","x","y","z","velocityX","velocityY","velocityZ","yaw","pitch","pose","noGravity"],
+        "properties":{"uuid":{"type":"string","format":"uuid"},"runtimeId":{"type":"integer"},"type":{"type":"string"},"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"velocityX":{"type":"number"},"velocityY":{"type":"number"},"velocityZ":{"type":"number"},"yaw":{"type":"number"},"pitch":{"type":"number"},"pose":{"type":"string"},"noGravity":{"type":"boolean"},"health":{"type":"number"},"maxHealth":{"type":"number"},"equipment":{"type":"object","additionalProperties":{"$ref":"#/components/schemas/ItemSnapshot"}},"effectCount":{"type":"integer"},"syncableAttributeCount":{"type":"integer"},"vehicle":{"type":"string"},"passengers":{"type":"array","items":{"type":"string"}}}
+      },
+      "MenuSnapshot": {
+        "type":"object", "required":["menuId","role","serverAuthoritative","playerInventoryRelationship","slots","carriedStack"],
+        "properties":{"menuId":{"type":"integer"},"role":{"type":"string","enum":["player_inventory","container"]},"serverAuthoritative":{"type":"boolean","enum":[true]},"playerInventoryRelationship":{"type":"boolean"},"slots":{"type":"array","items":{"$ref":"#/components/schemas/ItemSnapshot"}},"carriedStack":{"$ref":"#/components/schemas/ItemSnapshot"}}
+      },
+      "BlockSnapshot": {
+        "type":"object", "required":["key","x","y","z","available","loadRequested"],
+        "properties":{"key":{"type":"string"},"x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"},"available":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"blockId":{"type":"string"},"properties":{"type":"object","additionalProperties":{"type":"string"}},"reason":{"type":"string","enum":["NOT_LOADED"]}}
+      },
+      "BlockEntitySnapshot": {
+        "type":"object", "required":["key","type","loaded","readEffects"],
+        "properties":{"key":{"type":"string"},"type":{"type":"string"},"loaded":{"type":"boolean"},"readEffects":{"type":"string","enum":["none","serialization_hooks_invoked"]},"serializedBytes":{"type":"integer"},"serializedStateStatus":{"type":"string","enum":["complete","truncated"]},"serializedState":{"type":"object"},"limitation":{"type":"string"}}
+      },
+      "ScheduledTickSnapshot": {
+        "type":"object", "required":["x","y","z","type","triggerTick","priority","subTickOrder","chunkX","chunkZ"],
+        "properties":{"x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"},"type":{"type":"string"},"triggerTick":{"type":"integer","format":"int64"},"priority":{"type":"string"},"subTickOrder":{"type":"integer","format":"int64"},"chunkX":{"type":"integer"},"chunkZ":{"type":"integer"}}
+      },
+      "ChunkLoadingSummary": {
+        "type":"object", "required":["loaded","fullStatus","loadingLevel","simulationActive","sourceCount","holderState","ticketDetailAvailable","reasons"],
+        "properties":{"loaded":{"type":"boolean"},"fullStatus":{"type":"string"},"loadingLevel":{"type":"integer"},"simulationLevel":{"type":"integer"},"simulationActive":{"type":"boolean"},"sourceCount":{"type":"integer"},"holderState":{"type":"string"},"ticketDetailAvailable":{"type":"boolean"},"reasons":{"type":"array","items":{"type":"string","enum":["player","forced","portal","lighting","spawn_or_start","other"]}},"targetDiagnostic":{"type":"object","description":"Target-specific diagnostic-only ticket schema"}}
+      },
+      "ChunkSnapshot": {
+        "type":"object", "required":["key","chunkX","chunkZ","loaded","loadRequested"],
+        "properties":{"key":{"type":"string"},"chunkX":{"type":"integer"},"chunkZ":{"type":"integer"},"loaded":{"type":"boolean"},"loadRequested":{"type":"boolean","enum":[false]},"status":{"type":"string"},"sectionCount":{"type":"integer"},"nonEmptySections":{"type":"integer"},"blockEntityCount":{"type":"integer"},"loadingSummary":{"$ref":"#/components/schemas/ChunkLoadingSummary"},"scheduledBlockTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"scheduledFluidTicks":{"type":"array","items":{"$ref":"#/components/schemas/ScheduledTickSnapshot"}},"reason":{"type":"string"}}
+      },
+      "WorldSnapshot": {
+        "type":"object", "required":["dimension","gameTime","raining","thundering","blockScheduledTickCount","fluidScheduledTickCount","serverTick"],
+        "properties":{"dimension":{"type":"string"},"gameTime":{"type":"integer","format":"int64"},"dayTime":{"oneOf":[{"type":"integer","format":"int64"},{"type":"string"}]},"raining":{"type":"boolean"},"thundering":{"type":"boolean"},"blockScheduledTickCount":{"type":"integer"},"fluidScheduledTickCount":{"type":"integer"},"serverTick":{"type":"integer","format":"int64"}}
+      },
+      "ProviderV2Result": {
+        "type":"object", "required":["providerId","schemaVersion","snapshotSchema","threadAffinity","readEffects","snapshotSafe","revisionSource","deltaCapability","status"],
+        "properties":{"providerId":{"type":"string"},"schemaVersion":{"type":"string"},"snapshotSchema":{"type":"string"},"threadAffinity":{"type":"string"},"readEffects":{"type":"string"},"snapshotSafe":{"type":"boolean"},"mayInitialize":{"type":"boolean"},"mayLoadData":{"type":"boolean"},"mayAccessStorage":{"type":"boolean"},"mayMutate":{"type":"boolean"},"revisionSource":{"type":"string"},"deltaCapability":{"type":"string","enum":["native_event_delta","snapshot_diff_delta","none"]},"debugSupported":{"type":"boolean"},"status":{"type":"string","enum":["registered","completed","skipped","failed"]},"reason":{"type":"string"},"providerRevision":{"type":"integer","format":"int64"},"bytes":{"type":"integer"},"durationMicros":{"type":"integer","format":"int64"},"data":{"type":"object"}}
+      },
+      "DeepObservationServerSnapshot": {
+        "type":"object",
+        "properties":{"snapshotId":{"type":"string","format":"uuid"},"serverTick":{"type":"integer","format":"int64"},"ownerThreadCaptureMicros":{"type":"integer","format":"int64"},"player":{"$ref":"#/components/schemas/PlayerSnapshot"},"menu":{"$ref":"#/components/schemas/MenuSnapshot"},"entities":{"type":"array","items":{"$ref":"#/components/schemas/EntitySnapshot"}},"blocks":{"type":"array","items":{"$ref":"#/components/schemas/BlockSnapshot"}},"blockEntities":{"type":"array","items":{"$ref":"#/components/schemas/BlockEntitySnapshot"}},"chunks":{"type":"array","items":{"$ref":"#/components/schemas/ChunkSnapshot"}},"world":{"$ref":"#/components/schemas/WorldSnapshot"}}
+      },
+      "DeepObservationResponse": {
+        "type":"object", "required":["type","schemaVersion","formal","perspective","sessionEpoch","capturedAt","metadata","resourceRevisionRefs","limitations","providers","requestId","protocolVersion"],
+        "properties":{"type":{"type":"string","enum":["deep_observation.snapshot"]},"schemaVersion":{"type":"string","enum":["phase9b-observation-v0"]},"formal":{"type":"boolean","enum":[true]},"perspective":{"type":"string","enum":["client_known","server_authoritative","both"]},"sessionEpoch":{"type":"string","format":"uuid"},"capturedAt":{"type":"integer","format":"int64"},"metadata":{"$ref":"#/components/schemas/ObservationMetadata"},"client":{"$ref":"#/components/schemas/ClientKnownPlayerSnapshot"},"server":{"$ref":"#/components/schemas/DeepObservationServerSnapshot"},"comparison":{"type":"object"},"resourceRevisionRefs":{"type":"array","items":{"$ref":"#/components/schemas/ResourceRevisionRef"}},"limitations":{"type":"array","items":{"$ref":"#/components/schemas/CapabilityLimitation"}},"providers":{"type":"array","items":{"$ref":"#/components/schemas/ProviderV2Result"}},"responseBytes":{"type":"integer"},"maxResponseBytes":{"type":"integer"},"requestId":{"type":"string"},"protocolVersion":{"type":"string","enum":["v0"]}}
+      },
+      "DeepObservationCapabilitiesResponse": {
+        "type":"object", "required":["type","schemaVersion","formal","phase9aDiagnosticsStatus","budgets","perspectives","domains","providers","requestId","protocolVersion"],
+        "properties":{"type":{"type":"string","enum":["deep_observation.capabilities"]},"schemaVersion":{"type":"string","enum":["phase9b-observation-v0"]},"formal":{"type":"boolean","enum":[true]},"phase9aDiagnosticsStatus":{"type":"string"},"budgets":{"$ref":"#/components/schemas/DeepObservationBudgets"},"perspectives":{"type":"array","items":{"type":"string"}},"domains":{"type":"array","items":{"$ref":"#/components/schemas/DeepObservationDomain"}},"providers":{"type":"array","items":{"$ref":"#/components/schemas/ProviderV2Result"}},"requestId":{"type":"string"},"protocolVersion":{"type":"string","enum":["v0"]}}
+      },
       "RequestEnvelope": {
         "type": "object",
         "required": [

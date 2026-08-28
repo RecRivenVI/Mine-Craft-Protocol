@@ -1,10 +1,10 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9A PASS WITH IDENTIFIED IMPLEMENTATION GAPS  
+> Status: Phase 9B PASS
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9A only; Phase 9B/9C and Phase 10 are not started  
-> Contract status: experimental diagnostics; Wire Protocol v1 is not frozen
+> Current phase boundary: Phase 9A/9B complete; Phase 9C and Phase 10 are not started
+> Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
 
@@ -57,17 +57,17 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 | Basic Entity LIVE read | IMPLEMENTED | bounded radius query | five Targets | add stable typed Living/equipment/relationship projections |
 | Basic Block LIVE read | IMPLEMENTED | loaded Client/Server BlockState | five Targets | add properties and Block Entity domain |
 | State Frame | PARTIAL | coordinated best-effort Provider reads | five Targets | become one input to bounded Keyframes |
-| Provider Read SPI | PARTIAL | detached JSON, LIVE-only | five Targets | add schemas, snapshot semantics and typed Delta capability in 9B |
+| Provider V2 | IMPLEMENTED | typed descriptor, detached schema-backed snapshot, effects/budget/failure isolation | five Targets | consumed by later Recording/Debug phases |
 | Recording | PARTIAL | frame + selected State Frame + events | five Targets | integrate world Keyframe/Delta later; current codec remains unfrozen |
 | Debug Arm | IMPLEMENTED | Control Lease + world fingerprint + TTL | five Targets | retain as the authority boundary |
 | Debug Player health | IMPLEMENTED | server-thread direct mutation | five Targets | expand by typed domains in 9C |
 | Debug loaded block | IMPLEMENTED | loaded state + value precondition | five Targets | retain no-load policy |
-| Deep Player | PARTIAL | Phase 9A bounded server snapshot | three representative Targets | formal schema and client/server comparison in 9B |
-| Deep Entity | PARTIAL | Phase 9A bounded server snapshot | three representative Targets | native tracked/component/attachment hooks in 9B |
-| Block Entity | PARTIAL | loaded map + serialization projection | three representative Targets | provider-safe schema and effect policy in 9B |
-| Chunk internals | PARTIAL | `getChunkNow`, sections and Block Entity summary | three representative Targets | holder/ticket/entity manager hooks in 9B |
-| Ticket details | MISSING | source investigation only | three representative Targets | Target-specific hook required |
-| Scheduled Tick details | PARTIAL | public total count only | three representative Targets | per-chunk detail hook required |
+| Deep Player | IMPLEMENTED | formal typed server snapshot plus explicit client-known counterpart | five Targets | optional domains remain limitations |
+| Deep Entity | IMPLEMENTED | formal typed common core; raw tracked data excluded | five Targets | Provider V2 owns custom extensions |
+| Block Entity | IMPLEMENTED | safe default summary; explicit structured serialization opt-in | five Targets | byte-budgeted and effect-labelled |
+| Chunk internals | IMPLEMENTED | `getChunkNow`, sections, loading summary and ticks | five Targets | raw diagnostics stay Target-specific |
+| Ticket/loading | IMPLEMENTED | normalized summary + read-only Target diagnostic Accessor | five Targets | do not promote raw parity |
+| Scheduled Tick details | IMPLEMENTED | read-only LevelTicks Accessor | five Targets | Recording consumption deferred to 9E |
 | Persistent read | PARTIAL | typed world/player/chunk Phase 9A read | three representative Targets | lifecycle/fingerprint policy and more domains in 9D |
 | Persistent write | MISSING | deliberately absent | none | investigate and implement only in 9D after safety review |
 | Experimental Keyframe | IMPLEMENTED | bounded server-thread immutable snapshot | three representative Targets | formal track selection and budgets in 9E |
@@ -427,11 +427,11 @@ The 26.2 NeoForge/Fabric experimental engines are currently behaviorally close, 
 
 ## 14. Phase 9 Execution Decomposition
 
-### Phase 9B — Deep Observation and Provider V2
+### Phase 9B — Deep Observation and Provider V2 — COMPLETE
 
 Deliver formal typed Player/Entity/Block Entity/Chunk snapshots, client/server comparison, Provider schema/snapshot/delta declarations and required Target hooks.
 
-Exit gate: three representative Targets plus NeoForge 1.21.1/26.1.2 expose honest capability coverage; no observation force-loads or hides read effects.
+Exit gate result: PASS. All five Targets expose the formal V0 schema, resource-local revision, client/server comparison, no-load observation, normalized loading summary, Target diagnostic tickets, Scheduled Tick detail, Provider V2 and executable budgets.
 
 ### Phase 9C — Deep Debug and Batch Boundary State
 
@@ -496,4 +496,96 @@ Phase 9B Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 ```
 
-Phase 9A stops here. It does not automatically enter Phase 9B.
+Phase 9A stopped at its independent review boundary. Phase 9B was subsequently authorized, completed and now stops at the Phase 9C independent review boundary.
+
+## 16. Phase 9B Formal Deep Observation Evidence
+
+Formal native routes:
+
+```text
+GET  /v0/observe/deep/capabilities
+POST /v0/observe/deep
+```
+
+OpenAPI V0 version is `0.0.1-phase9b`; 106 Java and 106 TypeScript model files are generated. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
+
+Every formal response carries `ObservationMetadata`, session epoch, snapshot ID, client/server ticks, alignment quality, limitations and resource-local `ResourceRevisionRef` values. Runtime-derived revisions use `revisionSource=snapshot_change_sequence`; Provider results retain their declared provider revision source. No global world revision exists.
+
+Five-Target formal coverage:
+
+| Domain | 1.20.1 Forge | 1.21.1 NF | 26.1.2 NF | 26.2 NF | 26.2 Fabric |
+|---|---|---|---|---|---|
+| Player | PASS | PASS | PASS | PASS | PASS |
+| Client/server compare | PASS | PASS | PASS | PASS | PASS |
+| Entity common core | PASS | PASS | PASS | PASS | PASS |
+| Block | PASS | PASS | PASS | PASS | PASS |
+| Block Entity safe | PASS | PASS | PASS | PASS | PASS |
+| Block Entity serialized opt-in | PASS | PASS | PASS | PASS | PASS |
+| Chunk | PASS | PASS | PASS | PASS | PASS |
+| Loading summary | PASS | PASS | PASS | PASS | PASS |
+| Ticket detail | TARGET_DIAGNOSTIC_ONLY | TARGET_DIAGNOSTIC_ONLY | TARGET_DIAGNOSTIC_ONLY | TARGET_DIAGNOSTIC_ONLY | TARGET_DIAGNOSTIC_ONLY |
+| Scheduled block/fluid ticks | PASS | PASS | PASS | PASS | PASS |
+| World | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL |
+| Menu | PASS | PASS | PASS | PASS | PASS |
+| Provider V2 | PASS | PASS | PASS | PASS | PASS |
+
+Ticket and LevelTicks hooks are read-only Mixin Accessors with no cancellation or control-flow change. Legacy Targets observe DistanceManager Ticket sets; 26.x Targets observe TicketStorage. Generic Agents consume normalized reasons/loading/simulation/holder state. Raw detail is explicitly diagnostic-only.
+
+Block Entity policy:
+
+```text
+default:
+  type + position + loaded + revision + provider descriptors
+  readEffects=none
+
+includeSerializedBlockEntities=true:
+  Minecraft serialization path
+  NBT converted to structured JSON tree
+  readEffects=serialization_hooks_invoked
+  16 KiB per Block Entity / 64 KiB aggregate defaults
+  explicit truncation when exceeded
+```
+
+Provider V2 verifies safe snapshot execution, lazy provider non-invocation by default, explicit effect opt-in, provider revision, schema version, thread affinity, Delta/Debug declarations and isolation of throw, timeout, oversized and invalid-schema providers.
+
+Representative NeoForge 26.2 projection baseline:
+
+| Profile | Owner-thread capture | Response bytes | Entities | Chunks | Providers |
+|---|---:|---:|---:|---:|---:|
+| minimal | 655 us | 2,708 | 0 | 0 | 0 |
+| typical | 6,280 us | 18,412 | 3 | 9 | 1 |
+| maximum | 3,863 us | 122,140 | 41 | 25 | 2 |
+
+Soft owner-thread budget is 4 ms and hard budget is 12 ms. A capture beyond the hard budget is marked partial; response/provider/serialized-state budgets reject or truncate explicitly.
+
+Phase 9B regression evidence:
+
+```text
+OpenAPI validation/generation: PASS
+five-Target build: PASS
+five-Target formal live Gate: PASS
+five-Target V1 smoke: PASS
+Provider V2 effect/failure/budget isolation: PASS
+Ticket/Scheduled Tick runtime hook verification: PASS
+unloaded observation -> NOT_LOADED/no load: PASS
+Phase 8 Local Gate: PASS
+Companion tests: 3 PASS, 24 Tools
+dependency audit: 0 high / 0 critical
+```
+
+Remaining planned work is unchanged:
+
+```text
+9C Deep Debug expansion
+9D Persistent Storage lifecycle/write safety
+9E native/event Delta, Recording V2 and Canonical Store
+9F Structured Diff/reconstruction
+9G five-Target long stress/release gate
+Phase 10 advanced diagnostics/recovery
+```
+
+```text
+Phase 9B: PASS
+Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 10: NOT STARTED
+```

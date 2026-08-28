@@ -848,6 +848,35 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         return CompletableFuture.completedFuture(this.phase9a.reconstruct(request));
     }
 
+
+    @Override
+    public CompletableFuture<JsonObject> formalObservationCapabilities() {
+        return CompletableFuture.completedFuture(this.phase9a.formalCapabilities());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> formalDeepObservation(JsonObject request) {
+        String perspective = request.has("perspective")
+                ? request.get("perspective").getAsString() : "server_authoritative";
+        if (perspective.equals("client_known")) {
+            return this.playerState().thenCompose(client ->
+                    this.phase9a.formalize(request, client, null));
+        }
+        CompletableFuture<JsonObject> server = this.onIntegratedServer((minecraftServer, player) ->
+                this.phase9a.captureFormal(minecraftServer, player, request));
+        if (perspective.equals("server_authoritative")) {
+            return server.thenCompose(value -> this.phase9a.formalize(request, null, value));
+        }
+        if (!perspective.equals("both")) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "INVALID_PERSPECTIVE", 400, "perspective must be client_known, server_authoritative, or both"));
+        }
+        CompletableFuture<JsonObject> client = this.playerState();
+        return client.thenCombine(server, (clientValue, serverValue) ->
+                new JsonObject[] { clientValue, serverValue }).thenCompose(values ->
+                this.phase9a.formalize(request, values[0], values[1]));
+    }
+
     @Override
     public CompletableFuture<JsonObject> peerStatus() {
         return this.onClient(() -> {

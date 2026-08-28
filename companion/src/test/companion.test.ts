@@ -156,8 +156,9 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.ok(negotiated, 'official v2 Client must negotiate a protocol version');
 
     const listed = await client.listTools();
-    assert.equal(listed.tools.length, 23);
+    assert.equal(listed.tools.length, 24);
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_get_session'));
+    assert.ok(listed.tools.some(tool => tool.name === 'minecraft_deep_observe'));
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_debug'));
     assert.equal(JSON.stringify(listed.tools).includes(maliciousText), false);
 

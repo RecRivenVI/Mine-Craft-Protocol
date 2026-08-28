@@ -1,0 +1,8 @@
+[CmdletBinding()]param([Parameter(Mandatory)][string]$BaseUri,[Parameter(Mandatory)][string]$TokenFile,[Parameter(Mandatory)][string]$ExpectedTarget)
+$ErrorActionPreference='Stop';$base=$BaseUri.TrimEnd('/');$token=(Get-Content $TokenFile -Raw).Trim();$auth=@{Authorization="Bearer $token"}
+function A([bool]$c,[string]$m){if(-not$c){throw "Phase 9B ticket/tick failed: $m"}}
+$r=Invoke-RestMethod "$base/v0/observe/deep" -Method Post -Headers $auth -ContentType 'application/json' -Body (@{perspective='server_authoritative';domains=@('chunks','world');selector=@{chunkRadius=0;entityRadius=0};includeProviderData=$false}|ConvertTo-Json -Depth 10 -Compress)
+$chunk=@($r.server.chunks)[0];$loading=$chunk.loadingSummary;A($loading.ticketDetailAvailable-and$loading.loaded)'loading summary';A($loading.sourceCount-ge1)'ticket source';A($loading.targetDiagnostic.stability-eq'target_specific_diagnostic_only')'diagnostic stability';A($null-ne$chunk.scheduledBlockTicks-and$null-ne$chunk.scheduledFluidTicks)'scheduled arrays'
+$caps=Invoke-RestMethod "$base/v0/observe/deep/capabilities" -Headers $auth;A($caps.hooks.ticketHook-eq'runtime_verified'-and$caps.hooks.scheduledTickHook-eq'runtime_verified')'runtime hook verification'
+foreach($tick in @($chunk.scheduledBlockTicks)+@($chunk.scheduledFluidTicks)){foreach($field in @('x','y','z','type','triggerTick','priority','subTickOrder','chunkX','chunkZ')){A($null-ne$tick.$field)"tick field $field"}}
+[pscustomobject]@{Target=$ExpectedTarget;LoadingSummary='PASS';TicketDetail='TARGET_DIAGNOSTIC_ONLY';TicketSources=$loading.sourceCount;BlockTicks=@($chunk.scheduledBlockTicks).Count;FluidTicks=@($chunk.scheduledFluidTicks).Count;HookVerification='PASS';Result='PASS'}

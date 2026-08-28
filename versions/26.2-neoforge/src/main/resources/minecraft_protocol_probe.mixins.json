@@ -6,8 +6,10 @@
   "client": [
     "AbstractContainerScreenMixin",
     "ConnectionMixin",
+    "DistanceManagerAccessor",
     "GuiRenderStateMixin",
     "KeyboardHandlerInvoker",
+    "LevelTicksAccessor",
     "MinecraftMixin",
     "MouseHandlerInvoker",
     "MultiPlayerGameModeMixin",

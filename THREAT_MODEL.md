@@ -153,6 +153,8 @@ A third-party Mod may register a provider that returns oversized, misleading or 
 
 Controls: explicit namespaced registration, reserved `minecraft:` namespace, detached JSON-only contract, standard request-body limits, trust/source propagation and no promotion of provider data into Tool descriptions, scopes or Runtime policy. Provider code remains part of the registering Mod's trust boundary and must own its thread scheduling.
 
+Phase 9B adds Provider V2 declarations for schema version, thread affinity, perspectives, snapshot safety, read effects, initialization/loading/storage/mutation flags, revision source, Delta capability, future Debug schema and required scopes. Unsafe/lazy providers are not invoked without explicit `allowReadEffects`; provider count/time/per-provider/total byte budgets and schema validation isolate throw, timeout, oversized and invalid providers without failing other observation domains.
+
 ### Observation Authority Confusion
 
 Client-known state may be stale or incomplete compared with Integrated Server state.

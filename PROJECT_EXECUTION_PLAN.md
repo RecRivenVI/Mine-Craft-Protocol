@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Phase 9A Entry Reconciliation / Capability Inventory / High-Risk Spikes
-> 文档版本：0.4
+> 文档状态：Phase 9B Deep Observation / Provider V2 Complete
+> 文档版本：0.5
 > 编制日期：2026-08-27  
 > 修订日期：2026-08-28
 > 项目性质：Minecraft Java Agent 自动化、调试、录制与测试基础设施  
-> 当前阶段：Phase 8/V1 已完成并由 `2dda8448d00852d42fb3e07525ee05daaaddd66f` 绑定验收；Phase 9 已启动且仅执行 Phase 9A；Phase 10 未开始
+> 当前阶段：Phase 8/V1 已完成；Phase 9A/9B 已完成；Phase 9C 未开始并等待独立审查；Phase 10 未开始
 
 ---
 
@@ -2011,7 +2011,7 @@ Agent
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-08-28）：已启动，当前仅执行 Phase 9A（Capability Inventory 与三个代表 Target 高风险 Spike）。Phase 9B/9C 及后续子阶段尚未开始，必须在 Phase 9A Exit Gate 和独立审查后另行开放。
+执行状态（2026-08-28）：Phase 9A 已完成事实调查；Phase 9B 已完成五 Target Formal Deep Observation、client/server perspectives、资源级 snapshot-change revision、normalized loading summary、只读 Ticket/LevelTicks Hook、Provider V2、投影/预算/截断、OpenAPI V0 与 MCP 聚合。Phase 9C 尚未开始，必须经独立审查另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2240,22 +2240,14 @@ Agent
 
 ## 29. 下一步立即执行项
 
-当前唯一允许的下一步是完成 **Phase 9A Entry Reconciliation / Capability Inventory / High-Risk Spikes**：
-
-1. 在 Forge 1.20.1、NeoForge 26.2、Fabric 26.2 调查 Deep Player/Entity/Block Entity/Chunk/Ticket/Scheduled Tick 的真实边界；
-2. 证明三类代表性强类型 Debug 写入，并保持 Debug Arm、diagnostic evidence 与 PLAYTEST 隔离；
-3. 只实现显式 `PERSISTED` read spike，不实现任何 Persistent Write；
-4. 实现受限实验 Keyframe、明确标记 `snapshot_diff` 的 Delta，以及 bounded Reconstruction proof；
-5. 收集 Keyframe/Delta 数据量，形成 Phase 9B codec benchmark requirement；
-6. 建立独立 `conformance/phase9/` Phase 9A Gate，并执行 Phase 8/V1 回归；
-7. 根据 Spike 事实重新拆分 Phase 9B 及后续子阶段；
-8. Phase 9A 完成后停止，等待独立审查，不自动进入 Phase 9B。
+当前唯一允许的下一步是对 **Phase 9C Deep Debug / Batch Boundary State** 进行独立审查；本轮不得自动开始 Phase 9C。
 
 ```text
 Phase 8 Remote Parity: PASS
 V1 Remote Release Candidate: PASS
-Phase 9: STARTED — Phase 9A ONLY
-Phase 9B Entry Gate: CLOSED pending Phase 9A evidence
+Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
+Phase 9B: PASS
+Phase 9C Entry Gate: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

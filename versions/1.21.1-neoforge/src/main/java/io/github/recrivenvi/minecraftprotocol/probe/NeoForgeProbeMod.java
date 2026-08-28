@@ -14,6 +14,7 @@ public final class NeoForgeProbeMod {
 
     public NeoForgeProbeMod(IEventBus modBus) {
         MinecraftProtocolProviders.register(new ProbeEchoReadProvider());
+        ProbeV2Providers.registerAll();
         modBus.addListener(PeerNetworking::register);
         LOGGER.info("Mine-Craft-Protocol Phase 8 NeoForge 1.21.1 V1 Runtime loaded");
     }

@@ -1,0 +1,228 @@
+{
+  "result": "PASS",
+  "phase": "9B",
+  "baseCommit": "ac728b60dbc2030407f950b3debc4adbbb88fdac",
+  "originCommit": "ac728b60dbc2030407f950b3debc4adbbb88fdac",
+  "branch": "master",
+  "initialDirtyPaths": [],
+  "workingTreeClean": false,
+  "timestamp": "2026-08-29T00:02:00.9485399+08:00",
+  "wireProtocolV1Frozen": false,
+  "formalProtocol": {
+    "version": "0.0.1-phase9b",
+    "endpoints": [
+      "/v0/observe/deep/capabilities",
+      "/v0/observe/deep"
+    ],
+    "javaModels": 106,
+    "typescriptModels": 106,
+    "mcpTool": "minecraft_deep_observe",
+    "mcpTools": 24
+  },
+  "revision": {
+    "resources": [
+      "player",
+      "menu",
+      "entity",
+      "chunk",
+      "block_entity",
+      "provider"
+    ],
+    "runtimeSource": "snapshot_change_sequence",
+    "providerSource": "provider_revision",
+    "globalWorldRevision": false
+  },
+  "perspectives": [
+    "client_known",
+    "server_authoritative",
+    "both"
+  ],
+  "targets": [
+    {
+      "target": "1.20.1-forge",
+      "player": "PASS",
+      "clientServer": "PASS",
+      "entity": "PASS",
+      "block": "PASS",
+      "blockEntitySafe": "PASS",
+      "blockEntitySerialized": "PASS",
+      "chunk": "PASS",
+      "loadingSummary": "PASS",
+      "ticketDetail": "TARGET_DIAGNOSTIC_ONLY",
+      "scheduledBlockTicks": "PASS",
+      "scheduledFluidTicks": "PASS",
+      "world": "PARTIAL",
+      "menu": "PASS",
+      "providerV2": "PASS",
+      "noLoad": "PASS",
+      "v1Smoke": "PASS"
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "player": "PASS",
+      "clientServer": "PASS",
+      "entity": "PASS",
+      "block": "PASS",
+      "blockEntitySafe": "PASS",
+      "blockEntitySerialized": "PASS",
+      "chunk": "PASS",
+      "loadingSummary": "PASS",
+      "ticketDetail": "TARGET_DIAGNOSTIC_ONLY",
+      "scheduledBlockTicks": "PASS",
+      "scheduledFluidTicks": "PASS",
+      "world": "PARTIAL",
+      "menu": "PASS",
+      "providerV2": "PASS",
+      "noLoad": "PASS",
+      "v1Smoke": "PASS"
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "player": "PASS",
+      "clientServer": "PASS",
+      "entity": "PASS",
+      "block": "PASS",
+      "blockEntitySafe": "PASS",
+      "blockEntitySerialized": "PASS",
+      "chunk": "PASS",
+      "loadingSummary": "PASS",
+      "ticketDetail": "TARGET_DIAGNOSTIC_ONLY",
+      "scheduledBlockTicks": "PASS",
+      "scheduledFluidTicks": "PASS",
+      "world": "PARTIAL",
+      "menu": "PASS",
+      "providerV2": "PASS",
+      "noLoad": "PASS",
+      "v1Smoke": "PASS"
+    },
+    {
+      "target": "26.2-neoforge",
+      "player": "PASS",
+      "clientServer": "PASS",
+      "entity": "PASS",
+      "block": "PASS",
+      "blockEntitySafe": "PASS",
+      "blockEntitySerialized": "PASS",
+      "chunk": "PASS",
+      "loadingSummary": "PASS",
+      "ticketDetail": "TARGET_DIAGNOSTIC_ONLY",
+      "scheduledBlockTicks": "PASS",
+      "scheduledFluidTicks": "PASS",
+      "world": "PARTIAL",
+      "menu": "PASS",
+      "providerV2": "PASS",
+      "noLoad": "PASS",
+      "v1Smoke": "PASS"
+    },
+    {
+      "target": "26.2-fabric",
+      "player": "PASS",
+      "clientServer": "PASS",
+      "entity": "PASS",
+      "block": "PASS",
+      "blockEntitySafe": "PASS",
+      "blockEntitySerialized": "PASS",
+      "chunk": "PASS",
+      "loadingSummary": "PASS",
+      "ticketDetail": "TARGET_DIAGNOSTIC_ONLY",
+      "scheduledBlockTicks": "PASS",
+      "scheduledFluidTicks": "PASS",
+      "world": "PARTIAL",
+      "menu": "PASS",
+      "providerV2": "PASS",
+      "noLoad": "PASS",
+      "v1Smoke": "PASS"
+    }
+  ],
+  "tickets": {
+    "legacyHook": "DistanceManagerAccessor.tickets",
+    "modernHook": "DistanceManagerAccessor.ticketStorage",
+    "normalized": [
+      "loaded",
+      "fullStatus",
+      "loadingLevel",
+      "simulationActive",
+      "reasons",
+      "sourceCount",
+      "holderState"
+    ],
+    "raw": "TARGET_DIAGNOSTIC_ONLY",
+    "readOnly": true,
+    "changesControlFlow": false
+  },
+  "scheduledTicks": {
+    "hook": "LevelTicksAccessor.allContainers",
+    "fields": [
+      "position",
+      "type",
+      "triggerTick",
+      "priority",
+      "subTickOrder",
+      "chunk"
+    ],
+    "waterFluidTickCapturedOnFiveTargets": true,
+    "readOnly": true
+  },
+  "providerV2": {
+    "safe": "PASS",
+    "lazyDefaultSkipped": "PASS",
+    "explicitEffects": "PASS",
+    "throwIsolation": "PASS",
+    "timeoutIsolation": "PASS",
+    "oversizedIsolation": "PASS",
+    "schemaIsolation": "PASS",
+    "otherDomainsSurvive": "PASS",
+    "budgets": {
+      "timeoutMs": 250,
+      "perProviderBytes": 16384,
+      "totalBytes": 65536,
+      "count": 8
+    }
+  },
+  "blockEntity": {
+    "safeDefault": "PASS",
+    "serializedOptIn": "PASS",
+    "readEffects": "serialization_hooks_invoked",
+    "perEntityBytes": 16384,
+    "totalBytes": 65536,
+    "structured": "NBT converted through NbtOps to JSON tree"
+  },
+  "benchmark": {
+    "target": "26.2-neoforge",
+    "minimal": {
+      "entities": 0,
+      "providers": 0,
+      "chunks": 0,
+      "bytes": 2708,
+      "captureMicros": 655
+    },
+    "typical": {
+      "entities": 3,
+      "providers": 1,
+      "chunks": 9,
+      "bytes": 18412,
+      "captureMicros": 6280
+    },
+    "maximum": {
+      "entities": 41,
+      "providers": 2,
+      "chunks": 25,
+      "bytes": 122140,
+      "captureMicros": 3863
+    },
+    "softOwnerMicros": 4000,
+    "hardOwnerMicros": 12000
+  },
+  "regression": {
+    "phase8LocalGate": "PASS",
+    "fiveTargetBuild": "PASS",
+    "fiveTargetFormalLive": "PASS",
+    "fiveTargetV1Smoke": "PASS",
+    "companionTests": "3 PASS",
+    "dependencyAudit": "0 high / 0 critical"
+  },
+  "phase9AComparison": "PASS on three representative Targets",
+  "phase9C": "NOT_STARTED",
+  "phase10": "NOT_STARTED",
+  "nextGate": "READY_FOR_INDEPENDENT_REVIEW"
+}

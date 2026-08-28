@@ -4,6 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.JsonOps;
+import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.probe.mixin.DistanceManagerAccessor;
+import io.github.recrivenvi.minecraftprotocol.probe.mixin.LevelTicksAccessor;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import java.io.DataInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -12,9 +18,11 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -26,10 +34,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.Ticket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
@@ -42,6 +52,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.TicketStorage;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -49,6 +61,9 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.storage.RegionFile;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.ticks.LevelChunkTicks;
+import net.minecraft.world.ticks.ScheduledTick;
 
 /** Experimental Phase 9A evidence collector. It is not a frozen public protocol implementation. */
 final class Phase9ASpikeEngine implements AutoCloseable {
@@ -59,11 +74,14 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private static final int MAX_SELECTED_BLOCKS = 64;
 
     private final String target;
+    private final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
     private final ExecutorService storageWorker;
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
     private final Map<String, JsonObject> deltas = new LinkedHashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final AtomicBoolean ticketHookVerified = new AtomicBoolean();
+    private final AtomicBoolean scheduledTickHookVerified = new AtomicBoolean();
 
     Phase9ASpikeEngine(String target) {
         this.target = target;
@@ -102,6 +120,126 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         targetFacts.addProperty("scheduledTickModel", "LevelTicks count public; per-tick details require hook");
         json.add("targetFacts", targetFacts);
         return json;
+    }
+
+    JsonObject formalCapabilities() {
+        JsonObject json = base("deep_observation.capabilities");
+        json.addProperty("schemaVersion", "phase9b-observation-v0");
+        json.addProperty("formal", true);
+        json.addProperty("phase9aDiagnosticsStatus", "experimental_superseded_for_stable_agent_usage");
+        JsonObject budgets = new JsonObject();
+        budgets.addProperty("maxChunkRadius", 2);
+        budgets.addProperty("maxEntities", MAX_ENTITIES);
+        budgets.addProperty("maxBlocks", MAX_SELECTED_BLOCKS);
+        budgets.addProperty("maxBlockEntities", MAX_BLOCK_ENTITIES);
+        budgets.addProperty("maxProviders", 8);
+        budgets.addProperty("maxSerializedBytesPerBlockEntity", 16_384);
+        budgets.addProperty("maxTotalSerializedBlockEntityBytes", 65_536);
+        budgets.addProperty("maxProviderBytes", 16_384);
+        budgets.addProperty("maxTotalProviderBytes", 65_536);
+        budgets.addProperty("maxResponseBytes", 524_288);
+        budgets.addProperty("providerTimeoutMs", 250);
+        budgets.addProperty("ownerThreadSoftBudgetMicros", 4_000);
+        budgets.addProperty("ownerThreadHardBudgetMicros", 12_000);
+        json.add("budgets", budgets);
+        JsonArray perspectives = new JsonArray();
+        perspectives.add("client_known");
+        perspectives.add("server_authoritative");
+        perspectives.add("both");
+        json.add("perspectives", perspectives);
+        JsonArray domains = new JsonArray();
+        for (String domain : List.of("player", "entities", "blocks", "block_entities", "chunks", "world", "menu", "providers")) {
+            domains.add(domain);
+        }
+        json.add("domains", domains);
+        JsonArray providers = new JsonArray();
+        for (AgentDataProviderV2 provider : MinecraftProtocolProvidersV2.snapshot()) {
+            providers.add(providerDescriptor(provider.descriptor()));
+        }
+        json.add("providers", providers);
+        JsonObject hooks = new JsonObject();
+        hooks.addProperty("ticketHook", this.ticketHookVerified.get() ? "runtime_verified" : "unverified_until_deep_observation");
+        hooks.addProperty("scheduledTickHook", this.scheduledTickHookVerified.get() ? "runtime_verified" : "unverified_until_deep_observation");
+        hooks.addProperty("mechanism", "read_only_mixin_accessor");
+        hooks.addProperty("changesControlFlow", false);
+        hooks.addProperty("fallback", "capability_partial_without_target_diagnostic");
+        json.add("hooks", hooks);
+        return json;
+    }
+
+    JsonObject captureFormal(MinecraftServer server, ServerPlayer player, JsonObject request) {
+        JsonObject selector = new JsonObject();
+        JsonObject requestedSelector = request.has("selector") && request.get("selector").isJsonObject()
+                ? request.getAsJsonObject("selector") : new JsonObject();
+        JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
+                ? request.getAsJsonObject("budgets") : new JsonObject();
+        selector.addProperty("radiusChunks", bounded(integer(requestedSelector, "chunkRadius", 0), 0, 2));
+        selector.addProperty("entityRadius", bounded(integer(requestedSelector, "entityRadius", 16), 0, 64));
+        selector.addProperty("entityLimit", bounded(integer(budgets, "maxEntities", 64), 1, MAX_ENTITIES));
+        selector.addProperty("blockEntityLimit", bounded(integer(budgets, "maxBlockEntities", 64), 1, MAX_BLOCK_ENTITIES));
+        selector.addProperty("maxSerializedBytesPerBlockEntity", bounded(integer(budgets, "maxSerializedBytesPerBlockEntity", 16_384), 256, 16_384));
+        selector.addProperty("maxTotalSerializedBlockEntityBytes", bounded(integer(budgets, "maxTotalSerializedBlockEntityBytes", 65_536), 1_024, 65_536));
+        selector.addProperty("includeSerializedState", request.has("includeSerializedBlockEntities")
+                && request.get("includeSerializedBlockEntities").getAsBoolean());
+        selector.add("selectedBlocks", requestedSelector.has("blocks") && requestedSelector.get("blocks").isJsonArray()
+                ? requestedSelector.getAsJsonArray("blocks").deepCopy() : new JsonArray());
+        selector.add("domains", request.has("domains") && request.get("domains").isJsonArray()
+                ? request.getAsJsonArray("domains").deepCopy() : allDomains());
+        JsonObject snapshot = captureSnapshot(server, player, normalizedSelector(selector));
+        if (snapshot.has("player")) {
+            JsonObject playerSnapshot = snapshot.getAsJsonObject("player");
+            playerSnapshot.remove("extendedStatus");
+            playerSnapshot.remove("menuClass");
+        }
+        if (snapshot.has("entities")) for (JsonElement element : snapshot.getAsJsonArray("entities")) {
+            JsonObject entity = element.getAsJsonObject();
+            entity.remove("extensions");
+            entity.remove("nonDefaultTrackedValues");
+        }
+        if (snapshot.has("world")) {
+            snapshot.getAsJsonObject("world").remove("scheduledTickDetail");
+            snapshot.getAsJsonObject("world").remove("ticketDetail");
+        }
+        snapshot.remove("providerTrack");
+        snapshot.remove("tickets");
+        applyProjection(snapshot, request);
+        snapshot.addProperty("type", "deep_observation.server_snapshot");
+        return snapshot;
+    }
+
+    CompletableFuture<JsonObject> formalize(JsonObject request, JsonObject client, JsonObject server) {
+        String perspective = request.has("perspective") ? request.get("perspective").getAsString() : "server_authoritative";
+        JsonObject response = base("deep_observation.snapshot");
+        response.addProperty("schemaVersion", "phase9b-observation-v0");
+        response.addProperty("formal", true);
+        response.addProperty("perspective", perspective);
+        response.addProperty("sessionEpoch", this.revisions.sessionEpoch());
+        response.addProperty("capturedAt", System.currentTimeMillis());
+        if (client != null) response.add("client", client.deepCopy());
+        if (server != null) response.add("server", server.deepCopy());
+        JsonObject metadata = observationMetadata(client, server);
+        response.add("metadata", metadata);
+        JsonArray refs = resourceRevisions(client, server);
+        response.add("resourceRevisionRefs", refs);
+        if (client != null && server != null) response.add("comparison", compare(client, server));
+        JsonArray limitations = new JsonArray();
+        limitations.add(limitation("statistics", "PARTIAL", "bounded_projection_not_implemented"));
+        limitations.add(limitation("advancements", "PARTIAL", "bounded_projection_not_implemented"));
+        limitations.add(limitation("recipes", "PARTIAL", "bounded_projection_not_implemented"));
+        limitations.add(limitation("cooldowns", "UNAVAILABLE", "REQUIRES_NEW_HOOK"));
+        if (server != null && server.has("world") && !server.getAsJsonObject("world").has("dayTime")) {
+            limitations.add(limitation("world.dayTime", "PARTIAL", "target_clock_projection_not_formalized"));
+        }
+        if (client != null) limitations.add(limitation("client_known.deep_fields", "PARTIAL", "client prediction exposes the synchronized common core; server-only inventory details remain separate"));
+        response.add("limitations", limitations);
+        if (!request.has("includeProviderData") || !request.get("includeProviderData").getAsBoolean()) {
+            response.add("providers", new JsonArray());
+            return CompletableFuture.completedFuture(checkedResponse(response, request));
+        }
+        return providers(request, refs).thenApply(providerResults -> {
+            response.add("providers", providerResults);
+            return checkedResponse(response, request);
+        });
     }
 
     JsonObject observe(MinecraftServer server, ServerPlayer player, JsonObject request) {
@@ -313,7 +451,260 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         }, this.storageWorker);
     }
 
+    private CompletableFuture<JsonArray> providers(JsonObject request, JsonArray revisionRefs) {
+        JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
+                ? request.getAsJsonObject("budgets") : new JsonObject();
+        int providerLimit = bounded(integer(budgets, "maxProviders", 4), 1, 8);
+        int perProviderBytes = bounded(integer(budgets, "maxProviderBytes", 16_384), 256, 16_384);
+        int totalProviderBytes = bounded(integer(budgets, "maxTotalProviderBytes", 65_536), 1_024, 65_536);
+        int timeoutMillis = bounded(integer(budgets, "providerTimeoutMs", 250), 25, 1_000);
+        boolean allowReadEffects = request.has("allowReadEffects") && request.get("allowReadEffects").getAsBoolean();
+        Set<String> selected = new HashSet<>();
+        if (request.has("providerIds") && request.get("providerIds").isJsonArray()) {
+            request.getAsJsonArray("providerIds").forEach(element -> selected.add(element.getAsString()));
+        }
+        JsonObject query = request.has("providerQuery") && request.get("providerQuery").isJsonObject()
+                ? request.getAsJsonObject("providerQuery").deepCopy() : new JsonObject();
+        List<CompletableFuture<JsonObject>> captures = new ArrayList<>();
+        int considered = 0;
+        for (AgentDataProviderV2 provider : MinecraftProtocolProvidersV2.snapshot()) {
+            AgentDataProviderV2.Descriptor descriptor = provider.descriptor();
+            if (!selected.isEmpty() && !selected.contains(descriptor.providerId())) continue;
+            if (considered++ >= providerLimit) break;
+            if (!descriptor.snapshotSafe() && !allowReadEffects) {
+                JsonObject skipped = providerResult(descriptor, "skipped", "read_effects_not_allowed");
+                captures.add(CompletableFuture.completedFuture(skipped));
+                continue;
+            }
+            AgentDataProviderV2.ReadContext context = new AgentDataProviderV2.ReadContext(
+                    query, request.has("perspective") ? request.get("perspective").getAsString() : "server_authoritative",
+                    allowReadEffects, System.currentTimeMillis() + timeoutMillis, perProviderBytes);
+            long started = System.nanoTime();
+            CompletableFuture<JsonObject> capture;
+            try {
+                capture = provider.capture(context);
+            } catch (Throwable throwable) {
+                capture = CompletableFuture.failedFuture(throwable);
+            }
+            captures.add(capture.orTimeout(timeoutMillis, TimeUnit.MILLISECONDS).handle((data, error) -> {
+                if (error != null) return providerResult(descriptor, "failed",
+                        error.getClass().getSimpleName().contains("Timeout") ? "timeout" : "provider_exception");
+                int bytes = GSON.toJson(data).getBytes(StandardCharsets.UTF_8).length;
+                if (bytes > perProviderBytes) return providerResult(descriptor, "failed", "provider_byte_budget_exceeded");
+                if (!data.has("schemaVersion") || !descriptor.schemaVersion().equals(data.get("schemaVersion").getAsString())
+                        || !data.has("data") || !data.get("data").isJsonObject()) {
+                    return providerResult(descriptor, "failed", "schema_violation");
+                }
+                JsonObject result = providerResult(descriptor, "completed", "");
+                result.add("data", data.get("data").deepCopy());
+                result.addProperty("providerRevision", data.has("providerRevision")
+                        ? data.get("providerRevision").getAsLong() : 0L);
+                result.addProperty("revisionSource", descriptor.revisionSource());
+                result.addProperty("bytes", bytes);
+                result.addProperty("durationMicros", (System.nanoTime() - started) / 1_000L);
+                return result;
+            }));
+        }
+        CompletableFuture<?>[] futures = captures.toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures).thenApply(ignored -> {
+            JsonArray results = new JsonArray();
+            int total = 0;
+            for (CompletableFuture<JsonObject> future : captures) {
+                JsonObject result = future.join();
+                int bytes = result.has("bytes") ? result.get("bytes").getAsInt() : 0;
+                if (total + bytes > totalProviderBytes) {
+                    JsonObject limited = result.deepCopy();
+                    limited.addProperty("status", "failed");
+                    limited.addProperty("reason", "total_provider_byte_budget_exceeded");
+                    limited.remove("data");
+                    results.add(limited);
+                    continue;
+                }
+                total += bytes;
+                results.add(result);
+                if (result.has("data")) revisionRefs.add(this.revisions.revision(
+                        "provider", result.get("providerId").getAsString(), result.get("data")));
+            }
+            return results;
+        });
+    }
+
+    private JsonObject checkedResponse(JsonObject response, JsonObject request) {
+        JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
+                ? request.getAsJsonObject("budgets") : new JsonObject();
+        int maximum = bounded(integer(budgets, "maxResponseBytes", 524_288), 16_384, 524_288);
+        int bytes = encodedBytes(response);
+        response.addProperty("responseBytes", bytes);
+        response.addProperty("maxResponseBytes", maximum);
+        if (bytes > maximum) throw new ProtocolState.ProtocolException(
+                "QUERY_BUDGET_EXCEEDED", 413, "Deep Observation response exceeds maxResponseBytes");
+        return response;
+    }
+
+    private JsonObject observationMetadata(JsonObject client, JsonObject server) {
+        JsonObject metadata = new JsonObject();
+        metadata.addProperty("perspective", client != null && server != null ? "both"
+                : client != null ? "client_known" : "server_authoritative");
+        metadata.addProperty("acquisition", "owner_thread_snapshot");
+        metadata.addProperty("completeness", "projected");
+        metadata.addProperty("readEffects", "none");
+        metadata.addProperty("consistency", client != null && server != null ? "coordinated_best_effort" : "owner_thread_snapshot");
+        metadata.addProperty("capturedAt", System.currentTimeMillis());
+        metadata.addProperty("snapshotId", UUID.randomUUID().toString());
+        metadata.addProperty("sessionEpoch", this.revisions.sessionEpoch());
+        metadata.addProperty("clientTick", client != null && client.has("clientTick") ? client.get("clientTick").getAsLong() : -1L);
+        metadata.addProperty("serverTick", server != null && server.has("serverTick") ? server.get("serverTick").getAsLong() : -1L);
+        metadata.addProperty("alignmentQuality", client != null && server != null ? "best_effort_not_same_tick" : "single_perspective");
+        return metadata;
+    }
+
+    private JsonArray resourceRevisions(JsonObject client, JsonObject server) {
+        JsonArray refs = new JsonArray();
+        if (client != null) refs.add(this.revisions.revision("player", "client", client));
+        if (server == null) return refs;
+        if (server.has("player")) {
+            JsonObject player = server.getAsJsonObject("player");
+            refs.add(this.revisions.revision("player", player.get("uuid").getAsString(), player));
+        }
+        if (server.has("menu")) {
+            JsonObject menu = server.getAsJsonObject("menu");
+            refs.add(this.revisions.revision("menu", menu.get("menuId").getAsString(), menu));
+        }
+        if (server.has("entities")) for (JsonElement element : server.getAsJsonArray("entities")) {
+            JsonObject entity = element.getAsJsonObject();
+            refs.add(this.revisions.revision("entity", entity.get("uuid").getAsString(), entity));
+        }
+        if (server.has("chunks")) for (JsonElement element : server.getAsJsonArray("chunks")) {
+            JsonObject chunk = element.getAsJsonObject();
+            refs.add(this.revisions.revision("chunk", chunk.get("key").getAsString(), chunk));
+        }
+        if (server.has("blockEntities")) for (JsonElement element : server.getAsJsonArray("blockEntities")) {
+            JsonObject blockEntity = element.getAsJsonObject();
+            refs.add(this.revisions.revision("block_entity", blockEntity.get("key").getAsString(), blockEntity));
+        }
+        return refs;
+    }
+
+    private static JsonObject compare(JsonObject client, JsonObject server) {
+        JsonObject result = new JsonObject();
+        JsonObject player = server.has("player") ? server.getAsJsonObject("player") : new JsonObject();
+        result.add("uuid", comparison(client.get("uuid"), player.get("uuid"), false));
+        result.add("dimension", comparison(client.get("dimension"), player.get("dimension"), false));
+        result.add("health", comparison(client.get("health"), player.get("health"), true));
+        result.add("selectedSlot", comparison(client.get("selectedSlot"), player.get("selectedSlot"), true));
+        JsonObject position = player.has("position") ? player.getAsJsonObject("position") : new JsonObject();
+        result.add("x", comparison(client.get("x"), position.get("x"), true));
+        result.add("y", comparison(client.get("y"), position.get("y"), true));
+        result.add("z", comparison(client.get("z"), position.get("z"), true));
+        result.add("yaw", comparison(client.get("yaw"), position.get("yaw"), true));
+        result.add("pitch", comparison(client.get("pitch"), position.get("pitch"), true));
+        result.add("velocityX", comparison(client.get("velocityX"), position.get("velocityX"), true));
+        result.add("velocityY", comparison(client.get("velocityY"), position.get("velocityY"), true));
+        result.add("velocityZ", comparison(client.get("velocityZ"), position.get("velocityZ"), true));
+        result.addProperty("timingAlignment", "best_effort_not_same_tick");
+        result.addProperty("consistency", "prediction_difference_is_not_automatically_a_bug");
+        return result;
+    }
+
+    private static JsonObject comparison(JsonElement client, JsonElement server, boolean numeric) {
+        JsonObject json = new JsonObject();
+        boolean available = client != null && server != null;
+        json.addProperty("available", available);
+        if (!available) return json;
+        json.add("clientValue", client.deepCopy());
+        json.add("serverValue", server.deepCopy());
+        boolean agreement = client.equals(server);
+        json.addProperty("agreement", agreement);
+        if (numeric && client.isJsonPrimitive() && server.isJsonPrimitive()
+                && client.getAsJsonPrimitive().isNumber() && server.getAsJsonPrimitive().isNumber()) {
+            json.addProperty("delta", client.getAsDouble() - server.getAsDouble());
+        }
+        return json;
+    }
+
+    private static JsonObject limitation(String domain, String status, String reason) {
+        JsonObject json = new JsonObject();
+        json.addProperty("domain", domain);
+        json.addProperty("status", status);
+        json.addProperty("reason", reason);
+        return json;
+    }
+
+    private static JsonObject providerDescriptor(AgentDataProviderV2.Descriptor descriptor) {
+        JsonObject json = new JsonObject();
+        json.addProperty("providerId", descriptor.providerId());
+        json.addProperty("schemaVersion", descriptor.schemaVersion());
+        json.addProperty("snapshotSchema", descriptor.snapshotSchema());
+        json.addProperty("threadAffinity", descriptor.threadAffinity());
+        json.addProperty("readEffects", descriptor.readEffects());
+        json.addProperty("snapshotSafe", descriptor.snapshotSafe());
+        json.addProperty("mayInitialize", descriptor.mayInitialize());
+        json.addProperty("mayLoadData", descriptor.mayLoadData());
+        json.addProperty("mayAccessStorage", descriptor.mayAccessStorage());
+        json.addProperty("mayMutate", descriptor.mayMutate());
+        json.addProperty("revisionSource", descriptor.revisionSource());
+        json.addProperty("deltaCapability", descriptor.deltaCapability());
+        json.addProperty("debugSupported", descriptor.debugDeclaration().supported());
+        json.addProperty("status", "registered");
+        return json;
+    }
+
+    private static JsonObject providerResult(AgentDataProviderV2.Descriptor descriptor, String status, String reason) {
+        JsonObject json = providerDescriptor(descriptor);
+        json.addProperty("status", status);
+        if (!reason.isEmpty()) json.addProperty("reason", reason);
+        return json;
+    }
+
+    private static JsonArray allDomains() {
+        JsonArray domains = new JsonArray();
+        for (String domain : List.of("player", "entities", "blocks", "block_entities", "chunks", "world", "menu")) domains.add(domain);
+        return domains;
+    }
+
+
+    private static void applyProjection(JsonObject snapshot, JsonObject request) {
+        if (!request.has("projection") || !request.get("projection").isJsonObject()) return;
+        JsonObject projection = request.getAsJsonObject("projection");
+        if (snapshot.has("player") && projection.has("playerFields") && projection.get("playerFields").isJsonArray()) {
+            Set<String> fields = new HashSet<>();
+            projection.getAsJsonArray("playerFields").forEach(element -> fields.add(element.getAsString()));
+            JsonObject player = snapshot.getAsJsonObject("player");
+            Set<String> keep = new HashSet<>(List.of("uuid", "name"));
+            if (fields.contains("transform")) keep.add("position");
+            if (fields.contains("environment")) keep.addAll(List.of("pose", "onGround", "inWater", "fallFlying"));
+            if (fields.contains("vitals")) keep.addAll(List.of("health", "maxHealth", "absorption", "food", "air", "experienceLevel", "totalExperience", "experienceProgress"));
+            if (fields.contains("authority")) keep.addAll(List.of("gameMode", "mayFly", "flying", "instabuild"));
+            if (fields.contains("inventory")) keep.addAll(List.of("selectedSlot", "inventory", "carriedStack", "equipment"));
+            if (fields.contains("attributes")) keep.add("attributes");
+            if (fields.contains("effects")) keep.add("effects");
+            if (fields.contains("relationships")) keep.addAll(List.of("vehicle", "passengers"));
+            if (fields.contains("menu")) keep.addAll(List.of("menuId", "menuRole"));
+            if (fields.contains("dimension")) keep.add("dimension");
+            if (fields.contains("respawn")) keep.add("respawn");
+            new ArrayList<>(player.keySet()).stream().filter(key -> !keep.contains(key)).forEach(player::remove);
+        }
+        if (snapshot.has("entities") && projection.has("entityFields") && projection.get("entityFields").isJsonArray()) {
+            Set<String> fields = new HashSet<>();
+            projection.getAsJsonArray("entityFields").forEach(element -> fields.add(element.getAsString()));
+            for (JsonElement element : snapshot.getAsJsonArray("entities")) {
+                JsonObject entity = element.getAsJsonObject();
+                Set<String> keep = new HashSet<>(List.of("uuid", "runtimeId", "type"));
+                if (fields.contains("transform")) keep.addAll(List.of("x", "y", "z", "velocityX", "velocityY", "velocityZ", "yaw", "pitch", "pose"));
+                if (fields.contains("living")) keep.addAll(List.of("health", "maxHealth"));
+                if (fields.contains("equipment")) keep.add("equipment");
+                if (fields.contains("effects")) keep.add("effectCount");
+                if (fields.contains("attributes")) keep.add("syncableAttributeCount");
+                if (fields.contains("relationships")) keep.addAll(List.of("vehicle", "passengers"));
+                if (fields.contains("common_state")) keep.add("noGravity");
+                new ArrayList<>(entity.keySet()).stream().filter(key -> !keep.contains(key)).forEach(entity::remove);
+            }
+        }
+        snapshot.addProperty("projectionApplied", true);
+    }
+
     private JsonObject captureSnapshot(MinecraftServer server, ServerPlayer player, JsonObject selector) {
+        long captureStarted = System.nanoTime();
         ServerLevel level = player.level();
         JsonObject json = base("phase9a.snapshot");
         json.addProperty("snapshotId", UUID.randomUUID().toString());
@@ -325,19 +716,33 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("perspective", "server_authoritative");
         json.addProperty("acquisition", "public_api_plus_internal_projection");
         json.addProperty("completeness", "bounded_projected");
-        json.addProperty("readEffects", "none_except_block_entity_serialization_hooks");
+        boolean serializedBlockEntities = selector.get("includeSerializedState").getAsBoolean();
+        json.addProperty("readEffects", serializedBlockEntities ? "serialization_hooks_invoked" : "none");
         json.addProperty("chunkLoadRequested", false);
         json.addProperty("dataSource", "LIVE");
         json.addProperty("storageAccessed", false);
         json.addProperty("dimension", level.dimension().identifier().toString());
         json.add("selector", selector.deepCopy());
-        json.add("player", player(player));
-        json.add("entities", entities(level, player, selector.get("entityRadius").getAsDouble()));
-        JsonArray chunks = chunks(level, player, selector.get("radiusChunks").getAsInt());
-        json.add("chunks", chunks);
-        json.add("blockEntities", blockEntities(level, chunks));
-        json.add("blocks", blocks(level, player, selector));
-        json.add("world", world(server, level));
+        Set<String> domains = new HashSet<>();
+        selector.getAsJsonArray("domains").forEach(element -> domains.add(element.getAsString()));
+        if (domains.contains("player")) json.add("player", player(player));
+        if (domains.contains("menu")) json.add("menu", menu(player));
+        if (domains.contains("entities")) {
+            JsonArray entities = entities(level, player, selector.get("entityRadius").getAsDouble(), selector.get("entityLimit").getAsInt());
+            json.add("entities", entities);
+            JsonObject counts = new JsonObject();
+            counts.addProperty("returnedCount", entities.size());
+            counts.addProperty("availableCountKnown", false);
+            counts.addProperty("truncated", entities.size() >= selector.get("entityLimit").getAsInt());
+            counts.addProperty("limit", selector.get("entityLimit").getAsInt());
+            json.add("entitiesResult", counts);
+        }
+        JsonArray chunks = domains.contains("chunks") || domains.contains("block_entities")
+                ? chunks(level, player, selector.get("radiusChunks").getAsInt()) : new JsonArray();
+        if (domains.contains("chunks")) json.add("chunks", chunks);
+        if (domains.contains("block_entities")) json.add("blockEntities", blockEntities(level, chunks, selector));
+        if (domains.contains("blocks")) json.add("blocks", blocks(level, player, selector));
+        if (domains.contains("world")) json.add("world", world(server, level));
         JsonObject ticketFacts = new JsonObject();
         ticketFacts.addProperty("status", "REQUIRES_NEW_HOOK");
         ticketFacts.addProperty("model", "TicketStorage + normalized loading reason candidate");
@@ -348,6 +753,16 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         provider.addProperty("status", "existing_live_read_spi");
         provider.addProperty("nativeDelta", false);
         json.add("providerTrack", provider);
+        long captureMicros = (System.nanoTime() - captureStarted) / 1_000L;
+        json.addProperty("ownerThreadCaptureMicros", captureMicros);
+        json.addProperty("ownerThreadSoftBudgetMicros", 4_000L);
+        json.addProperty("ownerThreadHardBudgetMicros", 12_000L);
+        if (captureMicros > 12_000L) {
+            json.addProperty("completeness", "partial");
+            JsonArray limitations = new JsonArray();
+            limitations.add("owner_thread_hard_budget_exceeded");
+            json.add("budgetLimitations", limitations);
+        }
         return json;
     }
 
@@ -422,6 +837,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.add("passengers", passengers);
         json.addProperty("menuClass", player.containerMenu.getClass().getName());
         json.addProperty("menuId", player.containerMenu.containerId);
+        json.addProperty("menuRole", player.containerMenu.containerId == 0 ? "player_inventory" : "container");
         json.addProperty("dimension", player.level().dimension().identifier().toString());
         json.addProperty("respawn", player.getRespawnConfig() == null ? "unset" : player.getRespawnConfig().toString());
         JsonObject extended = new JsonObject();
@@ -433,10 +849,28 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return json;
     }
 
-    private JsonArray entities(ServerLevel level, ServerPlayer player, double radius) {
+
+    private JsonObject menu(ServerPlayer player) {
+        JsonObject json = new JsonObject();
+        json.addProperty("menuId", player.containerMenu.containerId);
+        json.addProperty("role", player.containerMenu.containerId == 0 ? "player_inventory" : "container");
+        json.addProperty("serverAuthoritative", true);
+        json.addProperty("playerInventoryRelationship", true);
+        JsonArray slots = new JsonArray();
+        for (int index = 0; index < player.containerMenu.slots.size(); index++) {
+            JsonObject slot = item(player.containerMenu.slots.get(index).getItem());
+            slot.addProperty("slot", index);
+            slots.add(slot);
+        }
+        json.add("slots", slots);
+        json.add("carriedStack", item(player.containerMenu.getCarried()));
+        return json;
+    }
+
+    private JsonArray entities(ServerLevel level, ServerPlayer player, double radius, int limit) {
         JsonArray json = new JsonArray();
         List<Entity> entities = level.getEntities(player, player.getBoundingBox().inflate(radius), ignored -> true);
-        entities.stream().sorted(Comparator.comparing(entity -> entity.getUUID().toString())).limit(MAX_ENTITIES)
+        entities.stream().sorted(Comparator.comparing(entity -> entity.getUUID().toString())).limit(limit)
                 .forEach(entity -> json.add(entity(entity)));
         return json;
     }
@@ -498,6 +932,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     value.addProperty("nonEmptySections", nonEmpty);
                     value.addProperty("blockEntityCount", chunk.getBlockEntities().size());
                     value.addProperty("status", chunk.getFullStatus().toString());
+                    value.add("loadingSummary", loadingSummary(level, x, z, chunk));
+                    value.add("scheduledBlockTicks", scheduledTicks(level.getBlockTicks(), x, z, true));
+                    value.add("scheduledFluidTicks", scheduledTicks(level.getFluidTicks(), x, z, false));
                 } else {
                     value.addProperty("reason", "NOT_LOADED");
                 }
@@ -507,9 +944,86 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return json;
     }
 
-    private JsonArray blockEntities(ServerLevel level, JsonArray chunks) {
+    private JsonObject loadingSummary(ServerLevel level, int chunkX, int chunkZ, LevelChunk chunk) {
+        JsonObject json = new JsonObject();
+        long key = ChunkPos.pack(chunkX, chunkZ);
+        TicketStorage storage = ((DistanceManagerAccessor)(Object)
+                level.getChunkSource().chunkMap.getDistanceManager()).minecraftProtocol$getTicketStorage();
+        this.ticketHookVerified.set(true);
+        List<Ticket> tickets = storage.getTickets(key);
+        JsonArray reasons = new JsonArray();
+        JsonArray details = new JsonArray();
+        Set<String> normalized = new HashSet<>();
+        for (Ticket ticket : tickets) {
+            String rawType = String.valueOf(ticket.getType());
+            normalized.add(normalizedTicketReason(rawType));
+            JsonObject detail = new JsonObject();
+            detail.addProperty("type", rawType);
+            detail.addProperty("level", ticket.getTicketLevel());
+            details.add(detail);
+        }
+        normalized.stream().sorted().forEach(reasons::add);
+        json.addProperty("loaded", chunk != null);
+        json.addProperty("fullStatus", chunk == null ? "UNLOADED" : chunk.getFullStatus().toString());
+        json.addProperty("loadingLevel", storage.getTicketLevelAt(key, false));
+        json.addProperty("simulationLevel", storage.getTicketLevelAt(key, true));
+        json.addProperty("simulationActive", storage.getTicketLevelAt(key, true) <= 33);
+        json.addProperty("sourceCount", tickets.size());
+        json.addProperty("holderState", chunk == null ? "absent" : "level_chunk_present");
+        json.addProperty("ticketDetailAvailable", true);
+        json.add("reasons", reasons);
+        JsonObject diagnostic = new JsonObject();
+        diagnostic.addProperty("schema", "26.x-ticket-storage-v0");
+        diagnostic.addProperty("stability", "target_specific_diagnostic_only");
+        diagnostic.add("tickets", details);
+        json.add("targetDiagnostic", diagnostic);
+        return json;
+    }
+
+    private JsonArray scheduledTicks(Object ticks, int chunkX, int chunkZ, boolean block) {
+        JsonArray json = new JsonArray();
+        Long2ObjectMap<LevelChunkTicks<?>> containers = ((LevelTicksAccessor)(Object)ticks).minecraftProtocol$getAllContainers();
+        this.scheduledTickHookVerified.set(true);
+        LevelChunkTicks<?> container = containers.get(ChunkPos.pack(chunkX, chunkZ));
+        if (container == null) return json;
+        container.getAll().limit(64).forEach(raw -> {
+            ScheduledTick<?> tick = (ScheduledTick<?>)raw;
+            JsonObject value = new JsonObject();
+            value.addProperty("x", tick.pos().getX());
+            value.addProperty("y", tick.pos().getY());
+            value.addProperty("z", tick.pos().getZ());
+            value.addProperty("type", block && tick.type() instanceof Block blockType
+                    ? BuiltInRegistries.BLOCK.getKey(blockType).toString()
+                    : !block && tick.type() instanceof Fluid fluidType
+                    ? BuiltInRegistries.FLUID.getKey(fluidType).toString() : String.valueOf(tick.type()));
+            value.addProperty("triggerTick", tick.triggerTick());
+            value.addProperty("priority", tick.priority().toString());
+            value.addProperty("subTickOrder", tick.subTickOrder());
+            value.addProperty("chunkX", chunkX);
+            value.addProperty("chunkZ", chunkZ);
+            json.add(value);
+        });
+        return json;
+    }
+
+    private static String normalizedTicketReason(String raw) {
+        String value = raw.toLowerCase(java.util.Locale.ROOT);
+        if (value.contains("player")) return "player";
+        if (value.contains("forced")) return "forced";
+        if (value.contains("portal")) return "portal";
+        if (value.contains("light")) return "lighting";
+        if (value.contains("start")) return "spawn_or_start";
+        return "other";
+    }
+
+    private JsonArray blockEntities(ServerLevel level, JsonArray chunks, JsonObject selector) {
         JsonArray json = new JsonArray();
         int count = 0;
+        int serializedTotal = 0;
+        int limit = selector.get("blockEntityLimit").getAsInt();
+        boolean includeSerialized = selector.get("includeSerializedState").getAsBoolean();
+        int perEntityBudget = selector.get("maxSerializedBytesPerBlockEntity").getAsInt();
+        int totalBudget = selector.get("maxTotalSerializedBlockEntityBytes").getAsInt();
         for (JsonElement element : chunks) {
             JsonObject chunkValue = element.getAsJsonObject();
             if (!chunkValue.get("loaded").getAsBoolean()) continue;
@@ -517,15 +1031,27 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     chunkValue.get("chunkX").getAsInt(), chunkValue.get("chunkZ").getAsInt());
             if (chunk == null) continue;
             for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
-                if (count++ >= MAX_BLOCK_ENTITIES) return json;
+                if (count++ >= limit) return json;
                 BlockEntity blockEntity = entry.getValue();
-                CompoundTag tag = blockEntity.saveWithFullMetadata(level.registryAccess());
                 JsonObject value = new JsonObject();
                 value.addProperty("key", key(entry.getKey()));
                 value.addProperty("type", BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()).toString());
-                value.addProperty("serializedCharacters", tag.toString().length());
-                value.addProperty("serializedSha256", sha256(tag.toString()));
-                value.addProperty("readEffects", "serialization_hooks_invoked");
+                value.addProperty("loaded", true);
+                value.addProperty("readEffects", includeSerialized ? "serialization_hooks_invoked" : "none");
+                if (includeSerialized) {
+                    CompoundTag tag = blockEntity.saveWithFullMetadata(level.registryAccess());
+                    JsonElement structured = NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag);
+                    int bytes = GSON.toJson(structured).getBytes(StandardCharsets.UTF_8).length;
+                    value.addProperty("serializedBytes", bytes);
+                    if (bytes > perEntityBudget || serializedTotal + bytes > totalBudget) {
+                        value.addProperty("serializedStateStatus", "truncated");
+                        value.addProperty("limitation", "serialized_state_byte_budget_exceeded");
+                    } else {
+                        serializedTotal += bytes;
+                        value.addProperty("serializedStateStatus", "complete");
+                        value.add("serializedState", structured);
+                    }
+                }
                 json.add(value);
             }
         }
@@ -572,7 +1098,6 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         JsonObject json = new JsonObject();
         json.addProperty("dimension", level.dimension().identifier().toString());
         json.addProperty("gameTime", level.getGameTime());
-        json.addProperty("dayTime", "TARGET_SPECIFIC_clock_projection_requires_spike");
         json.addProperty("raining", level.isRaining());
         json.addProperty("thundering", level.isThundering());
         json.addProperty("blockScheduledTickCount", level.getBlockTicks().count());
@@ -784,11 +1309,20 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         JsonObject selector = new JsonObject();
         selector.addProperty("radiusChunks", bounded(request.has("radiusChunks") ? request.get("radiusChunks").getAsInt() : 1, 0, 2));
         selector.addProperty("entityRadius", bounded(request.has("entityRadius") ? request.get("entityRadius").getAsInt() : 32, 0, 64));
+        selector.addProperty("entityLimit", bounded(request.has("entityLimit") ? request.get("entityLimit").getAsInt() : MAX_ENTITIES, 1, MAX_ENTITIES));
+        selector.addProperty("blockEntityLimit", bounded(request.has("blockEntityLimit") ? request.get("blockEntityLimit").getAsInt() : MAX_BLOCK_ENTITIES, 1, MAX_BLOCK_ENTITIES));
+        selector.addProperty("includeSerializedState", request.has("includeSerializedState") && request.get("includeSerializedState").getAsBoolean());
+        selector.addProperty("maxSerializedBytesPerBlockEntity", bounded(
+                request.has("maxSerializedBytesPerBlockEntity") ? request.get("maxSerializedBytesPerBlockEntity").getAsInt() : 16_384, 256, 16_384));
+        selector.addProperty("maxTotalSerializedBlockEntityBytes", bounded(
+                request.has("maxTotalSerializedBlockEntityBytes") ? request.get("maxTotalSerializedBlockEntityBytes").getAsInt() : 65_536, 1_024, 65_536));
         JsonArray blocks = request.has("selectedBlocks") && request.get("selectedBlocks").isJsonArray()
                 ? request.getAsJsonArray("selectedBlocks").deepCopy() : new JsonArray();
         if (blocks.size() > MAX_SELECTED_BLOCKS) throw new ProtocolState.ProtocolException(
                 "PHASE9A_SELECTOR_TOO_LARGE", 413, "selectedBlocks supports at most " + MAX_SELECTED_BLOCKS);
         selector.add("selectedBlocks", blocks);
+        selector.add("domains", request.has("domains") && request.get("domains").isJsonArray()
+                ? request.getAsJsonArray("domains").deepCopy() : allDomains());
         return selector;
     }
 
@@ -810,6 +1344,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private static int bounded(int value, int minimum, int maximum) {
         return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    private static int integer(JsonObject object, String name, int fallback) {
+        return object.has(name) ? object.get(name).getAsInt() : fallback;
     }
 
     private static int encodedBytes(JsonObject json) {

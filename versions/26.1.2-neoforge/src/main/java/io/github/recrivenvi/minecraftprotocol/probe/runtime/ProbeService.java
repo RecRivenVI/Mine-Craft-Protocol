@@ -30,6 +30,8 @@ interface ProbeService {
     CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z);
     CompletableFuture<JsonObject> debugSetHealth(float health);
     CompletableFuture<JsonObject> debugSetBlock(int x, int y, int z, String blockId, String expectedBlockId);
+    CompletableFuture<JsonObject> formalObservationCapabilities();
+    CompletableFuture<JsonObject> formalDeepObservation(JsonObject request);
     CompletableFuture<JsonObject> peerStatus();
     CompletableFuture<JsonObject> peerProbe();
     CompletableFuture<JsonObject> waitForScreen(String classContains, long timeoutMillis);

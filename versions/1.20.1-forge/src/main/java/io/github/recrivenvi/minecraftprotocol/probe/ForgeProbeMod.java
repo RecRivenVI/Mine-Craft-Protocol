@@ -13,6 +13,7 @@ public final class ForgeProbeMod {
 
     public ForgeProbeMod() {
         MinecraftProtocolProviders.register(new ProbeEchoReadProvider());
+        ProbeV2Providers.registerAll();
         PeerNetworking.initialize();
         LOGGER.info("Mine-Craft-Protocol Phase 8 Forge 1.20.1 V1 Runtime loaded");
     }

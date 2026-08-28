@@ -59,6 +59,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private final AtomicBoolean shutdownRegistered = new AtomicBoolean();
     private final AtomicBoolean captureVerified = new AtomicBoolean();
     private final AtomicLong inputDispatchSequence = new AtomicLong();
+    private final Phase9ASpikeEngine phase9a = new Phase9ASpikeEngine("1.21.1-neoforge");
     private volatile Minecraft minecraft;
     private volatile ProbeTransport transport;
     private volatile Screen lastScreen;
@@ -129,6 +130,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private void shutdown() {
         ProbeTransport current = this.transport;
         if (current != null) current.close();
+        this.phase9a.close();
     }
 
     @Override
@@ -715,6 +717,35 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             json.addProperty("serverTick", server.getTickCount());
             return json;
         });
+    }
+
+
+    @Override
+    public CompletableFuture<JsonObject> formalObservationCapabilities() {
+        return CompletableFuture.completedFuture(this.phase9a.formalCapabilities());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> formalDeepObservation(JsonObject request) {
+        String perspective = request.has("perspective")
+                ? request.get("perspective").getAsString() : "server_authoritative";
+        if (perspective.equals("client_known")) {
+            return this.playerState().thenCompose(client ->
+                    this.phase9a.formalize(request, client, null));
+        }
+        CompletableFuture<JsonObject> server = this.onIntegratedServer((minecraftServer, player) ->
+                this.phase9a.captureFormal(minecraftServer, player, request));
+        if (perspective.equals("server_authoritative")) {
+            return server.thenCompose(value -> this.phase9a.formalize(request, null, value));
+        }
+        if (!perspective.equals("both")) {
+            return CompletableFuture.failedFuture(new ProtocolState.ProtocolException(
+                    "INVALID_PERSPECTIVE", 400, "perspective must be client_known, server_authoritative, or both"));
+        }
+        CompletableFuture<JsonObject> client = this.playerState();
+        return client.thenCombine(server, (clientValue, serverValue) ->
+                new JsonObject[] { clientValue, serverValue }).thenCompose(values ->
+                this.phase9a.formalize(request, values[0], values[1]));
     }
 
     @Override

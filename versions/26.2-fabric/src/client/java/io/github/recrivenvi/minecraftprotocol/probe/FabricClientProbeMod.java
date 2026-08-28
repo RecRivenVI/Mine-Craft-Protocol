@@ -12,6 +12,7 @@ public final class FabricClientProbeMod implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         MinecraftProtocolProviders.register(new ProbeEchoReadProvider());
+        ProbeV2Providers.registerAll();
         PeerClientNetworking.initialize();
         LOGGER.info("Mine-Craft-Protocol Phase 8 Fabric 26.2 client V1 Runtime loaded");
     }

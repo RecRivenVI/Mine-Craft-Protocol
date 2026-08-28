@@ -84,6 +84,35 @@ const recordingConfigSchema = z.object({
     spacing: z.number().int().min(0).max(32).optional()
   }).optional()
 });
+const deepObservationSchema = z.object({
+  perspective: z.enum(['client_known', 'server_authoritative', 'both']),
+  domains: z.array(z.enum(['player', 'entities', 'blocks', 'block_entities', 'chunks', 'world', 'menu', 'providers'])).min(1),
+  selector: z.object({
+    chunkRadius: z.number().int().min(0).max(2).optional(),
+    entityRadius: z.number().int().min(0).max(64).optional(),
+    blocks: z.array(z.object({ x: z.number().int(), y: z.number().int(), z: z.number().int() })).max(64).optional()
+  }).optional(),
+  projection: z.object({
+    playerFields: z.array(z.enum(['identity', 'transform', 'environment', 'vitals', 'authority', 'inventory', 'attributes', 'effects', 'relationships', 'menu', 'dimension', 'respawn'])).optional(),
+    entityFields: z.array(z.enum(['identity', 'transform', 'living', 'equipment', 'effects', 'attributes', 'relationships', 'common_state'])).optional()
+  }).optional(),
+  includeSerializedBlockEntities: z.boolean().default(false),
+  includeProviderData: z.boolean().default(false),
+  allowReadEffects: z.boolean().default(false),
+  providerIds: z.array(z.string().regex(/^[a-z0-9_.-]+:[a-z0-9_./-]+$/)).max(8).optional(),
+  providerQuery: objectSchema.optional(),
+  budgets: z.object({
+    maxEntities: z.number().int().min(1).max(128).optional(),
+    maxBlockEntities: z.number().int().min(1).max(128).optional(),
+    maxProviders: z.number().int().min(1).max(8).optional(),
+    maxSerializedBytesPerBlockEntity: z.number().int().min(256).max(16_384).optional(),
+    maxTotalSerializedBlockEntityBytes: z.number().int().min(1024).max(65_536).optional(),
+    maxProviderBytes: z.number().int().min(256).max(16_384).optional(),
+    maxTotalProviderBytes: z.number().int().min(1024).max(65_536).optional(),
+    maxResponseBytes: z.number().int().min(16_384).max(524_288).optional(),
+    providerTimeoutMs: z.number().int().min(25).max(1000).optional()
+  }).optional()
+});
 
 function asJson(value: unknown): JsonValue {
   return value as JsonValue;
@@ -140,7 +169,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase8' });
+  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9b' });
 
   server.registerTool('minecraft_get_session', {
     title: 'Get Minecraft Session',
@@ -176,6 +205,13 @@ export function buildServer(config: CompanionConfig): McpServer {
     if (kind === 'capture_info') return client.json('GET', '/v0/capture/info');
     return client.json('POST', '/v0/state/frames', { reads: asJson(reads ?? []) });
   }));
+
+  server.registerTool('minecraft_deep_observe', {
+    title: 'Deep Observe Minecraft',
+    description: 'Read a formal, typed, budgeted client/server Minecraft snapshot. Provider data and read effects are explicit and opt-in.',
+    inputSchema: deepObservationSchema,
+    annotations: readAnnotations
+  }, async args => asToolResult(() => client.json('POST', '/v0/observe/deep', clean(args))));
 
   server.registerTool('minecraft_query_world', {
     title: 'Query Loaded Minecraft World',

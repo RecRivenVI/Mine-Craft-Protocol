@@ -25,7 +25,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Phase 8 Gradle gate failed with exit code $LASTEXITCODE" }
 
     $schema = Get-Content 'protocol-schema\src\main\openapi\minecraft-control-v0.json' -Raw | ConvertFrom-Json
-    Assert-True ($schema.info.version -eq '0.0.1-phase8') 'OpenAPI must identify Phase 8'
+    Assert-True ($schema.info.version -eq '0.0.1-phase9b') 'OpenAPI must identify the current Phase 9B V0 contract'
     Assert-True ($null -ne $schema.paths.'/v0/diagnostics/hooks') 'Phase 7 Hook contract must remain present'
     Assert-True ($null -ne $schema.paths.'/v0/operations/{operationId}/wait') 'native operation wait contract must exist'
     Assert-True ($null -ne $schema.paths.'/v0/events/resync') 'event resync contract must exist'
@@ -95,7 +95,7 @@ try {
     Assert-True ($production -notmatch 'console\.log\s*\(') 'stdio production code must not write logs to stdout'
     Assert-True ($production -notmatch 'node:child_process|\bexecSync?\s*\(|\bspawnSync?\s*\(') 'Companion production code must not expose process execution'
     Assert-True ($production -notmatch 'registerTool\s*\([^''\"]') 'MCP Tool names must be static literals'
-    Assert-True (([regex]::Matches($production, "registerTool\('")).Count -eq 23) 'Companion must expose the reviewed 23-Tool surface'
+    Assert-True (([regex]::Matches($production, "registerTool\('")).Count -eq 24) 'Companion must expose the reviewed 24-Tool surface'
     Assert-True (([regex]::Matches($production, "registerPrompt\('")).Count -eq 1) 'Companion must expose one static Prompt'
     Assert-True ($production -match 'dataPlaneOnly:\s*true') 'Companion must propagate the data-plane trust boundary'
     Assert-True ($production -match 'validatePath\(path') 'Runtime paths must pass typed namespace validation'
@@ -108,7 +108,7 @@ try {
         Result = 'PASS'
         Protocol = $schema.info.version
         Targets = $artifacts
-        CompanionTools = 23
+        CompanionTools = 24
         CompanionResources = 4
         CompanionResourceTemplates = 2
         CompanionPrompts = 1

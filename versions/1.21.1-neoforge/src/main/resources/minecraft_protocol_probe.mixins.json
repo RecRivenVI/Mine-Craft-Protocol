@@ -7,6 +7,8 @@
   "client": [
     "AbstractContainerScreenMixin",
     "ClientPacketListenerMixin",
+    "DistanceManagerAccessor",
+    "LevelTicksAccessor",
     "MinecraftMixin",
     "MouseHandlerInvoker",
     "MultiPlayerGameModeMixin",
@@ -16,4 +18,3 @@
     "defaultRequire": 1
   }
 }
-

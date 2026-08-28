@@ -500,6 +500,13 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/reconstruct")) {
                 protocolState.requireScope("read");
                 sendJsonFuture(context, metadata, path, service.phase9aReconstruct(jsonBody(request)));
+
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/observe/deep/capabilities")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.formalObservationCapabilities());
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/observe/deep")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.formalDeepObservation(jsonBody(request)));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
                 sendImmediate(context, metadata, path, recording.list());
