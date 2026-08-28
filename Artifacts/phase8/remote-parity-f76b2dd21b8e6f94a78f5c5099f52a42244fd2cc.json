@@ -1,0 +1,19 @@
+{
+  "result": "FAIL",
+  "sourceCommit": "f76b2dd21b8e6f94a78f5c5099f52a42244fd2cc",
+  "branch": "master",
+  "originCommit": "f76b2dd21b8e6f94a78f5c5099f52a42244fd2cc",
+  "workingTreeClean": true,
+  "gateVersion": "phase8.1-remote-parity-v1",
+  "timestamp": "2026-08-28T11:29:53.9337765+00:00",
+  "remote": "origin",
+  "remoteRef": "origin/master",
+  "static": "NOT_RUN",
+  "javaTests": 0,
+  "javaTestFailures": 0,
+  "companionTools": 0,
+  "gateScriptBlob": "29594a1862f53f73d94e17e1a08f4048f7c3cce3",
+  "criticalSourceHashes": {},
+  "artifactHashes": {},
+  "failure": "npm audit reported a high-severity vulnerability"
+}

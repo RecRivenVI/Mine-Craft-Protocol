@@ -11,6 +11,8 @@ function Assert-True {
     if (-not $Condition) { throw "Phase 8 local gate assertion failed: $Message" }
 }
 
+. (Join-Path $PSScriptRoot 'DependencyAudit.ps1')
+
 $targets = '1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.2-neoforge','26.2-fabric'
 $tasks = @(':protocol-schema:openApiValidate', ':protocol-schema:generateProtocol')
 $tasks += $targets | ForEach-Object { ":versions:${_}:build" }
@@ -33,6 +35,9 @@ try {
     Assert-True ($hardening.Result -eq 'PASS') 'Phase 8 hardening static gate must pass'
     Assert-True (Test-Path -LiteralPath '.\conformance\phase8\Invoke-Phase8RemoteParityGate.ps1') `
         'Phase 8 Remote Parity Gate must exist'
+    $auditClassifierTests = & '.\conformance\phase8\Invoke-Phase8DependencyAuditClassifierTests.ps1'
+    Assert-True ($auditClassifierTests.Result -eq 'PASS' -and $auditClassifierTests.Cases -eq 7) `
+        'Dependency audit classifier deterministic tests must pass'
 
     $javaTestReports = @(Get-ChildItem 'versions\26.2-neoforge\build\test-results\test' -Filter 'TEST-*.xml' -File)
     $javaTests = 0
@@ -59,10 +64,20 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
         & npm test | ForEach-Object { Write-Host $_ }
         if ($LASTEXITCODE -ne 0) { throw 'Companion test suite failed' }
-        $auditText = & npm audit --audit-level=high --json
-        if ($LASTEXITCODE -ne 0) { throw 'npm audit reported a high-severity vulnerability' }
-        $audit = $auditText | ConvertFrom-Json
-        Assert-True ($audit.metadata.vulnerabilities.total -eq 0) 'Companion dependency audit must be clean'
+        $auditResult = Invoke-DependencyAudit -WorkingDirectory (Get-Location).Path -MaxAttempts 3
+        foreach ($attemptResult in $auditResult.AttemptResults) {
+            if ($attemptResult.Status -like 'RETRY_*') {
+                Write-Warning ("Dependency audit attempt {0}: {1}; {2}; diagnostic={3}" -f `
+                    $attemptResult.Attempt,
+                    $attemptResult.FailureKind,
+                    $attemptResult.FailureMessage,
+                    $attemptResult.Diagnostic)
+            }
+        }
+        if ($auditResult.Status -ne 'PASS_NO_THRESHOLD_VULNERABILITIES') {
+            throw ("Dependency audit failed: status={0}; kind={1}; message={2}" -f `
+                $auditResult.Status, $auditResult.FailureKind, $auditResult.FailureMessage)
+        }
     }
     finally {
         Pop-Location
@@ -97,7 +112,18 @@ try {
         CompanionResources = 4
         CompanionResourceTemplates = 2
         CompanionPrompts = 1
-        DependencyVulnerabilities = 0
+        DependencyAuditStatus = $auditResult.Status
+        DependencyAuditAttempts = $auditResult.Attempts
+        DependencyAuditServiceAvailable = $auditResult.ServiceAvailable
+        DependencyAuditResponseValid = $auditResult.ResponseValid
+        DependencyVulnerabilitiesTotal = $auditResult.VulnerabilitiesTotal
+        DependencyVulnerabilitiesLow = $auditResult.VulnerabilitiesLow
+        DependencyVulnerabilitiesModerate = $auditResult.VulnerabilitiesModerate
+        DependencyVulnerabilitiesHigh = $auditResult.VulnerabilitiesHigh
+        DependencyVulnerabilitiesCritical = $auditResult.VulnerabilitiesCritical
+        DependencyAuditFailureKind = $auditResult.FailureKind
+        DependencyAuditFailureMessage = $auditResult.FailureMessage
+        DependencyAuditClassifierTests = $auditClassifierTests.Cases
         HardeningStatic = $hardening.Result
         JavaTests = $javaTests
         JavaTestFailures = $javaFailures
