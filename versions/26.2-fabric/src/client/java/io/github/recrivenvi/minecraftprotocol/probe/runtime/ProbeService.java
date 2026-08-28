@@ -30,6 +30,15 @@ interface ProbeService {
     CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z);
     CompletableFuture<JsonObject> debugSetHealth(float health);
     CompletableFuture<JsonObject> debugSetBlock(int x, int y, int z, String blockId, String expectedBlockId);
+    CompletableFuture<JsonObject> phase9aInventory();
+    CompletableFuture<JsonObject> phase9aObserve(JsonObject request);
+    CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request);
+    CompletableFuture<JsonObject> phase9aDebugAttribute(String attributeId, double value);
+    CompletableFuture<JsonObject> phase9aDebugEntityState(String entityUuid, String state, boolean value);
+    CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request);
+    CompletableFuture<JsonObject> phase9aKeyframe(JsonObject request);
+    CompletableFuture<JsonObject> phase9aDelta(String baseSnapshotId);
+    CompletableFuture<JsonObject> phase9aReconstruct(JsonObject request);
     CompletableFuture<JsonObject> peerStatus();
     CompletableFuture<JsonObject> peerProbe();
     CompletableFuture<JsonObject> waitForScreen(String classContains, long timeoutMillis);

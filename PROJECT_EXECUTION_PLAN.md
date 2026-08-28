@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Phase 8.1 Remote Parity / Release Evidence Reconciliation
-> 文档版本：0.3
+> 文档状态：Phase 9A Entry Reconciliation / Capability Inventory / High-Risk Spikes
+> 文档版本：0.4
 > 编制日期：2026-08-27  
 > 修订日期：2026-08-28
 > 项目性质：Minecraft Java Agent 自动化、调试、录制与测试基础设施  
-> 当前阶段：Phase 8.1 本地修复与远程证据重新绑定；Phase 9/10 均未开始
+> 当前阶段：Phase 8/V1 已完成并由 `2dda8448d00852d42fb3e07525ee05daaaddd66f` 绑定验收；Phase 9 已启动且仅执行 Phase 9A；Phase 10 未开始
 
 ---
 
@@ -2003,7 +2003,7 @@ Agent
 
 ### Phase 8：MCP Companion 与 V1 发布硬化
 
-执行状态（2026-08-28）：Phase 8.1 本地 working-tree 修复与完整 Hardening/Live matrix 已通过。tracked Evidence 已改用 commit-bound 规则，ConditionEngine 已统一 standalone/Pipeline 语义，并增加 Pipeline typed-condition Conformance。由于本轮禁止 commit/push，`origin/master` 尚未包含修复，不得继续宣称 V1 Release Candidate PASS；必须在修复被提交、推送并从 clean detached remote worktree 重跑 Gate 后重新判定。原生 Wire Protocol v1 仍保持未冻结。
+执行状态（2026-08-28）：已完成。产品源码 commit `2dda8448d00852d42fb3e07525ee05daaaddd66f` 已通过 clean detached Remote Parity、dependency audit、五 Artifact hash binding、7-run/5-Target/2-Vulkan Live Matrix、Hardening Representative，以及 active Recording shutdown/race/idempotency/stop-vs-close 验收。V1 Remote Release Candidate 为 PASS。原生 Wire Protocol v1 仍保持未冻结。
 
 交付 MCP Tools/Resources、stdio、协议代际兼容、Artifact 获取、Agent-friendly 错误、完整自主测试工作流、安全审计和性能基线。
 
@@ -2011,7 +2011,7 @@ Agent
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态：未开始。Phase 8.1 Remote Parity 未通过前 Entry Gate 保持关闭。
+执行状态（2026-08-28）：已启动，当前仅执行 Phase 9A（Capability Inventory 与三个代表 Target 高风险 Spike）。Phase 9B/9C 及后续子阶段尚未开始，必须在 Phase 9A Exit Gate 和独立审查后另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2240,24 +2240,24 @@ Agent
 
 ## 29. 下一步立即执行项
 
-当前唯一允许的下一步是完成 **Phase 8.1 Remote Parity / Release Evidence Reconciliation**：
+当前唯一允许的下一步是完成 **Phase 9A Entry Reconciliation / Capability Inventory / High-Risk Spikes**：
 
-1. 统一 standalone 与 Pipeline 的 Screen/UI/Player/Block/Entity/Menu/Event 等 Condition 语义源；
-2. 增加 Pipeline player/block/event wait 与 entity/menu assert Conformance；
-3. 增加 `Invoke-Phase8RemoteParityGate.ps1`，从 fetch 后的 `origin/master` 建立 clean detached worktree；
-4. Remote Gate 输出 `sourceCommit/branch/originCommit/workingTreeClean/gateVersion/timestamp`、critical source hashes 与 Artifact hashes；
-5. 在本地修复 working tree 重跑 OpenAPI、Static、Java、Companion、五 Target build、Hardening Live、五 Target world smoke 和 26.2 OpenGL/Vulkan matrix；
-6. 本轮不创建 commit、不 push；完成后等待修复被提交和推送；
-7. push 后重新 fetch，并只从 clean `origin/master` worktree 运行 Remote Parity Gate；
-8. 仅当 Remote Gate 与 exact-commit Live Evidence 同时 PASS，才重新声明 V1 Remote Release Candidate PASS 并打开 Phase 9 Entry Gate。
-
-在上述条件满足前：
+1. 在 Forge 1.20.1、NeoForge 26.2、Fabric 26.2 调查 Deep Player/Entity/Block Entity/Chunk/Ticket/Scheduled Tick 的真实边界；
+2. 证明三类代表性强类型 Debug 写入，并保持 Debug Arm、diagnostic evidence 与 PLAYTEST 隔离；
+3. 只实现显式 `PERSISTED` read spike，不实现任何 Persistent Write；
+4. 实现受限实验 Keyframe、明确标记 `snapshot_diff` 的 Delta，以及 bounded Reconstruction proof；
+5. 收集 Keyframe/Delta 数据量，形成 Phase 9B codec benchmark requirement；
+6. 建立独立 `conformance/phase9/` Phase 9A Gate，并执行 Phase 8/V1 回归；
+7. 根据 Spike 事实重新拆分 Phase 9B 及后续子阶段；
+8. Phase 9A 完成后停止，等待独立审查，不自动进入 Phase 9B。
 
 ```text
-Phase 8 Remote Parity: FAIL
-V1 Remote Release Candidate: FAIL
-Phase 9 Entry Gate: CLOSED
+Phase 8 Remote Parity: PASS
+V1 Remote Release Candidate: PASS
+Phase 9: STARTED — Phase 9A ONLY
+Phase 9B Entry Gate: CLOSED pending Phase 9A evidence
 Phase 10: NOT STARTED
+Wire Protocol v1: NOT FROZEN
 ```
 
 Phase 9 与 Phase 10 必须保持独立：Phase 9 完成 Conformance、Exit Gate 和独立审查后，才能另行启动 Phase 10。

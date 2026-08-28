@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Phase 8.1 working-tree reconciliation; remote Release Candidate pending commit-bound revalidation
+> Status: Phase 8/V1 attested at `2dda8448d00852d42fb3e07525ee05daaaddd66f`; Phase 9A representative-target spikes in progress
 > Authority: `PROJECT_EXECUTION_PLAN.md` defines long-term scope; this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
@@ -26,11 +26,11 @@ Current implementation status:
 
 | Target | Build | Client runtime | Dedicated server | V0 control runtime |
 |---|---|---|---|---|
-| 1.20.1 Forge | verified | verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts unavailable |
-| 1.21.1 NeoForge | verified | verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts unavailable |
-| 26.1.2 NeoForge | verified | OpenGL verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate; Render Facts verified |
-| 26.2 NeoForge | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate |
-| 26.2 Fabric | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | Phase 8.1 working-tree candidate |
+| 1.20.1 Forge | verified | verified | Integrated + physical Peer verified | V1 attested; Phase 9A representative spike |
+| 1.21.1 NeoForge | verified | verified | Integrated + physical Peer verified | V1 attested; Phase 9A intentionally not targeted |
+| 26.1.2 NeoForge | verified | OpenGL verified | Integrated + physical Peer verified | V1 attested; Phase 9A intentionally not targeted |
+| 26.2 NeoForge | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | V1 attested; Phase 9A representative spike |
+| 26.2 Fabric | verified | OpenGL/Vulkan verified | Integrated + physical Peer verified | V1 attested; Phase 9A representative spike |
 
 ## Current Runtime Layers
 

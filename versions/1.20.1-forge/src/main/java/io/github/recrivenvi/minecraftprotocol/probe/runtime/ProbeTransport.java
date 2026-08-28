@@ -427,6 +427,45 @@ final class ProbeTransport implements AutoCloseable {
                 mutation.thenAccept(result ->
                         recording.contaminate("DEBUG_PRIVILEGED", "debug.player.health", result));
                 sendJsonFuture(context, metadata, path, mutation);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/player/attribute")) {
+                protocolState.requireScope("debug");
+                protocolState.requireLease(metadata.leaseId());
+                JsonObject body = jsonBody(request);
+                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                    protocolState.requireDebugArm(
+                            metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
+                    return service.phase9aDebugAttribute(
+                            body.get("attributeId").getAsString(), body.get("value").getAsDouble());
+                });
+                mutation.thenAccept(result -> recording.contaminate(
+                        "DEBUG_PRIVILEGED", "debug.player.attribute.set", result));
+                sendJsonFuture(context, metadata, path, mutation);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/entity/state")) {
+                protocolState.requireScope("debug");
+                protocolState.requireLease(metadata.leaseId());
+                JsonObject body = jsonBody(request);
+                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                    protocolState.requireDebugArm(
+                            metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
+                    return service.phase9aDebugEntityState(
+                            body.get("entityUuid").getAsString(),
+                            body.get("state").getAsString(), body.get("value").getAsBoolean());
+                });
+                mutation.thenAccept(result -> recording.contaminate(
+                        "DEBUG_PRIVILEGED", "debug.entity.state.set", result));
+                sendJsonFuture(context, metadata, path, mutation);
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/phase9a/scenario")) {
+                protocolState.requireScope("debug");
+                protocolState.requireLease(metadata.leaseId());
+                JsonObject body = jsonBody(request);
+                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                    protocolState.requireDebugArm(
+                            metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
+                    return service.phase9aDebugScenario(body);
+                });
+                mutation.thenAccept(result -> recording.contaminate(
+                        "DEBUG_PRIVILEGED", "debug.phase9a.scenario", result));
+                sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/world/block")) {
                 protocolState.requireScope("debug");
                 protocolState.requireLease(metadata.leaseId());
@@ -441,6 +480,26 @@ final class ProbeTransport implements AutoCloseable {
                 mutation.thenAccept(result ->
                         recording.contaminate("DEBUG_PRIVILEGED", "debug.world.block", result));
                 sendJsonFuture(context, metadata, path, mutation);
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/diagnostics/phase9a/inventory")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.phase9aInventory());
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/observe")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.phase9aObserve(jsonBody(request)));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/storage/read")) {
+                protocolState.requireScope("debug");
+                sendJsonFuture(context, metadata, path, service.phase9aStorageRead(jsonBody(request)));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/keyframe")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.phase9aKeyframe(jsonBody(request)));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/delta")) {
+                protocolState.requireScope("read");
+                JsonObject body = jsonBody(request);
+                sendJsonFuture(context, metadata, path,
+                        service.phase9aDelta(body.get("baseSnapshotId").getAsString()));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/phase9a/reconstruct")) {
+                protocolState.requireScope("read");
+                sendJsonFuture(context, metadata, path, service.phase9aReconstruct(jsonBody(request)));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
                 sendImmediate(context, metadata, path, recording.list());

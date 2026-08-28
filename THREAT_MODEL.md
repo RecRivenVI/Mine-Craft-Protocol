@@ -145,7 +145,7 @@ Future storage mutation may conflict with live state or partial saves.
 
 Planned controls: separate `storage.world.*` namespace, world fingerprint, explicit consistency, backup/checkpoint and no implicit fallback from live query.
 
-Current Phase 4 enforcement: no persistent-storage endpoint exists; all built-in and registered Provider responses declare `dataSource=LIVE` and `storageAccessed=false`; unloaded chunks remain unavailable.
+Current Phase 9A enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. Three representative Targets additionally expose a typed, experimental, read-only Phase 9A storage inspection surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, runs IO on a dedicated worker, reports `dataSource=PERSISTED`, world fingerprint, loaded/stale state and side effects, and implements no storage write.
 
 ### Malicious Read Provider
 

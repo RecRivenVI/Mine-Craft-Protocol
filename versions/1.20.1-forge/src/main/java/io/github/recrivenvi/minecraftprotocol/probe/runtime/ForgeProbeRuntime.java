@@ -59,6 +59,7 @@ public final class ForgeProbeRuntime implements ProbeService {
     private final AtomicBoolean shutdownRegistered = new AtomicBoolean();
     private final AtomicBoolean captureVerified = new AtomicBoolean();
     private final AtomicLong inputDispatchSequence = new AtomicLong();
+    private final Phase9ASpikeEngine phase9a = new Phase9ASpikeEngine("1.20.1-forge");
     private volatile Minecraft minecraft;
     private volatile ProbeTransport transport;
     private volatile Screen lastScreen;
@@ -129,6 +130,7 @@ public final class ForgeProbeRuntime implements ProbeService {
     private void shutdown() {
         ProbeTransport current = this.transport;
         if (current != null) current.close();
+        this.phase9a.close();
     }
 
     @Override
@@ -715,6 +717,54 @@ public final class ForgeProbeRuntime implements ProbeService {
             json.addProperty("serverTick", server.getTickCount());
             return json;
         });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aInventory() {
+        return CompletableFuture.completedFuture(this.phase9a.inventory());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aObserve(JsonObject request) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.observe(server, player, request));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.storageRequest(server, player, request))
+                .thenCompose(this.phase9a::readStorage);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aDebugAttribute(String attributeId, double value) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.debugAttribute(player, attributeId, value));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aDebugEntityState(String entityUuid, String state, boolean value) {
+        return this.onIntegratedServer((server, player) ->
+                this.phase9a.debugEntityState(player, entityUuid, state, value));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.debugScenario(player, request));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aKeyframe(JsonObject request) {
+        return this.onIntegratedServer((server, player) -> this.phase9a.keyframe(server, player, request));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aDelta(String baseSnapshotId) {
+        return this.onIntegratedServer((server, player) ->
+                this.phase9a.captureDelta(server, player, baseSnapshotId));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aReconstruct(JsonObject request) {
+        return CompletableFuture.completedFuture(this.phase9a.reconstruct(request));
     }
 
     @Override
