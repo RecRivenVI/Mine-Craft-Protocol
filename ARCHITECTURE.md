@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C complete; Phase 9D not started
+> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C and Phase 9D-0 complete; Persistent Write not started
 > Authority: `PLATFORM_VISION.md` defines the committed Core, `PLATFORM_EXTENSION_GOALS.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
@@ -292,6 +292,10 @@ Live observation is split into explicit sources:
 ```
 
 Both return `dataSource=LIVE` and `storageAccessed=false`. Server block queries use only already-loaded state, return `chunk_not_loaded` for an unloaded target and record `chunkLoadRequested=false`. No ordinary query falls back to region files, playerdata or other persisted state.
+
+### Phase 9D-0 Persistent Read Boundary
+
+The five Targets expose the unstable V0 `phase9a/storage/read` route through a target-local `PersistentStorageAdapter`. The external result is uniform (`dataSource=PERSISTED`, `consistency=last_saved_state`, stale risk, storage identity and file revision); path resolution remains Target-local through Minecraft's `LevelResource` and dimension storage APIs. Reads use bounded NBT accounting, a bounded storage executor and read-only region channels. File snapshots and the session-lock identity are checked across the read; lifecycle changes, save-at-capture and shutdown fail closed. `storage.read` is separate from the broad `debug` scope, and no Persistent Write operation exists.
 
 Authoritative state comes from an active Integrated Server or a negotiated Dedicated Server Peer. Title screen and remote-without-Peer contexts return a typed unavailable error rather than client data relabeled as authoritative.
 

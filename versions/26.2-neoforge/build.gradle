@@ -12,6 +12,14 @@ dependencies {
 
 tasks.named('test').configure {
     useJUnitPlatform()
+    classpath = classpath + configurations.runtimeClasspath
+}
+
+// Unit tests for the target-local storage adapter exercise the same mapped
+// Minecraft types as production code. Keep the target's compile classpath
+// visible to tests without introducing a shared loader abstraction.
+configurations.named('testCompileClasspath') {
+    extendsFrom(configurations.compileClasspath)
 }
 
 def targetProperties = new Properties()

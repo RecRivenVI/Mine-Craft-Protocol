@@ -81,7 +81,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
     private final ObservationLifecycleTracker lifecycles = new ObservationLifecycleTracker();
     private final ProviderExecutionEngine providerExecution = new ProviderExecutionEngine(this.revisions);
-    private final ExecutorService storageWorker;
+    private final PersistentStorageAdapter storageAdapter;
     private final BoundedTaskExecutor revisionWorker;
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
@@ -92,11 +92,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     Phase9ASpikeEngine(String target) {
         this.target = target;
-        this.storageWorker = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "minecraft-protocol-phase9a-storage");
-            thread.setDaemon(true);
-            return thread;
-        });
+        this.storageAdapter = new PersistentStorageAdapter(target);
         this.revisionWorker = new BoundedTaskExecutor(
                 "minecraft-protocol-observation-revisions", 1, 8);
     }
@@ -112,6 +108,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     String sessionEpoch() {
         return this.revisions.sessionEpoch();
+    }
+
+    void observeWorldLifecycle(Object world) {
+        this.storageAdapter.observeWorldLifecycle(world);
     }
 
     JsonObject formalDebugCapabilities() {
@@ -178,6 +178,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         capabilities.addProperty("debugRepresentative", "PASS");
         capabilities.addProperty("persistedChunkRead", "PASS");
         capabilities.addProperty("persistedPlayerRead", "PASS");
+        capabilities.addProperty("persistentReadContract", "PHASE9D0_BOUNDED_FORMAL_STORAGE_READ");
+        capabilities.addProperty("persistentReadScope", "storage.read");
+        capabilities.addProperty("persistentWrite", "UNAVAILABLE");
         capabilities.addProperty("experimentalKeyframe", "PASS");
         capabilities.addProperty("deltaCapture", "PASS");
         capabilities.addProperty("reconstruction", "PASS");
@@ -980,34 +983,23 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return new StorageRequest(
                 domain,
                 server.getWorldPath(LevelResource.ROOT),
+                server.getWorldPath(LevelResource.PLAYER_DATA_DIR),
                 server.getWorldData().getLevelName(),
                 level.dimension(),
                 player.getUUID().toString(),
                 new ChunkPos(chunkX, chunkZ),
                 loaded,
                 true,
+                server.isCurrentlySaving(),
+                this.revisions.sessionEpoch(),
+                this.storageAdapter.lifecycleEpoch(),
                 sha256(server.getWorldPath(LevelResource.ROOT).toAbsolutePath() + "|" + level.dimension().location()));
     }
 
     CompletableFuture<JsonObject> readStorage(StorageRequest request) {
-        if (this.closed.get()) return CompletableFuture.failedFuture(
-                new ProtocolState.ProtocolException("PHASE9A_STORAGE_CLOSED", 409, "Storage spike worker is closed"));
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return switch (request.domain()) {
-                    case "world" -> readWorldMetadata(request);
-                    case "player" -> readPlayerData(request);
-                    case "chunk" -> readChunkData(request);
-                    default -> throw new IllegalStateException(request.domain());
-                };
-            } catch (ProtocolState.ProtocolException exception) {
-                throw exception;
-            } catch (Exception exception) {
-                throw new ProtocolState.ProtocolException(
-                        "PHASE9A_STORAGE_READ_FAILED", 500, "Typed persisted read failed: " + exception.getClass().getSimpleName());
-            }
-        }, this.storageWorker);
+        return this.storageAdapter.read(request);
     }
+
 
     private JsonObject checkedResponse(JsonObject response, JsonObject request) {
         JsonObject budgets = request.has("budgets") && request.get("budgets").isJsonObject()
@@ -1789,78 +1781,6 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return values;
     }
 
-    private JsonObject readWorldMetadata(StorageRequest request) throws Exception {
-        Path file = request.root().resolve("level.dat");
-        return persistedResult(request, file, readCompressed(file), "minecraft:NbtIo.readCompressed(level.dat)");
-    }
-
-    private JsonObject readPlayerData(StorageRequest request) throws Exception {
-        Path file = request.root().resolve("playerdata").resolve(request.playerUuid() + ".dat");
-        return persistedResult(request, file, readCompressed(file), "minecraft:NbtIo.readCompressed(playerdata)");
-    }
-
-    private JsonObject readChunkData(StorageRequest request) throws Exception {
-        Path dimensionRoot = dimensionRoot(request.root(), request.dimension());
-        Path regionDir = dimensionRoot.resolve("region");
-        Path file = regionDir.resolve("r." + request.chunkPos().getRegionX() + "." + request.chunkPos().getRegionZ() + ".mca");
-        CompoundTag tag = null;
-        if (Files.isRegularFile(file)) {
-            try (RegionFile region = new RegionFile(file, regionDir, false);
-                 DataInputStream input = region.getChunkDataInputStream(request.chunkPos())) {
-                if (input != null) tag = NbtIo.read(input);
-            }
-        }
-        JsonObject result = persistedResult(request, file, tag, "minecraft:RegionFile+NbtIo");
-        result.addProperty("sideEffects", "region_file_api_uses_write_capable_handle; no_write_requested");
-        return result;
-    }
-
-    private JsonObject persistedResult(StorageRequest request, Path file, CompoundTag tag, String api) throws Exception {
-        JsonObject json = base("phase9a.storage.read");
-        json.addProperty("domain", request.domain());
-        json.addProperty("source", "persistent_storage");
-        json.addProperty("dataSource", "PERSISTED");
-        json.addProperty("perspective", "persistent_storage");
-        json.addProperty("acquisition", "minecraft_storage_api");
-        json.addProperty("storageApi", api);
-        json.addProperty("worldFingerprint", request.worldFingerprint());
-        json.addProperty("dimension", request.dimension().location().toString());
-        json.addProperty("playerUuid", request.playerUuid());
-        json.addProperty("chunkX", request.chunkPos().x);
-        json.addProperty("chunkZ", request.chunkPos().z);
-        json.addProperty("liveWorldExists", request.liveWorldExists());
-        json.addProperty("targetLoaded", request.targetLoaded());
-        json.addProperty("consistency", "last_saved_state");
-        json.addProperty("stalePossibility", request.liveWorldExists());
-        json.addProperty("storageAccessOccurred", true);
-        json.addProperty("sideEffects", "none_read_only");
-        json.addProperty("writeImplemented", false);
-        json.addProperty("fileExists", Files.isRegularFile(file));
-        json.addProperty("saveMarker", Files.isRegularFile(file) ? Files.getLastModifiedTime(file).toMillis() : 0L);
-        json.addProperty("serializedBytes", Files.isRegularFile(file) ? Files.size(file) : 0L);
-        json.addProperty("available", tag != null);
-        if (tag != null) {
-            JsonArray keys = new JsonArray();
-            tag.getAllKeys().stream().sorted().forEach(keys::add);
-            json.add("rootKeys", keys);
-            json.addProperty("decodedCharacters", tag.toString().length());
-            json.addProperty("decodedSha256", sha256(tag.toString()));
-        }
-        return json;
-    }
-
-    private static CompoundTag readCompressed(Path path) throws Exception {
-        return Files.isRegularFile(path) ? NbtIo.readCompressed(path.toFile()) : null;
-    }
-
-    private static Path dimensionRoot(Path root, ResourceKey<Level> dimension) {
-        if (dimension.equals(Level.OVERWORLD)) return root;
-        if (dimension.equals(Level.NETHER)) return root.resolve("DIM-1");
-        if (dimension.equals(Level.END)) return root.resolve("DIM1");
-        return root.resolve("dimensions")
-                .resolve(dimension.location().getNamespace())
-                .resolve(dimension.location().getPath());
-    }
 
     private JsonObject mutation(String type, ServerPlayer player, String resource, Object before, Object after, String mechanism) {
         JsonObject json = base(type);
@@ -1951,24 +1871,22 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (!this.closed.compareAndSet(false, true)) return;
         this.providerExecution.close();
         this.revisionWorker.close();
-        this.storageWorker.shutdown();
-        try {
-            if (!this.storageWorker.awaitTermination(2L, TimeUnit.SECONDS)) this.storageWorker.shutdownNow();
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            this.storageWorker.shutdownNow();
-        }
+        this.storageAdapter.close();
     }
 
     record StorageRequest(
             String domain,
             Path root,
+            Path playerDataRoot,
             String levelName,
             ResourceKey<Level> dimension,
             String playerUuid,
             ChunkPos chunkPos,
             boolean targetLoaded,
             boolean liveWorldExists,
+            boolean saveInProgress,
+            String sessionEpoch,
+            long lifecycleEpoch,
             String worldFingerprint) {
     }
 }

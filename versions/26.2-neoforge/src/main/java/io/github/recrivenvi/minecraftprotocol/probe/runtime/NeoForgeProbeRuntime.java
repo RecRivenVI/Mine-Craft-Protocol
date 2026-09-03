@@ -152,6 +152,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
         this.refreshScreen(minecraft);
         this.refreshMenu(minecraft);
+        this.phase9a.observeWorldLifecycle(minecraft.level);
     }
 
     private void shutdown() {
@@ -208,6 +209,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             capabilities.addProperty("state.frame", "runtime_verified");
             capabilities.addProperty("provider.read_spi", "available_live_only");
             capabilities.addProperty("storage.persistent", "unavailable");
+            capabilities.addProperty("storage.persistent.read", "runtime_verified_bounded_requires_storage.read");
+            capabilities.addProperty("storage.persistent.write", "unavailable");
             capabilities.addProperty("server.peer.transport", "optional_peer_v0");
             capabilities.addProperty("server.peer.read", "runtime_negotiated");
             capabilities.addProperty("server.peer.fixture", "server_flag_and_operator_gated");

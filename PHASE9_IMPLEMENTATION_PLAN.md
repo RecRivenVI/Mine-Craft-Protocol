@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9C PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
+> Status: Phase 9D-0 PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9C is complete; Phase 9D awaits independent review; Phase 10 is not started
+> Current phase boundary: Phase 9D-0 is complete; Persistent Write awaits a separate entry review; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -76,7 +76,7 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 | Chunk internals | IMPLEMENTED | `getChunkNow`, sections, loading summary and ticks | five Targets | raw diagnostics stay Target-specific |
 | Ticket/loading | IMPLEMENTED | normalized summary + read-only Target diagnostic Accessor | five Targets | do not promote raw parity |
 | Scheduled Tick details | IMPLEMENTED | read-only LevelTicks Accessor | five Targets | Recording consumption deferred to 9E |
-| Persistent read | PARTIAL | typed world/player/chunk Phase 9A read | three representative Targets | lifecycle/fingerprint policy and more domains in 9D |
+| Persistent read | IMPLEMENTED (9D-0 read-only foundation) | typed bounded world/player/chunk read with file snapshots and lifecycle barrier | five Targets | expand domains and semantic migration only in later 9D |
 | Persistent write | MISSING | deliberately absent | none | investigate and implement only in 9D after safety review |
 | Experimental Keyframe | IMPLEMENTED | bounded server-thread immutable snapshot | three representative Targets | formal track selection and budgets in 9E |
 | Experimental Delta | PARTIAL | detached snapshot diff | three representative Targets | native/event Hook coverage in 9E |
@@ -85,7 +85,7 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 
 ## 4. Phase 9A Runtime Surface
 
-The three representative Targets expose an explicitly experimental diagnostics surface:
+The Phase 9A diagnostics surface remains an unstable compatibility route, now backed by the bounded Phase 9D-0 read adapter on all five Targets:
 
 ```text
 GET  /v0/diagnostics/phase9a/inventory
@@ -100,7 +100,7 @@ POST /v0/debug/entity/state
 POST /v0/debug/phase9a/scenario
 ```
 
-These routes are not an OpenAPI or Wire v1 freeze. They exist to obtain calling-chain evidence. Phase 9B must decide which semantics become formal public protocol and which remain Target diagnostics.
+These routes do not freeze Wire Protocol v1. The storage route is described by the unstable V0 OpenAPI schema and requires the explicit `storage.read` scope. It remains read-only; Persistent Write is not implemented.
 
 All Minecraft reads run on the Server owner thread and detach JSON before returning. Typed persisted reads capture only immutable path/identity metadata on the Server thread, then perform IO on a dedicated storage worker. HTTP/WS workers never hold live Minecraft objects.
 
@@ -195,7 +195,7 @@ Scheduled Tick public APIs expose total Block/Fluid tick counts. Per-chunk tick 
 Ticket models are materially different:
 
 ```text
-1.20.1:
+  1.20.1 / 1.21.1:
   DistanceManager
   -> Long2Object map of sorted Ticket sets
   -> level/type/key semantics
@@ -256,16 +256,16 @@ Phase 9A implements READ SPIKE ONLY.
   playerdata/<uuid>.dat
   region/r.<x>.<z>.mca for Overworld
   DIM-1 / DIM1 legacy dimension folders
-  NbtIo(File) + RegionFile(Path, directory, sync)
+  NbtIo(DataInput, NbtAccounter) + read-only region channel
 
-26.2:
+  26.1.2 / 26.2:
   players/data/<uuid>.dat
   dimensions/<namespace>/<dimension>/region/r.<x>.<z>.mca
   Overworld also uses dimensions/minecraft/overworld
-  NbtIo(Path, NbtAccounter) + RegionStorageInfo + RegionFile
+  NbtIo(DataInput, NbtAccounter) + read-only region channel; 26.x also supports LZ4 region compression
 ```
 
-The 26.2 layout difference was discovered by a failed first Spike and is now an explicit Target distinction.
+The legacy/new layout boundary is an explicit Target distinction. `LevelResource.PLAYER_DATA_DIR` and `DimensionType.getStorageFolder` remain the source of truth for path resolution; callers cannot provide a filesystem path.
 
 ### 8.2 Output contract
 
@@ -283,11 +283,11 @@ targetLoaded
 consistency=last_saved_state
 stalePossibility
 storageAccessOccurred=true
-sideEffects=none_read_only
+  sideEffects=read_only_file_channel
 writeImplemented=false
 ```
 
-No caller supplies a path. `world.*` remains LIVE-only and never falls back to storage. World/player NBT reads are effect-free file reads. The available Minecraft `RegionFile` API opens a write-capable handle even when the Spike requests no write, so chunk results explicitly report `sideEffects=region_file_api_uses_write_capable_handle; no_write_requested`. Phase 9D must choose between a Minecraft-owned storage barrier and a carefully verified read-only region path rather than hiding this risk.
+No caller supplies a path. `world.*` remains LIVE-only and never falls back to storage. Phase 9D-0 reads world/player files through bounded `NbtIo` decoding and reads Anvil region sectors through a read-only `FileChannel`; it does not instantiate the write-capable Minecraft `RegionFile` API. File identity (size, mtime, file key and SHA-256), session lock metadata and lifecycle epoch are checked before and after the read. A change is rejected rather than returned as a false stable snapshot.
 
 Fabric produced direct evidence of a normal divergence:
 
@@ -313,7 +313,7 @@ After explicit Save and re-entry, the persisted player record became available. 
 | Missing/expired Debug Arm or `debug.storage` scope | reject |
 | Partial/corrupt input | controlled error; no write |
 
-No Persistent Write is implemented in Phase 9A.
+No Persistent Write is implemented in Phase 9A or Phase 9D-0.
 
 ## 9. Experimental Keyframe and Delta
 
@@ -453,6 +453,14 @@ Formalize typed read domains, storage lifecycle barriers, corruption handling an
 
 Exit gate: LIVE/PERSISTED cannot be confused; loaded-write races, wrong fingerprints, missing scopes/Arms and save-in-progress states fail closed.
 
+#### Phase 9D-0 — Persistent Read Safety and Five-Target Storage Contract — COMPLETE
+
+The former Phase 9A persisted-read helper is now behind a target-local `PersistentStorageAdapter` on all five Targets. The adapter resolves paths from Minecraft's `LevelResource`/dimension APIs, accepts no caller path, uses bounded NBT accounting and bounded source files, reads region sectors through read-only channels, and rejects file changes observed between pre/post snapshots. A bounded one-worker/8-queue executor tracks cancellation, world lifecycle epochs and Runtime shutdown. The route requires `storage.read`, reports `PERSISTED`/`last_saved_state`/stale metadata and keeps Persistent Write unavailable.
+
+The live Phase 9D-0 gate covers world metadata, player data, loaded chunk data, missing/unloaded chunk requests, LIVE separation, five-Target launch and clean shutdown. Deterministic tests cover corrupt/truncated input, source budget, world identity replacement, save/unload/close rejection, queue overflow and cancellation. This is a read-only foundation; it is not permission to implement Persistent Write.
+
+Exit gate result: PASS. Persistent Write Entry Review is ready as a separate, explicitly authorized step.
+
 ### Phase 9E — Recording V2 and Canonical Store
 
 Add native/event Delta instrumentation, periodic Keyframes, selectable tracks, codec benchmark/selection, framing, compression and indexes.
@@ -587,7 +595,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Storage lifecycle/write safety
+9D Persistent Write lifecycle/safety (read foundation complete)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -599,7 +607,8 @@ Phase 9B.1: PASS
 Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS
-Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
+Persistent Write Entry Review: READY
 Phase 10: NOT STARTED
 ```
 
@@ -759,7 +768,8 @@ Chunk, Client and Network are deliberately `PARTIAL`: their capability and safet
 
 ```text
 Phase 9C: PASS
-Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9D-0: PASS
+Persistent Write Entry Review: READY
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN

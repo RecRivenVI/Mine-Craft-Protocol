@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Core Runtime threat baseline through Phase 9C
+> Status: Core Runtime threat baseline through Phase 9D-0; Persistent Write not started
 > Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
 
 ## Protected Assets
@@ -163,7 +163,7 @@ Future storage mutation may conflict with live state or partial saves.
 
 Planned controls: separate `storage.world.*` namespace, world fingerprint, explicit consistency, backup/checkpoint and no implicit fallback from live query.
 
-Current Phase 9A enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. Three representative Targets additionally expose a typed, experimental, read-only Phase 9A storage inspection surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, runs IO on a dedicated worker, reports `dataSource=PERSISTED`, world fingerprint, loaded/stale state and side effects, and implements no storage write.
+Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
 
 ### Malicious Read Provider
 

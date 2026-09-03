@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory = $true)][string]$ExpectedTarget,
     [ValidateSet('opengl','vulkan','any')][string]$ExpectedBackend = 'any',
     [switch]$EnterWorld,
-    [switch]$RequireAuthoritative
+    [switch]$RequireAuthoritative,
+    [switch]$StayInWorld
 )
 
 $ErrorActionPreference = 'Stop'
@@ -160,7 +161,7 @@ try {
         $timeout.Dispose()
     }
 
-    if ($EnterWorld -and [bool]$session.inWorld) {
+    if ($EnterWorld -and [bool]$session.inWorld -and -not $StayInWorld) {
         $pause = Invoke-Json POST '/v0/pipelines' -Headers $leaseHeaders -Body @{
             timeoutMs = 5000; steps = @(@{ type = 'key.tap'; key = 256; scanCode = 1; holdMs = 25 })
         }

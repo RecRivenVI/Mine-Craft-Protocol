@@ -977,6 +977,35 @@
         }
       }
     },
+    "/v0/diagnostics/phase9a/storage/read": {
+      "post": {
+        "operationId": "readPersistedStatePhase9D0",
+        "description": "Bounded typed read of persisted world metadata, player data or one chunk. This route never writes, never force-loads a chunk and reports PERSISTED/last_saved_state provenance.",
+        "x-required-scope": "storage.read",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PersistentStorageReadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bounded persisted read result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PersistentStorageReadResponse" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntity" }
+        }
+      }
+    },
     "/v0/providers": {
       "get": {
         "operationId": "getReadProviders",
@@ -1632,6 +1661,22 @@
             }
           }
         }
+      },
+      "PayloadTooLarge": {
+        "description": "Persisted source or decoded NBT exceeded the bounded read budget",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "description": "Persisted data is corrupt, truncated or otherwise unusable",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
       }
     },
     "schemas": {
@@ -1686,6 +1731,75 @@
           "maxTotalProviderBytes": { "type": "integer", "minimum": 1024, "maximum": 65536, "default": 65536 },
           "maxResponseBytes": { "type": "integer", "minimum": 16384, "maximum": 524288, "default": 524288 },
           "providerTimeoutMs": { "type": "integer", "minimum": 25, "maximum": 1000, "default": 250 }
+        }
+      },
+      "PersistentStorageReadRequest": {
+        "type": "object",
+        "required": ["domain"],
+        "additionalProperties": false,
+        "properties": {
+          "domain": { "type": "string", "enum": ["world", "player", "chunk"] },
+          "chunkX": { "type": "integer" },
+          "chunkZ": { "type": "integer" }
+        }
+      },
+      "PersistentStorageReadResponse": {
+        "type": "object",
+        "required": [
+          "type", "target", "phase", "formalRead", "persistentReadScope", "domain", "source", "dataSource",
+          "perspective", "acquisition", "worldFingerprint", "storageWorldIdentity", "sessionEpoch",
+          "storageLifecycleEpoch", "consistency", "stalePossibility", "storageAccessOccurred",
+          "sideEffects", "writeImplemented", "readStatus", "available", "requestId", "protocolVersion"
+        ],
+        "properties": {
+          "type": { "type": "string", "enum": ["phase9a.storage.read"] },
+          "target": { "type": "string" },
+          "phase": { "type": "string", "enum": ["9D-0"] },
+          "experimental": { "type": "boolean", "enum": [false] },
+          "formalRead": { "type": "boolean", "enum": [true] },
+          "persistentReadScope": { "type": "string", "enum": ["storage.read"] },
+          "domain": { "type": "string", "enum": ["world", "player", "chunk"] },
+          "source": { "type": "string", "enum": ["persistent_storage"] },
+          "dataSource": { "type": "string", "enum": ["PERSISTED"] },
+          "perspective": { "type": "string", "enum": ["persistent_storage"] },
+          "acquisition": { "type": "string", "enum": ["bounded_minecraft_storage_api"] },
+          "storageApi": { "type": "string" },
+          "worldFingerprint": { "type": "string" },
+          "storageWorldIdentity": { "type": "string" },
+          "sessionEpoch": { "type": "string" },
+          "storageLifecycleEpoch": { "type": "integer", "format": "int64", "minimum": 0 },
+          "lifecycleState": { "type": "string", "enum": ["active_file_snapshot"] },
+          "dimension": { "type": "string" },
+          "playerUuid": { "type": "string", "format": "uuid" },
+          "chunkX": { "type": "integer" },
+          "chunkZ": { "type": "integer" },
+          "liveWorldExists": { "type": "boolean" },
+          "targetLoaded": { "type": "boolean" },
+          "saveInProgressAtCapture": { "type": "boolean" },
+          "saveState": { "type": "string", "enum": ["saving_at_capture", "not_saving_at_capture_file_stable"] },
+          "consistency": { "type": "string", "enum": ["last_saved_state"] },
+          "stalePossibility": { "type": "boolean" },
+          "storageAccessOccurred": { "type": "boolean", "enum": [true] },
+          "sideEffects": { "type": "string" },
+          "writeImplemented": { "type": "boolean", "enum": [false] },
+          "readStatus": { "type": "string", "enum": ["ok", "not_found"] },
+          "fileExists": { "type": "boolean" },
+          "saveMarker": { "type": "integer", "format": "int64", "minimum": 0 },
+          "fileRevision": { "type": "string" },
+          "fileKey": { "type": "string" },
+          "serializedBytes": { "type": "integer", "format": "int64", "minimum": 0 },
+          "maxSourceBytes": { "type": "integer", "format": "int64", "minimum": 1 },
+          "maxNbtBytes": { "type": "integer", "format": "int64", "minimum": 1 },
+          "queueCapacity": { "type": "integer", "minimum": 1 },
+          "maxInFlight": { "type": "integer", "minimum": 1 },
+          "queueDepth": { "type": "integer", "minimum": 0 },
+          "inFlight": { "type": "integer", "minimum": 0 },
+          "available": { "type": "boolean" },
+          "rootKeys": { "type": "array", "items": { "type": "string" } },
+          "decodedCharacters": { "type": "integer", "minimum": 0 },
+          "decodedSha256": { "type": "string" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string", "enum": ["v0"] }
         }
       },
       "ObservationMetadata": {

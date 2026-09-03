@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Core Product Goal Separated；Phase 9C Complete — Typed Deep Debug + Bounded Batch Hardened
+> 文档状态：Core Product Goal Separated；Phase 9D-0 Complete — Bounded Five-Target Persistent Read Foundation
 > 文档版本：0.8
 > 编制日期：2026-08-27  
 > 修订日期：2026-08-29
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
-> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2 与 Phase 9C 已完成；Phase 9D 等待独立审查；Phase 10 未开始
+> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C 与 Phase 9D-0 已完成；Persistent Write 等待独立审查；Phase 10 未开始
 
 ---
 
@@ -2041,7 +2041,7 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-08-29）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。Phase 9D 尚未开始，必须经独立审查另行开放。
+执行状态（2026-09-03）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Phase 9D-0 已完成五 Target 有界 Persistent Read、只读 Region channel、文件快照/世界身份与生命周期屏障。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。Persistent Write 尚未实现，必须经独立审查另行开放。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2281,7 +2281,7 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 
 ## 29. 下一步立即执行项
 
-当前唯一允许的下一步是对 **Phase 9D Persistent Storage** 进行独立审查；本轮不得自动开始 Phase 9D。
+当前唯一允许的下一步是对 **Persistent Write Entry Review** 进行独立审查；本轮不得自动开始 Persistent Write。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2291,7 +2291,8 @@ Phase 9B.1: PASS
 Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
-Phase 9D Entry Gate: READY FOR INDEPENDENT REVIEW
+Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
+Persistent Write Entry Review: READY
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

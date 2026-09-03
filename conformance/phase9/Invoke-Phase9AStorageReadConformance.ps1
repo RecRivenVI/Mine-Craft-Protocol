@@ -32,11 +32,16 @@ $persistedPlayer = Invoke-Json POST '/v0/diagnostics/phase9a/storage/read' @{ do
 $chunk = Invoke-Json POST '/v0/diagnostics/phase9a/storage/read' @{ domain='chunk'; chunkX=$chunkX; chunkZ=$chunkZ }
 
 foreach ($result in @($world,$persistedPlayer,$chunk)) {
+    Assert-True ($result.phase -eq '9D-0' -and [bool]$result.formalRead -and $result.persistentReadScope -eq 'storage.read') `
+        'formal Phase 9D-0 read contract missing'
     Assert-True ($result.dataSource -eq 'PERSISTED' -and [bool]$result.storageAccessOccurred) 'PERSISTED provenance missing'
     Assert-True (-not [string]::IsNullOrWhiteSpace($result.sideEffects) -and -not [bool]$result.writeImplemented) `
         'storage read must report effects and keep writes unimplemented'
     Assert-True ($result.consistency -eq 'last_saved_state' -and [bool]$result.stalePossibility) 'stale consistency marker missing'
-    Assert-True ($result.worldFingerprint -match '^[0-9a-f]{64}$') 'world fingerprint missing'
+    Assert-True ($result.worldFingerprint -match '^[0-9a-f]{64}$' -and $result.storageWorldIdentity -match '^[0-9a-f]{64}$') `
+        'world/storage identity missing'
+    Assert-True ($result.fileRevision -match '^[0-9a-f]{64}$' -and $result.lifecycleState -eq 'active_file_snapshot') `
+        'file snapshot metadata missing'
 }
 Assert-True ([bool]$world.available -and [bool]$persistedPlayer.available -and [bool]$chunk.available) `
     'test world must have persisted world/player/chunk state'
