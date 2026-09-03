@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Core Runtime threat baseline through Phase 9D-1; Persistent Write Entry Review READY
+> Status: Core Runtime threat baseline through Phase 9D-1; Persistent Write Entry Review (second review) CLOSED
 > Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
 
 ## Protected Assets
@@ -165,7 +165,7 @@ Planned controls: separate `storage.world.*` namespace, distinct Runtime/persist
 
 Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
 
-Phase 9D-1 adds a safety-only foundation but does not enable Persistent Write. Runtime session, persistent storage and file snapshot identities are separate; offline ownership requires explicit `STOPPED_OFFLINE`, a lifecycle write permit and an OS lock on `session.lock`. Typed preconditions require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. The synthetic single-file replacement path requires bounded temp output, force, recheck, backup, `ATOMIC_MOVE`, explicit commit-point statuses and post-verification/recovery; non-atomic replacement is rejected. The next Persistent Write Entry Review is READY, but online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven.
+Phase 9D-1 adds a safety-only foundation but does not enable Persistent Write. The second Entry Review remains CLOSED because the current storage identity includes mutable `level.dat` content, the synthetic replacement has no recheck after backup and immediately before `ATOMIC_MOVE`, and the lifecycle barrier has no authoritative Runtime call sites. Windows testing reports directory durability as unverified when requested; file flush plus namespace atomicity is not a power-loss transaction. Runtime session, persistent storage and file snapshot identities must be corrected and connected to five Target lifecycle evidence before any write. Typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven.
 
 ### Malicious Read Provider
 

@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-1 PASS — PERSISTENT WRITE SAFETY FOUNDATION; Persistent Write Entry Review READY
+> Status: Phase 9D-1 PASS — PERSISTENT WRITE SAFETY FOUNDATION; Persistent Write Entry Review (second review) CLOSED
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-1 safety foundation is complete; Persistent Write Entry Review is READY; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-1 safety foundation is complete; the second Persistent Write Entry Review is CLOSED pending identity/lifecycle/TOCTOU fixes; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -343,7 +343,22 @@ Phase 9D-1 adds a safety-only, target-local foundation with no `storage.write` r
 
 The foundation is present and compiles on all five Targets. Phase 9D-1 conformance reports zero real Minecraft storage writes. DataVersion policy remains current-Target-only, with old/unknown versions rejected and no automatic DataFix. Dedicated Server Peer storage ownership, playerdata and all Region/Anvil/`.mcc` writes remain outside this foundation.
 
-Exit gate result: `PASS`. `Phase 9D Persistent Write Entry Review: READY` — this is permission to perform a new independent review only, not permission to start Persistent Write.
+Exit gate result: `PASS`. The first `Phase 9D Persistent Write Entry Review` was marked READY for independent review only; it did not authorize Persistent Write. The second review is recorded below.
+
+### 8.6 Phase 9D Persistent Write Entry Review — SECOND REVIEW CLOSED
+
+The second review does not open Persistent Write. It verified the 9D-1 foundation with synthetic files and source call-site inspection and found four release-blocking correctness gaps:
+
+1. **Storage identity is not stable across a legal update.** `StorageIdentity` currently includes the `level.dat` content digest (and file lineage evidence). A normal `level.dat` update therefore changes the Persistent Storage Identity instead of changing only the File Snapshot/File Revision. The identity contract must separate stable world lineage from mutable file revision; path and Runtime session alone remain insufficient, and a same-path replacement must still invalidate the old identity.
+2. **The replacement has a backup-to-commit TOCTOU window.** The synthetic `AtomicWriteRequest` rechecks the target before copying the backup, but does not recheck it after backup creation or immediately before `ATOMIC_MOVE`. Injecting an external target change at `BACKUP_COPY` currently still returns `COMMITTED` and overwrites the external change. This is not safe for a first `level.dat` writer.
+3. **Atomic replacement is not power-loss durability.** The foundation forces the temporary file and requests `ATOMIC_MOVE`; directory metadata force is optional. On the current Windows/Java environment, `requireDirectoryForce=true` returns `COMMITTED_BUT_POSTVERIFY_FAILED` with `DIRECTORY_DURABILITY_UNVERIFIED`. The result is honest, but the first writer still needs an explicit durability/recovery policy and must not describe namespace atomicity as a power-loss-safe transaction.
+4. **`STOPPED_OFFLINE` is not yet an authoritative Runtime fact.** `LifecycleBarrier` is only used by its synthetic test; no Forge, NeoForge or Fabric Runtime lifecycle calls it. A caller can transition the standalone object without evidence from the actual Minecraft world/server state. The future writer needs Target-owned lifecycle attestation for running/saving/unloading/shutdown/stopped, plus ownership acquisition and release tied to that attestation.
+
+The five Target builds consume the shared safety module, but this does not establish writer lifecycle parity. 1.20.1/1.21.1 retain the legacy storage/NBT boundary, 26.1.2/26.2 use the newer layout and compression behavior, Fabric 26.2's current adapter is client-side, and Dedicated Server Peer storage ownership is not implemented. No Target may be treated as write-ready from the shared fixture alone.
+
+The minimum next task is to split stable Storage Identity from mutable File Revision, add a post-backup/pre-commit recheck (or an equivalent exclusive transaction fence), and integrate an authoritative offline lifecycle attestation across the five Targets. Then repeat the Windows durability/recovery review. Persistent Write, playerdata, Region/Anvil/`.mcc`, DataFix migration and Peer writes remain disabled.
+
+**Second-review decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The synthetic tests are useful safety evidence, but they do not authorize a real save mutation.
 
 ## 9. Experimental Keyframe and Delta
 
@@ -625,7 +640,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (Phase 9D-1 foundation complete; Entry Review READY)
+9D Persistent Write lifecycle/safety (Phase 9D-1 foundation complete; second Entry Review CLOSED)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -639,7 +654,7 @@ Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
-Persistent Write Entry Review: READY — independent review required; write route remains unavailable
+Persistent Write Entry Review (second review): CLOSED — identity, TOCTOU and lifecycle attestation fixes required
 Phase 10: NOT STARTED
 ```
 
@@ -801,7 +816,7 @@ Chunk, Client and Network are deliberately `PARTIAL`: their capability and safet
 Phase 9C: PASS
 Phase 9D-0: PASS
 Phase 9D-1: PASS
-Persistent Write Entry Review: READY
+Persistent Write Entry Review (second review): CLOSED
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN
