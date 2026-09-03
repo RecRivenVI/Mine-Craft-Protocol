@@ -4,7 +4,7 @@
 > Authority: Core Product Vision
 > Status: COMMITTED
 > Date: 2026-08-29
-> Current implementation baseline: Runtime V1 attested; Runtime Phase 9C and Phase 9D-0 read foundation complete; Persistent Write not started
+> Current implementation baseline: Runtime V1 attested; Runtime Phase 9C and Phase 9D-0 read foundation complete; Persistent Write Entry Review CLOSED
 > Wire Protocol v1: NOT FROZEN
 > Optional extensions: governed separately by `PLATFORM_EXTENSION_GOALS.md`
 
@@ -211,7 +211,7 @@ Current Core status:
 | MCP Runtime Companion | CURRENT | V1 / continuing regression |
 | Deep Runtime Observation | CURRENT | Phase 9B complete |
 | Typed Deep Debug | CURRENT | Phase 9C complete |
-| Persistent Storage Plane | READ FOUNDATION | Phase 9D-0 complete; Persistent Write requires a separate review |
+| Persistent Storage Plane | READ FOUNDATION | Phase 9D-0 complete; Persistent Write Entry Review CLOSED pending identity/lifecycle/atomicity safety foundation |
 | Recording V2 / reconstructable state | PARTIAL | Phase 9E-9F planned |
 | Runtime advanced diagnostics and recovery | PLANNED | Phase 10 |
 
@@ -311,7 +311,7 @@ Phase 9C:
   complete under its existing Gate
 
 Phase 9D-0:
-  complete; Persistent Write independent review required
+  complete; Persistent Write Entry Review CLOSED pending write-safety foundation
 
 E1 / E2 / E3:
   optional; not started by this governance task

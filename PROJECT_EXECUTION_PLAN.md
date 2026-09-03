@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Core Product Goal Separated；Phase 9D-0 Complete — Bounded Five-Target Persistent Read Foundation
+> 文档状态：Core Product Goal Separated；Phase 9D-0 Complete — Persistent Write Entry Review CLOSED
 > 文档版本：0.8
 > 编制日期：2026-08-27  
-> 修订日期：2026-08-29
+> 修订日期：2026-09-03
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
-> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C 与 Phase 9D-0 已完成；Persistent Write 等待独立审查；Phase 10 未开始
+> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C 与 Phase 9D-0 已完成；Phase 9D Persistent Write Entry Review CLOSED；Phase 10 未开始
 
 ---
 
@@ -682,6 +682,8 @@ stalePossibility
 ```
 
 运行中世界的内存状态与磁盘 region/playerdata/level data 不一致是正常现象。普通读取不得为了回答问题而改变区块加载状态；需要访问未加载持久化数据时，必须使用显式接口、单独 scope、世界一致性检查和副作用标记。
+
+Persistent Write 不因 Phase 9D-0 读基础完成而自动开放。当前 Entry Review 结论为 CLOSED：运行时 `worldFingerprint`、读适配器 `storageWorldIdentity` 与文件快照版本尚未构成可授权写入的持久身份；也不存在独占 save/unload/lock 生命周期屏障、写入前存储/文件/DataVersion/resource 前置条件或按数据域定义的原子替换、备份、校验与恢复协议。首个写入候选只能从世界停止且离线的、当前 Target 生成的单文件 `level.dat` typed metadata 开始；在线/已加载/保存中/关闭竞争、Region/Anvil、`.mcc`、POI/entity/SavedData 与 Dedicated Peer 写入均默认拒绝。Persistent Write 仍需独立 `storage.write`/`debug.storage` 授权、Debug Arm、审计及 `PERSISTED`/`DEBUG_PRIVILEGED` 证据，且 Core Developer Preview 不依赖此能力。
 
 ---
 
@@ -2041,7 +2043,7 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-09-03）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Phase 9D-0 已完成五 Target 有界 Persistent Read、只读 Region channel、文件快照/世界身份与生命周期屏障。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。Persistent Write 尚未实现，必须经独立审查另行开放。
+执行状态（2026-09-03）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Phase 9D-0 已完成五 Target 有界 Persistent Read、只读 Region channel、文件快照/世界身份与生命周期屏障。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。Persistent Write Entry Review 已完成且 CLOSED：写入身份、生命周期屏障、前置条件和原子恢复基础仍需先建立；Persistent Write 尚未实现。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2281,7 +2283,7 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 
 ## 29. 下一步立即执行项
 
-当前唯一允许的下一步是对 **Persistent Write Entry Review** 进行独立审查；本轮不得自动开始 Persistent Write。
+当前阶段停在 **Persistent Write Entry Review: CLOSED**。下一步只能先完成写入安全基础（持久身份、生命周期屏障、存储/文件/DataVersion 前置条件和单文件原子性设计）；在该基础独立复核前不得开始 Persistent Write。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2292,7 +2294,7 @@ Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
-Persistent Write Entry Review: READY
+Persistent Write Entry Review: CLOSED — write-safety foundation required
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

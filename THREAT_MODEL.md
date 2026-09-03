@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Core Runtime threat baseline through Phase 9D-0; Persistent Write not started
+> Status: Core Runtime threat baseline through Phase 9D-0; Persistent Write Entry Review CLOSED
 > Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
 
 ## Protected Assets
@@ -161,9 +161,11 @@ Controls: authenticated loopback download, per-session opaque IDs, source/trust 
 
 Future storage mutation may conflict with live state or partial saves.
 
-Planned controls: separate `storage.world.*` namespace, world fingerprint, explicit consistency, backup/checkpoint and no implicit fallback from live query.
+Planned controls: separate `storage.world.*` namespace, distinct Runtime/persistent/file identities, explicit consistency, lifecycle barrier, backup/checkpoint and no implicit fallback from live query.
 
 Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
+
+Persistent Write Entry Review is CLOSED. The current `worldFingerprint` and read-time storage identity are not sufficient write authorization, and no exclusive save/unload/lock barrier or domain-specific atomic writer/recovery path exists. Any future `storage.write` must be a separate higher-privilege scope with principal, Debug Arm, persistent storage identity, file/snapshot revision, exact DataVersion, typed resource/value preconditions and full audit/evidence. The first candidate is offline/stopped single-file metadata only; online/loaded/save/shutdown/Peer writes and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven.
 
 ### Malicious Read Provider
 

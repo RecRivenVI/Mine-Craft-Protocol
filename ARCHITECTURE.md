@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C and Phase 9D-0 complete; Persistent Write not started
+> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C and Phase 9D-0 complete; Persistent Write Entry Review CLOSED
 > Authority: `PLATFORM_VISION.md` defines the committed Core, `PLATFORM_EXTENSION_GOALS.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
@@ -296,6 +296,12 @@ Both return `dataSource=LIVE` and `storageAccessed=false`. Server block queries 
 ### Phase 9D-0 Persistent Read Boundary
 
 The five Targets expose the unstable V0 `phase9a/storage/read` route through a target-local `PersistentStorageAdapter`. The external result is uniform (`dataSource=PERSISTED`, `consistency=last_saved_state`, stale risk, storage identity and file revision); path resolution remains Target-local through Minecraft's `LevelResource` and dimension storage APIs. Reads use bounded NBT accounting, a bounded storage executor and read-only region channels. File snapshots and the session-lock identity are checked across the read; lifecycle changes, save-at-capture and shutdown fail closed. `storage.read` is separate from the broad `debug` scope, and no Persistent Write operation exists.
+
+### Persistent Write Entry Boundary
+
+The Phase 9D Persistent Write Entry Review is **CLOSED**. The read adapter's session-bound `storageWorldIdentity` and the live `worldFingerprint` are observation metadata, not a durable storage identity or write authorization. Runtime session identity, persistent world/storage identity and per-file snapshot identity must be separate before a write can be authorized. The current read lifecycle checks do not provide an exclusive barrier over Minecraft save/serialization, world unload, file locks or Dedicated Peer storage ownership, and the live `ResourceVersion` contract does not include storage/file/DataVersion preconditions.
+
+Persistent Write therefore remains disabled. A future first implementation may consider only an offline/stopped, typed single-file `level.dat` metadata candidate after it has a separate `storage.write`/`debug.storage` scope, principal and Debug Arm binding, exact current-target DataVersion policy, temp-file plus flush/force, backup, atomic replacement, post-write verification and controlled recovery. Online or loaded targets, save/unload/shutdown races, Region/Anvil/`.mcc` and Peer-owned storage writes remain rejected until their Target-specific ownership and format safety are proven. This boundary does not block the Core Developer Preview.
 
 Authoritative state comes from an active Integrated Server or a negotiated Dedicated Server Peer. Title screen and remote-without-Peer contexts return a typed unavailable error rather than client data relabeled as authoritative.
 

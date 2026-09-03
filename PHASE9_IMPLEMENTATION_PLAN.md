@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-0 PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
+> Status: Phase 9D-0 PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION; Persistent Write Entry Review CLOSED
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-0 is complete; Persistent Write awaits a separate entry review; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D Persistent Write Entry Review is CLOSED pending write-safety prerequisites; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -315,6 +315,22 @@ After explicit Save and re-entry, the persisted player record became available. 
 
 No Persistent Write is implemented in Phase 9A or Phase 9D-0.
 
+### 8.4 Phase 9D Persistent Write Entry Review — CLOSED
+
+The Phase 9D-0 read foundation is sufficient for bounded, explicitly persisted observation, but it is not yet a safe Persistent Write foundation. No Persistent Write route, schema, adapter method or writer is implemented, and this review does not authorize one.
+
+The following are structural blockers before any write implementation may begin:
+
+1. **Storage identity is not yet a write identity.** The live `worldFingerprint` is derived from Runtime/level context, while the read adapter's `storageWorldIdentity` combines session epoch, root and `session.lock` metadata. These are observation metadata, not a durable storage authorization token. A future write contract must distinguish Runtime session identity, persistent world/storage identity and per-file/snapshot identity, and must invalidate authorization when a path is replaced.
+2. **There is no exclusive storage lifecycle barrier.** The read checks observe lifecycle and save state, but do not own an offline/stopped world, Minecraft serialization, file lock or Dedicated Peer storage lifecycle. A write must reject loaded chunks, online players, save/unload/shutdown races and unknown lock ownership before opening a writer.
+3. **There is no storage precondition contract.** Live `ResourceVersion` does not by itself cover expected storage identity, file/snapshot revision, DataVersion and typed persisted-resource identity. These conditions must be checked immediately before mutation and verified again after replacement.
+4. **There is no per-domain atomic writer or recovery protocol.** `level.dat` and player data can be considered only as bounded single-file candidates after temp-file serialization, flush/force, backup, atomic replacement, post-write decode/hash verification and controlled rollback/unknown-outcome reporting are specified. Region/Anvil writes additionally require sector allocation, headers, compression variants, external `.mcc` handling and Windows rename/lock behavior; the Phase 9D-0 read parser is not a writer and must not be promoted as one.
+5. **Five Target write parity is unproven.** 1.20.1/1.21.1 retain the legacy `playerdata`/dimension layout and older NBT APIs; 26.1.2/26.2 use the newer `players/data` and `dimensions/...` layout and newer NBT/compression behavior. The Fabric 26.2 storage adapter is client-side, and Dedicated Server Peer storage ownership is not closed. Read-layout similarity is not evidence of write-lifecycle equivalence.
+
+The smallest future implementation candidate is **offline/stopped, single-file, typed world metadata only** (current-target `level.dat`). Persisted player data may follow as a separate, per-target step after the same safety proof. Loaded/online targets, any active save, world unload/shutdown, Region/Anvil/`.mcc`, POI/entity/SavedData and Dedicated Peer writes remain rejected. The future write surface must use a separate `storage.write`/`debug.storage` scope, authenticated principal, Debug Arm, storage identity, file revision, exact current-target DataVersion, typed resource/value preconditions, full audit and `PERSISTED`/`DEBUG_PRIVILEGED` evidence. The first writer must reject older/unknown DataVersion and must not perform automatic cross-version DataFix migration.
+
+**Entry decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The next task is a narrow write-safety foundation review/implementation (identity, lifecycle barrier, preconditions and single-file atomicity), not broad Persistent Storage or Region writing. Core Developer Preview remains unblocked because Persistent Write is outside its required contract.
+
 ## 9. Experimental Keyframe and Delta
 
 The bounded experimental Keyframe schema contains:
@@ -459,7 +475,7 @@ The former Phase 9A persisted-read helper is now behind a target-local `Persiste
 
 The live Phase 9D-0 gate covers world metadata, player data, loaded chunk data, missing/unloaded chunk requests, LIVE separation, five-Target launch and clean shutdown. Deterministic tests cover corrupt/truncated input, source budget, world identity replacement, save/unload/close rejection, queue overflow and cancellation. This is a read-only foundation; it is not permission to implement Persistent Write.
 
-Exit gate result: PASS. Persistent Write Entry Review is ready as a separate, explicitly authorized step.
+Exit gate result: PASS for read-only scope. Persistent Write Entry Review is CLOSED; the read foundation does not authorize Persistent Write.
 
 ### Phase 9E — Recording V2 and Canonical Store
 
@@ -595,7 +611,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (read foundation complete)
+9D Persistent Write lifecycle/safety (Entry Review CLOSED; safety foundation required)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -608,7 +624,7 @@ Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
-Persistent Write Entry Review: READY
+Persistent Write Entry Review: CLOSED — storage identity, lifecycle barrier and atomic writer prerequisites are missing
 Phase 10: NOT STARTED
 ```
 
@@ -769,7 +785,7 @@ Chunk, Client and Network are deliberately `PARTIAL`: their capability and safet
 ```text
 Phase 9C: PASS
 Phase 9D-0: PASS
-Persistent Write Entry Review: READY
+Persistent Write Entry Review: CLOSED
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN
