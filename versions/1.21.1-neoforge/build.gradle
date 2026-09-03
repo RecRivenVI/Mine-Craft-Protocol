@@ -64,6 +64,7 @@ sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
 dependencies {
+    implementation project(':runtime-safety')
     implementation 'io.netty:netty-codec-http:4.1.82.Final'
     additionalRuntimeClasspath 'io.netty:netty-codec-http:4.1.82.Final'
 }

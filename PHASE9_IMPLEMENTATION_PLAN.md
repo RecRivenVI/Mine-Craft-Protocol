@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-0 PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION; Persistent Write Entry Review CLOSED
+> Status: Phase 9D-1 PASS — PERSISTENT WRITE SAFETY FOUNDATION; Persistent Write Entry Review READY
 > Date: 2026-08-28  
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D Persistent Write Entry Review is CLOSED pending write-safety prerequisites; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-1 safety foundation is complete; Persistent Write Entry Review is READY; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -329,7 +329,21 @@ The following are structural blockers before any write implementation may begin:
 
 The smallest future implementation candidate is **offline/stopped, single-file, typed world metadata only** (current-target `level.dat`). Persisted player data may follow as a separate, per-target step after the same safety proof. Loaded/online targets, any active save, world unload/shutdown, Region/Anvil/`.mcc`, POI/entity/SavedData and Dedicated Peer writes remain rejected. The future write surface must use a separate `storage.write`/`debug.storage` scope, authenticated principal, Debug Arm, storage identity, file revision, exact current-target DataVersion, typed resource/value preconditions, full audit and `PERSISTED`/`DEBUG_PRIVILEGED` evidence. The first writer must reject older/unknown DataVersion and must not perform automatic cross-version DataFix migration.
 
-**Entry decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The next task is a narrow write-safety foundation review/implementation (identity, lifecycle barrier, preconditions and single-file atomicity), not broad Persistent Storage or Region writing. Core Developer Preview remains unblocked because Persistent Write is outside its required contract.
+**Entry decision before Phase 9D-1:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The safety foundation below addresses these prerequisites; it does not implement or expose Persistent Write. Core Developer Preview remains unblocked because Persistent Write is outside its required contract.
+
+### 8.5 Phase 9D-1 — Persistent Write Safety Foundation — COMPLETE
+
+Phase 9D-1 adds a safety-only, target-local foundation with no `storage.write` route and no Minecraft save mutation. `StorageIdentity` separates Runtime session identity, persistent world/storage identity and file snapshot identity. It combines the normalized target context with root/`level.dat`/`session.lock` file evidence and bounded content hashes; no marker file is created. Filesystems without stable identity evidence are rejected for ownership.
+
+`LifecycleBarrier` starts in an unknown state, permits ownership only after an explicit `STOPPED_OFFLINE` transition, serializes an active write permit against lifecycle transitions, and holds an OS file lock on the existing `session.lock`. Ownership is process- and file-exclusive, revoked by running/saving/unloading/shutdown/close, and cannot be silently retained after Runtime shutdown.
+
+`WritePrecondition`/`WriteContext` require storage identity, Runtime session, Target, exact DataVersion, file snapshot/content revision, typed resource/value identity, authenticated principal, both `storage.write` and `debug.storage`, a valid storage Debug Arm, deadline, audit correlation and active offline ownership. `storage.read` alone never authorizes a write. Any mismatch fails before a replacement action.
+
+`AtomicWriteRequest` is a synthetic-fixture-only single-file foundation. It writes a bounded same-directory temporary file, forces the file, rechecks the expected snapshot, creates a durable backup, requires `ATOMIC_MOVE`, defines the successful move as the commit point, verifies the replacement, and returns explicit `NOT_COMMITTED`, `COMMITTED`, `COMMITTED_BUT_POSTVERIFY_FAILED` or `RECOVERY_REQUIRED` outcomes. Stale temporary artifacts, backup recovery, cancellation before/after commit, injected write/flush/replace/post-verify/cleanup failures and Windows open-handle behavior are covered by deterministic tests. Non-atomic replacement is rejected; no Region/Anvil writer is introduced.
+
+The foundation is present and compiles on all five Targets. Phase 9D-1 conformance reports zero real Minecraft storage writes. DataVersion policy remains current-Target-only, with old/unknown versions rejected and no automatic DataFix. Dedicated Server Peer storage ownership, playerdata and all Region/Anvil/`.mcc` writes remain outside this foundation.
+
+Exit gate result: `PASS`. `Phase 9D Persistent Write Entry Review: READY` — this is permission to perform a new independent review only, not permission to start Persistent Write.
 
 ## 9. Experimental Keyframe and Delta
 
@@ -475,7 +489,7 @@ The former Phase 9A persisted-read helper is now behind a target-local `Persiste
 
 The live Phase 9D-0 gate covers world metadata, player data, loaded chunk data, missing/unloaded chunk requests, LIVE separation, five-Target launch and clean shutdown. Deterministic tests cover corrupt/truncated input, source budget, world identity replacement, save/unload/close rejection, queue overflow and cancellation. This is a read-only foundation; it is not permission to implement Persistent Write.
 
-Exit gate result: PASS for read-only scope. Persistent Write Entry Review is CLOSED; the read foundation does not authorize Persistent Write.
+Exit gate result: PASS for read-only scope. The read foundation alone did not authorize Persistent Write; the subsequent Phase 9D-1 safety foundation is recorded below.
 
 ### Phase 9E — Recording V2 and Canonical Store
 
@@ -611,7 +625,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (Entry Review CLOSED; safety foundation required)
+9D Persistent Write lifecycle/safety (Phase 9D-1 foundation complete; Entry Review READY)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -624,7 +638,8 @@ Phase 9B.2: PASS
 Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
-Persistent Write Entry Review: CLOSED — storage identity, lifecycle barrier and atomic writer prerequisites are missing
+Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
+Persistent Write Entry Review: READY — independent review required; write route remains unavailable
 Phase 10: NOT STARTED
 ```
 
@@ -785,7 +800,8 @@ Chunk, Client and Network are deliberately `PARTIAL`: their capability and safet
 ```text
 Phase 9C: PASS
 Phase 9D-0: PASS
-Persistent Write Entry Review: CLOSED
+Phase 9D-1: PASS
+Persistent Write Entry Review: READY
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN

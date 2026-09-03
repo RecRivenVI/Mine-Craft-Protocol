@@ -16,6 +16,7 @@ plugins {
 rootProject.name = "Mine-Craft-Protocol"
 
 include(":protocol-schema")
+include(":runtime-safety")
 include(":versions:1.20.1-forge")
 include(":versions:1.21.1-neoforge")
 include(":versions:26.1.2-neoforge")
