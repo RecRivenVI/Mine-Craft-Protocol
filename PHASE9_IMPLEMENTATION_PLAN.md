@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-2.1 PASS — RUNTIME SAFETY PACKAGING; Persistent Write Entry Review READY
+> Status: Phase 9D-2.1 PASS — RUNTIME SAFETY PACKAGING + PACKAGED ARTIFACT ATTESTATION; Persistent Write Entry Review READY
 > Date: 2026-09-05
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-2.1 runtime packaging and five-target lifecycle attestation are complete; Persistent Write remains unimplemented and the next gate is an independent Entry Review; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-2.1 runtime packaging and five-target packaged-artifact lifecycle attestation are complete; Persistent Write remains unimplemented and the next gate is an independent Entry Review; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -389,6 +389,14 @@ The shared `runtime-safety` module is now a real runtime dependency on every Tar
 The packaging gate built all five Targets and verified one embedded safety JAR per final artifact, the shared class inside that JAR, and no duplicate class at the outer artifact root. The live lifecycle gate launched all five development Runtimes, entered a world, observed `WORLD_RUNNING`/`SAVING`, completed Save-and-Quit to Title, observed `STOPPED_OFFLINE`, and shut each Runtime down cleanly. No `NoClassDefFoundError` occurred. The optional persisted-read call is intentionally separately selectable because Windows may hold a live `level.dat` handle exclusively; this packaging/lifecycle result does not reclassify that read-plane limitation.
 
 No Persistent Write route or save mutation was added. Real Minecraft Persistent Write count remains zero. The next action is a new independent Persistent Write Entry Review; Phase 9C/9D-0/9D-1/9D-2 and Phase 8/V1 contracts remain unchanged.
+
+### 8.10 Packaged Artifact Runtime Attestation — COMPLETE
+
+The five release JARs were each placed alone in an isolated temporary instance with no standalone `runtime-safety` JAR and no source-set Mod loaded. Forge 1.20.1 used a production Forge client installation; NeoForge 1.21.1, NeoForge 26.1.2, NeoForge 26.2 and Fabric 26.2 used their Loader run paths with the local source Mod disabled. Loader output identified the Mod from the final JAR, resolved its embedded `runtime-safety` dependency, and initialized the Runtime.
+
+All five packaged runs completed the title → test world → running → Save-and-Quit → `STOPPED_OFFLINE` → clean shutdown path. The final environments produced no `NoClassDefFoundError`, duplicate-class conflict or classloader failure. SHA-256 hashes and the exact source commit are recorded in `Artifacts/phase9/packaged-artifact-attestation-dc12612dd0c31f86c26fa8b18aee17f6f4733e04.json`.
+
+This attestation proves the Phase 9D-2.1 packaging boundary only; it does not implement or authorize Persistent Write. The next gate remains an independent Persistent Write Entry Review, followed by the planned Human-visible Core Demo.
 
 ## 9. Experimental Keyframe and Delta
 

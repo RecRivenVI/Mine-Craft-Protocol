@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Architecture Baseline
 
-> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C, Phase 9D-0/9D-1/9D-2/9D-2.1 complete; Persistent Write Entry Review READY for independent review
+> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C, Phase 9D-0/9D-1/9D-2/9D-2.1 and packaged-artifact runtime attestation complete; Persistent Write Entry Review READY for independent review
 > Authority: `PLATFORM_VISION.md` defines the committed Core, `PLATFORM_EXTENSION_GOALS.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary

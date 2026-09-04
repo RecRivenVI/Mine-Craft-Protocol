@@ -1,0 +1,78 @@
+{
+  "phase": "9D-2.1",
+  "attestation": "Packaged Artifact Runtime Attestation",
+  "sourceCommit": "dc12612dd0c31f86c26fa8b18aee17f6f4733e04",
+  "originCommitAtRun": "dc12612dd0c31f86c26fa8b18aee17f6f4733e04",
+  "workingTreeCleanBeforeEvidence": true,
+  "wireProtocolV1": "NOT_FROZEN",
+  "finalArtifactOnly": true,
+  "temporaryInstancesContainOnlyFinalModJar": true,
+  "separateRuntimeSafetyJarPresent": false,
+  "sourceSetModLoaded": false,
+  "persistentWriteApiInvocations": 0,
+  "noClassDefFoundErrorInFinalRuns": 0,
+  "targets": [
+    {
+      "target": "1.20.1-forge",
+      "loader": "Forge 47.4.21 production client",
+      "artifactSha256": "7bae896dd56d66097ee43405fb8397c5c4fe023d114bf7c4f4703009d87d73a2",
+      "embeddedRuntimeSafety": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+      "loaderResolvedEmbeddedDependency": true,
+      "launch": "PASS",
+      "world": "PASS",
+      "saveAndQuit": "PASS",
+      "stoppedOffline": "PASS",
+      "cleanShutdown": "PASS"
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "loader": "NeoForge 21.1.248",
+      "artifactSha256": "e8340021877dc547c11cd9ab04eb0fa4dfd7041c97b6f568b0ea0545999b6a74",
+      "embeddedRuntimeSafety": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+      "loaderResolvedEmbeddedDependency": true,
+      "launch": "PASS",
+      "world": "PASS",
+      "saveAndQuit": "PASS",
+      "stoppedOffline": "PASS",
+      "cleanShutdown": "PASS"
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "loader": "NeoForge 26.1.2.97",
+      "artifactSha256": "b57f478a85fc00493245702b8b053823a7d16e64d10f15fcb88b62e6922dcccf",
+      "embeddedRuntimeSafety": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+      "loaderResolvedEmbeddedDependency": true,
+      "launch": "PASS",
+      "world": "PASS",
+      "saveAndQuit": "PASS",
+      "stoppedOffline": "PASS",
+      "cleanShutdown": "PASS"
+    },
+    {
+      "target": "26.2-neoforge",
+      "loader": "NeoForge 26.2.0.67",
+      "artifactSha256": "83dc6fa884c43df96e1879513114aa6e1531a165db8fe86ba3400d6270693055",
+      "embeddedRuntimeSafety": "META-INF/jarjar/io.github.recrivenvi.runtime-safety-0.0.1.jar",
+      "loaderResolvedEmbeddedDependency": true,
+      "launch": "PASS",
+      "world": "PASS",
+      "saveAndQuit": "PASS",
+      "stoppedOffline": "PASS",
+      "cleanShutdown": "PASS"
+    },
+    {
+      "target": "26.2-fabric",
+      "loader": "Fabric Loader 0.19.3",
+      "artifactSha256": "c69fbed7ad327def268cdc7017b5282f89b45d41194d1fd4b38df1ed5b11aba7",
+      "embeddedRuntimeSafety": "META-INF/jars/runtime-safety-0.0.1.jar",
+      "loaderResolvedEmbeddedDependency": true,
+      "launch": "PASS",
+      "world": "PASS",
+      "saveAndQuit": "PASS",
+      "stoppedOffline": "PASS",
+      "cleanShutdown": "PASS"
+    }
+  ],
+  "result": "PASS",
+  "persistentWrite": "NOT_IMPLEMENTED"
+}
