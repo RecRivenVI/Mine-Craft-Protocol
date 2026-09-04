@@ -117,6 +117,36 @@ final class ProtocolStateTest {
         }
     }
 
+    @Test
+    void manualRevocationIsVisibleUntilExplicitReacquire() {
+        try (ProtocolState state = state()) {
+            JsonObject acquired = state.acquireLease(60_000L);
+            assertEquals("AGENT_CONTROLLED", acquired.get("controlState").getAsString());
+
+            JsonObject revoked = state.revokeHumanControl();
+            assertEquals("manually_revoked", revoked.get("status").getAsString());
+            assertEquals("MANUALLY_REVOKED", revoked.get("controlState").getAsString());
+            assertTrue(revoked.get("reconsentRequired").getAsBoolean());
+            assertEquals("用户手动结束控制", revoked.get("message").getAsString());
+
+            JsonObject status = state.leaseStatus();
+            assertEquals("MANUALLY_REVOKED", status.get("controlState").getAsString());
+            assertTrue(status.get("reconsentRequired").getAsBoolean());
+            ProtocolState.ProtocolException blocked = assertThrows(
+                    ProtocolState.ProtocolException.class, () -> state.requireLease("old-lease"));
+            assertEquals("USER_MANUALLY_ENDED_CONTROL", blocked.code());
+
+            JsonObject reacquired = state.acquireLease(60_000L);
+            assertEquals("AGENT_CONTROLLED", reacquired.get("controlState").getAsString());
+            assertTrue(!reacquired.get("reconsentRequired").getAsBoolean());
+
+            String audit = state.auditSnapshot(16).toString();
+            assertTrue(audit.contains("agent_control_acquired"));
+            assertTrue(audit.contains("human_manual_revocation"));
+            assertTrue(audit.contains("agent_control_reacquired"));
+        }
+    }
+
     private static ProtocolState state() {
         return new ProtocolState(
                 Set.of("read", "input", "control", "event", "diagnostics", "command"),

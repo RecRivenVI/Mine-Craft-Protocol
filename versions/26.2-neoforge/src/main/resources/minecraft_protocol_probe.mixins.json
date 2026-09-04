@@ -9,12 +9,18 @@
     "ConnectionMixin",
     "DistanceManagerAccessor",
     "GuiRenderStateMixin",
+    "HudMixin",
+    "KeyboardHandlerMixin",
     "KeyboardHandlerInvoker",
     "LevelTicksAccessor",
     "MinecraftMixin",
     "MouseHandlerInvoker",
+    "MouseHandlerAccessor",
+    "MouseHandlerMixin",
     "MultiPlayerGameModeMixin",
-    "ServerGamePacketListenerImplMixin"
+    "ServerGamePacketListenerImplMixin",
+    "WindowMixin",
+    "ScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -15,5 +15,10 @@ public interface MouseHandlerInvoker {
 
     @Invoker("onScroll")
     void minecraftProtocolProbe$onScroll(long window, double xOffset, double yOffset);
-}
 
+    @Invoker("grabMouse")
+    void minecraftProtocolProbe$grabMouse();
+
+    @Invoker("releaseMouse")
+    void minecraftProtocolProbe$releaseMouse();
+}

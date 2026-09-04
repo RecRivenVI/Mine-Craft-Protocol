@@ -89,7 +89,8 @@ final class ProbeTransport implements AutoCloseable {
         this.protocolState = new ProtocolState(
                 ProtocolState.configuredScopes(),
                 this.securityGate.principalId(),
-                reason -> service.releaseAllInput(reason));
+                reason -> service.releaseAllInput(reason),
+                service::controlPresenceChanged);
         this.automation = new AutomationEngine(service);
         this.observation = new ObservationEngine(service);
         this.recording = new RecordingEngine(service, this.observation);
@@ -139,6 +140,11 @@ final class ProbeTransport implements AutoCloseable {
     void broadcast(JsonObject event) {
         JsonObject published = this.eventHub.publish(event);
         this.recording.recordEvent("runtime.event", published);
+    }
+
+    boolean revokeHumanControl() {
+        JsonObject result = this.protocolState.revokeHumanControl();
+        return result.has("status") && "manually_revoked".equals(result.get("status").getAsString());
     }
 
     @Override
@@ -1101,6 +1107,10 @@ final class ProbeTransport implements AutoCloseable {
         JsonObject json = new JsonObject();
         json.addProperty("error", code);
         json.addProperty("message", error.getMessage() == null ? "unknown" : error.getMessage());
+        if ("USER_MANUALLY_ENDED_CONTROL".equals(code)) {
+            json.addProperty("controlState", "MANUALLY_REVOKED");
+            json.addProperty("reconsentRequired", true);
+        }
         json.addProperty("requestId", requestId);
         json.addProperty("protocolVersion", ProtocolState.PROTOCOL_VERSION);
         sendBytes(context, requestId, GSON.toJson(json).getBytes(CharsetUtil.UTF_8),

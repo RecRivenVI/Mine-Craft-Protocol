@@ -2,6 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -50,11 +51,22 @@ final class ProtocolState implements AutoCloseable {
     private final Map<String, GameplayActWindow> gameplayActs = new ConcurrentHashMap<>();
     private ControlLease lease;
     private DebugArm debugArm;
+    private final AgentControlSession controlSession;
 
     ProtocolState(Set<String> scopes, String principalId, Consumer<String> inputCleanup) {
+        this(scopes, principalId, inputCleanup, snapshot -> {
+        });
+    }
+
+    ProtocolState(
+            Set<String> scopes,
+            String principalId,
+            Consumer<String> inputCleanup,
+            Consumer<AgentControlSession.Snapshot> controlListener) {
         this.scopes = Set.copyOf(scopes);
         this.principalId = principalId;
         this.inputCleanup = inputCleanup;
+        this.controlSession = new AgentControlSession(controlListener);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "minecraft-protocol-control");
             thread.setDaemon(true);
@@ -155,9 +167,16 @@ final class ProtocolState implements AutoCloseable {
         if (this.lease != null) {
             throw new ProtocolException("CONTROL_LEASE_CONFLICT", 409, "An input control lease is already active");
         }
+        boolean reacquiredAfterManualRevocation = this.controlSession.snapshot().manuallyRevoked();
         long ttl = Math.max(1_000L, Math.min(requestedTtlMillis, 60_000L));
         this.lease = new ControlLease(UUID.randomUUID().toString(), now + ttl);
         this.scheduleLeaseExpiry(this.lease);
+        this.controlSession.acquire();
+        this.audit(
+                UUID.randomUUID().toString(),
+                "control",
+                "/v0/control/acquire",
+                reacquiredAfterManualRevocation ? "agent_control_reacquired" : "agent_control_acquired");
         return this.leaseJson("acquired");
     }
 
@@ -174,11 +193,13 @@ final class ProtocolState implements AutoCloseable {
         this.lease = null;
         this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
+        this.controlSession.release(reason);
+        this.audit(UUID.randomUUID().toString(), "control", "/v0/control/release", "control_released");
         JsonObject json = new JsonObject();
         json.addProperty("type", "control.lease");
         json.addProperty("status", "released");
         json.addProperty("reason", reason);
-        return json;
+        return this.controlPresence(json);
     }
 
     synchronized boolean releaseLeaseIfMatches(String leaseId, String reason) {
@@ -187,6 +208,8 @@ final class ProtocolState implements AutoCloseable {
         this.lease = null;
         this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
+        this.controlSession.release(reason);
+        this.audit(UUID.randomUUID().toString(), "control", "/v0/control/release", "control_released");
         return true;
     }
 
@@ -195,12 +218,16 @@ final class ProtocolState implements AutoCloseable {
         this.lease = null;
         this.cancelLeaseBoundOperations(reason);
         this.inputCleanup.accept(reason);
+        if (hadLease) {
+            this.controlSession.release(reason);
+            this.audit(UUID.randomUUID().toString(), "control", "/v0/control/emergency-release", "control_released");
+        }
         JsonObject json = new JsonObject();
         json.addProperty("type", "control.lease");
         json.addProperty("status", "released");
         json.addProperty("hadLease", hadLease);
         json.addProperty("reason", reason);
-        return json;
+        return this.controlPresence(json);
     }
 
     synchronized JsonObject leaseStatus() {
@@ -209,9 +236,34 @@ final class ProtocolState implements AutoCloseable {
             JsonObject json = new JsonObject();
             json.addProperty("type", "control.lease");
             json.addProperty("status", "available");
-            return json;
+            return this.controlPresence(json);
         }
         return this.leaseJson("active");
+    }
+
+    synchronized JsonObject revokeHumanControl() {
+        if (this.lease == null || !this.controlSession.snapshot().agentControlled()) {
+            return this.controlPresence(new JsonObject());
+        }
+        String leaseId = this.lease.id();
+        this.lease = null;
+        this.cancelLeaseBoundOperations("human_manual_revocation");
+        this.inputCleanup.accept("human_manual_revocation");
+        this.controlSession.manuallyRevoke();
+        this.audit(
+                UUID.randomUUID().toString(),
+                "native-input",
+                "/v0/control/human-revoke",
+                "human_manual_revocation");
+        JsonObject json = new JsonObject();
+        json.addProperty("type", "control.lease");
+        json.addProperty("status", "manually_revoked");
+        json.addProperty("previousLeaseId", leaseId);
+        return this.controlPresence(json);
+    }
+
+    AgentControlSession.Snapshot controlPresence() {
+        return this.controlSession.snapshot();
     }
 
     synchronized JsonObject armDebug(
@@ -324,6 +376,11 @@ final class ProtocolState implements AutoCloseable {
     synchronized void requireLease(String leaseId) {
         this.expireLeaseIfNeeded(System.currentTimeMillis());
         if (this.lease == null || leaseId == null || !this.lease.id().equals(leaseId)) {
+            if (this.controlSession.snapshot().manuallyRevoked()) {
+                throw new ProtocolException(
+                        "USER_MANUALLY_ENDED_CONTROL", 409,
+                        "用户手动结束控制; reconsentRequired=true");
+            }
             throw new ProtocolException("CONTROL_LEASE_REQUIRED", 409, "A valid input control lease is required");
         }
     }
@@ -603,14 +660,18 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("activeDeepObservations", this.deepObservations.size());
         json.addProperty("maxActiveDeepObservations", MAX_ACTIVE_DEEP_OBSERVATIONS);
         json.addProperty("debugMutationSequence", this.debugMutationSequence.get());
+        this.controlPresence(json);
         return json;
     }
 
     @Override
     public synchronized void close() {
+        boolean hadLease = this.lease != null;
         this.lease = null;
         this.debugArm = null;
         this.inputCleanup.accept("transport_close");
+        this.controlSession.release("transport_close");
+        if (hadLease) this.audit(UUID.randomUUID().toString(), "control", "/v0/control/transport-close", "control_released");
         for (Operation operation : this.operations.values()) operation.cancel("transport_close");
         for (DeepObservationRequestContext requestContext : this.deepObservations.values()) {
             requestContext.cancel("transport_close");
@@ -623,8 +684,10 @@ final class ProtocolState implements AutoCloseable {
     private synchronized void expireLeaseIfNeeded(long now) {
         if (this.lease != null && this.lease.expiresAtMillis() <= now) {
             this.lease = null;
-            this.cancelLeaseBoundOperations("lease_expired");
-            this.inputCleanup.accept("lease_expired");
+        this.cancelLeaseBoundOperations("lease_expired");
+        this.inputCleanup.accept("lease_expired");
+        this.controlSession.release("lease_expired");
+        this.audit(UUID.randomUUID().toString(), "control", "/v0/control/lease-expiry", "control_released");
         }
     }
 
@@ -638,6 +701,8 @@ final class ProtocolState implements AutoCloseable {
                     this.lease = null;
                     this.cancelLeaseBoundOperations("lease_expired");
                     this.inputCleanup.accept("lease_expired");
+                    this.controlSession.release("lease_expired");
+                    this.audit(UUID.randomUUID().toString(), "control", "/v0/control/lease-expiry", "control_released");
                 }
             }
         }, delay, TimeUnit.MILLISECONDS);
@@ -672,6 +737,15 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("status", status);
         json.addProperty("leaseId", this.lease.id());
         json.addProperty("expiresAtMillis", this.lease.expiresAtMillis());
+        return this.controlPresence(json);
+    }
+
+    private JsonObject controlPresence(JsonObject json) {
+        AgentControlSession.Snapshot snapshot = this.controlSession.snapshot();
+        json.addProperty("controlState", snapshot.state().name());
+        json.addProperty("reconsentRequired", snapshot.reconsentRequired());
+        json.addProperty("controlTransitionSequence", snapshot.transitionSequence());
+        if (snapshot.manuallyRevoked()) json.addProperty("message", snapshot.message());
         return json;
     }
 

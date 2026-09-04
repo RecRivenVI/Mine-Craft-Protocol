@@ -1,10 +1,14 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import java.util.concurrent.CompletableFuture;
 import java.nio.file.Path;
 
 interface ProbeService {
+    default void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {
+    }
+
     CompletableFuture<JsonObject> session();
     CompletableFuture<JsonObject> capabilities();
     CompletableFuture<JsonObject> readiness();

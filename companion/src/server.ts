@@ -293,7 +293,7 @@ export function buildServer(config: CompanionConfig): McpServer {
 
   server.registerTool('minecraft_control', {
     title: 'Manage Minecraft Control Lease',
-    description: 'Acquire, renew, release, inspect, or emergency-release the single-writer Runtime input lease.',
+    description: 'Acquire, renew, release, inspect, or emergency-release the single-writer Runtime input lease. If Runtime reports USER_MANUALLY_ENDED_CONTROL or reconsentRequired, stop and obtain explicit consent from the user in the current conversation before trying to acquire again; Runtime cannot verify chat consent and no consent flag may be fabricated.',
     inputSchema: z.object({ action: z.enum(['status', 'acquire', 'renew', 'release', 'emergency_release']), ttlMs: z.number().int().min(1000).max(60000).default(60000), leaseId: leaseSchema }),
     annotations: safeActionAnnotations
   }, async ({ action, ttlMs, leaseId }) => asToolResult(async () => {

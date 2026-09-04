@@ -6,9 +6,15 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerInvoker;
+import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentInputContext;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,6 +35,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
@@ -46,6 +53,12 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWImage;
+import org.lwjgl.system.MemoryUtil;
+import javax.imageio.ImageIO;
 
 public final class NeoForgeProbeRuntime implements ProbeService {
     private static final NeoForgeProbeRuntime INSTANCE = new NeoForgeProbeRuntime();
@@ -76,6 +89,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private final Set<Integer> pressedButtons = new HashSet<>();
     private volatile String lastTraceDetail = "";
     private volatile String lastServerThread = "";
+    private volatile AgentControlSession.Snapshot controlPresence = new AgentControlSession().snapshot();
+    private volatile boolean humanCursorCaptureGranted;
+    private volatile boolean captureInProgress;
+    private volatile boolean controlChromeApplied;
+    private volatile String originalWindowTitle;
+    private volatile String vanillaWindowTitle = "Minecraft";
+    private final AtomicLong controlChromeRenderSequence = new AtomicLong();
 
     private NeoForgeProbeRuntime() {
         this.phase9a.installProviderDispatcher(this::dispatchProvider);
@@ -84,6 +104,171 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     public static void onClientTick(Minecraft minecraft) {
         INSTANCE.tick(minecraft);
+    }
+
+    public static boolean onNativeEscape() {
+        return INSTANCE.handleNativeEscape();
+    }
+
+    public static boolean onNativeMouseButton(long window, int button, int action) {
+        return INSTANCE.handleNativeMouseButton(window, button, action);
+    }
+
+    public static void onAgentMouseMove(long window) {
+        INSTANCE.handleAgentMouseMove(window);
+    }
+
+    public static void renderControlChrome(GuiGraphics graphics) {
+        INSTANCE.renderChrome(graphics);
+    }
+
+    public static void onVanillaWindowTitle(String title) {
+        INSTANCE.observeVanillaWindowTitle(title);
+    }
+
+    public static boolean isAgentControlActive() {
+        return INSTANCE.controlPresence.agentControlled();
+    }
+
+    @Override
+    public void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {
+        this.controlPresence = snapshot;
+        Minecraft current = this.minecraft;
+        if (current == null) return;
+        try {
+            current.execute(() -> this.applyControlPresentation(current));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private boolean handleNativeEscape() {
+        ProbeTransport current = this.transport;
+        if (current == null || !this.controlPresence.agentControlled()) return false;
+        if (!current.revokeHumanControl()) return false;
+        this.humanCursorCaptureGranted = false;
+        Minecraft client = this.minecraft;
+        if (client != null && client.mouseHandler instanceof MouseHandlerInvoker invoker) {
+            invoker.minecraftProtocolProbe$releaseMouse();
+        }
+        return true;
+    }
+
+    private boolean handleNativeMouseButton(long window, int button, int action) {
+        if (action != InputConstants.PRESS || !this.controlPresence.agentControlled()
+                || AgentInputContext.isAgentRouted()) return false;
+        Minecraft client = this.minecraft;
+        if (client == null || client.screen != null || window != client.getWindow().getWindow()
+                || GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) != GLFW.GLFW_TRUE) return false;
+        this.humanCursorCaptureGranted = true;
+        if (client.mouseHandler instanceof MouseHandlerInvoker invoker) invoker.minecraftProtocolProbe$grabMouse();
+        return true;
+    }
+
+    private void handleAgentMouseMove(long window) {
+        Minecraft client = this.minecraft;
+        if (!this.controlPresence.agentControlled() || client == null
+                || client.level == null || client.player == null
+                || window != client.getWindow().getWindow()
+                || GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) != GLFW.GLFW_TRUE) return;
+        if (client.mouseHandler instanceof MouseHandlerAccessor accessor) accessor.minecraftProtocolProbe$setMouseGrabbed(true);
+    }
+
+    private void enforceAgentMousePolicy(Minecraft client) {
+        if (!this.controlPresence.agentControlled()) return;
+        if (client.level == null || client.player == null) {
+            this.humanCursorCaptureGranted = false;
+            return;
+        }
+        long window = client.getWindow().getWindow();
+        boolean focused = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
+        if (!focused) this.humanCursorCaptureGranted = false;
+        if (!focused || !this.humanCursorCaptureGranted) {
+            if (client.mouseHandler instanceof MouseHandlerInvoker invoker) invoker.minecraftProtocolProbe$releaseMouse();
+        }
+    }
+
+    private void applyControlPresentation(Minecraft client) {
+        long window = client.getWindow().getWindow();
+        if (this.controlPresence.agentControlled()) {
+            if (!this.controlChromeApplied) {
+                this.originalWindowTitle = this.vanillaWindowTitle;
+                this.applyAgentIcon(window);
+                this.controlChromeApplied = true;
+            }
+            String baseTitle = this.originalWindowTitle == null ? "Minecraft" : this.originalWindowTitle;
+            GLFW.glfwSetWindowTitle(window, baseTitle.replace(" - 由智能体控制", "") + " - 由智能体控制");
+            return;
+        }
+        this.humanCursorCaptureGranted = false;
+        if (this.controlChromeApplied) {
+            GLFW.glfwSetWindowTitle(window, this.originalWindowTitle == null ? "Minecraft" : this.originalWindowTitle);
+            GLFW.glfwSetWindowIcon(window, null);
+            this.controlChromeApplied = false;
+            this.originalWindowTitle = null;
+        }
+    }
+
+    private void observeVanillaWindowTitle(String title) {
+        if (title == null || title.isBlank()) return;
+        this.vanillaWindowTitle = title.replace(" - 由智能体控制", "");
+    }
+
+    private void applyAgentIcon(long window) {
+        try (InputStream stream = NeoForgeProbeRuntime.class.getResourceAsStream("/minecraft_protocol_probe_control.png")) {
+            if (stream == null) return;
+            BufferedImage image = ImageIO.read(stream);
+            if (image == null || image.getWidth() < 1 || image.getHeight() < 1) return;
+            int width = image.getWidth();
+            int height = image.getHeight();
+            ByteBuffer pixels = MemoryUtil.memAlloc(width * height * 4);
+            GLFWImage icon = GLFWImage.malloc();
+            GLFWImage.Buffer icons = GLFWImage.malloc(1);
+            try {
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+                    int argb = image.getRGB(x, y);
+                    pixels.put((byte) ((argb >> 16) & 0xFF)).put((byte) ((argb >> 8) & 0xFF))
+                            .put((byte) (argb & 0xFF)).put((byte) ((argb >>> 24) & 0xFF));
+                }
+                pixels.flip();
+                icon.width(width).height(height).pixels(pixels);
+                icons.put(0, icon);
+                GLFW.glfwSetWindowIcon(window, icons);
+            } finally {
+                icons.free();
+                icon.free();
+                MemoryUtil.memFree(pixels);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void renderChrome(GuiGraphics graphics) {
+        if (!this.controlPresence.agentControlled() || this.captureInProgress) return;
+        this.controlChromeRenderSequence.incrementAndGet();
+        int width = graphics.guiWidth();
+        int height = graphics.guiHeight();
+        int[] glow = { 0x243D9BFF, 0x3A3D9BFF, 0x663D9BFF, 0xA03D9BFF };
+        for (int i = 0; i < glow.length; i++) {
+            int inset = i;
+            graphics.fill(inset, inset, width - inset, inset + 1, glow[i]);
+            graphics.fill(inset, height - inset - 1, width - inset, height - inset, glow[i]);
+            graphics.fill(inset, inset, inset + 1, height - inset, glow[i]);
+            graphics.fill(width - inset - 1, inset, width - inset, height - inset, glow[i]);
+        }
+        int panelWidth = Math.min(width - 16, 280);
+        int left = Math.max(8, (width - panelWidth) / 2);
+        graphics.fill(left, 4, left + panelWidth, 36, 0xA0101830);
+        graphics.drawCenteredString(this.minecraft.font, Component.literal("智能体正在控制您的实例"), width / 2, 8, 0xFFFFFFFF);
+        graphics.drawCenteredString(this.minecraft.font, Component.literal("由智能体控制 [按 Esc 退出]"), width / 2, 21, 0xFFD6E4FF);
+    }
+
+    private void addControlPresence(JsonObject json) {
+        AgentControlSession.Snapshot snapshot = this.controlPresence;
+        json.addProperty("controlState", snapshot.state().name());
+        json.addProperty("reconsentRequired", snapshot.reconsentRequired());
+        json.addProperty("controlTransitionSequence", snapshot.transitionSequence());
+        json.addProperty("controlChromeRenderedFrames", this.controlChromeRenderSequence.get());
+        if (snapshot.manuallyRevoked()) json.addProperty("controlMessage", snapshot.message());
     }
 
     public static void observeScreenSlotClick(int slotId, int mouseButton, String clickType) {
@@ -109,6 +294,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     private void tick(Minecraft minecraft) {
         this.minecraft = minecraft;
+        this.enforceAgentMousePolicy(minecraft);
+        this.applyControlPresentation(minecraft);
         DedicatedPeerClient.tick(minecraft);
         this.clientTick++;
         if (Boolean.getBoolean("minecraft.protocol.probe.disablePauseOnLostFocus")) {
@@ -156,6 +343,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             json.addProperty("screenRevision", this.screenRevision);
             json.addProperty("menuRevision", this.menuRevision);
             json.addProperty("thread", Thread.currentThread().getName());
+            this.addControlPresence(json);
             return json;
         });
     }
@@ -175,6 +363,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             capabilities.addProperty("input.game_routed_keymapping", "path_observable");
             capabilities.addProperty("capture.composite", "runtime_hooked");
             capabilities.addProperty("input.pipeline", "runtime_verified");
+            capabilities.addProperty("control.agent_presence", "runtime_verified");
+            capabilities.addProperty("control.native_escape_revoke", "runtime_hooked");
+            capabilities.addProperty("input.host_cursor_capture", "agent_gated_native_click");
             capabilities.addProperty("input.multi_key", "runtime_verified");
             capabilities.addProperty("input.drag_scroll", "runtime_verified");
             capabilities.addProperty("command.player.execute", "normal_network_current_permissions");
@@ -202,6 +393,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             capabilities.addProperty("debug.world.block", "scope_and_arm_gated");
             json.add("capabilities", capabilities);
             json.add("serverPeer", DedicatedPeerClient.status());
+            this.addControlPresence(json);
             return json;
         });
     }
@@ -366,8 +558,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             Minecraft client = requireClient();
             double rawX = guiX * client.getWindow().getScreenWidth() / client.getWindow().getGuiScaledWidth();
             double rawY = guiY * client.getWindow().getScreenHeight() / client.getWindow().getGuiScaledHeight();
-            ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onMove(
-                    client.getWindow().getWindow(), rawX, rawY);
+            AgentInputContext.routed(() -> ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onMove(
+                    client.getWindow().getWindow(), rawX, rawY));
             return inputEvidence("GAME_ROUTED_RAW", client.screen != null, false);
         });
     }
@@ -380,8 +572,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             boolean menu = client.screen instanceof AbstractContainerScreen<?>;
             long beforeMenu = this.menuDispatchSequence.get();
             long beforePacket = this.containerPacketSequence.get();
-            ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onPress(
-                    client.getWindow().getWindow(), button, action, modifiers);
+            AgentInputContext.routed(() -> ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onPress(
+                    client.getWindow().getWindow(), button, action, modifiers));
             if (action == InputConstants.PRESS) this.pressedButtons.add(button);
             else if (action == InputConstants.RELEASE) this.pressedButtons.remove(button);
             this.refreshScreen(client);
@@ -397,8 +589,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> mouseScroll(double xOffset, double yOffset) {
         return this.onClient(() -> {
             Minecraft client = requireClient();
-            ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onScroll(
-                    client.getWindow().getWindow(), xOffset, yOffset);
+            AgentInputContext.routed(() -> ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onScroll(
+                    client.getWindow().getWindow(), xOffset, yOffset));
             return inputEvidence("GAME_ROUTED_RAW", client.screen != null,
                     client.screen instanceof AbstractContainerScreen<?>);
         });
@@ -408,7 +600,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> key(int key, int scanCode, int action, int modifiers) {
         return this.onClient(() -> {
             Minecraft client = requireClient();
-            client.keyboardHandler.keyPress(client.getWindow().getWindow(), key, scanCode, action, modifiers);
+            AgentInputContext.routed(() -> client.keyboardHandler.keyPress(
+                    client.getWindow().getWindow(), key, scanCode, action, modifiers));
             if (action == InputConstants.PRESS || action == InputConstants.REPEAT) {
                 this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
             } else if (action == InputConstants.RELEASE) {
@@ -609,15 +802,24 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             return result;
         }
         client.execute(() -> {
-            NativeImage image = Screenshot.takeScreenshot(client.getMainRenderTarget());
-            Util.ioPool().execute(() -> {
-                try (image) {
-                    result.complete(image.asByteArray());
-                    this.captureVerified.set(true);
-                } catch (IOException exception) {
-                    result.completeExceptionally(exception);
+            this.captureInProgress = true;
+            WAITS.schedule(() -> client.execute(() -> {
+                try {
+                    NativeImage image = Screenshot.takeScreenshot(client.getMainRenderTarget());
+                    this.captureInProgress = false;
+                    Util.ioPool().execute(() -> {
+                        try (image) {
+                            result.complete(image.asByteArray());
+                            this.captureVerified.set(true);
+                        } catch (IOException exception) {
+                            result.completeExceptionally(exception);
+                        }
+                    });
+                } catch (Throwable throwable) {
+                    this.captureInProgress = false;
+                    result.completeExceptionally(throwable);
                 }
-            });
+            }), 50L, TimeUnit.MILLISECONDS);
         });
         return result;
     }
@@ -889,6 +1091,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             json.addProperty("pressedKeyCount", this.pressedKeys.size());
             json.addProperty("pressedButtonCount", this.pressedButtons.size());
             json.addProperty("inputDispatchSequence", this.inputDispatchSequence.get());
+            this.addControlPresence(json);
             return json;
         });
     }
@@ -958,12 +1161,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             int releasedButtons = this.pressedButtons.size();
             for (Map.Entry<Integer, KeyState> entry : new HashMap<>(this.pressedKeys).entrySet()) {
                 KeyState state = entry.getValue();
-                client.keyboardHandler.keyPress(
-                        client.getWindow().getWindow(), entry.getKey(), state.scanCode(), InputConstants.RELEASE, state.modifiers());
+                AgentInputContext.routed(() -> client.keyboardHandler.keyPress(
+                        client.getWindow().getWindow(), entry.getKey(), state.scanCode(), InputConstants.RELEASE, state.modifiers()));
             }
             for (int button : new HashSet<>(this.pressedButtons)) {
-                ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onPress(
-                        client.getWindow().getWindow(), button, InputConstants.RELEASE, 0);
+                AgentInputContext.routed(() -> ((MouseHandlerInvoker) client.mouseHandler).minecraftProtocolProbe$onPress(
+                        client.getWindow().getWindow(), button, InputConstants.RELEASE, 0));
             }
             this.pressedKeys.clear();
             this.pressedButtons.clear();

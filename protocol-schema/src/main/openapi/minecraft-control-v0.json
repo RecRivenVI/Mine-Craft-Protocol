@@ -2084,6 +2084,26 @@
               "thread": {
                 "type": "string"
               },
+              "controlState": {
+                "type": "string",
+                "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
+              },
+              "reconsentRequired": {
+                "type": "boolean"
+              },
+              "controlTransitionSequence": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlChromeRenderedFrames": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlMessage": {
+                "type": "string"
+              },
               "condition": {
                 "type": "string"
               }
@@ -2110,6 +2130,26 @@
               },
               "serverPeer": {
                 "$ref": "#/components/schemas/ServerPeerStatus"
+              },
+              "controlState": {
+                "type": "string",
+                "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
+              },
+              "reconsentRequired": {
+                "type": "boolean"
+              },
+              "controlTransitionSequence": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlChromeRenderedFrames": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlMessage": {
+                "type": "string"
               }
             }
           }
@@ -3070,12 +3110,20 @@
           "type": { "type": "string" },
           "status": {
             "type": "string",
-            "enum": ["available", "active", "acquired", "renewed", "released"]
+            "enum": ["available", "active", "acquired", "renewed", "released", "manually_revoked"]
           },
           "leaseId": { "type": "string", "format": "uuid" },
           "expiresAtMillis": { "type": "integer", "format": "int64" },
           "hadLease": { "type": "boolean" },
           "reason": { "type": "string" },
+          "previousLeaseId": { "type": "string", "format": "uuid" },
+          "controlState": {
+            "type": "string",
+            "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
+          },
+          "reconsentRequired": { "type": "boolean" },
+          "controlTransitionSequence": { "type": "integer", "format": "int64", "minimum": 0 },
+          "message": { "type": "string" },
           "requestId": { "type": "string" },
           "protocolVersion": { "type": "string", "enum": ["v0"] }
         }
@@ -3096,7 +3144,23 @@
                 "items": { "type": "integer" }
               },
               "pressedKeyCount": { "type": "integer", "minimum": 0 },
-              "pressedButtonCount": { "type": "integer", "minimum": 0 }
+              "pressedButtonCount": { "type": "integer", "minimum": 0 },
+              "controlState": {
+                "type": "string",
+                "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
+              },
+              "reconsentRequired": { "type": "boolean" },
+              "controlTransitionSequence": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlChromeRenderedFrames": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "controlMessage": { "type": "string" }
             }
           }
         ]
@@ -3867,6 +3931,13 @@
           },
           "message": {
             "type": "string"
+          },
+          "controlState": {
+            "type": "string",
+            "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
+          },
+          "reconsentRequired": {
+            "type": "boolean"
           },
           "requestId": {
             "type": "string"

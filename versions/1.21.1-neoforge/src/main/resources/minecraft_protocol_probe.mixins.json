@@ -9,11 +9,17 @@
     "BaseContainerBlockEntityAccessor",
     "ClientPacketListenerMixin",
     "DistanceManagerAccessor",
+    "GuiMixin",
+    "KeyboardHandlerMixin",
     "LevelTicksAccessor",
     "MinecraftMixin",
     "MouseHandlerInvoker",
+    "MouseHandlerAccessor",
+    "MouseHandlerMixin",
     "MultiPlayerGameModeMixin",
-    "ServerGamePacketListenerImplMixin"
+    "ServerGamePacketListenerImplMixin",
+    "WindowMixin",
+    "ScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
