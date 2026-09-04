@@ -121,6 +121,9 @@ final class PersistentStorageAdapter implements AutoCloseable {
                 if (active(requestEpoch, result)) result.complete(response);
             } catch (ProtocolState.ProtocolException exception) {
                 result.completeExceptionally(exception);
+            } catch (PersistentWriteSafetyFoundation.SafetyFailure exception) {
+                result.completeExceptionally(new ProtocolState.ProtocolException(
+                        exception.code(), 409, exception.getMessage()));
             } catch (CancellationException exception) {
                 result.cancel(false);
             } catch (IOException exception) {
@@ -355,17 +358,10 @@ final class PersistentStorageAdapter implements AutoCloseable {
     private String anchorWorldIdentity(
             Phase9ASpikeEngine.StorageRequest request,
             Path root,
-            FileStamp levelData) throws IOException {
-        Path lock = root.resolve("session.lock");
-        FileStamp lockStamp = metadataOnly(lock);
-        if (!lockStamp.exists()) {
-            throw new ProtocolState.ProtocolException(
-                    "PERSISTED_STORAGE_WORLD_IDENTITY_UNAVAILABLE", 409,
-                    "session.lock is unavailable; world identity cannot be established");
-        }
-        String material = request.sessionEpoch() + "|" + root + "|" + request.levelName()
-                + "|" + lockStamp.fileKey() + "|" + lockStamp.size() + "|" + lockStamp.modifiedMillis();
-        String identity = sha256(material);
+            FileStamp levelData) throws IOException, PersistentWriteSafetyFoundation.SafetyFailure {
+        String identity = PersistentWriteSafetyFoundation.StorageIdentity
+                .capture(root, this.target)
+                .identity();
         String previous = this.anchoredWorldIdentity.get();
         if (previous == null && this.anchoredWorldIdentity.compareAndSet(null, identity)) return identity;
         if (previous == null) previous = this.anchoredWorldIdentity.get();

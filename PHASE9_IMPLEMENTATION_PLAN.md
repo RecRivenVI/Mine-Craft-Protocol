@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-1 PASS — PERSISTENT WRITE SAFETY FOUNDATION; Persistent Write Entry Review (second review) CLOSED
-> Date: 2026-08-28  
+> Status: Phase 9D-2 PASS — PERSISTENT WRITE SAFETY HARDENING; Persistent Write Entry Review READY
+> Date: 2026-09-04
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-1 safety foundation is complete; the second Persistent Write Entry Review is CLOSED pending identity/lifecycle/TOCTOU fixes; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-2 safety hardening is complete; Persistent Write Entry Review is READY; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -360,6 +360,18 @@ The minimum next task is to split stable Storage Identity from mutable File Revi
 
 **Second-review decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The synthetic tests are useful safety evidence, but they do not authorize a real save mutation.
 
+### 8.7 Phase 9D-2 — Persistent Write Safety Hardening — COMPLETE
+
+Phase 9D-2 closes the second-review blockers without implementing Persistent Write. `StorageIdentity` now uses stable world-directory lineage (`root` file identity/creation evidence plus Target context) and excludes mutable `level.dat`/`session.lock` content and file lineage from the identity material. Mutable content remains in `FileSnapshot` and therefore changes the File Revision rather than the Storage Identity. Replacing the world directory at the same path produces a new identity; filesystems without stable root evidence remain ineligible for ownership.
+
+The single-file foundation now requires an exclusive `session.lock` ownership lock (or an already-held ownership lock), performs a recheck before backup, after backup and immediately before `ATOMIC_MOVE`, and keeps the lock through the commit. Injected changes during backup, at the final pre-commit hook and stale file revisions are rejected as `NOT_COMMITTED`; an external process holding `session.lock` is rejected before any replacement. Commit-point, post-verify and recovery statuses remain explicit.
+
+All five Target Runtimes now feed the lifecycle barrier from real client facts: active `Minecraft.level`, Integrated Server save state, connection state and the shutdown hook. Running, saving, unloading, shutting down, unknown and connected states fail closed; only a disconnected client with no world and no Integrated Server can transition to `STOPPED_OFFLINE`. Inventory diagnostics expose the observed lifecycle state, while the foundation still has no public write route.
+
+Windows/Java verification establishes the honest contract: temporary file contents and backup files are forced; `ATOMIC_MOVE` provides namespace-level replacement when supported; open-handle/lock conflicts are controlled failures. Directory metadata force is not reliable on this environment, so `requireDirectoryForce=true` returns `COMMITTED_BUT_POSTVERIFY_FAILED` with `DIRECTORY_DURABILITY_UNVERIFIED`. This is process-crash-recoverable atomic replacement with explicit backup/recovery states, not a power-loss-durable transaction. Stale artifacts are bounded and recovery refuses an unexpected target instead of guessing.
+
+The Phase 9D-2 gate, synthetic TOCTOU/lifecycle/atomic tests, OpenAPI/build and Phase 8/9D-0/9D-1 regressions pass. No real Minecraft save was written. The next step is a new independent `Persistent Write Entry Review`; it is not permission to implement `storage.write`.
+
 ## 9. Experimental Keyframe and Delta
 
 The bounded experimental Keyframe schema contains:
@@ -640,7 +652,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (Phase 9D-1 foundation complete; second Entry Review CLOSED)
+9D Persistent Write lifecycle/safety (Phase 9D-2 safety hardening complete; Entry Review READY)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -654,7 +666,8 @@ Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
-Persistent Write Entry Review (second review): CLOSED — identity, TOCTOU and lifecycle attestation fixes required
+Phase 9D-2: PASS — PERSISTENT WRITE SAFETY HARDENING
+Persistent Write Entry Review: READY — independent review required; write route remains unavailable
 Phase 10: NOT STARTED
 ```
 
@@ -816,7 +829,8 @@ Chunk, Client and Network are deliberately `PARTIAL`: their capability and safet
 Phase 9C: PASS
 Phase 9D-0: PASS
 Phase 9D-1: PASS
-Persistent Write Entry Review (second review): CLOSED
+Phase 9D-2: PASS
+Persistent Write Entry Review: READY
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN

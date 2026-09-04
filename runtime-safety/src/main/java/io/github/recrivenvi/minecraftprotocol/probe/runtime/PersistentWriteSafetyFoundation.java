@@ -39,7 +39,8 @@ public final class PersistentWriteSafetyFoundation {
     }
 
     public enum FailurePoint {
-        TEMP_WRITE, FLUSH, PRECOMMIT_RECHECK, BACKUP_COPY, PRECOMMIT, REPLACE, POSTVERIFY, CLEANUP
+        TEMP_WRITE, FLUSH, PRECOMMIT_RECHECK, BACKUP_COPY, AFTER_BACKUP_RECHECK,
+        PRECOMMIT, FINAL_RECHECK, REPLACE, POSTVERIFY, CLEANUP
     }
 
     @FunctionalInterface
@@ -137,13 +138,18 @@ public final class PersistentWriteSafetyFoundation {
             if (!level.exists() || !lock.exists()) throw new SafetyFailure("STORAGE_IDENTITY_UNAVAILABLE", "level.dat and session.lock are required");
             String rootKey = String.valueOf(rootAttrs.fileKey());
             long rootCreated = rootAttrs.creationTime().toMillis();
-            boolean durable = (!"null".equals(rootKey) && !"null".equals(level.fileKey()) && !"null".equals(lock.fileKey()))
-                    || (rootCreated > 0L && level.createdMillis() > 0L && lock.createdMillis() > 0L);
+            // The world directory is the stable lineage anchor. level.dat and session.lock
+            // are intentionally excluded from the identity because both may be replaced or
+            // rewritten during a normal save/runtime session. Their FileSnapshot values are
+            // still used as mutable write preconditions.
+            boolean durable = !"null".equals(rootKey) || rootCreated > 0L;
             String evidence = "rootFileKey=" + rootKey + ";levelFileKey=" + level.fileKey()
                     + ";lockFileKey=" + lock.fileKey() + ";rootCreatedMillis=" + rootCreated
                     + ";levelCreatedMillis=" + level.createdMillis() + ";lockCreatedMillis=" + lock.createdMillis()
-                    + ";levelSha256=" + level.sha256() + ";lockSha256=" + lock.sha256();
-            String material = "persistent-storage-v" + CONTRACT_VERSION + "|target=" + target + "|root=" + root + "|" + evidence;
+                    + ";identityBasis=root_directory_lineage";
+            String material = "persistent-storage-v" + CONTRACT_VERSION + "|target=" + target + "|root=" + root
+                    + "|rootFileKey=" + rootKey + "|rootCreatedMillis=" + rootCreated
+                    + "|identityBasis=root_directory_lineage";
             return new StorageIdentity(sha256(material), target, root.toString(), rootKey, level.fileKey(), lock.fileKey(),
                     rootCreated, level.createdMillis(), lock.createdMillis(), evidence, durable);
         }
@@ -298,6 +304,7 @@ public final class PersistentWriteSafetyFoundation {
         public boolean isActive() { return !this.revoked.get() && this.barrier.state() == LifecycleState.STOPPED_OFFLINE && this.barrier.generation() == this.generation && this.fileLock != null && this.fileLock.isValid(); }
         public void requireActive() throws SafetyFailure { if (!isActive()) throw new SafetyFailure("STORAGE_OWNERSHIP_INVALID", "Offline ownership is no longer active"); }
         public String runtimeSessionEpoch() { return this.runtimeSessionEpoch; }
+        public FileLock fileLock() { return this.fileLock; }
         private synchronized void acquireFileLock() throws IOException {
             Path path = Path.of(this.storageIdentity.rootPath()).resolve("session.lock");
             this.lockChannel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE);
@@ -342,7 +349,12 @@ public final class PersistentWriteSafetyFoundation {
         if (expected.expectedValueDigest() != null && !same(expected.expectedValueDigest(), actual.valueDigest())) throw new SafetyFailure("VALUE_PRECONDITION_FAILED", "Value precondition mismatch");
     }
 
-    public record AtomicWriteRequest(Path target, byte[] content, FileSnapshot expectedBefore, String expectedContentSha256, long maxBytes, boolean requireAtomicMove, boolean requireDirectoryForce, Cancellation cancellation, FailureInjector failureInjector, String operationId) {
+    public record AtomicWriteRequest(Path target, byte[] content, FileSnapshot expectedBefore, String expectedContentSha256, long maxBytes, boolean requireAtomicMove, boolean requireDirectoryForce, Cancellation cancellation, FailureInjector failureInjector, String operationId, Path ownershipLockPath, FileLock heldOwnershipLock, boolean requireOwnershipLock) {
+        public AtomicWriteRequest(Path target, byte[] content, FileSnapshot expectedBefore, String expectedContentSha256, long maxBytes, boolean requireAtomicMove, boolean requireDirectoryForce, Cancellation cancellation, FailureInjector failureInjector, String operationId) {
+            this(target, content, expectedBefore, expectedContentSha256, maxBytes, requireAtomicMove, requireDirectoryForce,
+                    cancellation, failureInjector, operationId, null, null, true);
+        }
+
         public AtomicWriteRequest { content = content == null ? new byte[0] : content.clone(); maxBytes = maxBytes < 1L ? MAX_FILE_BYTES : Math.min(maxBytes, MAX_FILE_BYTES); cancellation = cancellation == null ? Cancellation.never() : cancellation; failureInjector = failureInjector == null ? FailureInjector.none() : failureInjector; operationId = operationId == null || operationId.isBlank() ? UUID.randomUUID().toString() : operationId; if (expectedContentSha256 == null || expectedContentSha256.isBlank()) expectedContentSha256 = sha256(content); }
         @Override public byte[] content() { return this.content.clone(); }
     }
@@ -350,17 +362,49 @@ public final class PersistentWriteSafetyFoundation {
     public record AtomicWriteResult(CommitStatus status, FileSnapshot before, FileSnapshot after, Path temporaryPath, Path backupPath, boolean commitPointReached, boolean backupRetained, boolean cleanupFailed, String code, String message) { }
 
     public static AtomicWriteResult replace(AtomicWriteRequest request) {
-        if (request == null || request.target() == null || request.expectedBefore() == null) return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false, "WRITE_REQUEST_INVALID", "Target and expected snapshot are required");
+        if (request == null || request.target() == null || request.expectedBefore() == null) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    "WRITE_REQUEST_INVALID", "Target and expected snapshot are required");
+        }
         Path target = request.target().toAbsolutePath().normalize();
         Path parent = target.getParent();
-        if (parent == null || !Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false, "WRITE_PARENT_INVALID", "Target parent is invalid");
-        if (!request.requireAtomicMove()) return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false, "ATOMICITY_POLICY_REQUIRED", "Non-atomic replacement is prohibited");
+        if (parent == null || !Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    "WRITE_PARENT_INVALID", "Target parent is invalid");
+        }
+        if (!request.requireAtomicMove()) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    "ATOMICITY_POLICY_REQUIRED", "Non-atomic replacement is prohibited");
+        }
+        LockHandle ownershipLock;
+        try {
+            ownershipLock = acquireOwnershipLock(request, target);
+        } catch (IOException exception) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    "STORAGE_OWNERSHIP_LOCK_UNAVAILABLE", exception.getMessage());
+        }
+        if (request.requireOwnershipLock() && ownershipLock == null) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    "STORAGE_OWNERSHIP_LOCK_REQUIRED", "An exclusive storage ownership lock is required");
+        }
+        try (LockHandle ignored = ownershipLock) {
+            return replaceLocked(request, target, parent);
+        }
+    }
+
+    private static AtomicWriteResult replaceLocked(AtomicWriteRequest request, Path target, Path parent) {
         FileSnapshot before;
-        try { before = FileSnapshot.capture(target, request.maxBytes()); } catch (Exception exception) { return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false, code(exception, "WRITE_SNAPSHOT_FAILED"), exception.getMessage()); }
+        try {
+            before = FileSnapshot.capture(target, request.maxBytes());
+        } catch (Exception exception) {
+            return result(CommitStatus.NOT_COMMITTED, null, null, null, null, false, false, false,
+                    code(exception, "WRITE_SNAPSHOT_FAILED"), exception.getMessage());
+        }
         if (!before.same(request.expectedBefore())) return result(CommitStatus.NOT_COMMITTED, before, before, null, null, false, false, false, "STALE_STORAGE_FILE", "Target changed before write");
         if (request.content().length > request.maxBytes()) return result(CommitStatus.NOT_COMMITTED, before, before, null, null, false, false, false, "WRITE_BUDGET_EXCEEDED", "Replacement exceeds budget");
         if (cancelled(request)) return result(CommitStatus.NOT_COMMITTED, before, before, null, null, false, false, false, "CANCELLED_BEFORE_COMMIT", "Cancelled before commit");
-        Path temporary = null, backup = null;
+        Path temporary = null;
+        Path backup = null;
         try {
             temporary = Files.createTempFile(parent, "." + target.getFileName() + ".mcp-", ".tmp");
             request.failureInjector().before(FailurePoint.TEMP_WRITE);
@@ -368,26 +412,82 @@ public final class PersistentWriteSafetyFoundation {
             if (cancelled(request)) return cleanupBeforeCommit(before, temporary, backup, "CANCELLED_BEFORE_COMMIT", "Cancelled before recheck");
             request.failureInjector().before(FailurePoint.PRECOMMIT_RECHECK);
             FileSnapshot rechecked = FileSnapshot.capture(target, request.maxBytes());
-            if (!before.same(rechecked)) return cleanupBeforeCommit(before, temporary, null, "STALE_STORAGE_FILE", "Target changed before commit");
-            if (before.exists()) { backup = parent.resolve(target.getFileName() + ".mcp-backup-" + request.operationId()); request.failureInjector().before(FailurePoint.BACKUP_COPY); copyDurably(target, backup, request.maxBytes()); }
-            if (cancelled(request)) return cleanupBeforeCommit(before, temporary, backup, "CANCELLED_BEFORE_COMMIT", "Cancelled before replace");
+            if (!before.same(rechecked)) return cleanupBeforeCommit(before, temporary, backup, "STALE_STORAGE_FILE", "Target changed before backup");
+            if (before.exists()) {
+                backup = parent.resolve(target.getFileName() + ".mcp-backup-" + request.operationId());
+                request.failureInjector().before(FailurePoint.BACKUP_COPY);
+                copyDurably(target, backup, request.maxBytes());
+            }
+            request.failureInjector().before(FailurePoint.AFTER_BACKUP_RECHECK);
+            FileSnapshot afterBackup = FileSnapshot.capture(target, request.maxBytes());
+            if (!before.same(afterBackup)) return cleanupBeforeCommit(before, temporary, backup, "STALE_STORAGE_FILE", "Target changed during backup");
+            if (cancelled(request)) return cleanupBeforeCommit(before, temporary, backup, "CANCELLED_BEFORE_COMMIT", "Cancelled before final check");
             request.failureInjector().before(FailurePoint.PRECOMMIT);
             if (cancelled(request)) return cleanupBeforeCommit(before, temporary, backup, "CANCELLED_BEFORE_COMMIT", "Cancelled at commit boundary");
             request.failureInjector().before(FailurePoint.REPLACE);
-            try { Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
-            catch (java.nio.file.AtomicMoveNotSupportedException exception) { boolean cleanup = !delete(temporary) | !delete(backup); return result(CommitStatus.NOT_COMMITTED, before, before, temporary, backup, false, false, cleanup, "ATOMIC_REPLACE_UNAVAILABLE", exception.getMessage()); }
-            catch (IOException exception) { FileSnapshot observed = safeSnapshot(target, request.maxBytes()); boolean unchanged = observed != null && before.same(observed); return result(unchanged ? CommitStatus.NOT_COMMITTED : CommitStatus.RECOVERY_REQUIRED, before, observed, temporary, backup, false, backup != null, !delete(temporary), unchanged ? "REPLACE_FAILED" : "REPLACE_OUTCOME_UNKNOWN", exception.getMessage()); }
+            request.failureInjector().before(FailurePoint.FINAL_RECHECK);
+            FileSnapshot finalCheck = FileSnapshot.capture(target, request.maxBytes());
+            if (!before.same(finalCheck)) return cleanupBeforeCommit(before, temporary, backup, "STALE_STORAGE_FILE", "Target changed before final commit");
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
+                boolean cleanup = !delete(temporary) | !delete(backup);
+                return result(CommitStatus.NOT_COMMITTED, before, before, temporary, backup, false, false, cleanup, "ATOMIC_REPLACE_UNAVAILABLE", exception.getMessage());
+            } catch (IOException exception) {
+                FileSnapshot observed = safeSnapshot(target, request.maxBytes());
+                boolean unchanged = observed != null && before.same(observed);
+                return result(unchanged ? CommitStatus.NOT_COMMITTED : CommitStatus.RECOVERY_REQUIRED, before, observed, temporary, backup, false, backup != null, !delete(temporary), unchanged ? "REPLACE_FAILED" : "REPLACE_OUTCOME_UNKNOWN", exception.getMessage());
+            }
             FileSnapshot after = safeSnapshot(target, request.maxBytes());
             try {
                 request.failureInjector().before(FailurePoint.POSTVERIFY);
                 if (after == null || !after.exists() || !request.expectedContentSha256().equals(after.sha256())) return result(CommitStatus.COMMITTED_BUT_POSTVERIFY_FAILED, before, after, temporary, backup, true, backup != null, false, "POSTVERIFY_FAILED", "Committed bytes did not verify");
                 if (request.requireDirectoryForce() && !forceDirectory(parent)) return result(CommitStatus.COMMITTED_BUT_POSTVERIFY_FAILED, before, after, temporary, backup, true, backup != null, false, "DIRECTORY_DURABILITY_UNVERIFIED", "Directory durability could not be proven");
-            } catch (Exception exception) { return result(CommitStatus.COMMITTED_BUT_POSTVERIFY_FAILED, before, after, temporary, backup, true, backup != null, false, code(exception, "POSTVERIFY_FAILED"), exception.getMessage()); }
+            } catch (Exception exception) {
+                return result(CommitStatus.COMMITTED_BUT_POSTVERIFY_FAILED, before, after, temporary, backup, true, backup != null, false, code(exception, "POSTVERIFY_FAILED"), exception.getMessage());
+            }
             boolean cleanupFailed;
             try { request.failureInjector().before(FailurePoint.CLEANUP); cleanupFailed = !delete(backup); } catch (IOException exception) { cleanupFailed = true; }
             boolean retained = backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS);
             return result(CommitStatus.COMMITTED, before, after, temporary, backup, true, retained, cleanupFailed, cleanupFailed ? "CLEANUP_FAILED" : "", cleanupFailed ? "Backup cleanup failed" : "");
-        } catch (Exception exception) { return result(CommitStatus.NOT_COMMITTED, before, safeSnapshot(target, request.maxBytes()), temporary, backup, false, backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS), !delete(temporary) | !delete(backup), code(exception, "WRITE_PRECOMMIT_FAILED"), exception.getMessage()); }
+        } catch (Exception exception) {
+            return result(CommitStatus.NOT_COMMITTED, before, safeSnapshot(target, request.maxBytes()), temporary, backup, false, backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS), !delete(temporary) | !delete(backup), code(exception, "WRITE_PRECOMMIT_FAILED"), exception.getMessage());
+        }
+    }
+
+    private static LockHandle acquireOwnershipLock(AtomicWriteRequest request, Path target) throws IOException {
+        if (!request.requireOwnershipLock()) return null;
+        if (request.heldOwnershipLock() != null) {
+            if (!request.heldOwnershipLock().isValid()) throw new IOException("ownership lock is invalid");
+            return LockHandle.held(request.heldOwnershipLock());
+        }
+        Path lockPath = request.ownershipLockPath() != null ? request.ownershipLockPath().toAbsolutePath().normalize() : target.getParent().resolve("session.lock");
+        if (Files.isSymbolicLink(lockPath) || !Files.isRegularFile(lockPath, LinkOption.NOFOLLOW_LINKS)) throw new IOException("ownership lock file is unavailable");
+        FileChannel channel = FileChannel.open(lockPath, StandardOpenOption.READ, StandardOpenOption.WRITE);
+        try {
+            FileLock lock = channel.tryLock();
+            if (lock == null) throw new IOException("ownership lock is held");
+            return LockHandle.owned(channel, lock);
+        } catch (java.nio.channels.OverlappingFileLockException exception) {
+            try { channel.close(); } catch (IOException ignored) { }
+            throw new IOException("ownership lock is held", exception);
+        } catch (IOException exception) {
+            try { channel.close(); } catch (IOException ignored) { }
+            throw exception;
+        }
+    }
+
+    private static final class LockHandle implements AutoCloseable {
+        private final FileChannel channel;
+        private final FileLock lock;
+        private LockHandle(FileChannel channel, FileLock lock) { this.channel = channel; this.lock = lock; }
+        private static LockHandle owned(FileChannel channel, FileLock lock) { return new LockHandle(channel, lock); }
+        private static LockHandle held(FileLock lock) { return new LockHandle(null, lock); }
+        @Override public void close() {
+            if (this.channel == null) return;
+            try { this.lock.release(); } catch (IOException ignored) { }
+            try { this.channel.close(); } catch (IOException ignored) { }
+        }
     }
 
     public record RecoveryResult(String status, FileSnapshot restored, String code, String message) { }

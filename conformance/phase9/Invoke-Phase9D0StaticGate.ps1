@@ -53,7 +53,8 @@ foreach ($target in $targets) {
     Assert-True ($transport.Contains('/v0/diagnostics/phase9a/storage/read') `
         -and $transport.Contains('requireScope("storage.read")')) `
         "$($target.Id) storage read route/scope missing"
-    Assert-True ($runtime.Contains('phase9aStorageRead') -and $runtime.Contains('observeWorldLifecycle')) `
+    Assert-True ($runtime.Contains('phase9aStorageRead') `
+        -and ($runtime.Contains('observeWorldLifecycle') -or $runtime.Contains('observeStorageLifecycle'))) `
         "$($target.Id) Runtime lifecycle/storage wiring missing"
 }
 

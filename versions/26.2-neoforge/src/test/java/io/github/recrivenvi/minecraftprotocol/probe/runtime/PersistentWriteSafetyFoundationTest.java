@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -21,13 +22,29 @@ final class PersistentWriteSafetyFoundationTest {
     @Test
     void storageIdentityIsNotPathOrSessionOnly() throws Exception {
         Path root = fixtureRoot();
+        Path replacedRoot = root.resolveSibling(root.getFileName() + "-replacement");
         try {
             PersistentWriteSafetyFoundation.StorageIdentity first =
                     PersistentWriteSafetyFoundation.StorageIdentity.capture(root, "26.2-neoforge");
+            PersistentWriteSafetyFoundation.FileSnapshot beforeLegalUpdate =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(root.resolve("level.dat"));
             assertTrue(first.durableEvidence(), first.identityEvidence());
 
+            Files.write(root.resolve("level.dat"), bytes("legal-level-update"));
+            PersistentWriteSafetyFoundation.StorageIdentity legalUpdate =
+                    PersistentWriteSafetyFoundation.StorageIdentity.capture(root, "26.2-neoforge");
+            PersistentWriteSafetyFoundation.FileSnapshot afterLegalUpdate =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(root.resolve("level.dat"));
+            assertEquals(first.identity(), legalUpdate.identity());
+            assertNotEquals(beforeLegalUpdate.sha256(), afterLegalUpdate.sha256());
             Files.delete(root.resolve("level.dat"));
-            Files.delete(root.resolve("session.lock"));
+            Files.write(root.resolve("level.dat"), bytes("legal-level-replacement"));
+            PersistentWriteSafetyFoundation.StorageIdentity legalReplacement =
+                    PersistentWriteSafetyFoundation.StorageIdentity.capture(root, "26.2-neoforge");
+            assertEquals(first.identity(), legalReplacement.identity());
+
+            Files.move(root, replacedRoot);
+            Files.createDirectory(root);
             Files.writeString(root.resolve("session.lock"), "replacement-lock");
             Files.write(root.resolve("level.dat"), bytes("replacement-world"));
             PersistentWriteSafetyFoundation.StorageIdentity replacement =
@@ -41,6 +58,7 @@ final class PersistentWriteSafetyFoundationTest {
                             "session-b", first, "world", "level.dat", 1L, first.identity()).identityKey());
         } finally {
             deleteTree(root);
+            deleteTree(replacedRoot);
         }
     }
 
@@ -144,6 +162,17 @@ final class PersistentWriteSafetyFoundationTest {
             assertCode(
                     "TARGET_MISMATCH",
                     () -> PersistentWriteSafetyFoundation.validateWritePrecondition(expected, wrongTarget, ownership, System.currentTimeMillis()));
+
+            Files.write(root.resolve("level.dat"), bytes("changed-after-read"));
+            PersistentWriteSafetyFoundation.WriteContext staleFile = new PersistentWriteSafetyFoundation.WriteContext(
+                    identity, "runtime-a", "26.2-neoforge", 3955,
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(root.resolve("level.dat")), file.sha256(),
+                    "world", "level.dat", "principal-a", Set.of("storage.write", "debug.storage"),
+                    "arm-a", true, PersistentWriteSafetyFoundation.LifecycleState.STOPPED_OFFLINE,
+                    true, "value-a", "audit-a");
+            assertCode(
+                    "STALE_STORAGE_FILE",
+                    () -> PersistentWriteSafetyFoundation.validateWritePrecondition(expected, staleFile, ownership, System.currentTimeMillis()));
 
             barrier.markShuttingDown();
             assertCode(
@@ -254,6 +283,45 @@ final class PersistentWriteSafetyFoundationTest {
             assertArrayEquals(bytes("external"), Files.readAllBytes(target));
 
             Files.write(target, bytes("original"));
+            PersistentWriteSafetyFoundation.FileSnapshot backupExpected =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(target);
+            PersistentWriteSafetyFoundation.AtomicWriteResult duringBackup =
+                    PersistentWriteSafetyFoundation.replace(new PersistentWriteSafetyFoundation.AtomicWriteRequest(
+                            target, bytes("replacement"), backupExpected, null, 1_024L, true, false,
+                            PersistentWriteSafetyFoundation.Cancellation.never(),
+                            point -> { if (point == PersistentWriteSafetyFoundation.FailurePoint.BACKUP_COPY) Files.write(target, bytes("during-backup")); },
+                            "backup-window"));
+            assertEquals(PersistentWriteSafetyFoundation.CommitStatus.NOT_COMMITTED, duringBackup.status());
+            assertEquals("STALE_STORAGE_FILE", duringBackup.code());
+            assertArrayEquals(bytes("during-backup"), Files.readAllBytes(target));
+
+            Files.write(target, bytes("original"));
+            PersistentWriteSafetyFoundation.FileSnapshot finalExpected =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(target);
+            PersistentWriteSafetyFoundation.AtomicWriteResult beforeFinalCommit =
+                    PersistentWriteSafetyFoundation.replace(new PersistentWriteSafetyFoundation.AtomicWriteRequest(
+                            target, bytes("replacement"), finalExpected, null, 1_024L, true, false,
+                            PersistentWriteSafetyFoundation.Cancellation.never(),
+                            point -> { if (point == PersistentWriteSafetyFoundation.FailurePoint.PRECOMMIT) Files.write(target, bytes("before-final-check")); },
+                            "final-window"));
+            assertEquals(PersistentWriteSafetyFoundation.CommitStatus.NOT_COMMITTED, beforeFinalCommit.status());
+            assertEquals("STALE_STORAGE_FILE", beforeFinalCommit.code());
+            assertArrayEquals(bytes("before-final-check"), Files.readAllBytes(target));
+
+            Files.write(target, bytes("original"));
+            PersistentWriteSafetyFoundation.FileSnapshot commitRaceExpected =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(target);
+            PersistentWriteSafetyFoundation.AtomicWriteResult commitRace =
+                    PersistentWriteSafetyFoundation.replace(new PersistentWriteSafetyFoundation.AtomicWriteRequest(
+                            target, bytes("replacement"), commitRaceExpected, null, 1_024L, true, false,
+                            PersistentWriteSafetyFoundation.Cancellation.never(),
+                            point -> { if (point == PersistentWriteSafetyFoundation.FailurePoint.REPLACE) Files.write(target, bytes("after-replace-hook")); },
+                            "commit-race"));
+            assertEquals(PersistentWriteSafetyFoundation.CommitStatus.NOT_COMMITTED, commitRace.status());
+            assertEquals("STALE_STORAGE_FILE", commitRace.code());
+            assertArrayEquals(bytes("after-replace-hook"), Files.readAllBytes(target));
+
+            Files.write(target, bytes("original"));
             PersistentWriteSafetyFoundation.FileSnapshot reset =
                     PersistentWriteSafetyFoundation.FileSnapshot.capture(target);
             PersistentWriteSafetyFoundation.AtomicWriteResult replaceFailure =
@@ -356,6 +424,27 @@ final class PersistentWriteSafetyFoundationTest {
                         || result.status() == PersistentWriteSafetyFoundation.CommitStatus.RECOVERY_REQUIRED
                         || result.status() == PersistentWriteSafetyFoundation.CommitStatus.COMMITTED_BUT_POSTVERIFY_FAILED);
                 if (!result.commitPointReached()) assertArrayEquals(bytes("original"), Files.readAllBytes(target));
+            }
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    void externalSessionLockCompetitionIsRejectedBeforeWrite() throws Exception {
+        Path root = fixtureRoot();
+        try {
+            Path target = root.resolve("level.dat");
+            Files.write(target, bytes("original"));
+            PersistentWriteSafetyFoundation.FileSnapshot expected =
+                    PersistentWriteSafetyFoundation.FileSnapshot.capture(target);
+            try (FileChannel channel = FileChannel.open(root.resolve("session.lock"), StandardOpenOption.READ, StandardOpenOption.WRITE);
+                 FileLock ignored = channel.lock()) {
+                PersistentWriteSafetyFoundation.AtomicWriteResult result =
+                        PersistentWriteSafetyFoundation.replace(request(target, bytes("replacement"), expected, "external-lock"));
+                assertEquals(PersistentWriteSafetyFoundation.CommitStatus.NOT_COMMITTED, result.status());
+                assertEquals("STORAGE_OWNERSHIP_LOCK_UNAVAILABLE", result.code());
+                assertArrayEquals(bytes("original"), Files.readAllBytes(target));
             }
         } finally {
             deleteTree(root);

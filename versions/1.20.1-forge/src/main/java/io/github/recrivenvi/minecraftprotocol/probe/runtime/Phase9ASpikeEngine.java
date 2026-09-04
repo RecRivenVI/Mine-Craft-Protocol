@@ -82,6 +82,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private final ObservationLifecycleTracker lifecycles = new ObservationLifecycleTracker();
     private final ProviderExecutionEngine providerExecution = new ProviderExecutionEngine(this.revisions);
     private final PersistentStorageAdapter storageAdapter;
+    private final PersistentWriteSafetyFoundation.LifecycleBarrier writeLifecycle =
+            new PersistentWriteSafetyFoundation.LifecycleBarrier(this.revisions.sessionEpoch());
     private final BoundedTaskExecutor revisionWorker;
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
@@ -112,6 +114,27 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     void observeWorldLifecycle(Object world) {
         this.storageAdapter.observeWorldLifecycle(world);
+        if (world != null) this.writeLifecycle.markRunning();
+        else this.writeLifecycle.markUnloading();
+    }
+
+    void observeStorageLifecycle(Object world, boolean saving, boolean fullyStopped) {
+        this.storageAdapter.observeWorldLifecycle(world);
+        if (world != null) {
+            if (saving) this.writeLifecycle.markSaving();
+            else this.writeLifecycle.markRunning();
+        } else if (fullyStopped) {
+            if (this.writeLifecycle.state() != PersistentWriteSafetyFoundation.LifecycleState.STOPPED_OFFLINE) {
+                this.writeLifecycle.markShuttingDown();
+                this.writeLifecycle.markOffline();
+            }
+        } else {
+            this.writeLifecycle.markUnloading();
+        }
+    }
+
+    void observeStorageShutdown() {
+        this.writeLifecycle.markShuttingDown();
     }
 
     JsonObject formalDebugCapabilities() {
@@ -192,6 +215,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         targetFacts.addProperty("inventoryModel", "public compartment lists plus Container projection");
         targetFacts.addProperty("scheduledTickModel", "LevelTicks count public; per-tick details require hook");
         json.add("targetFacts", targetFacts);
+        JsonObject storageSafety = new JsonObject();
+        storageSafety.addProperty("phase", "9D-2");
+        storageSafety.addProperty("lifecycleState", this.writeLifecycle.state().name());
+        storageSafety.addProperty("offlineOwnership", "runtime_lifecycle_attested_plus_session_lock");
+        storageSafety.addProperty("persistentWriteRoute", "unavailable");
+        json.add("persistentWriteSafety", storageSafety);
         return json;
     }
 
@@ -1872,6 +1901,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         this.providerExecution.close();
         this.revisionWorker.close();
         this.storageAdapter.close();
+        this.writeLifecycle.close();
     }
 
     record StorageRequest(

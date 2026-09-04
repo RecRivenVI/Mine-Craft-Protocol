@@ -153,10 +153,15 @@ public final class FabricProbeRuntime implements ProbeService {
 
         this.refreshScreen(minecraft);
         this.refreshMenu(minecraft);
-        this.phase9a.observeWorldLifecycle(minecraft.level);
+        MinecraftServer singleplayerServer = minecraft.getSingleplayerServer();
+        this.phase9a.observeStorageLifecycle(
+                minecraft.level,
+                singleplayerServer != null && singleplayerServer.isCurrentlySaving(),
+                minecraft.level == null && singleplayerServer == null && minecraft.getConnection() == null);
     }
 
     private void shutdown() {
+        this.phase9a.observeStorageShutdown();
         ProbeTransport current = this.transport;
         if (current != null) current.close();
         this.phase9a.close();

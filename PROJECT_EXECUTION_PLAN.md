@@ -1,11 +1,11 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Core Product Goal Separated；Phase 9D-1 Complete — Persistent Write Entry Review (second review) CLOSED
+> 文档状态：Core Product Goal Separated；Phase 9D-2 Complete — Persistent Write Safety Hardening
 > 文档版本：0.8
 > 编制日期：2026-08-27  
-> 修订日期：2026-09-03
+> 修订日期：2026-09-04
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
-> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0 与 Phase 9D-1 已完成；Persistent Write Entry Review (second review) CLOSED；Phase 10 未开始
+> 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0、Phase 9D-1 与 Phase 9D-2 已完成；Persistent Write Entry Review READY；Phase 10 未开始
 
 ---
 
@@ -683,7 +683,7 @@ stalePossibility
 
 运行中世界的内存状态与磁盘 region/playerdata/level data 不一致是正常现象。普通读取不得为了回答问题而改变区块加载状态；需要访问未加载持久化数据时，必须使用显式接口、单独 scope、世界一致性检查和副作用标记。
 
-Persistent Write 不因 Phase 9D-0 读基础完成而自动开放。此前 Entry Review 识别出身份、生命周期和原子性缺口；Phase 9D-1 已补齐安全基础：`StorageIdentity`、离线独占所有权/OS lock、存储与文件/DataVersion/resource/value 前置条件、commit-point 结果模型和合成文件原子替换/恢复测试。第二轮审查又确认：当前身份会随合法 `level.dat` 更新变化，备份后到 `ATOMIC_MOVE` 前仍有 TOCTOU 窗口，Windows 目录持久性只能显式报告未证明，且屏障尚未接入五端真实 Runtime 生命周期。它仍不暴露 `storage.write`，首个写入候选只能从世界停止且离线的、当前 Target 生成的单文件 `level.dat` typed metadata 开始；在线/已加载/保存中/关闭竞争、Region/Anvil、`.mcc`、POI/entity/SavedData 与 Dedicated Peer 写入均默认拒绝。Persistent Write 仍需修复这些基础问题后再次独立审查，且 Core Developer Preview 不依赖此能力。
+Persistent Write 不因 Phase 9D-0 读基础完成而自动开放。此前 Entry Review 识别出身份、生命周期和原子性缺口；Phase 9D-1 已补齐安全基础，Phase 9D-2 又完成稳定 Storage Identity、备份后/提交前最终校验、session.lock 独占以及五端真实 Runtime 生命周期接入。Windows 目录持久性仍只能显式报告未证明，因此当前契约是进程崩溃可恢复的原子替换，不是断电级事务。它仍不暴露 `storage.write`，首个写入候选只能从世界停止且离线的、当前 Target 生成的单文件 `level.dat` typed metadata 开始；在线/已加载/保存中/关闭竞争、Region/Anvil、`.mcc`、POI/entity/SavedData 与 Dedicated Peer 写入均默认拒绝。Persistent Write 仍需新的独立 Entry Review，且 Core Developer Preview 不依赖此能力。
 
 ---
 
@@ -2043,7 +2043,7 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### Phase 9：Ultimate 深度观察、Debug、Storage 与 World Recording
 
-执行状态（2026-09-04）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Phase 9D-0 已完成五 Target 有界 Persistent Read、只读 Region channel、文件快照/世界身份与生命周期屏障；Phase 9D-1 已完成五 Target Safety Foundation（durable storage identity、offline ownership、write preconditions、single-file atomic/recovery fixture tests），但没有正式 Persistent Write 路由或真实存档写入。第二轮 Entry Review 为 CLOSED：身份稳定性、备份后 TOCTOU、Windows 目录持久性边界和真实 Runtime 离线生命周期事实仍需修复。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。
+执行状态（2026-09-04）：Phase 9A 已完成事实调查；Phase 9B/9B.1/9B.2 已完成五 Target Formal Deep Observation、Provider 合同与 revision identity 硬化。Phase 9C 已完成五 Target 强类型 Deep Debug、Provider typed mutation、受限 Batch、逐项取消屏障、Debug contamination window 与 owner-thread precondition 闭环。Phase 9D-0 已完成五 Target 有界 Persistent Read、只读 Region channel、文件快照/世界身份与生命周期屏障；Phase 9D-1 已完成五 Target Safety Foundation；Phase 9D-2 已完成稳定身份、TOCTOU 防护、OS lock、五端真实生命周期接入与 Windows 持久性契约（无真实存档写入）。Persistent Write Entry Review 现为 READY，等待独立复核；正式 `storage.write` 仍未实现。Chunk/Client/Network 按事实保留 `PARTIAL`，不存在 raw Ticket、任意字段或任意 packet 后门。
 
 扩展全领域强类型 Deep Debug、批量边界状态、高级 Provider、显式 Persistent Storage、完整 Keyframe/Delta、长期高频 canonical recording 和高级 Diff。
 
@@ -2283,7 +2283,7 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 
 ## 29. 下一步立即执行项
 
-当前阶段为 **Phase 9D-1: PASS**，Persistent Write Entry Review (second review): CLOSED。下一步只能修复身份稳定性、TOCTOU 和真实生命周期接入，再进行新的独立 Entry Review；不得开始 Persistent Write。
+当前阶段为 **Phase 9D-2: PASS**，Persistent Write Entry Review: READY。下一步只能进行新的独立 Entry Review；在复核明确开放前不得开始 Persistent Write。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2295,7 +2295,8 @@ Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
 Phase 9C: PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
-Persistent Write Entry Review (second review): CLOSED — identity/TOCTOU/lifecycle fixes required
+Phase 9D-2: PASS — PERSISTENT WRITE SAFETY HARDENING
+Persistent Write Entry Review: READY — independent review required; write route remains unavailable
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

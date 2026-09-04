@@ -48,6 +48,7 @@ final class PersistentStorageAdapterTest {
     @Test
     void worldReplacementInvalidatesAnchoredStorageIdentity() throws Exception {
         Path root = Files.createTempDirectory("mcp-storage-identity-");
+        Path movedRoot = root.resolveSibling(root.getFileName() + "-old");
         try {
             Files.writeString(root.resolve("session.lock"), "session-a");
             writeNbt(root.resolve("level.dat"), "WorldName", "phase9d0");
@@ -55,7 +56,10 @@ final class PersistentStorageAdapterTest {
             adapter.observeWorldLifecycle(new Object());
             try {
                 adapter.read(request(root, "world", false)).get(5, TimeUnit.SECONDS);
+                Files.move(root, movedRoot);
+                Files.createDirectory(root);
                 Files.writeString(root.resolve("session.lock"), "session-b");
+                writeNbt(root.resolve("level.dat"), "WorldName", "replacement");
                 ExecutionException failure = assertThrows(
                         ExecutionException.class,
                         () -> adapter.read(request(root, "world", false)).get(5, TimeUnit.SECONDS));
@@ -65,6 +69,7 @@ final class PersistentStorageAdapterTest {
             }
         } finally {
             deleteTree(root);
+            deleteTree(movedRoot);
         }
     }
 
