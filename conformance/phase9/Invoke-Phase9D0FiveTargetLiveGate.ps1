@@ -62,6 +62,9 @@ try {
         $storage = & '.\conformance\phase9\Invoke-Phase9D0StorageReadConformance.ps1' `
             -BaseUri $base -TokenFile $tokenFile -ExpectedTarget $run.Target
         Assert-True ($storage.Result -eq 'PASS') "$($run.Target) storage read conformance"
+        $runningInventory = Invoke-Json $base GET '/v0/diagnostics/phase9a/inventory' $auth $null
+        $runningLifecycle = [string]$runningInventory.persistentWriteSafety.lifecycleState
+        Assert-True ($runningLifecycle -in @('WORLD_RUNNING', 'SAVING')) "$($run.Target) lifecycle did not report a running/saving world"
 
         $worldUnload = 'NOT_RUN'
         $shutdownOperationError = $null
@@ -84,6 +87,14 @@ try {
                 do { Start-Sleep -Milliseconds 250; $afterWorld = Invoke-Json $base GET '/v0/session' $auth $null } while ($afterWorld.inWorld -and (Get-Date) -lt $titleDeadline)
                 Assert-True (-not $afterWorld.inWorld) "$($run.Target) world unload"
                 $worldUnload = 'PASS'
+                $offlineLifecycle = 'UNKNOWN'
+                $offlineDeadline = (Get-Date).AddSeconds(10)
+                do {
+                    $offlineInventory = Invoke-Json $base GET '/v0/diagnostics/phase9a/inventory' $auth $null
+                    $offlineLifecycle = [string]$offlineInventory.persistentWriteSafety.lifecycleState
+                    if ($offlineLifecycle -ne 'STOPPED_OFFLINE') { Start-Sleep -Milliseconds 250 }
+                } while ($offlineLifecycle -ne 'STOPPED_OFFLINE' -and (Get-Date) -lt $offlineDeadline)
+                Assert-True ($offlineLifecycle -eq 'STOPPED_OFFLINE') "$($run.Target) lifecycle did not reach STOPPED_OFFLINE after world/server/connection exit"
                 $tree = Invoke-Json $base GET '/v0/ui/tree' $auth $null
                 if (-not $afterWorld.inWorld) {
                     try {
@@ -113,6 +124,8 @@ try {
             LivePersistedBoundary = $storage.LivePersistedSeparation
             NoImplicitLoad = $storage.NoImplicitLoad
             BoundedIO = $storage.BoundedIO
+            LifecycleRunning = $runningLifecycle
+            LifecycleOffline = $(if ($offlineLifecycle) { $offlineLifecycle } else { 'NOT_REACHED' })
             WorldUnload = $worldUnload
             Shutdown = 'PASS'
         }

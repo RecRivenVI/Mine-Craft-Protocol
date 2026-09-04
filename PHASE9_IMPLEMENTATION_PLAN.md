@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-2 PASS — PERSISTENT WRITE SAFETY HARDENING; Persistent Write Entry Review READY
+> Status: Phase 9D-2 PASS — PERSISTENT WRITE SAFETY HARDENING; Persistent Write Entry Review (third review) CLOSED
 > Date: 2026-09-04
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-2 safety hardening is complete; Persistent Write Entry Review is READY; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-2 safety hardening is complete; the third Persistent Write Entry Review is CLOSED by a live runtime packaging blocker; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -350,9 +350,9 @@ Exit gate result: `PASS`. The first `Phase 9D Persistent Write Entry Review` was
 The second review does not open Persistent Write. It verified the 9D-1 foundation with synthetic files and source call-site inspection and found four release-blocking correctness gaps:
 
 1. **Storage identity is not stable across a legal update.** `StorageIdentity` currently includes the `level.dat` content digest (and file lineage evidence). A normal `level.dat` update therefore changes the Persistent Storage Identity instead of changing only the File Snapshot/File Revision. The identity contract must separate stable world lineage from mutable file revision; path and Runtime session alone remain insufficient, and a same-path replacement must still invalidate the old identity.
-2. **The replacement has a backup-to-commit TOCTOU window.** The synthetic `AtomicWriteRequest` rechecks the target before copying the backup, but does not recheck it after backup creation or immediately before `ATOMIC_MOVE`. Injecting an external target change at `BACKUP_COPY` currently still returns `COMMITTED` and overwrites the external change. This is not safe for a first `level.dat` writer.
+2. **The replacement had a backup-to-commit TOCTOU window.** In the pre-Phase-9D-2 revision, the synthetic `AtomicWriteRequest` rechecked the target before copying the backup, but did not recheck it after backup creation or immediately before `ATOMIC_MOVE`; injecting an external target change at `BACKUP_COPY` returned `COMMITTED` and overwrote the external change. Phase 9D-2 added the post-backup and final checks plus the ownership lock.
 3. **Atomic replacement is not power-loss durability.** The foundation forces the temporary file and requests `ATOMIC_MOVE`; directory metadata force is optional. On the current Windows/Java environment, `requireDirectoryForce=true` returns `COMMITTED_BUT_POSTVERIFY_FAILED` with `DIRECTORY_DURABILITY_UNVERIFIED`. The result is honest, but the first writer still needs an explicit durability/recovery policy and must not describe namespace atomicity as a power-loss-safe transaction.
-4. **`STOPPED_OFFLINE` is not yet an authoritative Runtime fact.** `LifecycleBarrier` is only used by its synthetic test; no Forge, NeoForge or Fabric Runtime lifecycle calls it. A caller can transition the standalone object without evidence from the actual Minecraft world/server state. The future writer needs Target-owned lifecycle attestation for running/saving/unloading/shutdown/stopped, plus ownership acquisition and release tied to that attestation.
+4. **`STOPPED_OFFLINE` was not an authoritative Runtime fact in the pre-Phase-9D-2 revision.** At that point `LifecycleBarrier` was only used by its synthetic test; Phase 9D-2 later added Target-owned lifecycle hooks. The third review now requires those hooks to be present in the actual runtime artifact, which the Forge 1.20.1 launch did not prove.
 
 The five Target builds consume the shared safety module, but this does not establish writer lifecycle parity. 1.20.1/1.21.1 retain the legacy storage/NBT boundary, 26.1.2/26.2 use the newer layout and compression behavior, Fabric 26.2's current adapter is client-side, and Dedicated Server Peer storage ownership is not implemented. No Target may be treated as write-ready from the shared fixture alone.
 
@@ -371,6 +371,16 @@ All five Target Runtimes now feed the lifecycle barrier from real client facts: 
 Windows/Java verification establishes the honest contract: temporary file contents and backup files are forced; `ATOMIC_MOVE` provides namespace-level replacement when supported; open-handle/lock conflicts are controlled failures. Directory metadata force is not reliable on this environment, so `requireDirectoryForce=true` returns `COMMITTED_BUT_POSTVERIFY_FAILED` with `DIRECTORY_DURABILITY_UNVERIFIED`. This is process-crash-recoverable atomic replacement with explicit backup/recovery states, not a power-loss-durable transaction. Stale artifacts are bounded and recovery refuses an unexpected target instead of guessing.
 
 The Phase 9D-2 gate, synthetic TOCTOU/lifecycle/atomic tests, OpenAPI/build and Phase 8/9D-0/9D-1 regressions pass. No real Minecraft save was written. The next step is a new independent `Persistent Write Entry Review`; it is not permission to implement `storage.write`.
+
+### 8.8 Phase 9D Persistent Write Entry Review — THIRD REVIEW CLOSED
+
+The third review keeps Persistent Write disabled. Synthetic evidence confirms that `session.lock` is the formal writer ownership boundary, the lock is held through the final snapshot and `ATOMIC_MOVE`, and the replacement returns explicit commit/recovery states. A non-cooperating process that ignores the lock remains outside the portable Java guarantee; the first writer must not claim protection against that threat beyond the explicit ownership boundary.
+
+Windows semantics remain: temporary and backup file contents are forced, namespace replacement is atomic when `ATOMIC_MOVE` is supported, and directory metadata/power-loss durability is not proven. The supported claim is process-crash-recoverable atomic replacement, not a power-loss-durable transaction.
+
+The required live lifecycle verification did not complete. The first exact Target attempt (`Forge 1.20.1`) crashed during Runtime initialization with `NoClassDefFoundError: io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundation$LifecycleBarrier`; the shared `runtime-safety` dependency is compile-visible but not present in the Forge development runtime classpath. The remaining four Targets were not treated as equivalent or reported as PASS. Consequently, five-Target `STOPPED_OFFLINE` evidence and the first-writer runtime artifact are not proven.
+
+**Third-review decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The minimum next task is to make `runtime-safety` available in every Target's actual ModDev/Loom runtime artifact/classpath, rerun the five-target running → saving → unload → title lifecycle matrix, and repeat this independent review. No Persistent Write, playerdata, Region/Anvil or Peer write may start before that review.
 
 ## 9. Experimental Keyframe and Delta
 
@@ -652,7 +662,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (Phase 9D-2 safety hardening complete; Entry Review READY)
+9D Persistent Write lifecycle/safety (Phase 9D-2 complete; third Entry Review CLOSED on runtime packaging)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -667,7 +677,7 @@ Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
 Phase 9D-2: PASS — PERSISTENT WRITE SAFETY HARDENING
-Persistent Write Entry Review: READY — independent review required; write route remains unavailable
+Persistent Write Entry Review (third review): CLOSED — five-target runtime artifact not proven
 Phase 10: NOT STARTED
 ```
 
@@ -830,7 +840,7 @@ Phase 9C: PASS
 Phase 9D-0: PASS
 Phase 9D-1: PASS
 Phase 9D-2: PASS
-Persistent Write Entry Review: READY
+Persistent Write Entry Review (third review): CLOSED
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN

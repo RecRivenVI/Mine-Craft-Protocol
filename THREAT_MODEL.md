@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Core Runtime threat baseline through Phase 9D-2; Persistent Write Entry Review READY
+> Status: Core Runtime threat baseline through Phase 9D-2; Persistent Write Entry Review (third review) CLOSED
 > Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
 
 ## Protected Assets
@@ -165,7 +165,7 @@ Planned controls: separate `storage.world.*` namespace, distinct Runtime/persist
 
 Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
 
-Phase 9D-2 hardens the safety-only foundation without enabling Persistent Write. Stable world-directory lineage is now separate from mutable File Revision; replacement holds an exclusive `session.lock`, rechecks after backup and immediately before `ATOMIC_MOVE`, and integrates lifecycle facts from all five Target Runtimes. Windows testing establishes file/backup force and namespace atomicity, but directory durability remains explicitly unverified; this is process-crash-recoverable replacement, not a power-loss transaction. The next Persistent Write Entry Review is READY, but typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven.
+Phase 9D-2 hardens the safety-only foundation without enabling Persistent Write. Stable world-directory lineage is separate from mutable File Revision; replacement holds an exclusive `session.lock`, rechecks after backup and immediately before `ATOMIC_MOVE`, and all five Target sources consume Runtime lifecycle facts. However, the first exact live Forge 1.20.1 launch failed because the shared `runtime-safety` class was absent from the development runtime classpath, so five-target lifecycle evidence is not currently release-valid. Windows testing establishes file/backup force and namespace atomicity, but directory durability remains explicitly unverified; this is process-crash-recoverable replacement, not a power-loss transaction. The third Persistent Write Entry Review is therefore CLOSED. Typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven.
 
 ### Malicious Read Provider
 
