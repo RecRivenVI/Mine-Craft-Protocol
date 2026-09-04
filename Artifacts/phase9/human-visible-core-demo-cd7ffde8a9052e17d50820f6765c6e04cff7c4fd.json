@@ -1,0 +1,176 @@
+{
+  "evidenceType": "human-visible-core-demo",
+  "schemaVersion": "phase9-demo-v0",
+  "testedCommit": "cd7ffde8a9052e17d50820f6765c6e04cff7c4fd",
+  "branch": "master",
+  "remoteCommitAtStart": "cd7ffde8a9052e17d50820f6765c6e04cff7c4fd",
+  "generatedAt": "2026-09-05T04:08:52+08:00",
+  "runtimeControl": "MCP Companion live conformance plus authenticated Runtime HTTP for typed demo steps",
+  "persistentWriteInvocations": 0,
+  "visibilityNote": "Minecraft capture frames and contact sheets were inspected; desktop CUA service was unavailable in this environment, so foreground-window automation could not be used.",
+  "targets": [
+    {
+      "target": "1.20.1-forge",
+      "minecraft": "1.20.1",
+      "loader": "Forge 47.4.21",
+      "finalJar": "versions/1.20.1-forge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "finalJarSha256": "7BAE896DD56D66097EE43405FB8397C5C4FE023D114BF7C4F4703009D87D73A2",
+      "runtimeBackend": "opengl",
+      "isolatedFinalArtifactInstance": true,
+      "companionLiveConformance": "PASS",
+      "items": {
+        "titleSessionCapabilities": "PASS",
+        "interactionTreeTitleToWorld": "PASS",
+        "gameRoutedMovementLookJumpSprint": "PASS",
+        "gameRoutedLeftRightWorldInput": "PASS",
+        "inventorySlotSemanticClick": "PASS",
+        "inventoryItemTransfer": "NOT_DEMONSTRATED_EMPTY_INVENTORY",
+        "deepObservation": "PASS",
+        "clientServerAuthorityAgreement": "PASS",
+        "notLoadedServerBlockNoChunkLoad": "PASS",
+        "waitAssert": "PASS",
+        "typedDebugArmStaleRevisionRestore": "PASS",
+        "recordingArtifact": "PASS",
+        "persistentRead": "FAIL_RUNTIME_LOCK",
+        "saveQuitStoppedOfflineCleanShutdown": "PASS"
+      },
+      "inputEvidence": {
+        "entryLayer": "GAME_ROUTED_RAW",
+        "directMutationUsed": false,
+        "positionChanged": true,
+        "leftAndRightButtonsRouted": true
+      },
+      "debugEvidence": {
+        "operation": "world.block.set",
+        "authority": "runtime_internal",
+        "evidence": "diagnostic",
+        "gameplayEvidence": false,
+        "staleResourceRevisionRejected": true,
+        "restored": true
+      },
+      "recording": {
+        "recordingId": "c9bcaaa9-ee53-46f1-aac9-da2d8fb6cff2",
+        "status": "completed",
+        "frames": 24,
+        "states": 24,
+        "gaps": 0,
+        "artifactBytes": 9335152,
+        "artifactSha256": "CA5980025FB2588CF1061E7BFC2B09D7EFE13B19E449F6B6DE03487E8ACE0A07",
+        "contents": ["manifest.json", "frame-index.json", "canonical/store-v0.bin", "derivatives/contact-sheet.png", "checksums.json"]
+      },
+      "persistentRead": {
+        "world": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "player": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "chunk": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "afterSaveQuit": "SERVER_AUTHORITATIVE_UNAVAILABLE",
+        "assessment": "real demo gap; no persistent write was attempted"
+      },
+      "artifacts": [
+        "build/phase9-human-demo/forge-20260904194415/title.png",
+        "build/phase9-human-demo/forge-20260904194415/select-world.png",
+        "build/phase9-human-demo/forge-20260904194415/world-start.png",
+        "build/phase9-human-demo/forge-20260904194415/world-after-input.png",
+        "build/phase9-human-demo/forge-20260904194415/contact-sheet.png"
+      ],
+      "overall": "PARTIAL"
+    },
+    {
+      "target": "26.2-fabric",
+      "minecraft": "26.2",
+      "loader": "Fabric Loader 0.19.3",
+      "finalJar": "versions/26.2-fabric/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "finalJarSha256": "C69FBED7AD327DEF268CDC7017B5282F89B45D41194D1FD4B38DF1ED5B11ABA7",
+      "runtimeBackend": "opengl",
+      "isolatedFinalArtifactInstance": true,
+      "companionLiveConformance": "PASS",
+      "items": {
+        "titleSessionCapabilities": "PASS",
+        "interactionTreeTitleToWorld": "PASS",
+        "gameRoutedMovementLookJumpSprint": "PASS",
+        "gameRoutedLeftRightWorldInput": "PASS",
+        "inventorySlotSemanticClick": "PASS",
+        "inventoryItemTransfer": "NOT_DEMONSTRATED_EMPTY_INVENTORY",
+        "deepObservation": "PASS",
+        "clientServerAuthorityAgreement": "PASS",
+        "notLoadedServerBlockNoChunkLoad": "PASS",
+        "waitAssert": "PASS",
+        "typedDebugArmStaleRevisionRestore": "PASS",
+        "recordingArtifact": "PASS",
+        "persistentRead": "FAIL_RUNTIME_LOCK",
+        "saveQuitStoppedOfflineCleanShutdown": "PASS"
+      },
+      "inputEvidence": {
+        "entryLayer": "GAME_ROUTED_RAW",
+        "directMutationUsed": false,
+        "positionChanged": true,
+        "leftAndRightButtonsRouted": true
+      },
+      "debugEvidence": {
+        "operation": "world.block.set",
+        "authority": "runtime_internal",
+        "evidence": "diagnostic",
+        "gameplayEvidence": false,
+        "staleResourceRevisionRejected": true,
+        "restored": true
+      },
+      "recording": {
+        "recordingId": "fff1285b-9515-4828-8bf0-0396f05cdf44",
+        "status": "completed",
+        "frames": 24,
+        "states": 24,
+        "gaps": 0,
+        "artifactBytes": 6151545,
+        "artifactSha256": "8A1BAE7A9CBD7289BFEAA9C21BC55A6DC4D9D1CE4FBB16493B8E565AFCA72669",
+        "contents": ["manifest.json", "frame-index.json", "canonical/store-v0.bin", "derivatives/contact-sheet.png", "checksums.json"]
+      },
+      "persistentRead": {
+        "world": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "player": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "chunk": "PERSISTED_STORAGE_CORRUPT / IOException while integrated world held files",
+        "afterSaveQuit": "SERVER_AUTHORITATIVE_UNAVAILABLE",
+        "assessment": "real demo gap; no persistent write was attempted"
+      },
+      "artifacts": [
+        "build/phase9-human-demo/fabric-20260904195731/title.png",
+        "build/phase9-human-demo/fabric-20260904195731/world-start.png",
+        "build/phase9-human-demo/fabric-20260904195731/contact-sheet.png"
+      ],
+      "overall": "PARTIAL"
+    }
+  ],
+  "automatedAcceptanceCase": {
+    "target": "1.20.1-forge",
+    "arrange": "isolated copied Demo world; no Debug Arrange",
+    "act": "GAME_ROUTED movement, look, jump, sprint and UI input",
+    "assert": "typed player/block conditions plus EventHub wait and Client/Server comparison",
+    "evidence": "PASS for gameplay portion; Debug and Persistent Read evidence kept separate",
+    "gameplayAcceptance": "movement/input/typed live state/Wait/Assert",
+    "diagnosticOnly": "Debug mutation, revision rejection and capture metadata",
+    "result": "PASS_WITH_PERSISTENT_READ_GAP"
+  },
+  "issues": [
+    {
+      "id": "DEMO-PERSISTED-READ-WINDOWS-LOCK",
+      "severity": "release-follow-up",
+      "description": "Both targets return PERSISTED_STORAGE_CORRUPT (IOException) when the integrated world is running; after Save & Quit the server authority is unavailable, so the live Demo cannot obtain a successful persisted world/player/chunk read.",
+      "next": "Fix or explicitly redesign the live persisted-read lifecycle/error mapping before calling this demo fully green."
+    },
+    {
+      "id": "DEMO-FORGE-CLIENT-FAR-BLOCK",
+      "severity": "target-specific",
+      "description": "Forge client LIVE query for an unloaded far block returned available=true with void_air, while the server-authoritative path correctly returned available=false and chunkLoadRequested=false.",
+      "next": "Investigate client-side unloaded-chunk availability semantics; no code changed in this Demo."
+    },
+    {
+      "id": "DEMO-INVENTORY-EMPTY",
+      "severity": "demo-limitation",
+      "description": "The safe copied Demo player inventory was empty, so the semantic Slot click was exercised but no item transfer was shown."
+    },
+    {
+      "id": "DEMO-CUA-UNAVAILABLE",
+      "severity": "environment",
+      "description": "Desktop CUA trusted RPC was not configured; screenshots were obtained through the Runtime Composite Capture instead of foreground-window automation."
+    }
+  ],
+  "overall": "PARTIAL_CORE_USABLE_PERSISTENT_READ_BLOCKED"
+}
