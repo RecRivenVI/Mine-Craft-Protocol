@@ -80,6 +80,7 @@ neoForge.ideSyncTask generateModMetadata
 
 dependencies {
     implementation project(':runtime-safety')
+    jarJar project(':runtime-safety')
 }
 
 tasks.named('runClientVulkan').configure {

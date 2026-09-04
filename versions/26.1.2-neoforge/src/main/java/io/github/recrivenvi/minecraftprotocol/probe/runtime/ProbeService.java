@@ -34,6 +34,7 @@ interface ProbeService {
     CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext);
     CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request);
+    CompletableFuture<JsonObject> phase9aInventory();
     CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request);
     CompletableFuture<JsonObject> phase9cDebugCapabilities();
     CompletableFuture<JsonObject> phase9cDebugMutation(

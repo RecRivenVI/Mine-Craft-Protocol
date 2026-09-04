@@ -1,4 +1,4 @@
-package io.github.recrivenvi.minecraftprotocol.probe.runtime;
+package io.github.recrivenvi.minecraftprotocol.safety;
 
 import java.io.IOException;
 import java.io.InputStream;

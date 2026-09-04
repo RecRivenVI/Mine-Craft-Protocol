@@ -1,9 +1,9 @@
 # Phase 9 Implementation Plan
 
-> Status: Phase 9D-2 PASS — PERSISTENT WRITE SAFETY HARDENING; Persistent Write Entry Review (third review) CLOSED
-> Date: 2026-09-04
+> Status: Phase 9D-2.1 PASS — RUNTIME SAFETY PACKAGING; Persistent Write Entry Review READY
+> Date: 2026-09-05
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
-> Current phase boundary: Phase 9D-2 safety hardening is complete; the third Persistent Write Entry Review is CLOSED by a live runtime packaging blocker; Phase 9E/9F/9G and Phase 10 are not started
+> Current phase boundary: Phase 9D-2.1 runtime packaging and five-target lifecycle attestation are complete; Persistent Write remains unimplemented and the next gate is an independent Entry Review; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
 
 ## 1. Purpose
@@ -372,7 +372,7 @@ Windows/Java verification establishes the honest contract: temporary file conten
 
 The Phase 9D-2 gate, synthetic TOCTOU/lifecycle/atomic tests, OpenAPI/build and Phase 8/9D-0/9D-1 regressions pass. No real Minecraft save was written. The next step is a new independent `Persistent Write Entry Review`; it is not permission to implement `storage.write`.
 
-### 8.8 Phase 9D Persistent Write Entry Review — THIRD REVIEW CLOSED
+### 8.8 Phase 9D Persistent Write Entry Review — THIRD REVIEW CLOSED (HISTORICAL)
 
 The third review keeps Persistent Write disabled. Synthetic evidence confirms that `session.lock` is the formal writer ownership boundary, the lock is held through the final snapshot and `ATOMIC_MOVE`, and the replacement returns explicit commit/recovery states. A non-cooperating process that ignores the lock remains outside the portable Java guarantee; the first writer must not claim protection against that threat beyond the explicit ownership boundary.
 
@@ -380,7 +380,15 @@ Windows semantics remain: temporary and backup file contents are forced, namespa
 
 The required live lifecycle verification did not complete. The first exact Target attempt (`Forge 1.20.1`) crashed during Runtime initialization with `NoClassDefFoundError: io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundation$LifecycleBarrier`; the shared `runtime-safety` dependency is compile-visible but not present in the Forge development runtime classpath. The remaining four Targets were not treated as equivalent or reported as PASS. Consequently, five-Target `STOPPED_OFFLINE` evidence and the first-writer runtime artifact are not proven.
 
-**Third-review decision:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The minimum next task is to make `runtime-safety` available in every Target's actual ModDev/Loom runtime artifact/classpath, rerun the five-target running → saving → unload → title lifecycle matrix, and repeat this independent review. No Persistent Write, playerdata, Region/Anvil or Peer write may start before that review.
+**Third-review decision at that time:** `Phase 9D Persistent Write Entry Gate: CLOSED`. This historical blocker was resolved by Phase 9D-2.1; it is retained to explain why the runtime packaging gate exists.
+
+### 8.9 Phase 9D-2.1 — Runtime Safety Packaging and Five-Target Lifecycle Attestation — COMPLETE
+
+The shared `runtime-safety` module is now a real runtime dependency on every Target without copying its source. Forge 1.20.1 and NeoForge 1.21.1 use the supported Jar-in-Jar plus legacy development runtime classpath path; NeoForge 26.1.2/26.2 use ModDev Jar-in-Jar; Fabric 26.2 uses Loom `include`. The module has an explicit Maven identity, and its package is isolated from target runtime classes so Java module resolution cannot produce a split-package failure.
+
+The packaging gate built all five Targets and verified one embedded safety JAR per final artifact, the shared class inside that JAR, and no duplicate class at the outer artifact root. The live lifecycle gate launched all five development Runtimes, entered a world, observed `WORLD_RUNNING`/`SAVING`, completed Save-and-Quit to Title, observed `STOPPED_OFFLINE`, and shut each Runtime down cleanly. No `NoClassDefFoundError` occurred. The optional persisted-read call is intentionally separately selectable because Windows may hold a live `level.dat` handle exclusively; this packaging/lifecycle result does not reclassify that read-plane limitation.
+
+No Persistent Write route or save mutation was added. Real Minecraft Persistent Write count remains zero. The next action is a new independent Persistent Write Entry Review; Phase 9C/9D-0/9D-1/9D-2 and Phase 8/V1 contracts remain unchanged.
 
 ## 9. Experimental Keyframe and Delta
 
@@ -662,7 +670,7 @@ Remaining planned work is unchanged:
 
 ```text
 9C Deep Debug expansion
-9D Persistent Write lifecycle/safety (Phase 9D-2 complete; third Entry Review CLOSED on runtime packaging)
+9D Persistent Write lifecycle/safety (Phase 9D-2.1 complete; new Persistent Write Entry Review READY)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
 9G five-Target long stress/release gate
@@ -677,7 +685,8 @@ Phase 9C: PASS
 Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
 Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
 Phase 9D-2: PASS — PERSISTENT WRITE SAFETY HARDENING
-Persistent Write Entry Review (third review): CLOSED — five-target runtime artifact not proven
+Phase 9D-2.1: PASS — RUNTIME SAFETY PACKAGING + FIVE-TARGET LIFECYCLE
+Persistent Write Entry Review (new review): READY — no write route implemented
 Phase 10: NOT STARTED
 ```
 
@@ -840,7 +849,8 @@ Phase 9C: PASS
 Phase 9D-0: PASS
 Phase 9D-1: PASS
 Phase 9D-2: PASS
-Persistent Write Entry Review (third review): CLOSED
+Phase 9D-2.1: PASS — RUNTIME SAFETY PACKAGING + LIFECYCLE
+Persistent Write Entry Review: READY FOR INDEPENDENT REVIEW
 Phase 10: NOT STARTED
 Development Intelligence: NOT STARTED
 Wire Protocol v1: NOT FROZEN

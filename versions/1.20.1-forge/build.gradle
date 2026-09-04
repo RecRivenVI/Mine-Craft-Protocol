@@ -50,6 +50,8 @@ mixin {
 
 dependencies {
     implementation project(':runtime-safety')
+    jarJar project(':runtime-safety')
+    additionalRuntimeClasspath project(':runtime-safety')
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     implementation 'io.netty:netty-codec-http:4.1.82.Final'
     additionalRuntimeClasspath 'io.netty:netty-codec-http:4.1.82.Final'

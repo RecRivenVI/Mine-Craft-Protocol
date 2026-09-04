@@ -807,6 +807,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
+    public CompletableFuture<JsonObject> phase9aInventory() {
+        return CompletableFuture.completedFuture(this.phase9a.inventory());
+    }
+
+    @Override
     public CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext) {
         String perspective = request.has("perspective")

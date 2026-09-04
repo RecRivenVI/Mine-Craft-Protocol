@@ -17,7 +17,7 @@ try {
         @{ Id = '26.2-neoforge'; Runtime = 'versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java'; Engine = 'versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java' },
         @{ Id = '26.2-fabric'; Runtime = 'versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.java'; Engine = 'versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java' }
     )
-    $foundation = Get-Content -LiteralPath (Join-Path $root 'runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundation.java') -Raw
+    $foundation = Get-Content -LiteralPath (Join-Path $root 'runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java') -Raw
     Assert-True ($foundation.Contains('identityBasis=root_directory_lineage')) 'Storage identity must use stable root lineage'
     Assert-True ($foundation -notmatch 'levelSha256|lockSha256') 'mutable file content must not be identity material'
     foreach ($marker in @('AFTER_BACKUP_RECHECK', 'FINAL_RECHECK', 'FileLock', 'requireOwnershipLock', 'ATOMIC_MOVE', 'COMMITTED_BUT_POSTVERIFY_FAILED')) {

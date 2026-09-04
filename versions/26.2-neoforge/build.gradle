@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation project(':runtime-safety')
+    jarJar project(':runtime-safety')
     testImplementation 'org.junit.jupiter:junit-jupiter:5.14.4'
     testImplementation 'com.google.code.gson:gson:2.14.0'
     testImplementation 'io.netty:netty-codec-http:4.2.15.Final'

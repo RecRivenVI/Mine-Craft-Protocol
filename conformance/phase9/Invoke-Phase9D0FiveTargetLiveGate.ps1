@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Offline,
+    [switch]$SkipStorageRead,
     [string[]]$OnlyTargets = @()
 )
 
@@ -59,9 +60,21 @@ try {
         $v1 = & '.\conformance\phase8\Invoke-Phase8TargetSmoke.ps1' -BaseUri $base -TokenFile $tokenFile `
             -ExpectedTarget $run.Target -ExpectedBackend any -EnterWorld -RequireAuthoritative -StayInWorld
         Assert-True ($v1.Result -eq 'PASS') "$($run.Target) V1 smoke/world entry"
-        $storage = & '.\conformance\phase9\Invoke-Phase9D0StorageReadConformance.ps1' `
-            -BaseUri $base -TokenFile $tokenFile -ExpectedTarget $run.Target
-        Assert-True ($storage.Result -eq 'PASS') "$($run.Target) storage read conformance"
+        if ($SkipStorageRead) {
+            # Windows keeps the live world's level.dat handle exclusive on some
+            # targets.  Packaging/lifecycle verification must not turn that
+            # known read-plane condition into a runtime-classpath result.
+            $storage = [pscustomobject]@{
+                Result = 'SKIPPED'
+                LivePersistedSeparation = 'NOT_RUN'
+                NoImplicitLoad = 'NOT_RUN'
+                BoundedIO = 'NOT_RUN'
+            }
+        } else {
+            $storage = & '.\conformance\phase9\Invoke-Phase9D0StorageReadConformance.ps1' `
+                -BaseUri $base -TokenFile $tokenFile -ExpectedTarget $run.Target
+            Assert-True ($storage.Result -eq 'PASS') "$($run.Target) storage read conformance"
+        }
         $runningInventory = Invoke-Json $base GET '/v0/diagnostics/phase9a/inventory' $auth $null
         $runningLifecycle = [string]$runningInventory.persistentWriteSafety.lifecycleState
         Assert-True ($runningLifecycle -in @('WORLD_RUNNING', 'SAVING')) "$($run.Target) lifecycle did not report a running/saving world"
@@ -120,7 +133,7 @@ try {
             Launch = 'PASS'
             Readiness = 'PASS'
             V1Smoke = 'PASS'
-            Storage = 'PASS'
+            Storage = $storage.Result
             LivePersistedBoundary = $storage.LivePersistedSeparation
             NoImplicitLoad = $storage.NoImplicitLoad
             BoundedIO = $storage.BoundedIO

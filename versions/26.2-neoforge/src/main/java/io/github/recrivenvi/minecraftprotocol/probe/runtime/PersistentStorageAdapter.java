@@ -1,5 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
+import io.github.recrivenvi.minecraftprotocol.safety.PersistentWriteSafetyFoundation;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

@@ -1,5 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
+import io.github.recrivenvi.minecraftprotocol.safety.PersistentWriteSafetyFoundation;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

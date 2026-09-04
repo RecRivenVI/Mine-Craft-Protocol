@@ -18,7 +18,7 @@ try {
         'COMMITTED_BUT_POSTVERIFY_FAILED', 'RECOVERY_REQUIRED', 'ATOMICITY_POLICY_REQUIRED',
         'FileLock', 'cleanupStaleArtifacts'
     )
-    $file = Join-Path $root 'runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundation.java'
+    $file = Join-Path $root 'runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java'
     Assert-True (Test-Path -LiteralPath $file) 'shared safety foundation missing'
     $source = Get-Content -LiteralPath $file -Raw
     foreach ($marker in $markers) {
