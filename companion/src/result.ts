@@ -40,6 +40,7 @@ export async function asToolResult(operation: () => Promise<JsonValue>): Promise
           reconsentRequired: runtime.reconsentRequired,
           manualRevocationReason: runtime.manualRevocationReason
         } : {}),
+        ...(runtime?.control ? { control: runtime.control } : {}),
         ...(runtime?.requestId ? { requestId: runtime.requestId } : {})
       },
       companion: {

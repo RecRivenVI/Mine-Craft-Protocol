@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../control/ModeHelpers.ps1')
 $base = $BaseUri.TrimEnd('/')
 $token = (Get-Content -LiteralPath $TokenFile -Raw).Trim()
 $auth = @{ Authorization = "Bearer $token" }
@@ -151,6 +152,7 @@ try {
         $helloResult = $socket.ReceiveAsync($segment, $timeout.Token).GetAwaiter().GetResult()
         $hello = [Text.Encoding]::UTF8.GetString($buffer, 0, $helloResult.Count) | ConvertFrom-Json
         Assert-True ($hello.type -eq 'event.hello') 'WS hello must be available'
+        Set-AgentMode $base $auth OPERATE $lease.leaseId | Out-Null
         [void](Invoke-Json POST '/v0/diagnostics/events/stress' -Body @{ count = 1; payloadBytes = 0 })
         $eventResult = $socket.ReceiveAsync($segment, $timeout.Token).GetAwaiter().GetResult()
         $event = [Text.Encoding]::UTF8.GetString($buffer, 0, $eventResult.Count) | ConvertFrom-Json
@@ -160,6 +162,10 @@ try {
         $socket.Dispose()
         $timeout.Dispose()
     }
+
+    # Diagnostic event publishing is OPERATE; player UI must explicitly reacquire.
+    $lease = Invoke-Json POST '/v0/control/acquire' -Body @{ ttlMs = 60000 }
+    $leaseHeaders.'X-MCP-Control-Lease' = $lease.leaseId
 
     if ($EnterWorld -and [bool]$session.inWorld -and -not $StayInWorld) {
         $pause = Invoke-Json POST '/v0/pipelines' -Headers $leaseHeaders -Body @{
@@ -185,7 +191,10 @@ try {
     }
 }
 finally {
-    Invoke-Json POST '/v0/control/release' -Headers $leaseHeaders | Out-Null
+    $remaining = Invoke-Json GET '/v0/control/status'
+    if ($remaining.leaseId -eq $lease.leaseId) {
+        Invoke-Json POST '/v0/control/release' -Headers $leaseHeaders | Out-Null
+    }
 }
 
 $control = Invoke-Json GET '/v0/control/status'

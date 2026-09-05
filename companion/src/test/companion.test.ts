@@ -40,6 +40,13 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
   const deepObserveDeadlines: string[] = [];
   let longOperation = false;
   let manuallyRevoked = false;
+  let mode = 'READ';
+  let generation = 0;
+  const control = () => ({
+    mode, modeVersion: { controlSessionId: recordingId, generation }, takeoverActive: mode === 'TAKEOVER',
+    controlState: mode === 'TAKEOVER' ? 'AGENT_CONTROLLED' : manuallyRevoked ? 'MANUALLY_REVOKED' : 'IDLE',
+    reconsentRequired: manuallyRevoked, reconsentScope: 'TAKEOVER_ONLY', modeTransitionReason: 'mock_transition'
+  });
   let cancelDeepObserve: (() => void) | undefined;
   const server = createServer(async (request, response) => {
     if (request.headers.authorization !== `Bearer ${token}`) {
@@ -51,7 +58,7 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     const payload = await body(request);
     const base = { target: 'mock-26.2-fabric', clientTick: 42, requestId: 'mock-request', protocolVersion: 'v0' };
 
-    if (path === '/v0/session') return json(response, 200, { ...base, type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
+    if (path === '/v0/session') return json(response, 200, { ...base, ...control(), type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
     if (path === '/v0/capabilities') return json(response, 200, { ...base, type: 'capabilities', capabilities: { 'ui.interaction_tree': 'runtime_verified', 'capture.composite': 'runtime_verified' } });
     if (path === '/v0/ui/tree') return json(response, 200, { ...base, type: 'ui.tree', screenClass: 'TitleScreen', screenRevision: 3, menuRevision: 1, coverage: 'semantic_native', children: [{ nodeId: 'mock:1', role: 'button', label: maliciousText, active: true, visible: true, actions: ['click'] }] });
     if (path === '/v0/ui/vision/context') return json(response, 200, { ...base, type: 'ui.vision_context', coordinateSpace: 'gui_scaled', visionFallbackAvailable: true });
@@ -94,19 +101,32 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
       if (url.searchParams.get('x') === '999') return json(response, 409, { error: 'BLOCK_TEST_ERROR', message: 'mock block failure', requestId: 'mock-request' });
       return json(response, 200, { ...base, type: 'world.block', available: true, block: 'minecraft:stone', dataSource: 'LIVE', storageAccessed: false });
     }
-    if (path === '/v0/control/status') return json(response, 200, { ...base, type: 'control.status', active: leases.length > 0, leaseId: leases.at(-1) });
+    if (path === '/v0/control/mode' && request.method === 'GET') return json(response, 200, { ...base, ...control(), type: 'control.mode' });
+    if (path === '/v0/control/status') return json(response, 200, { ...base, ...control(), active: leases.length > 0, leaseId: leases.at(-1) });
+    if (path === '/v0/control/mode') {
+      const expected = payload.expectedModeVersion as { controlSessionId: string; generation: number };
+      if (expected?.controlSessionId !== recordingId || expected.generation !== generation) return json(response, 409, { error: 'STALE_MODE_REVISION', message: 'stale mode', control: control() });
+      if (payload.mode !== 'READ' && payload.mode !== 'OPERATE') return json(response, 400, { error: 'INVALID_MODE', message: 'explicit non-takeover intent only' });
+      if (mode !== payload.mode) generation++;
+      mode = payload.mode;
+      leases.length = 0;
+      return json(response, 200, { ...base, ...control(), type: 'control.mode' });
+    }
     if (path === '/v0/control/acquire') {
-      manuallyRevoked = false;
+      manuallyRevoked = false; mode = 'TAKEOVER'; generation++;
       leases.push('mock-lease');
-      return json(response, 200, { ...base, type: 'control.lease', leaseId: 'mock-lease', status: 'acquired' });
+      return json(response, 200, { ...base, ...control(), type: 'control.lease', leaseId: 'mock-lease', status: 'acquired' });
     }
     if (path.startsWith('/v0/control/')) {
-      if (path.endsWith('release') || path.endsWith('emergency-release')) leases.length = 0;
-      return json(response, 200, { ...base, type: 'control.lease', leaseId: 'mock-lease', status: 'completed' });
+      if (path.endsWith('release')) { leases.length = 0; mode = 'READ'; generation++; }
+      return json(response, 200, { ...base, ...control(), type: 'control.lease', leaseId: 'mock-lease', status: 'completed' });
     }
-    if (path === '/v0/ui/action' && manuallyRevoked) return json(response, 409, {
-      error: 'USER_MANUALLY_ENDED_CONTROL', message: '用户手动结束控制', requestId: 'manual-request',
-      controlState: 'MANUALLY_REVOKED', reconsentRequired: true, manualRevocationReason: 'human_manual_revocation'
+    if (['/v0/ui/action', '/v0/pipelines', '/v0/command/player'].includes(path) && mode !== 'TAKEOVER') return json(response, 409, {
+      error: manuallyRevoked ? 'USER_MANUALLY_ENDED_CONTROL' : 'TAKEOVER_REQUIRED', message: manuallyRevoked ? '用户手动结束控制' : 'Explicit TAKEOVER required',
+      control: control(), ...(manuallyRevoked ? { controlState: 'MANUALLY_REVOKED', reconsentRequired: true, manualRevocationReason: 'human_manual_revocation' } : {})
+    });
+    if (['/v0/diagnostics/ui/test-screen', '/v0/fixture/player/teleport', '/v0/debug/mutations', '/v0/debug/batches'].includes(path) && mode !== 'OPERATE') return json(response, 409, {
+      error: 'OPERATE_REQUIRED', message: 'Explicit OPERATE required', control: control()
     });
     if (path === '/v0/ui/action') {
       if (request.headers['x-mcp-control-lease'] !== 'mock-lease') return json(response, 409, { error: 'CONTROL_LEASE_REQUIRED', message: 'lease required', requestId: 'mock-request' });
@@ -167,7 +187,7 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Mock Runtime did not bind');
   return {
-    revokeControl: () => { manuallyRevoked = true; },
+    revokeControl: () => { manuallyRevoked = true; mode = 'READ'; generation++; leases.length = 0; },
     baseUrl: `http://127.0.0.1:${address.port}`,
     leases,
     operationCancels,
@@ -237,6 +257,11 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(runtime.deepObserveAborts.length, negotiated === '2025-11-25' ? 0 : 1,
       'MCP request cancellation must match the negotiated protocol capability');
 
+    for (const tool of listed.tools) assert.ok(tool._meta?.['minecraft/modePolicy'], tool.name);
+    const deniedReadInput = await client.callTool({ name: 'minecraft_interact_ui', arguments: { selector: { label: 'safe' } } });
+    assert.equal((deniedReadInput.structuredContent as { error: { code: string; control: { mode: string } } }).error.code, 'TAKEOVER_REQUIRED');
+    assert.equal((deniedReadInput.structuredContent as { error: { control: { mode: string } } }).error.control.mode, 'READ');
+
     const lease = await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire', ttlMs: 60000 } });
     assert.equal(lease.isError, undefined);
     const action = await client.callTool({ name: 'minecraft_interact_ui', arguments: { action: 'click', selector: { role: 'button', label: maliciousText } } });
@@ -254,6 +279,19 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
       assert.equal(data.error.manualRevocationReason, 'human_manual_revocation');
     }
     assert.notEqual((await client.callTool({ name: 'minecraft_get_session', arguments: {} })).isError, true);
+    const operateAfterManual = await client.callTool({ name: 'minecraft_control', arguments: { action: 'set_mode', mode: 'OPERATE' } });
+    const operateState = (operateAfterManual.structuredContent as { data: { mode: string; reconsentRequired: boolean } }).data;
+    assert.equal(operateState.mode, 'OPERATE');
+    assert.equal(operateState.reconsentRequired, true);
+    assert.equal(runtime.leases.length, 0);
+    const fixture = await client.callTool({ name: 'minecraft_fixture', arguments: { operation: 'open_standard_gui' } });
+    assert.notEqual(fixture.isError, true);
+    assert.equal((fixture.structuredContent as { data: { mode: string } }).data.mode, 'FIXTURE');
+    const deniedOperateInput = await client.callTool({ name: 'minecraft_interact_ui', arguments: { selector: { label: 'safe' } } });
+    assert.equal((deniedOperateInput.structuredContent as { error: { code: string } }).error.code, 'USER_MANUALLY_ENDED_CONTROL');
+    assert.equal((deniedOperateInput.structuredContent as { error: { control: { mode: string } } }).error.control.mode, 'OPERATE');
+    const staleMode = await client.callTool({ name: 'minecraft_control', arguments: { action: 'set_mode', mode: 'READ', expectedModeVersion: { controlSessionId: recordingId, generation: 0 } } });
+    assert.equal((staleMode.structuredContent as { error: { code: string } }).error.code, 'STALE_MODE_REVISION');
     // This fixture explicitly simulates newly granted conversation consent.
     await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire' } });
     const afterReacquire = await client.callTool({ name: 'minecraft_interact_ui', arguments: { selector: { label: 'safe' } } });
@@ -287,6 +325,8 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
       revisionScope: 'resource',
       mutationPreconditionEligible: true
     };
+    await client.callTool({ name: 'minecraft_control', arguments: { action: 'set_mode', mode: 'OPERATE' } });
+    // Changing intent must not forget the already armed, independent Debug credential.
     const debugMutation = await client.callTool({
       name: 'minecraft_debug',
       arguments: {
@@ -321,6 +361,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     });
     assert.equal(rawDebug.isError, true, 'generic raw Debug must be rejected by MCP schema');
 
+    await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire' } });
     const operationCancelsBeforeSignal = runtime.operationCancels.length;
     const controller = new AbortController();
     const cancellable = client.callTool({

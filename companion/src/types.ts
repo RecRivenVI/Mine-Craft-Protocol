@@ -25,3 +25,14 @@ export interface CompanionEnvelope {
     transport: 'runtime_http';
   };
 }
+
+export type AgentMode = 'READ' | 'OPERATE' | 'TAKEOVER';
+export interface ModeVersion { controlSessionId: string; generation: number }
+export interface ControlModeState {
+  mode: AgentMode;
+  takeoverActive: boolean;
+  modeVersion: ModeVersion;
+  reconsentRequired: boolean;
+  reconsentScope?: 'TAKEOVER_ONLY';
+  modeTransitionReason: string;
+}

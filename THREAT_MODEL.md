@@ -59,7 +59,7 @@ E3 native/GPU diagnostics likewise require an independent Threat Model extension
 - Treat selector labels, GUI text, Render Facts and vision-model coordinates as untrusted data-plane input.
 - Label registered third-party Provider output as untrusted and keep the Phase 4 Provider SPI LIVE-only.
 - Refuse unloaded Server block queries without chunk loading or persistent-storage fallback.
-- Keep Fixture/Debug scopes disabled by default. Fixture retains its input-Lease check; formal Phase 9C Debug uses independent scoped, world/session-bound TTL Arm and resource/value preconditions, not the input Lease.
+- Keep Fixture/Debug scopes disabled by default. Fixture and Debug mutation require explicit OPERATE rather than the input Lease; formal Phase 9C Debug retains independent scopes, world/session-bound TTL Arm and resource/value preconditions.
 - Bound Recording acquisition and writer queues; drop and record gaps instead of blocking game threads.
 - Limit aggregated HTTP request bodies to 1 MiB.
 - Bound world entity radius and result count.
@@ -113,7 +113,7 @@ Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport
 
 ### Human Override and Operator Presentation
 
-Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons and restores the original title/icon; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. Read-only access remains available. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
+Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons and restores the original title/icon; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. READ remains available; explicitly authorized OPERATE does not clear the TAKEOVER-only latch. No mode grants scopes, Lease, Arm or gameplay evidence. Owner-thread input generation admission and bounded OPERATE permits prevent stale input or implicit escalation across mode changes. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
 
 Automatic/background host cursor capture is denied while Agent-controlled. The current model still allows capture after a focused native gameplay click and releases it on focus loss; it is not an exclusive native-input blockade. The proposed stricter TAKEOVER model is research only. Physical acceptance must be performed by the user and correlated with Runtime evidence, never another desktop automation system. Native callback classification is not a hostile local-code or hardware-attestation boundary.
 

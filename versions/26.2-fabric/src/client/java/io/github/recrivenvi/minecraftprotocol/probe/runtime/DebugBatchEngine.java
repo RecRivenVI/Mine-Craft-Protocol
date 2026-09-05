@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -47,7 +48,7 @@ final class DebugBatchEngine implements AutoCloseable {
     CompletableFuture<JsonObject> start(
             String operationId,
             JsonObject request,
-            ProtocolState.RequestMetadata metadata) {
+            ProtocolState.RequestMetadata metadata, AgentControlSession.OperateWork modeWork) {
         if (this.closed.get()) {
             return CompletableFuture.failedFuture(new CancellationException("debug_batch_runtime_closed"));
         }
@@ -103,7 +104,7 @@ final class DebugBatchEngine implements AutoCloseable {
                 Math.min(System.currentTimeMillis() + duration,
                         metadata.deadlineAtMillis() > 0L
                                 ? metadata.deadlineAtMillis() : Long.MAX_VALUE),
-                metadata);
+                metadata, modeWork);
         execution.start();
         return execution.result;
     }
@@ -133,6 +134,7 @@ final class DebugBatchEngine implements AutoCloseable {
         private final int perTick;
         private final long deadlineAtMillis;
         private final ProtocolState.RequestMetadata metadata;
+        private final AgentControlSession.OperateWork modeWork;
         private final JsonArray results = new JsonArray();
         private final StampedLock cancellationBarrier = new StampedLock();
         private final AtomicBoolean cancelled = new AtomicBoolean();
@@ -154,13 +156,14 @@ final class DebugBatchEngine implements AutoCloseable {
                 String failurePolicy,
                 int perTick,
                 long deadlineAtMillis,
-                ProtocolState.RequestMetadata metadata) {
+                ProtocolState.RequestMetadata metadata, AgentControlSession.OperateWork modeWork) {
             this.operationId = operationId;
             this.items = items;
             this.failurePolicy = failurePolicy;
             this.perTick = perTick;
             this.deadlineAtMillis = deadlineAtMillis;
             this.metadata = metadata;
+            this.modeWork = modeWork;
         }
 
         private void start() {
@@ -319,8 +322,9 @@ final class DebugBatchEngine implements AutoCloseable {
                 protocolState.requireDebugAuthorization(
                         this.metadata.debugArmId(), currentWorldFingerprint,
                         sessionEpoch, domain, namespace);
+                AgentControlSession.Guard modeGuard = this.modeWork.enter();
                 accepted = true;
-                return () -> this.cancellationBarrier.unlockRead(stamp);
+                return () -> { modeGuard.close(); this.cancellationBarrier.unlockRead(stamp); };
             } finally {
                 if (!accepted) this.cancellationBarrier.unlockRead(stamp);
             }
@@ -343,7 +347,7 @@ final class DebugBatchEngine implements AutoCloseable {
 
         @Override
         public boolean isCancelled() {
-            return this.cancelled.get() || this.terminal.get();
+            return this.cancelled.get() || this.terminal.get() || this.modeWork.isCancelled();
         }
     }
 }

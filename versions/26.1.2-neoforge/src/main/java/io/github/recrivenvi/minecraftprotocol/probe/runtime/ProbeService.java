@@ -6,6 +6,8 @@ import java.util.concurrent.CompletableFuture;
 import java.nio.file.Path;
 
 interface ProbeService {
+    default void attachControlSession(AgentControlSession session) { }
+
     default void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {
     }
 
@@ -31,13 +33,13 @@ interface ProbeService {
     CompletableFuture<JsonObject> captureInfo();
     Path artifactRoot();
     CompletableFuture<JsonObject> worldFingerprint();
-    CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z);
-    CompletableFuture<JsonObject> debugSetHealth(float health);
-    CompletableFuture<JsonObject> debugSetBlock(int x, int y, int z, String blockId, String expectedBlockId);
+    CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z, AgentControlSession.OperateWork work);
+    CompletableFuture<JsonObject> debugSetHealth(float health, AgentControlSession.OperateWork work);
+    CompletableFuture<JsonObject> debugSetBlock(int x, int y, int z, String blockId, String expectedBlockId, AgentControlSession.OperateWork work);
     CompletableFuture<JsonObject> formalObservationCapabilities();
     CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext);
-    CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request);
+    CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request, AgentControlSession.OperateWork work);
     CompletableFuture<JsonObject> phase9aInventory();
     CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request);
     CompletableFuture<JsonObject> phase9cDebugCapabilities();
@@ -49,6 +51,6 @@ interface ProbeService {
     CompletableFuture<JsonObject> validatePreconditions(Long expectedScreenRevision, Long expectedMenuRevision);
     CompletableFuture<JsonObject> inputState();
     CompletableFuture<JsonObject> threadProbe(String affinity);
-    CompletableFuture<JsonObject> openAutomationProbeScreen();
+    CompletableFuture<JsonObject> openAutomationProbeScreen(AgentControlSession.OperateWork work);
     CompletableFuture<JsonObject> releaseAllInput(String reason);
 }

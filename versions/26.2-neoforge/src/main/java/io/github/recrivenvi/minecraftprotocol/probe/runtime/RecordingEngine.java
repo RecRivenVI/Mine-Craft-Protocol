@@ -336,6 +336,7 @@ final class RecordingEngine implements AutoCloseable {
         private volatile String lifecycle = "RUNNING";
         private volatile String stopReason = "";
         private volatile String lastGapTrack = "";
+        private volatile JsonObject finalizationFailure;
         private volatile long completedAtMillis;
         private volatile ScheduledFuture<?> timer;
 
@@ -418,16 +419,23 @@ final class RecordingEngine implements AutoCloseable {
         }
 
         private void finalizeBundle() {
+            String stage = "source_tracks";
+            boolean sourceTracksClosed = false;
             try {
                 this.timeline.flush();
                 this.timeline.close();
                 this.canonical.close();
+                sourceTracksClosed = true;
+                stage = "frame_index";
                 this.lifecycle = "WRITING_MANIFEST";
                 Files.writeString(
                         this.directory.resolve("frame-index.json"), GSON.toJson(this.frameIndex), StandardCharsets.UTF_8);
+                stage = "contact_sheet";
                 if (this.config.contactSheet() && this.writtenFrames.get() > 0) this.composeContactSheet();
+                stage = "manifest_checksums";
                 Files.writeString(this.directory.resolve("manifest.json"), GSON.toJson(this.manifest()), StandardCharsets.UTF_8);
                 Files.writeString(this.directory.resolve("checksums.json"), GSON.toJson(this.checksums()), StandardCharsets.UTF_8);
+                stage = "bundle";
                 this.zipBundle();
                 this.status = "completed";
                 this.lifecycle = "CLOSED";
@@ -435,7 +443,26 @@ final class RecordingEngine implements AutoCloseable {
                 this.status = "failed";
                 this.lifecycle = "FAILED";
                 this.writerErrors.incrementAndGet();
-                throw new IllegalStateException("Unable to finalize recording", throwable);
+                JsonObject failure = new JsonObject();
+                failure.addProperty("code", throwable instanceof ProtocolState.ProtocolException protocol
+                        ? protocol.code() : "RECORDING_FINALIZATION_FAILED");
+                failure.addProperty("stage", stage);
+                failure.addProperty("cause", throwable.getClass().getSimpleName());
+                failure.addProperty("message", throwable.getMessage() == null ? "Finalization failed"
+                        : throwable.getMessage().substring(0, Math.min(1024, throwable.getMessage().length())));
+                failure.addProperty("sourceTracksClosed", sourceTracksClosed);
+                failure.addProperty("sourceFilesRetained", true);
+                failure.addProperty("sourceIntegrity", "not_revalidated");
+                failure.addProperty("artifactReady", false);
+                this.finalizationFailure = failure;
+                try {
+                    Files.writeString(this.directory.resolve("finalization-error.json"),
+                            GSON.toJson(failure), StandardCharsets.UTF_8);
+                } catch (IOException diagnosticFailure) {
+                    throwable.addSuppressed(diagnosticFailure);
+                }
+                if (throwable instanceof ProtocolState.ProtocolException protocol) throw protocol;
+                throw new IllegalStateException("Unable to finalize recording at " + stage, throwable);
             }
         }
 
@@ -498,6 +525,8 @@ final class RecordingEngine implements AutoCloseable {
             json.addProperty("writerQueueCapacity", WRITER_QUEUE_CAPACITY);
             json.addProperty("evidenceContaminated", this.evidenceContaminated.get());
             json.addProperty("artifactReady", this.status.equals("completed") && Files.isRegularFile(this.bundlePath()));
+            JsonObject failure = this.finalizationFailure;
+            if (failure != null) json.add("finalizationFailure", failure.deepCopy());
             return json;
         }
 
@@ -536,7 +565,9 @@ final class RecordingEngine implements AutoCloseable {
                         decodedBytes = Math.addExact(decodedBytes, sourceBytes);
                         if (decodedBytes > MAX_DECODED_SOURCE_BYTES) {
                             throw new ProtocolState.ProtocolException(
-                                    "RECORDING_BUDGET_EXCEEDED", 413, "Decoded contact-sheet sources exceed budget");
+                                    "RECORDING_BUDGET_EXCEEDED", 413, "Contact sheet decoded_source_bytes=" + decodedBytes
+                                            + " exceeds limit=" + MAX_DECODED_SOURCE_BYTES
+                                            + "; captured source files retained; bundle not finalized");
                         }
                         BufferedImage source = ImageIO.read(frame.toFile());
                         int localIndex = index - start;

@@ -6,6 +6,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../control/ModeHelpers.ps1')
 $base = $BaseUri.TrimEnd('/')
 $token = (Get-Content -LiteralPath $TokenFile -Raw).Trim()
 $auth = @{ Authorization = "Bearer $token" }
@@ -62,6 +63,8 @@ function Send-EventCommand([System.Net.WebSockets.ClientWebSocket]$Socket, [obje
 $session = Invoke-Json GET '/v0/session' $null
 Assert-True ($session.target -eq $ExpectedTarget) "expected $ExpectedTarget"
 
+$existingControl = Invoke-Json GET '/v0/control/status' $null
+Set-AgentMode $base $auth OPERATE $existingControl.leaseId | Out-Null
 $fast = Open-Events '?type=diagnostics.event.self_test'
 try {
     $hello = Receive-Event $fast

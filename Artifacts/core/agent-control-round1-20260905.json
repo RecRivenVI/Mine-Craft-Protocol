@@ -1,0 +1,951 @@
+{
+  "schemaVersion": "control-r1-evidence-1",
+  "result": "PASS",
+  "timestamp": "2026-09-05T09:26:41.8503870Z",
+  "baseCommit": "fb0cfc0eabced04e62300d7049c5631d7d3a82fe",
+  "originCommit": "fb0cfc0eabced04e62300d7049c5631d7d3a82fe",
+  "branch": "master",
+  "evidenceBinding": "WORKING_TREE_CANDIDATE_PRODUCT_AND_ARTIFACT_HASHES",
+  "remoteAttestationPerformed": false,
+  "validationScope": "cumulative actual Round 1 runs; human controls observed before or after the separate shutdown-only fix; every Target cold close rerun after that fix",
+  "computerUseUsed": false,
+  "singleTestClientAtATime": true,
+  "persistentWriteInvocations": 0,
+  "normalMinecraftSaveAndQuit": "allowed test-world gameplay lifecycle, not a Persistent Write RPC",
+  "blockingIssues": [],
+  "sourceHashes": {
+    "companion/src/live-conformance.ts": "d39f00ae0ae7cb8193b7ad5154eab5a522fe8d669f0e60b8f4771697203fb851",
+    "companion/src/mode-policy.ts": "5a133fe2428a7a1b5a7d100e503480b30f062dceb8739de7b69ea766c2034fd6",
+    "companion/src/result.ts": "e5497895c010f7b584b6f738e572f5646ffe5e1cebbb9fd9f2eda0e9eca2be81",
+    "companion/src/runtime-client.ts": "6e1c6e07ce08d2081875ccc6f28db1afcb2cd63ca8c80d8885471fd322b606b6",
+    "companion/src/server.ts": "961b1827b23fbd52f75a95c99340e12f1d377f9116b7c09236618e04abec2ae8",
+    "companion/src/test/companion.test.ts": "d1ca69cc2268bbf78f3fcc598b5e96939de208489425b90d8ddd353179d73cfb",
+    "companion/src/types.ts": "b5226dd618cd80a9f5c59e9a7aec280037447efe028335f07d10817a367eebb3",
+    "conformance/control/control-mode-surface.json": "a7db48b75d1ff259c43d7c19087711ca9d44b265b033077b0ce93d01b74debc9",
+    "conformance/control/Invoke-ControlRound1Concurrency.ps1": "51e5adee5eac3ec1572f2166ab44871b34a6f5bcdc7b4a5d2490524e3d4bd810",
+    "conformance/control/Invoke-ControlRound1Gate.ps1": "d206a8bc2812fb92b5b626ae91e58dff7ecdcfad8c73ac2e30b1c12029ed8fb8",
+    "conformance/control/Invoke-ControlRound1LiveGate.ps1": "2d6facb56f9ea0092493eca8715b11ab8bd1926b95ef9c9f9d876eaab451a722",
+    "conformance/control/Invoke-ControlRound1PauseQuitConformance.ps1": "fde8774ed5e13d76bd2a9e5a1d90be5cc125188fde814d9e8a398828dda25231",
+    "conformance/control/Invoke-ControlRound1StaticGate.ps1": "f1840ed0dcab68257138d07528742e36af551ba46d1b4e935bf3d5d825491a8a",
+    "conformance/control/ModeHelpers.ps1": "1e9bc2d4f6df2a3a7cb0ad9fb62f4ec4655ec6af05a29436bb282e94326e9cee",
+    "conformance/control/Verify-ControlRound1Reconsent.mjs": "c18b9091fc3a00681f0ef2492c909f295b7a1620490d6fb8bad3bcbb742bf9e5",
+    "conformance/control/Watch-ControlRound1ManualEsc.ps1": "a0905fb02044086b1a7cd348ad2f201ec69be3e1de6eb0856e69055db96323f8",
+    "protocol-schema/src/main/openapi/minecraft-control-v0.json": "9c6c106c067a6ab276f1d25c525f6b6c2305005d6d126cdef4d21e72591b3146",
+    "runtime-safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java": "3238adb2947dc926f5c122c7911f05eb079745c7bcca3e60d37f98e606d87be3",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "2ea45bbba7af0908d704962c58114be25fdb6dc553b2cbba89cf7059fd569a9a",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "b1aca583726531bc691be1b7531d23a0b473bd3d05df3d268017e2a1c10bbd91",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "ba551ff8ac16e56b4391960624b491637f26bb2bd403703441148f4ac7a98ebf",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ForgeProbeRuntime.java": "4c5c60233bb989c68d34e643216e4ddf2ae5e0abb7bcdc3b8a87aeb97098e06c",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "e146a6ced266f6116ddc23748c924c620f95a8e60e9e30dcd7d8812fb41547d3",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "65853d1862e4fc8de787289847c0f5d20d2c3d1223d3c166b9237d7f743d70ab",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "5cb62648c772b9bc12df3e61697a84ab434a737fda665d8fa8d96b7951988c0f",
+    "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "3a176229100f84b5bf791e51503637c7d96d72998dcd3e845e9ba561fc478289",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "943fa29512889596362aad0981051476a575fcca7d3b1642cfba544945936f1b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "b1aca583726531bc691be1b7531d23a0b473bd3d05df3d268017e2a1c10bbd91",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "ba551ff8ac16e56b4391960624b491637f26bb2bd403703441148f4ac7a98ebf",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "8d09898220c0056354c0fd2aeafb6e18cfa09068ae31f2d45ccefec2e4ae8e63",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "4f094408a47f1cdda4dfaf2eb615a95e8eaa3fa4d7493a9f38c3dd1145697678",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "4c13c6047454f41607e8596755732e4cc09df97fe42aed61ad7f7ea14abeb209",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "5cb62648c772b9bc12df3e61697a84ab434a737fda665d8fa8d96b7951988c0f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "3a176229100f84b5bf791e51503637c7d96d72998dcd3e845e9ba561fc478289",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "bc369dab4ee2bd4b574a8a22bebae12e2f3d975b3c99786e3a05196dbe8b66c6",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "b1aca583726531bc691be1b7531d23a0b473bd3d05df3d268017e2a1c10bbd91",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "ba551ff8ac16e56b4391960624b491637f26bb2bd403703441148f4ac7a98ebf",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "758b9c5a99e5706abce7660341557e5b26b44e543f267f9436236b75fbd6a4fe",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "0dd62be54d1477a4d15bd830f24817a32067eaf7a283f5f2ac270364560db561",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "72e37de34940fc02d58644187257a986b8acd6273bc737ff77f32453fc3fe701",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "5cb62648c772b9bc12df3e61697a84ab434a737fda665d8fa8d96b7951988c0f",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "3a176229100f84b5bf791e51503637c7d96d72998dcd3e845e9ba561fc478289",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "4d62affc0cbcaf7e47c0fc90423d664e452936be1b53f78e314721b0a192ab8a",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "b1aca583726531bc691be1b7531d23a0b473bd3d05df3d268017e2a1c10bbd91",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "ba551ff8ac16e56b4391960624b491637f26bb2bd403703441148f4ac7a98ebf",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.java": "965f21938f09fcf4065699b414d687c671f60dc468a2b02979c579b93c62d7b0",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "dc099253701b19d6eff5b119f9ba81e836c569ff7a566e823736ad7956b8acc7",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "6bb98ef70d2c115ba36b77735e60189e064ab789ddefa04d2aca7719d13cc70e",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "5cb62648c772b9bc12df3e61697a84ab434a737fda665d8fa8d96b7951988c0f",
+    "versions/26.2-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "3a176229100f84b5bf791e51503637c7d96d72998dcd3e845e9ba561fc478289",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "81dffca8d2492c05f1555f70fb738bcb4f92179a92746ba9fc8af101b93516f9",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "b1aca583726531bc691be1b7531d23a0b473bd3d05df3d268017e2a1c10bbd91",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "ba551ff8ac16e56b4391960624b491637f26bb2bd403703441148f4ac7a98ebf",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "16ebf5511ccf1d36b721cc53ea64d788b5344d0cb2e6962b9a8bd195bfe56741",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "dc099253701b19d6eff5b119f9ba81e836c569ff7a566e823736ad7956b8acc7",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "264a23037676b5c3dde9de908198135de1736140a204afdeb84e0f65be7395e2",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "5cb62648c772b9bc12df3e61697a84ab434a737fda665d8fa8d96b7951988c0f",
+    "versions/26.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "3a176229100f84b5bf791e51503637c7d96d72998dcd3e845e9ba561fc478289",
+    "versions/26.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ControlModeContractTest.java": "769854d00721ccd46497b3dace0090b19d199cf6fffd710c18d72390545dc3c2",
+    "versions/26.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngineTest.java": "46fd9b946f0b291c4033bb7571423585f8d8fdfc81d35e68e9b9283653684bfc"
+  },
+  "localGate": {
+    "Result": "PASS",
+    "Protocol": "0.0.1-control-r1",
+    "Targets": [
+      {
+        "Target": "1.20.1-forge",
+        "Artifact": "minecraft_protocol_probe-0.0.1-phase8.jar",
+        "Bytes": 460108
+      },
+      {
+        "Target": "1.21.1-neoforge",
+        "Artifact": "minecraft_protocol_probe-0.0.1-phase8.jar",
+        "Bytes": 455822
+      },
+      {
+        "Target": "26.1.2-neoforge",
+        "Artifact": "minecraft_protocol_probe-0.0.1-phase8.jar",
+        "Bytes": 461100
+      },
+      {
+        "Target": "26.2-neoforge",
+        "Artifact": "minecraft_protocol_probe-0.0.1-phase8.jar",
+        "Bytes": 462847
+      },
+      {
+        "Target": "26.2-fabric",
+        "Artifact": "minecraft_protocol_probe-0.0.1-phase8.jar",
+        "Bytes": 468582
+      }
+    ],
+    "CompanionTools": 24,
+    "CompanionResources": 4,
+    "CompanionResourceTemplates": 2,
+    "CompanionPrompts": 1,
+    "DependencyAuditStatus": "PASS_NO_THRESHOLD_VULNERABILITIES",
+    "DependencyAuditAttempts": 1,
+    "DependencyAuditServiceAvailable": true,
+    "DependencyAuditResponseValid": true,
+    "DependencyVulnerabilitiesTotal": 0,
+    "DependencyVulnerabilitiesLow": 0,
+    "DependencyVulnerabilitiesModerate": 0,
+    "DependencyVulnerabilitiesHigh": 0,
+    "DependencyVulnerabilitiesCritical": 0,
+    "DependencyAuditFailureKind": "",
+    "DependencyAuditFailureMessage": "",
+    "DependencyAuditClassifierTests": 7,
+    "HardeningStatic": "PASS",
+    "JavaTests": 86,
+    "JavaTestFailures": 0,
+    "JavaModels": 138,
+    "TypeScriptFiles": 138
+  },
+  "matrix": [
+    {
+      "target": "1.20.1-forge",
+      "read": "PASS",
+      "operate": "PASS",
+      "takeover": "PASS",
+      "leaseLoss": "PASS",
+      "manualRevoke": "PASS",
+      "reacquire": "PASS",
+      "concurrency": "PASS",
+      "shutdown": "PASS",
+      "firstUseContactSheetShutdown": "PASS",
+      "runtime": "production_final_jar",
+      "backend": "opengl",
+      "artifact": "versions/1.20.1-forge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "artifactSha256": "7c611f3016bcb44bc8f019f929e0556b7c3972ffc71d8579217fdba4b99df747",
+      "automaticProof": {
+        "Result": "PASS",
+        "Target": "1.20.1-forge",
+        "Read": "PASS",
+        "Operate": "PASS",
+        "Takeover": "PASS",
+        "Fixture": "PASS",
+        "TypedDebug": "PASS",
+        "ScopeSeparation": "PASS",
+        "StaleModeRevision": "PASS",
+        "AgentEsc": "PASS",
+        "PipelineTransitionCancellation": "PASS",
+        "PostTransitionInput": 0,
+        "RevisionPreconditionRetries": 0,
+        "CleanupAlreadySatisfiedByLiveState": 0,
+        "LeaseExpiry": "PASS",
+        "ManualEsc": "SEPARATE_HUMAN_GATE",
+        "PersistentWriteInvocations": 0
+      },
+      "concurrencyProof": {
+        "Result": "PASS",
+        "Target": "1.20.1-forge",
+        "ReadDeepObserve": "PASS",
+        "ReadCapture": "PASS",
+        "ReadEvent": "PASS",
+        "ReadRecording": "PASS",
+        "ReadArtifact": "PASS",
+        "ReadInputEffects": 0,
+        "RecordingId": "b946a4c9-a418-4a10-a696-52752f7c4f4d",
+        "ModeCASRace": "PASS",
+        "DebugVsTakeover": "CONTROLLED_REJECTION",
+        "DebugBatchCancellation": "PASS",
+        "CancelVsModeChange": "PASS",
+        "PostTransitionInput": 0,
+        "PersistentWriteInvocations": 0
+      },
+      "humanProof": {
+        "result": "PASS",
+        "nativeEventSource": "USER_PHYSICAL_ESC_ONLY",
+        "mode": "READ",
+        "reconsentRequired": true,
+        "operationId": "690082e4-9296-470d-94c5-04975bae853e",
+        "operationState": "cancelled",
+        "heldKeys": 0,
+        "heldButtons": 0,
+        "postRevokeInput": 0,
+        "readStillAvailable": true,
+        "elapsedSeconds": 48.7270453
+      },
+      "reconsentProof": {
+        "source": "build/core-demo-correctness-live/forge-20260905132649/minecraft-protocol/artifacts/a1b3328f-fe02-4474-b401-de319c271f03/frame-index.json",
+        "nativeAfter": {
+          "mode": "TAKEOVER",
+          "reconsentRequired": false,
+          "nativeRevocations": 1,
+          "modeVersion": {
+            "controlSessionId": "0e66c512-e2b0-4af1-83ca-96b38b7c7de5",
+            "generation": 32
+          }
+        },
+        "result": "PASS",
+        "basis": "same-Round-1 physical consent and MCP flow witnessed in conversation; native post-reacquire frame retained"
+      },
+      "shutdownProof": {
+        "Result": "PASS",
+        "Target": "1.20.1-forge",
+        "AgentEsc": "PASS",
+        "SaveAndQuit": "PASS",
+        "Lifecycle": "STOPPED_OFFLINE",
+        "OfflineReads": [
+          {
+            "domain": "world",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "player",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "chunk",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          }
+        ],
+        "NormalRelease": "PASS",
+        "CleanShutdown": "PASS",
+        "ProcessExitCode": 0,
+        "RecordingId": "238a5b3d-46a4-48f7-8d22-121fa9e9496d",
+        "RecordingStatus": "completed",
+        "StopReason": "transport_close",
+        "WrittenFrames": 6,
+        "Gaps": 4,
+        "WriterErrors": 0,
+        "Manifest": "build/core-demo-correctness-live/forge-20260905164343/minecraft-protocol/artifacts/238a5b3d-46a4-48f7-8d22-121fa9e9496d/manifest.json",
+        "PersistentWriteInvocations": 0
+      },
+      "shutdownArtifactHashes": {
+        "manifest.json": "49d01aca090763593cc48be7ce25b87c4494bd19bcd6b69e4c718f5a79066e79",
+        "bundle.zip": "c4f90753963c1dad5dc76badc8b610241a06194655f39784805e11fcd15362d9",
+        "checksums.json": "f69c409276519ae93d5fecbfea64b8f2d37d0c38df15259ab9d7f7962f441a9a",
+        "frame-index.json": "0f0731017079a9b2bf3784379972d9ab5524d4cc7a53ca9db3d817e50de70081",
+        "derivatives/contact-sheet.png": "2789632ab1f4691e9b5b87603395f64650ab36b000ff3f3d6cef475e22991d47"
+      },
+      "localReferences": {
+        "human": "build/core-demo-correctness-live/forge-20260905132649/control-r1-human.json",
+        "concurrency": "build/core-demo-correctness-live/forge-20260905164343/control-r1-concurrency.json",
+        "reconsent": "",
+        "automatic": "build/core-demo-correctness-live/forge-20260905164343/control-r1-auto.json",
+        "shutdown": "build/core-demo-correctness-live/forge-20260905164343/control-r1-pause-quit.json"
+      }
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "read": "PASS",
+      "operate": "PASS",
+      "takeover": "PASS",
+      "leaseLoss": "PASS",
+      "manualRevoke": "PASS",
+      "reacquire": "PASS",
+      "concurrency": "PASS",
+      "shutdown": "PASS",
+      "firstUseContactSheetShutdown": "PASS",
+      "runtime": "loader_development_runtime",
+      "backend": "opengl",
+      "artifact": "versions/1.21.1-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "artifactSha256": "27876d9ebda1006851a71b845c8c3f3b2715c92d889b7a3f9eaa191345a36b56",
+      "automaticProof": {
+        "Result": "PASS",
+        "Target": "1.21.1-neoforge",
+        "Read": "PASS",
+        "Operate": "PASS",
+        "Takeover": "PASS",
+        "Fixture": "PASS",
+        "TypedDebug": "PASS",
+        "ScopeSeparation": "PASS",
+        "StaleModeRevision": "PASS",
+        "AgentEsc": "PASS",
+        "PipelineTransitionCancellation": "PASS",
+        "PostTransitionInput": 0,
+        "RevisionPreconditionRetries": 1,
+        "CleanupAlreadySatisfiedByLiveState": 1,
+        "LeaseExpiry": "PASS",
+        "ManualEsc": "SEPARATE_HUMAN_GATE",
+        "PersistentWriteInvocations": 0
+      },
+      "concurrencyProof": {
+        "Result": "PASS",
+        "Target": "1.21.1-neoforge",
+        "ReadDeepObserve": "PASS",
+        "ReadCapture": "PASS",
+        "ReadEvent": "PASS",
+        "ReadRecording": "PASS",
+        "ReadArtifact": "PASS",
+        "ReadInputEffects": 0,
+        "RecordingId": "3d99805b-ae24-484a-86ba-6fd81b90ccf7",
+        "ModeCASRace": "PASS",
+        "DebugVsTakeover": "CONTROLLED_REJECTION",
+        "DebugBatchCancellation": "PASS",
+        "CancelVsModeChange": "PASS",
+        "PostTransitionInput": 0,
+        "PersistentWriteInvocations": 0
+      },
+      "humanProof": {
+        "result": "PASS",
+        "nativeEventSource": "USER_PHYSICAL_ESC_ONLY",
+        "mode": "READ",
+        "reconsentRequired": true,
+        "operationId": "1723ffda-6bf4-4685-8bc4-667ac8c03d2e",
+        "operationState": "cancelled",
+        "heldKeys": 0,
+        "heldButtons": 0,
+        "postRevokeInput": 0,
+        "readStillAvailable": true,
+        "elapsedSeconds": 29.0244783
+      },
+      "reconsentProof": {
+        "result": "PASS",
+        "protocol": "official_MCP_Companion_to_Runtime",
+        "readAfterManual": "PASS",
+        "operateWithoutLease": "PASS",
+        "latchAcrossOperate": "PASS",
+        "explicitReacquire": "PASS",
+        "finalMode": "READ",
+        "reconsentRequired": false,
+        "fakeConsentWireField": false,
+        "checks": [
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "OPERATE"
+          }
+        ],
+        "persistentWriteInvocations": 0
+      },
+      "shutdownProof": {
+        "Result": "PASS",
+        "Target": "1.21.1-neoforge",
+        "AgentEsc": "PASS",
+        "SaveAndQuit": "PASS",
+        "Lifecycle": "STOPPED_OFFLINE",
+        "OfflineReads": [
+          {
+            "domain": "world",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "player",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "chunk",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          }
+        ],
+        "NormalRelease": "PASS",
+        "CleanShutdown": "PASS",
+        "ProcessExitCode": 0,
+        "RecordingId": "d52cd186-b3cb-429c-9884-61dbb9ec1c76",
+        "RecordingStatus": "completed",
+        "StopReason": "transport_close",
+        "WrittenFrames": 6,
+        "Gaps": 7,
+        "WriterErrors": 0,
+        "Manifest": "build/control-round1-live/1.21.1-neoforge-20260905-resume/minecraft-protocol/artifacts/d52cd186-b3cb-429c-9884-61dbb9ec1c76/manifest.json",
+        "PersistentWriteInvocations": 0
+      },
+      "shutdownArtifactHashes": {
+        "manifest.json": "4d7a4a791408dd7f36de5e7f09fa7063f4479f24f54991b37480a9a5ef85b55a",
+        "bundle.zip": "1aafb8cf5e29425654b5e1b8946edacbefc6776f71ab0504877e73973197aea1",
+        "checksums.json": "5ed83ea0e38064e9040ff2daef49dbdcfd04333463060e3ad4a2a1945652e889",
+        "frame-index.json": "96dfa95892e86e7aa0a86e2f5b2c74b5c80d667fd04c26e60b362143364db7df",
+        "derivatives/contact-sheet.png": "5175abf1ad738de96e13bae8f9ec01165ffe4c862d65f441b0be1e4943f111b9"
+      },
+      "localReferences": {
+        "human": "build/control-round1-live/1.21.1-neoforge-20260905-resume/control-r1-human.json",
+        "concurrency": "build/control-round1-live/1.21.1-neoforge-20260905-resume/control-r1-concurrency.json",
+        "reconsent": "build/control-round1-live/1.21.1-neoforge-20260905-resume/control-r1-reconsent.json",
+        "automatic": "build/control-round1-live/1.21.1-neoforge-20260905-resume/control-r1-auto.json",
+        "shutdown": "build/control-round1-live/1.21.1-neoforge-20260905-resume/control-r1-exit.json"
+      }
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "read": "PASS",
+      "operate": "PASS",
+      "takeover": "PASS",
+      "leaseLoss": "PASS",
+      "manualRevoke": "PASS",
+      "reacquire": "PASS",
+      "concurrency": "PASS",
+      "shutdown": "PASS",
+      "firstUseContactSheetShutdown": "PASS",
+      "runtime": "loader_development_runtime",
+      "backend": "opengl",
+      "artifact": "versions/26.1.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "artifactSha256": "2ab00c79100be11024ceb8a66e886015fdeb73043890cba03691fe352ab9bd73",
+      "automaticProof": {
+        "Result": "PASS",
+        "Target": "26.1.2-neoforge",
+        "Read": "PASS",
+        "Operate": "PASS",
+        "Takeover": "PASS",
+        "Fixture": "PASS",
+        "TypedDebug": "PASS",
+        "ScopeSeparation": "PASS",
+        "StaleModeRevision": "PASS",
+        "AgentEsc": "PASS",
+        "PipelineTransitionCancellation": "PASS",
+        "PostTransitionInput": 0,
+        "RevisionPreconditionRetries": 0,
+        "CleanupAlreadySatisfiedByLiveState": 0,
+        "LeaseExpiry": "PASS",
+        "ManualEsc": "SEPARATE_HUMAN_GATE",
+        "PersistentWriteInvocations": 0
+      },
+      "concurrencyProof": {
+        "Result": "PASS",
+        "Target": "26.1.2-neoforge",
+        "ReadDeepObserve": "PASS",
+        "ReadCapture": "PASS",
+        "ReadEvent": "PASS",
+        "ReadRecording": "PASS",
+        "ReadArtifact": "PASS",
+        "ReadInputEffects": 0,
+        "RecordingId": "71b55b12-19f7-41dd-87c5-4ecf62e59946",
+        "ModeCASRace": "PASS",
+        "DebugVsTakeover": "CONTROLLED_REJECTION",
+        "DebugBatchCancellation": "PASS",
+        "CancelVsModeChange": "PASS",
+        "PostTransitionInput": 0,
+        "PersistentWriteInvocations": 0
+      },
+      "humanProof": {
+        "result": "PASS",
+        "nativeEventSource": "USER_PHYSICAL_ESC_ONLY",
+        "mode": "READ",
+        "reconsentRequired": true,
+        "operationId": "ef640ab1-bb3c-4d07-a170-06e03e79c1a7",
+        "operationState": "cancelled",
+        "heldKeys": 0,
+        "heldButtons": 0,
+        "postRevokeInput": 0,
+        "readStillAvailable": true,
+        "elapsedSeconds": 82.6167943
+      },
+      "reconsentProof": {
+        "result": "PASS",
+        "protocol": "official_MCP_Companion_to_Runtime",
+        "readAfterManual": "PASS",
+        "operateWithoutLease": "PASS",
+        "latchAcrossOperate": "PASS",
+        "explicitReacquire": "PASS",
+        "finalMode": "READ",
+        "reconsentRequired": false,
+        "fakeConsentWireField": false,
+        "checks": [
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "OPERATE"
+          }
+        ],
+        "persistentWriteInvocations": 0
+      },
+      "shutdownProof": {
+        "Result": "PASS",
+        "Target": "26.1.2-neoforge",
+        "AgentEsc": "PASS",
+        "SaveAndQuit": "PASS",
+        "Lifecycle": "STOPPED_OFFLINE",
+        "OfflineReads": [
+          {
+            "domain": "world",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "player",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "chunk",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          }
+        ],
+        "NormalRelease": "PASS",
+        "CleanShutdown": "PASS",
+        "ProcessExitCode": 0,
+        "RecordingId": "609b2942-01f4-45b7-841b-9e6003cd7f52",
+        "RecordingStatus": "completed",
+        "StopReason": "transport_close",
+        "WrittenFrames": 6,
+        "Gaps": 2,
+        "WriterErrors": 0,
+        "Manifest": "build/control-round1-live/26.1.2-neoforge-20260905-cold-fixed/minecraft-protocol/artifacts/609b2942-01f4-45b7-841b-9e6003cd7f52/manifest.json",
+        "PersistentWriteInvocations": 0
+      },
+      "shutdownArtifactHashes": {
+        "manifest.json": "c8395bc5b6dd7f07d77687158657498d57717954c96d96b223c74682206abcda",
+        "bundle.zip": "14f860f7529508a2af1d5cd44d15abf9c7eb132fd65536f3aba5d948b341eebf",
+        "checksums.json": "9981e146b0fc0b6e5a6102caf71faff6a7589c5a65deedf4bd46c4dd42841a79",
+        "frame-index.json": "e9858681b5f2c34b9d4f394ed95d13c0739bb7b98c14a54e055dbb366b51f0c6",
+        "derivatives/contact-sheet.png": "2c297c9a89ef6e3dd82cbc7c728104a8e777e050a3c0ff644f607709c20483cd"
+      },
+      "localReferences": {
+        "human": "build/control-round1-live/26.1.2-neoforge-20260905-final/control-r1-human.json",
+        "concurrency": "build/control-round1-live/26.1.2-neoforge-20260905-cold-fixed/control-r1-concurrency.json",
+        "reconsent": "build/control-round1-live/26.1.2-neoforge-20260905-final/control-r1-reconsent.json",
+        "automatic": "build/control-round1-live/26.1.2-neoforge-20260905-cold-fixed/control-r1-auto.json",
+        "shutdown": "build/control-round1-live/26.1.2-neoforge-20260905-cold-fixed/control-r1-exit.json"
+      }
+    },
+    {
+      "target": "26.2-neoforge",
+      "read": "PASS",
+      "operate": "PASS",
+      "takeover": "PASS",
+      "leaseLoss": "PASS",
+      "manualRevoke": "PASS",
+      "reacquire": "PASS",
+      "concurrency": "PASS",
+      "shutdown": "PASS",
+      "firstUseContactSheetShutdown": "PASS",
+      "runtime": "loader_development_runtime",
+      "backend": "opengl",
+      "artifact": "versions/26.2-neoforge/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "artifactSha256": "847ca0b4393883b2f75453b1460b0f045743ff8e04c548aee1e544d62df5581d",
+      "automaticProof": {
+        "Result": "PASS",
+        "Target": "26.2-neoforge",
+        "Read": "PASS",
+        "Operate": "PASS",
+        "Takeover": "PASS",
+        "Fixture": "PASS",
+        "TypedDebug": "PASS",
+        "ScopeSeparation": "PASS",
+        "StaleModeRevision": "PASS",
+        "AgentEsc": "PASS",
+        "PipelineTransitionCancellation": "PASS",
+        "PostTransitionInput": 0,
+        "RevisionPreconditionRetries": 0,
+        "LeaseExpiry": "PASS",
+        "ManualEsc": "SEPARATE_HUMAN_GATE",
+        "PersistentWriteInvocations": 0
+      },
+      "concurrencyProof": {
+        "Result": "PASS",
+        "Target": "26.2-neoforge",
+        "ReadDeepObserve": "PASS",
+        "ReadCapture": "PASS",
+        "ReadEvent": "PASS",
+        "ReadRecording": "PASS",
+        "ReadArtifact": "PASS",
+        "ReadInputEffects": 0,
+        "RecordingId": "73c52020-a54a-4082-bd06-c7b63c822b99",
+        "ModeCASRace": "PASS",
+        "DebugVsTakeover": "CONTROLLED_REJECTION",
+        "DebugBatchCancellation": "PASS",
+        "CancelVsModeChange": "PASS",
+        "PostTransitionInput": 0,
+        "PersistentWriteInvocations": 0
+      },
+      "humanProof": {
+        "result": "PASS",
+        "nativeEventSource": "USER_PHYSICAL_ESC_ONLY",
+        "mode": "READ",
+        "reconsentRequired": true,
+        "operationId": "5e2b4be8-0503-43a6-ac83-142001cab0ba",
+        "operationState": "cancelled",
+        "heldKeys": 0,
+        "heldButtons": 0,
+        "postRevokeInput": 0,
+        "readStillAvailable": true,
+        "elapsedSeconds": 34.6819586
+      },
+      "reconsentProof": {
+        "result": "PASS",
+        "protocol": "official_MCP_Companion_to_Runtime",
+        "readAfterManual": "PASS",
+        "operateWithoutLease": "PASS",
+        "latchAcrossOperate": "PASS",
+        "explicitReacquire": "PASS",
+        "finalMode": "READ",
+        "reconsentRequired": false,
+        "fakeConsentWireField": false,
+        "checks": [
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "OPERATE"
+          }
+        ],
+        "persistentWriteInvocations": 0
+      },
+      "shutdownProof": {
+        "Result": "PASS",
+        "Target": "26.2-neoforge",
+        "AgentEsc": "PASS",
+        "SaveAndQuit": "PASS",
+        "Lifecycle": "STOPPED_OFFLINE",
+        "OfflineReads": [
+          {
+            "domain": "world",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "player",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "chunk",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          }
+        ],
+        "NormalRelease": "PASS",
+        "CleanShutdown": "PASS",
+        "ProcessExitCode": 0,
+        "RecordingId": "3a346745-1614-4d47-8b7c-45b4bf49f85c",
+        "RecordingStatus": "completed",
+        "StopReason": "transport_close",
+        "WrittenFrames": 6,
+        "Gaps": 2,
+        "WriterErrors": 0,
+        "Manifest": "build/control-round1-live/26.2-neoforge-20260905-cold-fixed/minecraft-protocol/artifacts/3a346745-1614-4d47-8b7c-45b4bf49f85c/manifest.json",
+        "PersistentWriteInvocations": 0
+      },
+      "shutdownArtifactHashes": {
+        "manifest.json": "e042a42d71a70226a2f4c9aed026e0183cc7f74b88662e930fd24fa630956228",
+        "bundle.zip": "690a5541052e12c18ecbbabe81994d0557ce72cb5f7cc80a37de4f16f292c0c7",
+        "checksums.json": "7e6371d159655743a918027344280dd745f7cfdb10b32f3fa853b79a90707c21",
+        "frame-index.json": "c5583e6bd23936aa017b32a8df7d0a3c0c9722d6b4fbbabd84f20bf9bec40abf",
+        "derivatives/contact-sheet.png": "eea5b2a9959f60ffc2d0293a7c1ea8fcc611489f2afbdb9ee3366ec7bebeccf4"
+      },
+      "localReferences": {
+        "human": "build/control-round1-live/26.2-neoforge-20260905-safe/control-r1-human-active-retest.json",
+        "concurrency": "build/control-round1-live/26.2-neoforge-20260905-safe/control-r1-concurrency.json",
+        "reconsent": "build/control-round1-live/26.2-neoforge-20260905-safe/control-r1-reconsent.json",
+        "automatic": "build/control-round1-live/26.2-neoforge-20260905-safe/control-r1-auto.json",
+        "shutdown": "build/control-round1-live/26.2-neoforge-20260905-cold-fixed/cold-close.json"
+      }
+    },
+    {
+      "target": "26.2-fabric",
+      "read": "PASS",
+      "operate": "PASS",
+      "takeover": "PASS",
+      "leaseLoss": "PASS",
+      "manualRevoke": "PASS",
+      "reacquire": "PASS",
+      "concurrency": "PASS",
+      "shutdown": "PASS",
+      "firstUseContactSheetShutdown": "PASS",
+      "runtime": "production_final_jar",
+      "backend": "opengl",
+      "artifact": "versions/26.2-fabric/build/libs/minecraft_protocol_probe-0.0.1-phase8.jar",
+      "artifactSha256": "146e5b9ac7735f38f2e25258588668cfdece1f0e0fbe5b67fad62bc88a2ef45e",
+      "automaticProof": {
+        "Result": "PASS",
+        "Target": "26.2-fabric",
+        "Read": "PASS",
+        "Operate": "PASS",
+        "Takeover": "PASS",
+        "Fixture": "PASS",
+        "TypedDebug": "PASS",
+        "ScopeSeparation": "PASS",
+        "StaleModeRevision": "PASS",
+        "AgentEsc": "PASS",
+        "PipelineTransitionCancellation": "PASS",
+        "PostTransitionInput": 0,
+        "RevisionPreconditionRetries": 0,
+        "CleanupAlreadySatisfiedByLiveState": 0,
+        "LeaseExpiry": "PASS",
+        "ManualEsc": "SEPARATE_HUMAN_GATE",
+        "PersistentWriteInvocations": 0
+      },
+      "concurrencyProof": {
+        "Result": "PASS",
+        "Target": "26.2-fabric",
+        "ReadDeepObserve": "PASS",
+        "ReadCapture": "PASS",
+        "ReadEvent": "PASS",
+        "ReadRecording": "PASS",
+        "ReadArtifact": "PASS",
+        "ReadInputEffects": 0,
+        "RecordingId": "a3a6b2c5-25a2-45f5-bb6a-36341b2a1a37",
+        "ModeCASRace": "PASS",
+        "DebugVsTakeover": "CONTROLLED_REJECTION",
+        "DebugBatchCancellation": "PASS",
+        "CancelVsModeChange": "PASS",
+        "PostTransitionInput": 0,
+        "PersistentWriteInvocations": 0
+      },
+      "humanProof": {
+        "result": "PASS",
+        "nativeEventSource": "USER_PHYSICAL_ESC_ONLY",
+        "mode": "READ",
+        "reconsentRequired": true,
+        "operationId": "7fb34036-ee0f-4135-9795-f6e7c21a9aeb",
+        "operationState": "cancelled",
+        "heldKeys": 0,
+        "heldButtons": 0,
+        "postRevokeInput": 0,
+        "readStillAvailable": true,
+        "elapsedSeconds": 45.5148855
+      },
+      "reconsentProof": {
+        "result": "PASS",
+        "protocol": "official_MCP_Companion_to_Runtime",
+        "readAfterManual": "PASS",
+        "operateWithoutLease": "PASS",
+        "latchAcrossOperate": "PASS",
+        "explicitReacquire": "PASS",
+        "finalMode": "READ",
+        "reconsentRequired": false,
+        "fakeConsentWireField": false,
+        "checks": [
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "READ"
+          },
+          {
+            "check": "persistent_structured_manual_rejection",
+            "code": "USER_MANUALLY_ENDED_CONTROL",
+            "reconsentRequired": true,
+            "mode": "OPERATE"
+          }
+        ],
+        "persistentWriteInvocations": 0
+      },
+      "shutdownProof": {
+        "Result": "PASS",
+        "Target": "26.2-fabric",
+        "AgentEsc": "PASS",
+        "SaveAndQuit": "PASS",
+        "Lifecycle": "STOPPED_OFFLINE",
+        "OfflineReads": [
+          {
+            "domain": "world",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "player",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          },
+          {
+            "domain": "chunk",
+            "readStatus": "ok",
+            "dataSource": "PERSISTED",
+            "consistency": "last_saved_state",
+            "lifecycleState": "offline_file_snapshot"
+          }
+        ],
+        "NormalRelease": "PASS",
+        "CleanShutdown": "PASS",
+        "ProcessExitCode": 0,
+        "RecordingId": "225c32e7-70d7-42b7-894f-f6e262408e7f",
+        "RecordingStatus": "completed",
+        "StopReason": "transport_close",
+        "WrittenFrames": 6,
+        "Gaps": 2,
+        "WriterErrors": 0,
+        "Manifest": "build/core-demo-correctness-live/fabric-20260905165435/minecraft-protocol/artifacts/225c32e7-70d7-42b7-894f-f6e262408e7f/manifest.json",
+        "PersistentWriteInvocations": 0
+      },
+      "shutdownArtifactHashes": {
+        "manifest.json": "a9e0e9bea358dbe411e1d463d9f751e4a0593b24921e8c3dc5b5585bb3a3e870",
+        "bundle.zip": "14fadb2c6576da46353f9632b81f21d754e5b816c2e7636279557e142856ff91",
+        "checksums.json": "e8051868d8c5e303843f5a281bd7b79dcf3251880a90dd176c7b4afc123ad0da",
+        "frame-index.json": "d472d11385118eac8b3c08575db1c4eaaf0bda8fe92e3c37a014f2529f382dba",
+        "derivatives/contact-sheet.png": "26af2682eae2a642619dfcc70bf34a815e559622f15374067d7e4229231a0fc5"
+      },
+      "localReferences": {
+        "human": "build/core-demo-correctness-live/fabric-20260905144713/control-r1-human.json",
+        "concurrency": "build/core-demo-correctness-live/fabric-20260905165435/control-r1-concurrency.json",
+        "reconsent": "build/core-demo-correctness-live/fabric-20260905144713/control-r1-reconsent.json",
+        "automatic": "build/core-demo-correctness-live/fabric-20260905165435/control-r1-auto.json",
+        "shutdown": "build/core-demo-correctness-live/fabric-20260905165435/control-r1-exit.json"
+      }
+    }
+  ],
+  "issues": [
+    {
+      "id": "cold_recording_loader_teardown",
+      "status": "FIXED_AND_RETESTED_ON_FIVE_TARGETS",
+      "finding": "NeoForge 26.2 first Contact Sheet finalization after Loader shutdown failed to load RecordingEngine$ImageDimensions. Warmed sessions concealed the defect.",
+      "failureProof": "build/control-round1-live/26.2-neoforge-20260905-cold-close/minecraft-protocol/artifacts/9eb54feb-a11b-4747-b0be-6c0308285913/finalization-error.json",
+      "fix": "Minecraft.close HEAD drains Runtime before Loader/window teardown; idempotent JVM fallback remains."
+    },
+    {
+      "id": "forge_save_quit_timeout",
+      "status": "HISTORICAL_SINGLE_NOT_REPRODUCED",
+      "scope": "Three Pause open/close cycles and one Save & Quit on current final JAR; no endless retries.",
+      "proof": "build/core-demo-correctness-live/forge-20260905164343/control-r1-pause-quit.json"
+    },
+    {
+      "id": "contact_sheet_failure_visibility",
+      "status": "IMPROVED_AND_DETERMINISTICALLY_TESTED",
+      "behavior": "Budget failures stay failed. Typed code/stage/message identify the failing derivative/budget; retained source files are not asserted intact and artifactReady remains false."
+    },
+    {
+      "id": "harness_missing_attribute_baseline",
+      "status": "CORRECTED_WITH_CLEANUP",
+      "finding": "Earlier Fabric harness assumed missing max_health meant zero; the diagnostic test-world change was explicitly restored to maxHealth=20 and health=20. The revised harness requires available authoritative state, never invents zero, and uses a bounded health change."
+    },
+    {
+      "id": "peaceful_regeneration_cleanup",
+      "status": "HARNESS_CORRECTED",
+      "finding": "Peaceful regeneration can restore original health before cleanup. The harness accepts cleanup only after a fresh authoritative value check; positive mutation and rejection checks remain required."
+    },
+    {
+      "id": "manual_acceptance_window",
+      "status": "COMPLETED_WITH_FRESH_PHYSICAL_EVENTS",
+      "finding": "Expired/late observation windows remain PARTIAL raw files and are not counted. Fresh observer-before-prompt runs proved active cancellation. NeoForge 1.21.1 was moved to a GUI-created creative/peaceful world and started only after user readiness."
+    }
+  ],
+  "scopeBoundaries": {
+    "modesArePermissions": false,
+    "fixtureEvidence": "FIXTURE",
+    "debugEvidence": "DEBUG_PRIVILEGED / diagnostic",
+    "playerEvidence": "PLAYTEST only on normal GAME_ROUTED path",
+    "manualReconsent": "TAKEOVER only; explicit OPERATE does not clear latch; conversation consent is Agent policy, not a wire boolean",
+    "peer": "Existing peer-v0 timeout is an uncertain remote outcome, not transaction rollback or a new remote cancellation guarantee. No Dedicated Peer transport changes or new remote-live attestation were made.",
+    "historicalDrivers": "Phase-specific historical live matrices are not relabelled as current evidence. Round 1 is the current intent/concurrency gate.",
+    "round2": "NOT_STARTED",
+    "virtualPointer": "NOT_IMPLEMENTED",
+    "pixelChrome": "NOT_IMPLEMENTED",
+    "persistentWrite": "NOT_IMPLEMENTED",
+    "wireProtocolV1": "NOT_FROZEN"
+  },
+  "testProcessCleanup": {
+    "ownMinecraftClients": 0,
+    "ownMcpConnectors": 0,
+    "verifiedAtFinalGate": true
+  }
+}

@@ -6,6 +6,7 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot '../control/ModeHelpers.ps1')
 $base=$BaseUri.TrimEnd('/')
 $token=(Get-Content -LiteralPath $TokenFile -Raw).Trim()
 $auth=@{Authorization="Bearer $token"}
@@ -63,10 +64,11 @@ foreach($domain in @('world','player','chunk')){
         $storage[$domain]=$errorBody.error
     }
 }
-Acquire
-Json POST '/v0/diagnostics/ui/test-screen' $null $control|Out-Null
+$currentControl=Json GET '/v0/control/status'
+Set-AgentMode $base $auth OPERATE $currentControl.leaseId|Out-Null
+Json POST '/v0/diagnostics/ui/test-screen'|Out-Null
 Json POST '/v0/wait/until' @{condition=@{type='screen';classContains='AutomationProbeScreen'};timeoutMs=5000}|Out-Null
-Release
+Set-AgentMode $base $auth READ|Out-Null
 $previous=ImageSamples (Capture 'reference-0.png')
 $reference=$null
 for($attempt=1;$attempt-le10;$attempt++){

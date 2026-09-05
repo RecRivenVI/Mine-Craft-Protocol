@@ -1,7 +1,7 @@
 # Agent Control Model — Research Decision
 
 > Date: 2026-09-05
-> Status: PROPOSAL — NOT IMPLEMENTED / NOT A FROZEN PROTOCOL
+> Status: Round 1 PASS — five-Target intent, human revoke, reconsent and lifecycle acceptance. Rounds 2–4 PROPOSAL / NOT IMPLEMENTED. Wire Protocol v1 NOT FROZEN.
 > Scope: Core input/presence UX only. No Persistent Write, new Phase, or E1/E2/E3 work.
 > Prior UX closeout: PARTIAL; see `Artifacts/core/core-ux-closeout-20260905.json`.
 
@@ -27,10 +27,12 @@ can be OPERATE only as a diagnostic mutation, never as a surrogate player click.
 - Keep the existing single input Control Lease. Successful acquire/reacquire is
   the only entry to TAKEOVER; explicit release, TTL, bound WS disconnect and close
   remain its exit mechanisms. No second Lease system.
-- Work intention belongs to an authenticated logical client session, not an HTTP
-  connection ID. HTTP pooling/reconnection is not an intent transition. Current
-  token-lifetime principal identity is not a multi-user account system.
-- The window displays actual activity: TAKEOVER owner first, then active OPERATE,
+- Round 1 work intention belongs to the authenticated Runtime control session,
+  shared across its HTTP connections. A random controlSessionId plus monotonic
+  mode generation guards explicit transitions; stale session/generation is rejected.
+  HTTP pooling/reconnection is not an intent transition. Token-lifetime principal
+  identity is not multi-user tenancy; this is not a per-MCP-client mode system.
+- Future Round 4 presentation should display actual activity: TAKEOVER owner first, then active OPERATE,
   then active READ. Another reader cannot overwrite a takeover's visible state.
   Merely possessing a token should not leave a permanent “reading” banner.
 - Keep Presence Mode, Human Override Latch, Lease, Evidence Authority, Debug Arm
@@ -46,18 +48,52 @@ can be OPERATE only as a diagnostic mutation, never as a surrogate player click.
   wait for arbitrary in-process Mod code forever or roll back already committed
   gameplay/Debug effects as if the operation were a transaction.
 
-The existing formal Phase 9C Debug path already does **not** require the input
-Lease. Existing Fixture routes and `minecraft_fixture` still do. Moving Fixture
-under OPERATE requires a deliberate authorization/concurrency contract change,
-not removing a check and calling it a rename. Existing value preconditions and
-PLAYTEST/FIXTURE/DEBUG_PRIVILEGED classification remain authoritative.
+Round 1 places Fixture and typed Debug mutation under explicit OPERATE without
+an input Lease. Scopes, Debug Arm, owner-thread resource/value preconditions and
+PLAYTEST/FIXTURE/DEBUG_PRIVILEGED classification remain authoritative. A bounded
+OPERATE admission guards queued/active work; conflicting intent changes fail
+MODE_OPERATION_IN_PROGRESS until that work is finished or cancellation drains it.
+An intent change is not rollback of a completed diagnostic mutation.
 
-The Companion currently clears its cached Debug Arm ID on control release,
-although the formal Runtime Arm is independent. Future mode handling must
-distinguish forgetting a cached handle from actually disarming the Runtime;
-that behavior is reviewed here, not changed by this research.
+Companion control release no longer clears the independent cached Debug Arm.
+Manual Esc falls back to READ and leaves the TAKEOVER-only reconsent latch set;
+explicit OPERATE is permitted with its own authorization and does not clear the
+latch. Reacquire is the only latch-clearing path. Conversation consent remains
+Agent policy; the Runtime cannot verify chat or accept a fake consent field.
 
-## Human override and host cursor
+Round 1 classification is indexed in `conformance/control/control-mode-surface.json`:
+74 formal HTTP operations, 24 MCP tools with typed action discriminators, retained
+diagnostics and WS commands. Native GET/POST `/v0/control/mode` and MCP
+`minecraft_control` status/set_mode expose stable state rather than error-string
+inference. Only existing Lease acquire enters TAKEOVER. Ordinary HTTP disconnect
+is not a new logical session; Lease-bound WS disconnect, TTL and Runtime close end
+TAKEOVER. Mode transitions emit bounded audit/event metadata. Existing response
+`mode=FIXTURE/DEBUG_PRIVILEGED` fields remain evidence authority, not work intention.
+
+Current acceptance: `conformance/control/Invoke-ControlRound1Gate.ps1` and
+`Artifacts/core/agent-control-round1-20260905.json`. This is working-tree candidate
+evidence, not another clean-remote Phase 8 release attestation. Historical Phase
+9A–9C drivers predate explicit intent: diagnostic bodies need OPERATE and player
+sequences need TAKEOVER. In particular, the historical automated world-exit-during-
+Debug-batch scenario cannot acquire TAKEOVER while that batch is still admitted;
+Round 1 tests controlled rejection, batch cancellation/drain, then intent change.
+The historical phase-wide live matrices were not rerun or relabelled as new evidence.
+
+The fence is Runtime-local admission, not a distributed transaction. Existing
+peer-v0 requests already sent to a Dedicated Server retain their acknowledgement /
+timeout semantics: timeout does not prove that a remote mutation did not execute.
+Reobserve authoritative state before retrying. No new remote cancellation or
+multi-account isolation guarantee is claimed by the intention model.
+
+Round 1 closeout also fixed first-use Recording finalization after Loader teardown:
+Minecraft.close HEAD now drains the Runtime before resources/class loaders close;
+the JVM hook is idempotent fallback. Five Targets passed cold Contact Sheet close.
+Finalization errors retain a bounded typed stage/message and explicit non-ready
+Bundle status; retained source tracks are not silently certified intact. The
+historical Forge save-click timeout was not reproduced in three Pause cycles and
+one Save & Quit; it remains historical, not a reason to repeat tests indefinitely.
+
+## Human override and host cursor — Round 2 remains a proposal
 
 Recommend exclusive TAKEOVER: native keyboard, character/IME input, mouse
 buttons, scroll and mouse movement do not affect Minecraft, except physical Esc
@@ -87,7 +123,7 @@ A Mod polling GLFW directly, replacing callbacks or executing native code can
 bypass cooperative hooks. Do not advertise protection against arbitrary local
 code. Audit suppression counts and mode transitions, not private human key text.
 
-## Virtual pointer: genuine routed input, separate rendering
+## Virtual pointer: genuine routed input, separate rendering — Round 3 not implemented
 
 Use an internal absolute pointer in GUI and a logical relative/camera mode in
 gameplay. Both are owned by the same input Lease/gesture generation, neither by
@@ -130,7 +166,7 @@ concerns the OS cursor; it is not an Agent logical-pointer contract. These are
 reasons to test ingress provenance and the two coordinate domains independently.
 This is a design inference, not proof that the proposed hooks already work.
 
-## Operator chrome
+## Operator chrome — Round 4 not implemented
 
 Recommend top-center Minecraft pixel typography, square/pixel-stepped borders,
 Minecraft-scale spacing and a blue status palette. Reuse the proven edge glow,
@@ -161,7 +197,8 @@ target resolution, normal Screen/Menu/packet routing, Debug Arm/resource/value
 checks, evidence classification, bounded capture queue, final Operator render
 boundary, Fade and cached original title/icon restoration.
 
-Change only when authorized: Fixture's Lease coupling, per-gesture serialization,
+Round 1 changes Fixture's Lease coupling and mode-generation admission only.
+Change in later authorized rounds: per-gesture serialization,
 input-origin ingress, native suppression, current human cursor-capture grant,
 GUI/world logical pointer routing, and chrome layout/copy. Keep Target hooks
 explicit; do not promote new shared Loader abstractions before real evidence.

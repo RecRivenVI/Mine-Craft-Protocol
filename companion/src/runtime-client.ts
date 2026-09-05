@@ -10,6 +10,7 @@ export class RuntimeError extends Error {
   readonly controlState?: 'MANUALLY_REVOKED';
   readonly reconsentRequired?: boolean;
   readonly manualRevocationReason?: string;
+  readonly control?: JsonObject;
 
   constructor(code: string, status: number, message: string, requestId?: string, details?: JsonObject) {
     super(message);
@@ -17,6 +18,12 @@ export class RuntimeError extends Error {
     this.code = code;
     this.status = status;
     if (requestId !== undefined) this.requestId = requestId;
+    const control = details?.control;
+    if (control && typeof control === 'object' && !Array.isArray(control)
+        && ['READ', 'OPERATE', 'TAKEOVER'].includes(String(control.mode))
+        && typeof control.reconsentRequired === 'boolean') {
+      this.control = control;
+    }
     if (code === 'USER_MANUALLY_ENDED_CONTROL') {
       this.controlState = 'MANUALLY_REVOKED';
       this.reconsentRequired = true;

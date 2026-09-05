@@ -6,7 +6,7 @@ function Assert-True([bool]$Condition,[string]$Message) {
 }
 $schema=Get-Content (
     Join-Path $root 'protocol-schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Assert-True ($schema.info.version -eq '0.0.1-phase9c') 'OpenAPI version after compatible Phase 9C evolution'
+Assert-True ($schema.info.version -eq '0.0.1-control-r1') 'OpenAPI version after explicit Control Round 1 evolution'
 foreach($name in @('ResourceRevisionRef','ResourceVersionToken','ResourceVersionPrecondition')) {
     Assert-True ($null-ne$schema.components.schemas.$name) "schema $name"
 }

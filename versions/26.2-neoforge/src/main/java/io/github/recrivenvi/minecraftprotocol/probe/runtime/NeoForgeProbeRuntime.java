@@ -74,6 +74,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     private final AtomicBoolean initialized = new AtomicBoolean();
     private final AtomicBoolean shutdownRegistered = new AtomicBoolean();
+    private final AtomicBoolean shutdownStarted = new AtomicBoolean();
     private final AtomicBoolean captureVerified = new AtomicBoolean();
     private final AtomicLong inputDispatchSequence = new AtomicLong();
     private final AtomicLong screenSlotClickSequence = new AtomicLong();
@@ -100,7 +101,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private volatile String lastTraceDetail = "";
     private volatile String lastServerThread = "";
     private volatile String lastRenderFact = "";
-    private volatile AgentControlSession.Snapshot controlPresence = new AgentControlSession().snapshot();
+    private volatile AgentControlSession controlSession = new AgentControlSession();
+    private volatile AgentControlSession.Snapshot controlPresence = this.controlSession.snapshot();
     private volatile boolean humanCursorCaptureGranted;
     private final AtomicLong nativeRevocations = new AtomicLong();
     private final AtomicLong nativeCaptureGrants = new AtomicLong();
@@ -165,6 +167,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         if (INSTANCE.controlPresence.agentControlled()) INSTANCE.applyAgentIcon(window);
         else GLFW.glfwSetWindowIcon(window, icons);
     }
+    /** Drain while Minecraft resources and the Loader class loader still exist. */
+    public static void beforeClientClose() {
+        beforeWindowClose();
+        INSTANCE.shutdown();
+    }
     public static void beforeWindowClose() {
         if (!INSTANCE.windowClosing.compareAndSet(false, true)) return;
         Minecraft client = INSTANCE.minecraft;
@@ -177,6 +184,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public static void beginContentFrame() { INSTANCE.contentFrameReady = false; }
     public static void contentRendered() { INSTANCE.contentFrameReady = true; }
     public static void beforePresent() { INSTANCE.presentOperatorChrome(); }
+
+    @Override
+    public void attachControlSession(AgentControlSession session) {
+        this.controlSession = session;
+        this.controlPresence = session.snapshot();
+    }
 
     @Override
     public void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {
@@ -375,7 +388,16 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         AgentControlSession.Snapshot snapshot = this.controlPresence;
         json.addProperty("controlState", snapshot.state().name());
         json.addProperty("reconsentRequired", snapshot.reconsentRequired());
+        json.addProperty("reconsentScope", "TAKEOVER_ONLY");
         json.addProperty("controlTransitionSequence", snapshot.transitionSequence());
+        json.addProperty("mode", snapshot.mode().name());
+        json.addProperty("takeoverActive", snapshot.agentControlled());
+        json.addProperty("modeTransitionReason", snapshot.reason());
+        JsonObject version = new JsonObject();
+        version.addProperty("controlSessionId", snapshot.controlSessionId());
+        version.addProperty("generation", snapshot.transitionSequence());
+        json.add("modeVersion", version);
+        json.addProperty("modeContract", "explicit_intent_separate_authorization_v1");
         json.addProperty("controlChromeRenderedFrames", this.controlChromeRenderSequence.get());
         json.addProperty("controlChromeAlpha", this.operatorChrome.alpha());
         json.addProperty("operatorChromeLayer", "after_content_capture_before_present");
@@ -472,6 +494,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private void shutdown() {
+        if (!this.shutdownStarted.compareAndSet(false, true)) return;
         this.evidenceCaptures.close();
         this.phase9a.observeStorageShutdown();
         ProbeTransport current = this.transport;
@@ -586,6 +609,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             boolean keyboard = client.keyboardHandler instanceof KeyboardHandlerInvoker;
             boolean screen = this.screenRevision > 0;
             JsonArray hooks = new JsonArray();
+            hooks.add(hook("runtime_pre_loader_shutdown", "MIXIN_INJECT", "Minecraft.close", "HEAD",
+                    "bounded_runtime_drain", "unverified_until_shutdown", "runtime.lifecycle"));
             hooks.add(hook("client_tick", "MIXIN_INJECT", "Minecraft.tick", "TAIL",
                     "read_observation", status(tick), "system.session"));
             hooks.add(hook("mouse_input", "MIXIN_INVOKER", "MouseHandler", "PRIVATE_INPUT_CALLBACK",
@@ -1077,15 +1102,15 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
-    public CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z) {
+    public CompletableFuture<JsonObject> fixtureTeleport(double x, double y, double z, AgentControlSession.OperateWork work) {
         if (this.shouldUsePeer()) {
             JsonObject params = new JsonObject();
             params.addProperty("x", x);
             params.addProperty("y", y);
             params.addProperty("z", z);
-            return this.peerRequest("fixture.player.teleport", params);
+            return this.operatingPeerRequest(work, "fixture.player.teleport", params);
         }
-        return this.onIntegratedServer((server, player) -> {
+        return this.onOperatingServer(work, (server, player) -> {
             double beforeX = player.getX();
             double beforeY = player.getY();
             double beforeZ = player.getZ();
@@ -1103,13 +1128,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
-    public CompletableFuture<JsonObject> debugSetHealth(float health) {
+    public CompletableFuture<JsonObject> debugSetHealth(float health, AgentControlSession.OperateWork work) {
         if (this.shouldUsePeer()) {
             JsonObject params = new JsonObject();
             params.addProperty("health", health);
-            return this.peerRequest("debug.player.health", params);
+            return this.operatingPeerRequest(work, "debug.player.health", params);
         }
-        return this.onIntegratedServer((server, player) -> {
+        return this.onOperatingServer(work, (server, player) -> {
             float before = player.getHealth();
             float applied = Mth.clamp(health, 0.0F, player.getMaxHealth());
             player.setHealth(applied);
@@ -1124,7 +1149,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> debugSetBlock(
-            int x, int y, int z, String blockId, String expectedBlockId) {
+            int x, int y, int z, String blockId, String expectedBlockId, AgentControlSession.OperateWork work) {
         if (this.shouldUsePeer()) {
             JsonObject params = new JsonObject();
             params.addProperty("x", x);
@@ -1132,9 +1157,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             params.addProperty("z", z);
             params.addProperty("blockId", blockId);
             if (expectedBlockId != null) params.addProperty("expectedBlockId", expectedBlockId);
-            return this.peerRequest("debug.world.block", params);
+            return this.operatingPeerRequest(work, "debug.world.block", params);
         }
-        return this.onIntegratedServer((server, player) -> {
+        return this.onOperatingServer(work, (server, player) -> {
             ServerLevel level = player.level();
             BlockPos position = new BlockPos(x, y, z);
             if (!level.hasChunkAt(position)) {
@@ -1188,19 +1213,19 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
-    public CompletableFuture<JsonObject> phase9aDebugAttribute(String attributeId, double value) {
-        return this.onIntegratedServer((server, player) -> this.phase9a.debugAttribute(player, attributeId, value));
+    public CompletableFuture<JsonObject> phase9aDebugAttribute(String attributeId, double value, AgentControlSession.OperateWork work) {
+        return this.onOperatingServer(work, (server, player) -> this.phase9a.debugAttribute(player, attributeId, value));
     }
 
     @Override
-    public CompletableFuture<JsonObject> phase9aDebugEntityState(String entityUuid, String state, boolean value) {
-        return this.onIntegratedServer((server, player) ->
+    public CompletableFuture<JsonObject> phase9aDebugEntityState(String entityUuid, String state, boolean value, AgentControlSession.OperateWork work) {
+        return this.onOperatingServer(work, (server, player) ->
                 this.phase9a.debugEntityState(player, entityUuid, state, value));
     }
 
     @Override
-    public CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request) {
-        return this.onIntegratedServer((server, player) -> this.phase9a.debugScenario(player, request));
+    public CompletableFuture<JsonObject> phase9aDebugScenario(JsonObject request, AgentControlSession.OperateWork work) {
+        return this.onOperatingServer(work, (server, player) -> this.phase9a.debugScenario(player, request));
     }
 
     @Override
@@ -1426,8 +1451,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
-    public CompletableFuture<JsonObject> openAutomationProbeScreen() {
-        return this.onClient(() -> {
+    public CompletableFuture<JsonObject> openAutomationProbeScreen(AgentControlSession.OperateWork work) {
+        return this.onOperatingClient(work, () -> {
             Minecraft client = requireClient();
             client.setScreenAndShow(new AutomationProbeScreen());
             Screen screen = this.refreshScreen(client);
@@ -1502,6 +1527,32 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         });
     }
 
+    private <T> CompletableFuture<T> onOperatingClient(
+            AgentControlSession.OperateWork work, Supplier<T> supplier) {
+        return this.onClient(() -> work.call(supplier));
+    }
+
+    private <T> CompletableFuture<T> onOperatingServer(
+            AgentControlSession.OperateWork work, BiFunction<MinecraftServer, ServerPlayer, T> operation) {
+        return this.onIntegratedServer((server, player) -> work.call(() -> operation.apply(server, player)));
+    }
+
+    private CompletableFuture<JsonObject> operatingPeerRequest(
+            AgentControlSession.OperateWork work, String operation, JsonObject params) {
+        AgentControlSession.Guard guard = work.enter();
+        CompletableFuture<JsonObject> source;
+        try { source = this.peerRequest(operation, params); }
+        catch (Throwable error) { guard.close(); throw error; }
+        // Retain admission until native completion even if the HTTP caller cancels.
+        source.whenComplete((value, error) -> guard.close());
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        source.whenComplete((value, error) -> {
+            if (error == null) response.complete(value);
+            else response.completeExceptionally(error);
+        });
+        return response;
+    }
+
     private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier) {
         AgentControlSession.Snapshot accepted = this.controlPresence;
         return this.onClient(() -> {
@@ -1512,7 +1563,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                         ? "USER_MANUALLY_ENDED_CONTROL" : "CONTROL_LEASE_REQUIRED", 409,
                         current.manuallyRevoked() ? "用户手动结束控制" : "Control session ended before dispatch");
             }
-            return supplier.get();
+            return this.controlSession.withTakeover(accepted, supplier);
         });
     }
 

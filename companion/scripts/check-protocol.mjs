@@ -8,6 +8,7 @@ const specification = JSON.parse(await readFile(specificationPath, 'utf8'));
 
 const requiredPaths = [
   '/v0/session',
+  '/v0/control/mode',
   '/v0/capabilities',
   '/v0/ui/tree',
   '/v0/ui/action',
@@ -25,6 +26,7 @@ const requiredPaths = [
 ];
 const requiredSchemas = [
   'CapabilitiesResponse',
+  'AgentMode', 'AgentModeVersion', 'ControlModeRequest', 'ControlModeResponse',
   'UiTreeResponse',
   'PipelineRequest',
   'StateFrameRequest',
@@ -39,8 +41,8 @@ const requiredSchemas = [
   ,'DebugBatchRequest'
 ];
 
-if (specification.info?.version !== '0.0.1-phase9c') {
-  throw new Error(`Companion requires OpenAPI 0.0.1-phase9c, received ${specification.info?.version ?? 'missing'}`);
+if (specification.info?.version !== '0.0.1-control-r1') {
+  throw new Error(`Companion requires OpenAPI 0.0.1-control-r1, received ${specification.info?.version ?? 'missing'}`);
 }
 for (const path of requiredPaths) {
   if (!specification.paths?.[path]) throw new Error(`Companion-required protocol path is missing: ${path}`);
@@ -51,4 +53,12 @@ for (const schema of requiredSchemas) {
 const serialized = JSON.stringify(specification);
 if (serialized.includes('expectedWorldRevision')) {
   throw new Error('Companion protocol must not restore global expectedWorldRevision');
+}
+
+const policies = ['READ_COMPATIBLE', 'OPERATE_REQUIRED', 'TAKEOVER_REQUIRED', 'MODE_INDEPENDENT'];
+for (const [path, methods] of Object.entries(specification.paths)) {
+  for (const [method, operation] of Object.entries(methods)) {
+    if (!operation.operationId) continue;
+    if (!policies.includes(operation['x-agent-mode'])) throw new Error(`Unclassified native operation ${method} ${path}`);
+  }
 }

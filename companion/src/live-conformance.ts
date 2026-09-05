@@ -45,10 +45,14 @@ async function main(): Promise<void> {
     assert.equal(hooks.policy, 'capability_fidelity_first');
     assert.equal(hooks.overall, 'ready');
 
-    await call('minecraft_control', { action: 'acquire', ttlMs: 60000 });
-    leaseAcquired = true;
+    const initialMode = data(await call('minecraft_control', { action: 'status' }));
+    assert.equal(initialMode.reconsentRequired, false, 'Obtain conversation consent and explicitly reacquire before running this automatic gate');
+    await call('minecraft_control', { action: 'set_mode', mode: 'OPERATE' });
     const fixture = data(await call('minecraft_fixture', { operation: 'open_standard_gui' }));
     assert.equal(fixture.evidenceContaminated, true);
+    assert.equal(data(await call('minecraft_control', { action: 'status' })).takeoverActive, false);
+    await call('minecraft_control', { action: 'acquire', ttlMs: 60000 });
+    leaseAcquired = true;
     const tree = data(await call('minecraft_get_ui', { view: 'tree' }));
     assert.equal(JSON.stringify(tree).includes('Compatibility Text'), true);
     await call('minecraft_interact_ui', { action: 'click', selector: { role: 'button', label: 'Add Dynamic Control' } });

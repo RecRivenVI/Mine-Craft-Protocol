@@ -1,0 +1,656 @@
+{
+  "contractVersion": "0.0.1-control-r1",
+  "modeScope": "One stable authenticated Runtime control session across HTTP connections; not per TCP request and not multi-account tenancy.",
+  "authorizationOrder": [
+    "Bearer + Host/Origin + request/expensive budgets",
+    "protocol/deadline and typed request validation",
+    "operation scopes; Debug credential for writes",
+    "intent requirement",
+    "input Lease for TAKEOVER",
+    "owner-thread generation / Arm / resource and value preconditions"
+  ],
+  "formalHttp": [
+    {
+      "method": "GET",
+      "path": "/v0/control/mode",
+      "operationId": "getAgentControlMode",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/control/mode",
+      "operationId": "setAgentControlMode",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/session",
+      "operationId": "getSession",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/capabilities",
+      "operationId": "getCapabilities",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/readiness",
+      "operationId": "getReadiness",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/trace",
+      "operationId": "getTrace",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/audit",
+      "operationId": "getAudit",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/diagnostics/thread",
+      "operationId": "probeThreadAffinity",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/diagnostics/hooks",
+      "operationId": "getHookManifest",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/diagnostics/ui/test-screen",
+      "operationId": "openAutomationProbeScreen",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/security/context",
+      "operationId": "getSecurityContext",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/events/resync",
+      "operationId": "getEventResyncSnapshot",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/diagnostics/events/stress",
+      "operationId": "runBoundedEventStressProbe",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/operations",
+      "operationId": "getOperationDescriptors",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/operations/wait/screen",
+      "operationId": "startWaitForScreen",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v0/requests/{requestId}",
+      "operationId": "cancelActiveRequest",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/operations/{operationId}",
+      "operationId": "getOperation",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v0/operations/{operationId}",
+      "operationId": "cancelOperation",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/operations/{operationId}/wait",
+      "operationId": "waitOperation",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/control/status",
+      "operationId": "getControlLeaseStatus",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/control/acquire",
+      "operationId": "acquireControlLease",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/control/renew",
+      "operationId": "renewControlLease",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/control/release",
+      "operationId": "releaseControlLease",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/control/emergency-release",
+      "operationId": "emergencyReleaseControl",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/input/state",
+      "operationId": "getInputState",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/ui/tree",
+      "operationId": "getUiTree",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/ui/resolve",
+      "operationId": "resolveUiNode",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/ui/action",
+      "operationId": "performUiAction",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/ui/vision/context",
+      "operationId": "getUiVisionContext",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/render/facts",
+      "operationId": "getRenderFacts",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/input/mouse/move",
+      "operationId": "moveMouse",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/input/mouse/button",
+      "operationId": "mouseButton",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/input/mouse/scroll",
+      "operationId": "scrollMouse",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/input/key",
+      "operationId": "keyInput",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/player",
+      "operationId": "getPlayerState",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/command/player",
+      "operationId": "executeCurrentPlayerCommand",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/server/peer",
+      "operationId": "getServerPeerStatus",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/server/peer/probe",
+      "operationId": "probeServerPeer",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/server/player",
+      "operationId": "getServerPlayerState",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/world/block",
+      "operationId": "getBlockState",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/world/entities",
+      "operationId": "queryEntities",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/server/world/block",
+      "operationId": "getServerBlockState",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/server/world/entities",
+      "operationId": "queryServerEntities",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/diagnostics/phase9a/storage/read",
+      "operationId": "readPersistedStatePhase9D0",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/providers",
+      "operationId": "getReadProviders",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/providers/read",
+      "operationId": "readProvider",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/state/frames",
+      "operationId": "captureStateFrame",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/capture/info",
+      "operationId": "getCaptureInfo",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/world/fingerprint",
+      "operationId": "getWorldFingerprint",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/debug/status",
+      "operationId": "getDebugArmStatus",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/debug/capabilities",
+      "operationId": "getDebugCapabilities",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/arm",
+      "operationId": "armDebug",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/renew",
+      "operationId": "renewDebugArm",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/disarm",
+      "operationId": "disarmDebug",
+      "modeRequirement": "MODE_INDEPENDENT"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/mutations",
+      "operationId": "executeTypedDebugMutation",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/batches",
+      "operationId": "startTypedDebugBatch",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/debug/evidence",
+      "operationId": "getDebugEvidenceStatus",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/evidence/act/start",
+      "operationId": "startGameplayActEvidenceWindow",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/evidence/act/finish",
+      "operationId": "finishGameplayActEvidenceWindow",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/fixture/player/teleport",
+      "operationId": "fixtureTeleportPlayer",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/player/health",
+      "operationId": "debugSetPlayerHealth",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/debug/world/block",
+      "operationId": "debugSetBlock",
+      "modeRequirement": "OPERATE_REQUIRED"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/recordings",
+      "operationId": "listRecordings",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/recordings",
+      "operationId": "startRecording",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/recordings/{recordingId}",
+      "operationId": "getRecording",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v0/recordings/{recordingId}",
+      "operationId": "stopRecording",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/recordings/{recordingId}/artifact",
+      "operationId": "downloadRecordingArtifact",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/capture",
+      "operationId": "captureComposite",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/wait/screen",
+      "operationId": "waitForScreen",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/wait/until",
+      "operationId": "waitUntil",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/assert",
+      "operationId": "assertCondition",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "GET",
+      "path": "/v0/observe/deep/capabilities",
+      "operationId": "getDeepObservationCapabilities",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/observe/deep",
+      "operationId": "deepObserve",
+      "modeRequirement": "READ_COMPATIBLE"
+    },
+    {
+      "method": "POST",
+      "path": "/v0/pipelines",
+      "operationId": "startInputPipeline",
+      "modeRequirement": "TAKEOVER_REQUIRED"
+    }
+  ],
+  "retainedDiagnostics": [
+    {
+      "path": "/v0/debug/player/attribute",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "OPERATE_REQUIRED",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/debug/entity/state",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "OPERATE_REQUIRED",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/debug/phase9a/scenario",
+      "targets": [
+        "1.20.1-forge",
+        "1.21.1-neoforge",
+        "26.1.2-neoforge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "OPERATE_REQUIRED",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/diagnostics/phase9a/inventory",
+      "targets": [
+        "1.20.1-forge",
+        "1.21.1-neoforge",
+        "26.1.2-neoforge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "READ_COMPATIBLE",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/diagnostics/phase9a/observe",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "READ_COMPATIBLE",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/diagnostics/phase9a/keyframe",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "READ_COMPATIBLE",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/diagnostics/phase9a/delta",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "READ_COMPATIBLE",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    },
+    {
+      "path": "/v0/diagnostics/phase9a/reconstruct",
+      "targets": [
+        "1.20.1-forge",
+        "26.2-neoforge",
+        "26.2-fabric"
+      ],
+      "modeRequirement": "READ_COMPATIBLE",
+      "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
+    }
+  ],
+  "webSocket": {
+    "path": "/v0/events",
+    "readCompatibleCommands": [
+      "subscribe",
+      "ack",
+      "resume",
+      "resync",
+      "filter"
+    ],
+    "inputCommands": "NOT_SUPPORTED",
+    "optionalControlLeaseBinding": "existing control channel; disconnect ends TAKEOVER, unbound readers do not change intent"
+  },
+  "mcp": {
+    "minecraft_get_session": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_get_capabilities": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_get_ui": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_get_state": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_deep_observe": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_query_world": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_execute_player_command": {
+      "default": "TAKEOVER_REQUIRED"
+    },
+    "minecraft_control": {
+      "discriminator": "action",
+      "actions": {
+        "status": "READ_COMPATIBLE",
+        "set_mode": "MODE_INDEPENDENT",
+        "acquire": "MODE_INDEPENDENT",
+        "renew": "MODE_INDEPENDENT",
+        "release": "MODE_INDEPENDENT",
+        "emergency_release": "MODE_INDEPENDENT"
+      },
+      "note": "Only explicit acquire establishes TAKEOVER; set_mode only READ/OPERATE. No authority is granted by the label."
+    },
+    "minecraft_interact_ui": {
+      "default": "TAKEOVER_REQUIRED"
+    },
+    "minecraft_run_input_pipeline": {
+      "default": "TAKEOVER_REQUIRED"
+    },
+    "minecraft_get_operation": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_wait_operation": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_cancel_operation": {
+      "default": "MODE_INDEPENDENT"
+    },
+    "minecraft_wait": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_assert": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_capture": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_start_recording": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_recording": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_get_artifact": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_diagnostics": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_peer": {
+      "default": "READ_COMPATIBLE"
+    },
+    "minecraft_fixture": {
+      "default": "OPERATE_REQUIRED"
+    },
+    "minecraft_debug_arm": {
+      "default": "MODE_INDEPENDENT",
+      "note": "Credential management still requires Debug scope; does not change mode."
+    },
+    "minecraft_debug": {
+      "discriminator": "action",
+      "actions": {
+        "capabilities": "READ_COMPATIBLE",
+        "mutate": "OPERATE_REQUIRED",
+        "batch": "OPERATE_REQUIRED",
+        "act_start": "READ_COMPATIBLE",
+        "act_finish": "READ_COMPATIBLE"
+      }
+    }
+  },
+  "notes": [
+    "Input pipeline is a TAKEOVER control macro including its embedded wait/assert steps. Standalone Wait/Assert remains READ-compatible.",
+    "Arm management, cancellation and explicit mode/Lease management are mode-independent but retain their scopes and credentials.",
+    "Recording observation and Artifact IO are READ-compatible; they are not Persistent Write.",
+    "Persistent Read is READ-compatible in native HTTP; the current curated MCP tool set has no dedicated Persistent Read tool.",
+    "Peer queries/probe are READ-compatible. Existing typed Peer Fixture/Debug requests enter through OPERATE-gated client Runtime workflows and retain independent server operator/feature gates. Mode is not a remote-server authentication credential.",
+    "Ordinary pooled HTTP disconnect does not change stable intent. Lease-bound control WS disconnect/TTL loss ends TAKEOVER. Runtime close ends its entire control session.",
+    "No mode automatically upgrades scopes, obtains a Debug Arm, or turns Fixture/Debug evidence into PLAYTEST."
+  ]
+}

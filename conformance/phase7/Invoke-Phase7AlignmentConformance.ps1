@@ -7,6 +7,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '../control/ModeHelpers.ps1')
 $base = $BaseUri.TrimEnd('/')
 $token = (Get-Content -LiteralPath $TokenFile -Raw).Trim()
 $auth = @{ Authorization = "Bearer $token" }
@@ -73,8 +74,10 @@ Assert-True ($initialHooks.cancellableInjectionCount -eq 7 -and $initialHooks.re
 Assert-True ($initialHooks.thirdPartyTargetCount -eq 0) 'Hook manifest must declare zero third-party targets'
 Assert-True ([bool]$initialHooks.runtimeSelfTest -and $initialHooks.overall -eq 'ready') 'core Hook self-test must be ready'
 
+$existingControl = Invoke-Json -Method GET -Path '/v0/control/status'
+Set-AgentMode $base $auth OPERATE $existingControl.leaseId | Out-Null
+$fixture = Invoke-Json -Method POST -Path '/v0/diagnostics/ui/test-screen' -Headers $auth
 $leaseHeaders = Acquire-Lease
-$fixture = Invoke-Json -Method POST -Path '/v0/diagnostics/ui/test-screen' -Headers $leaseHeaders
 Assert-True ([bool]$fixture.evidenceContaminated -and $fixture.mechanism -eq 'DIRECT') 'compatibility fixture must be contaminated Arrange evidence'
 
 $tree = Invoke-Json -Method GET -Path '/v0/ui/tree'

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -92,9 +93,10 @@ final class ProbeTransport implements AutoCloseable {
                 this.securityGate.principalId(),
                 reason -> {
                     this.automation.cancelControlWork();
-                    service.releaseAllInput(reason);
+                    return service.releaseAllInput(reason);
                 },
                 this::controlPresenceChanged);
+        this.service.attachControlSession(this.protocolState.controlSession());
         this.observation = new ObservationEngine(service);
         this.recording = new RecordingEngine(service, this.observation);
         this.eventHub = new EventHub("26.2-neoforge", this::resyncSnapshot);
@@ -156,6 +158,9 @@ final class ProbeTransport implements AutoCloseable {
         event.addProperty("reconsentRequired", snapshot.reconsentRequired());
         event.addProperty("principalId", this.securityGate.principalId());
         event.addProperty("controlTransitionSequence", snapshot.transitionSequence());
+        event.addProperty("mode", snapshot.mode().name());
+        event.addProperty("controlSessionId", snapshot.controlSessionId());
+        event.addProperty("modeGeneration", snapshot.transitionSequence());
         this.broadcast(event);
     }
 
@@ -287,6 +292,7 @@ final class ProbeTransport implements AutoCloseable {
                 read(context, metadata, path, "diagnostics", service::hookManifest);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/diagnostics/events/stress")) {
                 protocolState.requireScope("diagnostics");
+                protocolState.requireOperateIntent();
                 JsonObject body = jsonBody(request);
                 int count = body.has("count") ? body.get("count").getAsInt() : 1;
                 int payloadBytes = body.has("payloadBytes") ? body.get("payloadBytes").getAsInt() : 0;
@@ -294,6 +300,8 @@ final class ProbeTransport implements AutoCloseable {
                     throw new ProtocolState.ProtocolException(
                             "INVALID_EVENT_STRESS", 400, "count must be 1..8192 and payloadBytes 0..4096");
                 }
+                try (AgentControlSession.OperateWork work = protocolState.beginOperate();
+                        AgentControlSession.Guard modeGuard = work.enter()) {
                 String filler = "x".repeat(payloadBytes);
                 for (int index = 0; index < count; index++) {
                     JsonObject event = new JsonObject();
@@ -309,6 +317,7 @@ final class ProbeTransport implements AutoCloseable {
                 result.addProperty("payloadBytes", payloadBytes);
                 result.addProperty("resumeCursor", eventHub.currentSequence());
                 sendImmediate(context, metadata, path, result);
+                }
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/server/peer")) {
                 read(context, metadata, path, "read", service::peerStatus);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/server/peer/probe")) {
@@ -322,8 +331,7 @@ final class ProbeTransport implements AutoCloseable {
                 protocolState.requireScope("diagnostics");
                 protocolState.requireScope("control");
                 protocolState.requireScope("fixture");
-                protocolState.requireLease(metadata.leaseId());
-                CompletableFuture<JsonObject> fixture = service.openAutomationProbeScreen();
+                CompletableFuture<JsonObject> fixture = protocolState.operate(service::openAutomationProbeScreen);
                 fixture.thenAccept(result -> recording.contaminate("FIXTURE", "fixture.ui.test_screen", result));
                 sendJsonFuture(context, metadata, path,
                         protocolState.applyDeadline(fixture, metadata.deadlineAtMillis()));
@@ -348,11 +356,12 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/ui/action")) {
                 protocolState.requireScope("ui");
                 protocolState.requireScope("input");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireTakeover(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 Supplier<CompletableFuture<JsonObject>> action = () ->
                         service.validatePreconditions(metadata.expectedScreenRevision(), metadata.expectedMenuRevision())
-                                .thenCompose(ignored -> automation.uiAction(body, () -> protocolState.requireLease(metadata.leaseId())));
+                                .thenCompose(ignored -> automation.uiAction(body, () -> protocolState.requireTakeover(metadata.leaseId()),
+                                        supplier -> protocolState.admitInput(metadata.leaseId(), supplier)));
                 String idempotencyKey = metadata.idempotencyKey() == null
                         ? null : path + ":" + metadata.idempotencyKey();
                 CompletableFuture<JsonObject> future = protocolState.idempotent(idempotencyKey, action);
@@ -371,12 +380,13 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/command/player")) {
                 protocolState.requireScope("command");
                 protocolState.requireScope("control");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireTakeover(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 if (!body.has("command")) {
                     throw new ProtocolState.ProtocolException("INVALID_PLAYER_COMMAND", 400, "Missing command");
                 }
-                CompletableFuture<JsonObject> command = service.playerCommand(body.get("command").getAsString());
+                CompletableFuture<JsonObject> command = protocolState.admitInput(metadata.leaseId(),
+                        () -> service.playerCommand(body.get("command").getAsString()));
                 command.thenAccept(result -> recording.recordEvent("command.player.executed", result));
                 sendJsonFuture(context, metadata, path,
                         protocolState.applyDeadline(command, metadata.deadlineAtMillis()));
@@ -451,11 +461,13 @@ final class ProbeTransport implements AutoCloseable {
                 String operation = requiredString(body, "operation");
                 String domain = debugDomain(operation);
                 protocolState.requireDebugScope(domain);
+                protocolState.requireDebugCredential(metadata.debugArmId());
+                protocolState.requireOperateIntent();
                 body.addProperty("debugOperationId", metadata.requestId());
                 JsonObject started = debugEvent("debug.operation.started", body, metadata.requestId());
                 broadcast(started);
-                CompletableFuture<JsonObject> mutation = service.phase9cDebugMutation(
-                        body, singleDebugAuthorization(metadata));
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.phase9cDebugMutation(
+                        body, singleDebugAuthorization(metadata, work)));
                 mutation.whenComplete((result, error) -> {
                     if (error == null) {
                         observeDebugMutation(result);
@@ -482,8 +494,10 @@ final class ProbeTransport implements AutoCloseable {
                     protocolState.requireDebugScope(debugDomain(
                             requiredString(item.getAsJsonObject(), "operation")));
                 }
+                protocolState.requireDebugCredential(metadata.debugArmId());
+                protocolState.requireOperateIntent();
                 JsonObject operation = protocolState.startOperation(
-                        operationId -> debugBatches.start(operationId, body, metadata), false);
+                        operationId -> protocolState.operate(work -> debugBatches.start(operationId, body, metadata, work)), false);
                 sendImmediate(context, metadata, path, operation);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/evidence")) {
                 protocolState.requireScope("debug");
@@ -498,74 +512,73 @@ final class ProbeTransport implements AutoCloseable {
                         protocolState.finishGameplayAct(requiredString(body, "actId")));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/fixture/player/teleport")) {
                 protocolState.requireScope("fixture");
-                protocolState.requireLease(metadata.leaseId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.fixtureTeleport(
-                        body.get("x").getAsDouble(), body.get("y").getAsDouble(), body.get("z").getAsDouble());
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.fixtureTeleport(
+                        body.get("x").getAsDouble(), body.get("y").getAsDouble(), body.get("z").getAsDouble(), work));
                 mutation.thenAccept(result -> recording.contaminate("FIXTURE", "fixture.player.teleport", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/player/health")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireDebugCredential(metadata.debugArmId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.worldFingerprint().thenCompose(fingerprint -> {
                     protocolState.requireDebugArm(
                             metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
-                    return service.debugSetHealth(body.get("health").getAsFloat());
-                });
+                    return service.debugSetHealth(body.get("health").getAsFloat(), work);
+                }));
                 mutation.thenAccept(result ->
                         recording.contaminate("DEBUG_PRIVILEGED", "debug.player.health", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/player/attribute")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireDebugCredential(metadata.debugArmId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.worldFingerprint().thenCompose(fingerprint -> {
                     protocolState.requireDebugArm(
                             metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
                     return service.phase9aDebugAttribute(
-                            body.get("attributeId").getAsString(), body.get("value").getAsDouble());
-                });
+                            body.get("attributeId").getAsString(), body.get("value").getAsDouble(), work);
+                }));
                 mutation.thenAccept(result -> recording.contaminate(
                         "DEBUG_PRIVILEGED", "debug.player.attribute.set", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/entity/state")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireDebugCredential(metadata.debugArmId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.worldFingerprint().thenCompose(fingerprint -> {
                     protocolState.requireDebugArm(
                             metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
                     return service.phase9aDebugEntityState(
                             body.get("entityUuid").getAsString(),
-                            body.get("state").getAsString(), body.get("value").getAsBoolean());
-                });
+                            body.get("state").getAsString(), body.get("value").getAsBoolean(), work);
+                }));
                 mutation.thenAccept(result -> recording.contaminate(
                         "DEBUG_PRIVILEGED", "debug.entity.state.set", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/phase9a/scenario")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireDebugCredential(metadata.debugArmId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.worldFingerprint().thenCompose(fingerprint -> {
                     protocolState.requireDebugArm(
                             metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
-                    return service.phase9aDebugScenario(body);
-                });
+                    return service.phase9aDebugScenario(body, work);
+                }));
                 mutation.thenAccept(result -> recording.contaminate(
                         "DEBUG_PRIVILEGED", "debug.phase9a.scenario", result));
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/debug/world/block")) {
                 protocolState.requireScope("debug");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireDebugCredential(metadata.debugArmId());
                 JsonObject body = jsonBody(request);
-                CompletableFuture<JsonObject> mutation = service.worldFingerprint().thenCompose(fingerprint -> {
+                CompletableFuture<JsonObject> mutation = protocolState.operate(work -> service.worldFingerprint().thenCompose(fingerprint -> {
                     protocolState.requireDebugArm(
                             metadata.debugArmId(), fingerprint.get("worldFingerprint").getAsString());
                     return service.debugSetBlock(
                             body.get("x").getAsInt(), body.get("y").getAsInt(), body.get("z").getAsInt(),
-                            body.get("blockId").getAsString(), nullableString(body, "expectedBlockId"));
-                });
+                            body.get("blockId").getAsString(), nullableString(body, "expectedBlockId"), work);
+                }));
                 mutation.thenAccept(result ->
                         recording.contaminate("DEBUG_PRIVILEGED", "debug.world.block", result));
                 sendJsonFuture(context, metadata, path, mutation);
@@ -662,10 +675,11 @@ final class ProbeTransport implements AutoCloseable {
                         metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/pipelines")) {
                 protocolState.requireScope("input");
-                protocolState.requireLease(metadata.leaseId());
+                protocolState.requireTakeover(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 CompletableFuture<JsonObject> pipeline = automation.executePipeline(
-                        body, () -> protocolState.requireLease(metadata.leaseId()));
+                        body, () -> protocolState.requireTakeover(metadata.leaseId()),
+                        supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
                 JsonObject operation = protocolState.startOperation(pipeline, true);
                 JsonObject startedEvent = operation.deepCopy();
                 startedEvent.addProperty("type", "event.pipeline.started");
@@ -703,6 +717,23 @@ final class ProbeTransport implements AutoCloseable {
                 } else {
                     throw new ProtocolState.ProtocolException("METHOD_NOT_ALLOWED", 405, "Unsupported operation method");
                 }
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/control/mode")) {
+                protocolState.requireScope("read");
+                sendImmediate(context, metadata, path, protocolState.modeStatus());
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/mode")) {
+                protocolState.requireScope("control");
+                JsonObject body = jsonBody(request);
+                for (String key : body.keySet()) if (!java.util.Set.of("mode", "expectedModeVersion").contains(key))
+                    throw new ProtocolState.ProtocolException("INVALID_MODE_REQUEST", 400, "Unknown mode request field");
+                AgentControlSession.Mode mode;
+                try { mode = AgentControlSession.Mode.valueOf(requiredString(body, "mode")); }
+                catch (IllegalArgumentException invalid) {
+                    throw new ProtocolState.ProtocolException("INVALID_MODE", 400, "Mode must be READ, OPERATE or TAKEOVER");
+                }
+                String key = metadata.idempotencyKey() == null ? null : path + ":" + metadata.idempotencyKey() + ":" + body;
+                sendJsonFuture(context, metadata, path, protocolState.idempotent(key,
+                        () -> protocolState.selectMode(mode, body.getAsJsonObject("expectedModeVersion"),
+                                metadata.leaseId(), metadata.requestId(), auditConnectionId(context.channel()))));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/control/status")) {
                 protocolState.requireScope("control");
                 sendImmediate(context, metadata, path, protocolState.leaseStatus());
@@ -711,8 +742,11 @@ final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/acquire")) {
                 protocolState.requireScope("control");
                 JsonObject body = jsonBody(request);
+                for (String key : body.keySet()) if (!java.util.Set.of("ttlMs", "expectedModeVersion").contains(key))
+                    throw new ProtocolState.ProtocolException("INVALID_CONTROL_REQUEST", 400, "Unknown acquire request field");
                 sendImmediate(context, metadata, path,
-                        protocolState.acquireLease(optionalLong(body, "ttlMs", 15_000L)));
+                        protocolState.acquireLease(optionalLong(body, "ttlMs", 15_000L),
+                                body.has("expectedModeVersion") ? body.getAsJsonObject("expectedModeVersion") : null));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/renew")) {
                 protocolState.requireScope("control");
                 JsonObject body = jsonBody(request);
@@ -720,12 +754,12 @@ final class ProbeTransport implements AutoCloseable {
                         protocolState.renewLease(metadata.leaseId(), optionalLong(body, "ttlMs", 15_000L)));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/release")) {
                 protocolState.requireScope("control");
-                sendImmediate(context, metadata, path,
-                        protocolState.releaseLease(metadata.leaseId(), "client_release"));
+                sendJsonFuture(context, metadata, path,
+                        protocolState.releaseLeaseAndWait(metadata.leaseId(), "client_release"));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/emergency-release")) {
                 protocolState.requireScope("control");
-                sendImmediate(context, metadata, path,
-                        protocolState.emergencyRelease("emergency_release"));
+                sendJsonFuture(context, metadata, path,
+                        protocolState.emergencyReleaseAndWait("emergency_release"));
             } else if (request.method() == HttpMethod.POST && path.startsWith("/v0/input/")) {
                 this.handleInput(context, path, metadata, jsonBody(request));
             } else {
@@ -739,11 +773,11 @@ final class ProbeTransport implements AutoCloseable {
                 ProtocolState.RequestMetadata metadata,
                 JsonObject body) {
             protocolState.requireScope("input");
-            protocolState.requireLease(metadata.leaseId());
+            protocolState.requireTakeover(metadata.leaseId());
 
             Supplier<CompletableFuture<JsonObject>> action = () ->
                     service.validatePreconditions(metadata.expectedScreenRevision(), metadata.expectedMenuRevision())
-                            .thenCompose(ignored -> {
+                            .thenCompose(ignored -> protocolState.admitInput(metadata.leaseId(), () -> {
                                 if (path.equals("/v0/input/mouse/move")) {
                                     return service.mouseMove(body.get("x").getAsDouble(), body.get("y").getAsDouble());
                                 } else if (path.equals("/v0/input/mouse/button")) {
@@ -764,7 +798,7 @@ final class ProbeTransport implements AutoCloseable {
                                 }
                                 return CompletableFuture.failedFuture(
                                         new ProtocolState.ProtocolException("NOT_FOUND", 404, "Unknown input endpoint"));
-                            });
+                            }));
 
             String idempotencyKey = metadata.idempotencyKey() == null
                     ? null : path + ":" + metadata.idempotencyKey();
@@ -991,7 +1025,7 @@ final class ProbeTransport implements AutoCloseable {
     }
 
     private DebugMutationAuthorization singleDebugAuthorization(
-            ProtocolState.RequestMetadata metadata) {
+            ProtocolState.RequestMetadata metadata, AgentControlSession.OperateWork work) {
         return new DebugMutationAuthorization() {
             @Override
             public Permit authorize(
@@ -1002,7 +1036,8 @@ final class ProbeTransport implements AutoCloseable {
                 protocolState.requireDebugAuthorization(
                         metadata.debugArmId(), currentWorldFingerprint,
                         sessionEpoch, domain, namespace);
-                return () -> { };
+                AgentControlSession.Guard modeGuard = work.enter();
+                return modeGuard::close;
             }
 
             @Override
@@ -1022,7 +1057,7 @@ final class ProbeTransport implements AutoCloseable {
 
             @Override
             public boolean isCancelled() {
-                return false;
+                return work.isCancelled();
             }
         };
     }
@@ -1110,13 +1145,16 @@ final class ProbeTransport implements AutoCloseable {
         return Double.parseDouble(stringQuery(decoder, name, Double.toString(fallback)));
     }
 
-    private static void sendError(ChannelHandlerContext context, String requestId, Throwable throwable) {
+    private void sendError(ChannelHandlerContext context, String requestId, Throwable throwable) {
         Throwable error = unwrap(throwable);
         int status = 500;
         String code = error.getClass().getSimpleName();
         if (error instanceof ProtocolState.ProtocolException protocolException) {
             status = protocolException.httpStatus();
             code = protocolException.code();
+        } else if (error instanceof AgentControlSession.ModeException modeError) {
+            status = 409;
+            code = modeError.code();
         } else if (error instanceof TimeoutException) {
             status = 408;
             code = "REQUEST_DEADLINE_EXCEEDED";
@@ -1128,6 +1166,11 @@ final class ProbeTransport implements AutoCloseable {
             json.addProperty("controlState", "MANUALLY_REVOKED");
             json.addProperty("reconsentRequired", true);
             json.addProperty("manualRevocationReason", "human_manual_revocation");
+        }
+        if (code.startsWith("MODE_") || code.startsWith("STALE_MODE") || code.startsWith("STALE_CONTROL")
+                || code.startsWith("TAKEOVER_") || code.equals("OPERATE_REQUIRED")
+                || code.equals("USER_MANUALLY_ENDED_CONTROL") || code.startsWith("CONTROL_")) {
+            json.add("control", this.protocolState.modeStatus());
         }
         json.addProperty("requestId", requestId);
         json.addProperty("protocolVersion", ProtocolState.PROTOCOL_VERSION);

@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.function.Function;
 
 final class AutomationEngine implements AutoCloseable {
     private static final int MAX_PIPELINE_STEPS = 256;
@@ -63,6 +64,11 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     CompletableFuture<JsonObject> uiAction(JsonObject request, Runnable leaseCheck) {
+        return this.uiAction(request, leaseCheck, Supplier::get);
+    }
+
+    CompletableFuture<JsonObject> uiAction(JsonObject request, Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>> admission) {
         JsonObject step = request.deepCopy();
         step.addProperty("type", "ui.action");
         JsonArray steps = new JsonArray();
@@ -71,7 +77,7 @@ final class AutomationEngine implements AutoCloseable {
         pipeline.add("steps", steps);
         pipeline.addProperty("cleanupOnComplete", false);
         return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
-                this.executePipeline(pipeline, leaseCheck),
+                this.executePipeline(pipeline, leaseCheck, admission),
                 result -> CompletableFuture.completedFuture(result.getAsJsonArray("steps")
                         .get(0).getAsJsonObject().getAsJsonObject("result")));
     }
@@ -89,6 +95,11 @@ final class AutomationEngine implements AutoCloseable {
     }
 
     CompletableFuture<JsonObject> executePipeline(JsonObject request, Runnable leaseCheck) {
+        return this.executePipeline(request, leaseCheck, Supplier::get);
+    }
+
+    CompletableFuture<JsonObject> executePipeline(JsonObject request, Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>> admission) {
         if (!request.has("steps") || !request.get("steps").isJsonArray()) {
             return failed("INVALID_PIPELINE", 400, "Pipeline requires a steps array");
         }
@@ -104,7 +115,7 @@ final class AutomationEngine implements AutoCloseable {
         long timeout = bounded(longValue(request, "timeoutMs", 60_000L), 1L, MAX_PIPELINE_MILLIS);
         boolean cleanupOnComplete = bool(request, "cleanupOnComplete", true);
         PipelineExecution execution = new PipelineExecution(
-                steps.deepCopy(), leaseCheck, timeout, cleanupOnComplete);
+                steps.deepCopy(), leaseCheck, timeout, cleanupOnComplete, admission);
         this.activeExecutions.add(execution);
         CompletableFuture<JsonObject> result = execution.start();
         result.whenComplete((ignored, error) -> this.activeExecutions.remove(execution));
@@ -477,6 +488,7 @@ final class AutomationEngine implements AutoCloseable {
     private final class PipelineExecution {
         private final JsonArray steps;
         private final Runnable leaseCheck;
+        private final Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>> admission;
         private final long timeoutMillis;
         private final boolean cleanupOnComplete;
         private final long startedAtMillis = System.currentTimeMillis();
@@ -492,8 +504,10 @@ final class AutomationEngine implements AutoCloseable {
         private int index;
 
         private PipelineExecution(
-                JsonArray steps, Runnable leaseCheck, long timeoutMillis, boolean cleanupOnComplete) {
+                JsonArray steps, Runnable leaseCheck, long timeoutMillis, boolean cleanupOnComplete,
+                Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>> admission) {
             this.steps = steps;
+            this.admission = admission;
             this.leaseCheck = leaseCheck;
             this.timeoutMillis = timeoutMillis;
             this.cleanupOnComplete = cleanupOnComplete;
@@ -602,12 +616,12 @@ final class AutomationEngine implements AutoCloseable {
             if (this.finishing.get()) throw new CancellationException("Pipeline is terminating");
         }
 
-        private <T> CompletableFuture<T> effect(Supplier<CompletableFuture<T>> supplier) {
+        private CompletableFuture<JsonObject> effect(Supplier<CompletableFuture<JsonObject>> supplier) {
             this.checkActive();
             this.leaseCheck.run();
-            CompletableFuture<T> future;
+            CompletableFuture<JsonObject> future;
             try {
-                future = supplier.get();
+                future = this.admission.apply(() -> { this.checkActive(); return supplier.get(); });
             } catch (Throwable throwable) {
                 return CompletableFuture.failedFuture(throwable);
             }
