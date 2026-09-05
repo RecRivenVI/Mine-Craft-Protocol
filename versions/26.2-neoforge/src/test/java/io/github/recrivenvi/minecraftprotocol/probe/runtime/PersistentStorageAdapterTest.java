@@ -191,6 +191,110 @@ final class PersistentStorageAdapterTest {
         }
     }
 
+
+    @Test
+    void offlineContextSurvivesQuitButNotWorldReplacementOrRuntimeClose() throws Exception {
+        Path root = Files.createTempDirectory("mcp-offline-read-");
+        Path old = root.resolveSibling(root.getFileName() + "-old");
+        try (PersistentStorageAdapter adapter = new PersistentStorageAdapter("26.2-neoforge")) {
+            Files.writeString(root.resolve("session.lock"), "lock");
+            writeNbt(root.resolve("level.dat"), "LevelName", "saved");
+            adapter.observeStorageLifecycle(new Object(), false, false);
+            adapter.rememberContext(request(root, "world", false));
+            // A following read is an ordering fence on the same bounded IO worker.
+            JsonObject live = adapter.read(request(root, "world", false)).get(3, TimeUnit.SECONDS);
+            adapter.observeStorageLifecycle(null, false, false);
+            JsonObject query = new JsonObject(); query.addProperty("domain", "world");
+            assertEquals("PERSISTED_STORAGE_BUSY", protocolCode(assertThrows(ExecutionException.class,
+                    () -> adapter.readSaved(query).get(3, TimeUnit.SECONDS))));
+            adapter.observeStorageLifecycle(null, false, true);
+            JsonObject offline = adapter.readSaved(query).get(3, TimeUnit.SECONDS);
+            assertEquals("PERSISTED", offline.get("dataSource").getAsString());
+            assertEquals("last_saved_state", offline.get("consistency").getAsString());
+            assertEquals("offline_file_snapshot", offline.get("lifecycleState").getAsString());
+            assertFalse(offline.get("liveWorldExists").getAsBoolean());
+            assertFalse(offline.get("writeImplemented").getAsBoolean());
+            assertEquals(live.get("storageWorldIdentity"), offline.get("storageWorldIdentity"));
+            Files.move(root, old);
+            Files.createDirectory(root);
+            Files.writeString(root.resolve("session.lock"), "new");
+            writeNbt(root.resolve("level.dat"), "LevelName", "replacement");
+            assertEquals("PERSISTED_STORAGE_WORLD_IDENTITY_CHANGED", protocolCode(assertThrows(ExecutionException.class,
+                    () -> adapter.readSaved(query).get(3, TimeUnit.SECONDS))));
+            adapter.close();
+            assertEquals("PERSISTED_STORAGE_CLOSED", protocolCode(assertThrows(ExecutionException.class,
+                    () -> adapter.readSaved(query).get(3, TimeUnit.SECONDS))));
+        } finally { deleteTree(root); deleteTree(old); }
+    }
+
+    @Test
+    void lockedSessionDoesNotMakeAnOnlineReadLookCorruptAndDeniesOfflineOwnership() throws Exception {
+        Path root = Files.createTempDirectory("mcp-read-lock-");
+        try (PersistentStorageAdapter adapter = new PersistentStorageAdapter("26.2-neoforge")) {
+            Files.writeString(root.resolve("session.lock"), "lock");
+            writeNbt(root.resolve("level.dat"), "LevelName", "saved");
+            adapter.observeStorageLifecycle(new Object(), false, false);
+            adapter.rememberContext(request(root, "world", false));
+            try (var file = java.nio.channels.FileChannel.open(root.resolve("session.lock"),
+                    java.nio.file.StandardOpenOption.READ, java.nio.file.StandardOpenOption.WRITE);
+                 var lock = file.lock()) {
+                assertTrue(adapter.read(request(root, "world", false)).get(3, TimeUnit.SECONDS).get("available").getAsBoolean());
+                adapter.observeStorageLifecycle(null, false, true);
+                JsonObject query = new JsonObject(); query.addProperty("domain", "world");
+                assertEquals("PERSISTED_STORAGE_BUSY", protocolCode(assertThrows(ExecutionException.class,
+                        () -> adapter.readSaved(query).get(3, TimeUnit.SECONDS))));
+            }
+        } finally { deleteTree(root); }
+    }
+
+    @Test
+    void ioClassificationNeverCallsAnUnprovenIoFailureCorruption() {
+        assertEquals("PERSISTED_STORAGE_BUSY", PersistentStorageAdapter.classifyIo(
+                new java.nio.file.FileSystemException("synthetic", null, "sharing violation")).code());
+        assertEquals("PERSISTED_STORAGE_UNAVAILABLE", PersistentStorageAdapter.classifyIo(
+                new java.nio.file.AccessDeniedException("synthetic")).code());
+        assertEquals("PERSISTED_STORAGE_NOT_FOUND", PersistentStorageAdapter.classifyIo(
+                new java.nio.file.NoSuchFileException("synthetic")).code());
+        assertEquals("PERSISTED_STORAGE_READ_FAILED", PersistentStorageAdapter.classifyIo(
+                new IOException("unknown device failure")).code());
+        assertEquals("PERSISTED_STORAGE_CORRUPT", PersistentStorageAdapter.classifyIo(
+                new java.util.zip.ZipException("invalid compressed bytes")).code());
+    }
+
+
+    @Test
+    void validAnvilTailNeedNotBeSectorPaddedButTruncationStillFails() throws Exception {
+        Path root = Files.createTempDirectory("mcp-unpadded-region-");
+        try (PersistentStorageAdapter adapter = new PersistentStorageAdapter("26.2-neoforge")) {
+            Files.writeString(root.resolve("session.lock"), "synthetic");
+            writeNbt(root.resolve("level.dat"), "LevelName", "fixture");
+            Path regionRoot = root.resolve("region");
+            Files.createDirectories(regionRoot);
+            CompoundTag tag = new CompoundTag();
+            tag.putString("Status", "minecraft:full");
+            java.io.ByteArrayOutputStream encoded = new java.io.ByteArrayOutputStream();
+            NbtIo.write(tag, new java.io.DataOutputStream(encoded));
+            byte[] payload = encoded.toByteArray();
+            java.nio.ByteBuffer bytes = java.nio.ByteBuffer.allocate(8192 + 5 + payload.length);
+            bytes.putInt(0, (2 << 8) | 1);
+            bytes.position(8192);
+            bytes.putInt(payload.length + 1).put((byte) 3).put(payload);
+            Path region = regionRoot.resolve("r.0.0.mca");
+            Files.write(region, bytes.array()); // Synthetic fixture only, never a Minecraft save.
+            adapter.observeStorageLifecycle(new Object(), false, false);
+            var request = new Phase9ASpikeEngine.StorageRequest("chunk", root,
+                    root.resolve("players/data"), "fixture", null,
+                    UUID.randomUUID().toString(), new net.minecraft.world.level.ChunkPos(0, 0),
+                    true, true, false, "fixture-session", adapter.lifecycleEpoch(), "fixture");
+            var cancellation = new java.util.concurrent.CompletableFuture<JsonObject>();
+            CompoundTag read = adapter.readChunk(region, request, adapter.lifecycleEpoch(), cancellation);
+            assertEquals(tag, read);
+            Files.write(region, java.util.Arrays.copyOf(bytes.array(), bytes.capacity() - 1));
+            assertEquals("PERSISTED_STORAGE_CORRUPT", assertThrows(ProtocolState.ProtocolException.class,
+                    () -> adapter.readChunk(region, request, adapter.lifecycleEpoch(), cancellation)).code());
+        } finally { deleteTree(root); }
+    }
+
     private static Phase9ASpikeEngine.StorageRequest request(Path root, String domain, boolean saveInProgress) {
         return new Phase9ASpikeEngine.StorageRequest(
                 domain,

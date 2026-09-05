@@ -35,6 +35,11 @@ export async function asToolResult(operation: () => Promise<JsonValue>): Promise
         code: runtime?.code ?? 'COMPANION_ERROR',
         status: runtime?.status ?? 500,
         message: safeMessage(error),
+        ...(runtime?.controlState ? {
+          controlState: runtime.controlState,
+          reconsentRequired: runtime.reconsentRequired,
+          manualRevocationReason: runtime.manualRevocationReason
+        } : {}),
         ...(runtime?.requestId ? { requestId: runtime.requestId } : {})
       },
       companion: {

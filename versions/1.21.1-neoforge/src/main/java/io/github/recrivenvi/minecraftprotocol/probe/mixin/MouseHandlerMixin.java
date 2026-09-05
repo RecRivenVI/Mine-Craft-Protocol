@@ -7,18 +7,29 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MouseHandler.class)
 abstract class MouseHandlerMixin {
     @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
-    private void minecraftProtocolProbe$handleNativeButton(
-            long window, int button, int action, int modifiers, CallbackInfo callbackInfo) {
+    private void minecraftProtocolProbe$nativeButton(
+            long window, int button, int action, int modifiers, CallbackInfo ci) {
         if (!AgentInputContext.isAgentRouted()
-                && NeoForgeProbeRuntime.onNativeMouseButton(window, button, action)) callbackInfo.cancel();
+                && NeoForgeProbeRuntime.onNativeMouseButton(window, button, action)) ci.cancel();
     }
 
-    @Inject(method = "onMove", at = @At("HEAD"))
-    private void minecraftProtocolProbe$markAgentMove(long window, double x, double y, CallbackInfo callbackInfo) {
-        if (AgentInputContext.isAgentRouted()) NeoForgeProbeRuntime.onAgentMouseMove(window);
+    @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)
+    private void minecraftProtocolProbe$hostGrab(CallbackInfo ci) {
+        if (!NeoForgeProbeRuntime.allowHostMouseGrab()) ci.cancel();
+    }
+
+    @Inject(method = "releaseMouse", at = @At("HEAD"), cancellable = true)
+    private void minecraftProtocolProbe$hostRelease(CallbackInfo ci) {
+        if (NeoForgeProbeRuntime.handleMouseRelease()) ci.cancel();
+    }
+
+    @Inject(method = "isMouseGrabbed", at = @At("RETURN"), cancellable = true)
+    private void minecraftProtocolProbe$virtualGrab(CallbackInfoReturnable<Boolean> cir) {
+        if (NeoForgeProbeRuntime.routedMouseGrabbed()) cir.setReturnValue(true);
     }
 }

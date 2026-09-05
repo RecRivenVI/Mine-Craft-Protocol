@@ -120,7 +120,7 @@ server-side operator/feature-flag gates for Peer Fixture/Debug
 Peer timeout, disconnect and pending-request cleanup
 ```
 
-No shared Runtime implementation has been promoted yet. The repeated implementations remain local until equivalent behavior is demonstrated beyond the Phase 0 surface.
+The proven, Minecraft-independent `runtime-safety` helpers are shared and embedded in each Target. Minecraft/Loader adapters remain Target-local; this is not an inheritance chain or a shared Loader framework.
 
 ## Shared Contract Layer
 
@@ -134,9 +134,12 @@ protocol-schema/
 
 conformance/
   target-independent black-box scenarios
+
+runtime-safety/
+  proven identity/lifecycle safety and control/capture coordination helpers
 ```
 
-Generated code is build output and is not a Target dependency yet. Introducing a shared Runtime library requires a separate evidence-backed decision.
+Generated protocol models remain build output. The existing `runtime-safety` promotion is backed by five-Target runtime/packaging evidence; further sharing still requires evidence.
 
 ## Phase 8 MCP Companion
 
@@ -211,6 +214,14 @@ Every input mutation requires the active Lease ID. Runtime-owned pressed keys an
 
 `GET /v0/input/state` exposes only the Runtime-owned virtual input state for diagnostics and automated cleanup verification. It is not an OS-wide key logger.
 
+### Current Operator Presence and Human Override
+
+One Lease-backed `AgentControlSession` supplies `IDLE`, `AGENT_CONTROLLED` and `MANUALLY_REVOKED` to input, cursor policy and presentation. Native Esc consumes its first event, revokes the Lease, cancels input work and releases held input. Agent-routed Esc is an ordinary GUI key. The manual latch and structured `reconsentRequired=true` persist across denied control requests until explicit acquire/reacquire. Conversation reconsent is an Agent/Companion policy, not a Runtime-verifiable boolean. Read-only operations and independent Debug authorization are not revoked by input handback.
+
+The current policy prevents automatic/background mouse grab; a focused native click in the gameplay viewport may grant capture until focus loss. It is not exclusive takeover: other human game input is not generally suppressed. Original window icon pixels and title are restored on handback; presentation has a short Fade. Fresh ordinary content is captured through a bounded queue before the final Operator pass, so the blue edge and current bottom-right prompt are not evidence pixels. No timed chrome suppression or separate OS overlay is used.
+
+The proposed READ/OPERATE/TAKEOVER model, always-free host cursor, internal virtual pointer and top-center pixel chrome are **not implemented**. See `AGENT_CONTROL_MODEL_RESEARCH.md`. Current closeout evidence is `Artifacts/core/core-ux-closeout-20260905.json`; an isolated Forge save-click timeout keeps the overall UX closeout PARTIAL.
+
 ## Authentication, Scopes and Audit
 
 The Runtime binds IPv4 loopback only. It uses an explicitly supplied token from `minecraft.protocol.token` / `MCP_RUNTIME_TOKEN`, or generates a 256-bit random token and writes it to `<gameDirectory>/minecraft-protocol/token` without logging the value.
@@ -250,7 +261,7 @@ The Runtime does not claim that Render Facts reconstruct business semantics. Tre
 
 The five Target fixture covers EditBox, disabled state, duplicate selectors and runtime-added standard Widgets. Selector-based action now validates the resolved node's `active`, `visible` and declared `actions` fields before generating routed input. A semantic node that declares itself non-actionable fails closed; explicit/Vision coordinates remain the fallback for GUI content without reliable semantics.
 
-`GET /v0/diagnostics/hooks` exposes Target-owned mechanism, target, injection point, behavior, runtime status and degraded capability for every V1-critical Hook. The repository gate requires zero Overwrite, cancellation, replacement-style injection and third-party Mixin targets. Runtime self-test remains authoritative over static configuration.
+`GET /v0/diagnostics/hooks` exposes Target-owned mechanism, target, injection point, behavior, runtime status and degraded capability for every V1-critical Hook. The current gate forbids Overwrite and third-party Mixin targets; it explicitly audits seven Operator-control cancellations and two icon/keymapping forwarding redirects per Target. Observation Hooks remain non-cancelling. Runtime self-test remains authoritative over static configuration.
 
 ## Input Pipeline
 
@@ -296,6 +307,8 @@ Both return `dataSource=LIVE` and `storageAccessed=false`. Server block queries 
 ### Phase 9D-0 Persistent Read Boundary
 
 The five Targets expose the unstable V0 `phase9a/storage/read` route through a target-local `PersistentStorageAdapter`. The external result is uniform (`dataSource=PERSISTED`, `consistency=last_saved_state`, stale risk, storage identity and file revision); path resolution remains Target-local through Minecraft's `LevelResource` and dimension storage APIs. Reads use bounded NBT accounting, a bounded storage executor and read-only region channels. File snapshots and the session-lock identity are checked across the read; lifecycle changes, save-at-capture and shutdown fail closed. `storage.read` is separate from the broad `debug` scope, and no Persistent Write operation exists.
+
+Windows lock/access contention is reported as busy/unavailable, not inferred corruption. After a real Save & Quit and loss of LIVE ownership, a detached, identity-checked last-world context permits read-only `offline_file_snapshot` access guarded by the existing session lock. No Server object, force-load or LIVE fallback is required. The bounded Anvil reader accepts a valid unpadded final sector, still rejects truncated payloads, and explicitly reports unsupported external `.mcc` chunks. Runtime close retires the read worker/context.
 
 ### Persistent Write Entry Boundary
 

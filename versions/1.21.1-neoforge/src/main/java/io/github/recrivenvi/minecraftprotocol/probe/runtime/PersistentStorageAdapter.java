@@ -60,6 +60,10 @@ final class PersistentStorageAdapter implements AutoCloseable {
     private final AtomicReference<Object> observedWorld = new AtomicReference<>();
     private final AtomicReference<String> anchoredWorldIdentity = new AtomicReference<>();
     private final AtomicInteger inFlight = new AtomicInteger();
+    private final AtomicReference<Phase9ASpikeEngine.StorageRequest> retainedContext = new AtomicReference<>();
+    private final AtomicBoolean contextCapturePending = new AtomicBoolean();
+    private volatile boolean fullyStopped;
+    private volatile boolean saving;
 
     PersistentStorageAdapter(String target) {
         this(target, 0L);
@@ -87,12 +91,83 @@ final class PersistentStorageAdapter implements AutoCloseable {
         Object previous = this.observedWorld.getAndSet(world);
         if (previous != world) {
             this.lifecycleEpoch.incrementAndGet();
-            this.anchoredWorldIdentity.set(null);
+            if (world != null) {
+                this.anchoredWorldIdentity.set(null);
+                this.retainedContext.set(null);
+            }
             if (world == null) {
                 cancelPending("world_unload");
             }
         }
         this.worldAvailable.set(world != null);
+    }
+
+
+    /** Only detached path/identity metadata is retained, never a Server/Level/Player. */
+    void rememberContext(Phase9ASpikeEngine.StorageRequest request) {
+        if (!this.accepting.get() || !this.worldAvailable.get()
+                || !this.contextCapturePending.compareAndSet(false, true)) return;
+        long epoch = this.lifecycleEpoch.get();
+        try {
+            this.worker.execute(() -> {
+                try {
+                    String identity = PersistentWriteSafetyFoundation.StorageIdentity.readIdentity(request.root(), this.target);
+                    if (this.accepting.get() && this.worldAvailable.get() && this.lifecycleEpoch.get() == epoch) {
+                        String anchored = this.anchoredWorldIdentity.get();
+                        if (anchored != null && !anchored.equals(identity)) return;
+                        this.anchoredWorldIdentity.compareAndSet(null, identity);
+                        this.retainedContext.set(request);
+                    }
+                } catch (Exception ignored) {
+                    // No usable identity means no offline context, never a guessed path.
+                } finally { this.contextCapturePending.set(false); }
+            });
+        } catch (RejectedExecutionException ignored) { this.contextCapturePending.set(false); }
+    }
+
+    void observeStorageLifecycle(Object world, boolean saving, boolean fullyStopped) {
+        observeWorldLifecycle(world);
+        if (this.saving != saving || this.fullyStopped != fullyStopped) {
+            this.lifecycleEpoch.incrementAndGet();
+            cancelPending("storage_lifecycle_transition");
+        }
+        this.saving = saving;
+        this.fullyStopped = fullyStopped && world == null;
+    }
+
+    CompletableFuture<JsonObject> readSaved(JsonObject query) {
+        Phase9ASpikeEngine.StorageRequest base = this.retainedContext.get();
+        if (!this.accepting.get()) return failed("PERSISTED_STORAGE_CLOSED", 409, "Storage adapter is closed");
+        if (!this.fullyStopped || this.worldAvailable.get()) {
+            return failed("PERSISTED_STORAGE_BUSY", 409, "World has not finished Save & Quit");
+        }
+        if (base == null) return failed("PERSISTED_STORAGE_CONTEXT_UNAVAILABLE", 409, "No safely retained storage context");
+        String domain = query.has("domain") ? query.get("domain").getAsString() : "";
+        if (!Set.of("world", "player", "chunk").contains(domain)) {
+            return failed("INVALID_STORAGE_DOMAIN", 400, "domain must be world, player, or chunk");
+        }
+        int x = query.has("chunkX") ? query.get("chunkX").getAsInt() : (base.chunkPos() == null ? 0 : base.chunkPos().getMinBlockX() >> 4);
+        int z = query.has("chunkZ") ? query.get("chunkZ").getAsInt() : (base.chunkPos() == null ? 0 : base.chunkPos().getMinBlockZ() >> 4);
+        return read(new Phase9ASpikeEngine.StorageRequest(domain, base.root(), base.playerDataRoot(),
+                base.levelName(), base.dimension(), base.playerUuid(), new ChunkPos(x, z),
+                false, false, false, base.sessionEpoch(), this.lifecycleEpoch.get(), base.worldFingerprint()));
+    }
+
+    static ProtocolState.ProtocolException classifyIo(IOException error) {
+        if (error instanceof java.nio.file.NoSuchFileException) {
+            return new ProtocolState.ProtocolException("PERSISTED_STORAGE_NOT_FOUND", 404, "Persisted file is not found");
+        }
+        if (error instanceof java.nio.file.AccessDeniedException) {
+            return new ProtocolState.ProtocolException("PERSISTED_STORAGE_UNAVAILABLE", 403, "Storage access denied or unavailable");
+        }
+        if (error instanceof java.nio.file.FileSystemException) {
+            return new ProtocolState.ProtocolException("PERSISTED_STORAGE_BUSY", 409, "Storage is busy/locked; retry after Save & Quit");
+        }
+        if (error instanceof java.io.EOFException || error instanceof java.util.zip.ZipException
+                || error instanceof java.io.UTFDataFormatException) {
+            return new ProtocolState.ProtocolException("PERSISTED_STORAGE_CORRUPT", 422, "Persisted data is corrupt or truncated");
+        }
+        return new ProtocolState.ProtocolException("PERSISTED_STORAGE_READ_FAILED", 503, "Storage IO is unavailable; corruption is not established");
     }
 
     long lifecycleEpoch() {
@@ -105,10 +180,11 @@ final class PersistentStorageAdapter implements AutoCloseable {
 
     CompletableFuture<JsonObject> read(Phase9ASpikeEngine.StorageRequest request) {
         if (!this.accepting.get()) return failed("PERSISTED_STORAGE_CLOSED", 409, "Persistent storage adapter is closed");
-        if (!this.worldAvailable.get() || !request.liveWorldExists()) {
+        if (request.liveWorldExists() != this.worldAvailable.get()
+                || (!request.liveWorldExists() && !this.fullyStopped)) {
             return failed("PERSISTED_STORAGE_WORLD_UNAVAILABLE", 409, "Live world lifecycle is not available");
         }
-        if (request.saveInProgress()) {
+        if (request.saveInProgress() || this.saving) {
             return failed("PERSISTED_STORAGE_SAVE_IN_PROGRESS", 409, "Minecraft is currently saving the world");
         }
 
@@ -129,12 +205,10 @@ final class PersistentStorageAdapter implements AutoCloseable {
             } catch (CancellationException exception) {
                 result.cancel(false);
             } catch (IOException exception) {
-                result.completeExceptionally(new ProtocolState.ProtocolException(
-                        "PERSISTED_STORAGE_CORRUPT", 422,
-                        "Persisted file is corrupt or truncated: " + exception.getClass().getSimpleName()));
+                result.completeExceptionally(classifyIo(exception));
             } catch (RuntimeException exception) {
                 String code = exception.getMessage() != null && exception.getMessage().contains("too big")
-                        ? "PERSISTED_STORAGE_BUDGET_EXCEEDED" : "PERSISTED_STORAGE_CORRUPT";
+                        ? "PERSISTED_STORAGE_BUDGET_EXCEEDED" : "PERSISTED_STORAGE_READ_FAILED";
                 result.completeExceptionally(new ProtocolState.ProtocolException(code, code.endsWith("EXCEEDED") ? 413 : 422, exception.getClass().getSimpleName()));
             } catch (Throwable exception) {
                 result.completeExceptionally(new ProtocolState.ProtocolException(
@@ -162,6 +236,21 @@ final class PersistentStorageAdapter implements AutoCloseable {
     }
 
     private JsonObject readNow(
+            Phase9ASpikeEngine.StorageRequest request, long epoch, CompletableFuture<JsonObject> result) throws Exception {
+        if (request.liveWorldExists()) return readSnapshot(request, epoch, result);
+        // A shared read-only OS lock prevents another Minecraft process taking ownership
+        // during the offline snapshot. No lock file is created or modified.
+        try (FileChannel channel = FileChannel.open(request.root().resolve("session.lock"), StandardOpenOption.READ);
+             java.nio.channels.FileLock guard = channel.tryLock(0L, Long.MAX_VALUE, true)) {
+            if (guard == null) throw new ProtocolState.ProtocolException(
+                    "PERSISTED_STORAGE_BUSY", 409, "Another Minecraft process owns this save");
+            return readSnapshot(request, epoch, result);
+        } catch (java.nio.channels.OverlappingFileLockException busy) {
+            throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_BUSY", 409, "Storage is owned by an active Runtime");
+        }
+    }
+
+    private JsonObject readSnapshot(
             Phase9ASpikeEngine.StorageRequest request,
             long requestEpoch,
             CompletableFuture<JsonObject> result) throws Exception {
@@ -177,13 +266,14 @@ final class PersistentStorageAdapter implements AutoCloseable {
         }
         Path root = request.root().toAbsolutePath().normalize();
         Path levelData = root.resolve("level.dat");
+        String worldIdentity = anchorWorldIdentity(request, root, null);
+        FileStamp lockBefore = metadataOnly(root.resolve("session.lock"));
         FileStamp worldBefore = snapshot(levelData, requestEpoch, result);
         if (!worldBefore.exists()) {
             throw new ProtocolState.ProtocolException(
                     "PERSISTED_STORAGE_WORLD_IDENTITY_UNAVAILABLE", 409,
                     "level.dat is unavailable; storage identity cannot be established");
         }
-        String worldIdentity = anchorWorldIdentity(request, root, worldBefore);
         Path file = resolveFile(request, root);
         FileStamp before = snapshot(file, requestEpoch, result);
         if (!before.exists()) {
@@ -193,14 +283,23 @@ final class PersistentStorageAdapter implements AutoCloseable {
         }
 
         CompoundTag tag;
-        if ("chunk".equals(request.domain())) {
-            tag = readChunk(file, request, requestEpoch, result);
-        } else {
-            tag = readCompressed(file, requestEpoch, result);
+        try {
+            if ("chunk".equals(request.domain())) {
+                tag = readChunk(file, request, requestEpoch, result);
+            } else {
+                tag = readCompressed(file, requestEpoch, result);
+            }
+        } catch (IOException | ProtocolState.ProtocolException failure) {
+            // A concurrent save must not be diagnosed as malformed stable data.
+            ensureStable(before, snapshot(file, requestEpoch, result), file.getFileName().toString());
+            ensureStable(worldBefore, snapshot(levelData, requestEpoch, result), "level.dat");
+            throw failure;
         }
         checkActive(requestEpoch, result);
         FileStamp after = snapshot(file, requestEpoch, result);
         FileStamp worldAfter = snapshot(levelData, requestEpoch, result);
+        ensureStable(lockBefore, metadataOnly(root.resolve("session.lock")), "session.lock");
+        anchorWorldIdentity(request, root, null);
         ensureStable(before, after, file.getFileName().toString());
         ensureStable(worldBefore, worldAfter, "level.dat");
         return persistedResult(request, file, tag, worldIdentity, before, after, "ok");
@@ -233,7 +332,8 @@ final class PersistentStorageAdapter implements AutoCloseable {
         }
     }
 
-    private CompoundTag readChunk(
+    // Package-visible for synthetic byte-stream safety tests, without a live world bootstrap.
+    CompoundTag readChunk(
             Path file,
             Phase9ASpikeEngine.StorageRequest request,
             long requestEpoch,
@@ -251,14 +351,19 @@ final class PersistentStorageAdapter implements AutoCloseable {
         }
         int sectors = location & 0xFF;
         int firstSector = (location >>> 8) & 0xFFFFFF;
-        if (firstSector < 2 || sectors <= 0 || ((long) firstSector + sectors) * 4_096L > stamp.size()) {
+        long offset = (long) firstSector * 4_096L;
+        if (firstSector < 2 || sectors <= 0 || offset + 5L > stamp.size()) {
+            ensureStable(stamp, snapshot(file, requestEpoch, result), file.getFileName().toString());
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_CORRUPT", 422, "Region sector entry is invalid");
         }
         long allocatedBytes = Math.multiplyExact((long) sectors, 4_096L);
         if (allocatedBytes > MAX_SOURCE_BYTES) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_BUDGET_EXCEEDED", 413, "Region chunk allocation exceeds the read budget");
         }
-        ByteBuffer chunk = ByteBuffer.allocate(Math.toIntExact(allocatedBytes));
+        // Anvil sector allocation is not a promise that the last sector is padded.
+        // Read only the bytes actually present, then validate the declared payload.
+        long readableBytes = Math.min(allocatedBytes, stamp.size() - offset);
+        ByteBuffer chunk = ByteBuffer.allocate(Math.toIntExact(readableBytes));
         try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
             readFully(channel, chunk, (long) firstSector * 4_096L);
         }
@@ -266,6 +371,10 @@ final class PersistentStorageAdapter implements AutoCloseable {
         if (chunk.remaining() < 5) throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_CORRUPT", 422, "Region chunk header is truncated");
         int length = chunk.getInt();
         int compression = Byte.toUnsignedInt(chunk.get());
+        if ((compression & 0x80) != 0) {
+            throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_UNSUPPORTED_EXTERNAL_CHUNK", 422,
+                    "External .mcc chunks are not part of this bounded read contract");
+        }
         int payloadLength = length - 1;
         if (length <= 1 || payloadLength > chunk.remaining()) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_CORRUPT", 422, "Region chunk payload is truncated");
@@ -289,7 +398,7 @@ final class PersistentStorageAdapter implements AutoCloseable {
     private static void readFully(FileChannel channel, ByteBuffer buffer, long position) throws IOException {
         while (buffer.hasRemaining()) {
             int read = channel.read(buffer, position);
-            if (read < 0) throw new IOException("unexpected end of persisted file");
+            if (read < 0) throw new java.io.EOFException("unexpected end of persisted file");
             position += read;
         }
     }
@@ -320,7 +429,8 @@ final class PersistentStorageAdapter implements AutoCloseable {
         json.addProperty("storageWorldIdentity", worldIdentity);
         json.addProperty("sessionEpoch", request.sessionEpoch());
         json.addProperty("storageLifecycleEpoch", request.lifecycleEpoch());
-        json.addProperty("lifecycleState", "active_file_snapshot");
+        json.addProperty("lifecycleState", request.liveWorldExists() ? "active_file_snapshot" : "offline_file_snapshot");
+        json.addProperty("contextSource", request.liveWorldExists() ? "integrated_server" : "retained_detached_storage_context");
         json.addProperty("dimension", request.dimension().location().toString());
         json.addProperty("playerUuid", request.playerUuid());
         json.addProperty("chunkX", request.chunkPos().x);
@@ -333,6 +443,7 @@ final class PersistentStorageAdapter implements AutoCloseable {
         json.addProperty("stalePossibility", request.liveWorldExists());
         json.addProperty("storageAccessOccurred", true);
         json.addProperty("sideEffects", "read_only_file_channel");
+        json.addProperty("ownershipGuard", request.liveWorldExists() ? "runtime_lifecycle" : "shared_read_only_session_lock");
         json.addProperty("writeImplemented", false);
         json.addProperty("readStatus", readStatus);
         json.addProperty("fileExists", before.exists());
@@ -361,9 +472,7 @@ final class PersistentStorageAdapter implements AutoCloseable {
             Phase9ASpikeEngine.StorageRequest request,
             Path root,
             FileStamp levelData) throws IOException, PersistentWriteSafetyFoundation.SafetyFailure {
-        String identity = PersistentWriteSafetyFoundation.StorageIdentity
-                .capture(root, this.target)
-                .identity();
+        String identity = PersistentWriteSafetyFoundation.StorageIdentity.readIdentity(root, this.target);
         String previous = this.anchoredWorldIdentity.get();
         if (previous == null && this.anchoredWorldIdentity.compareAndSet(null, identity)) return identity;
         if (previous == null) previous = this.anchoredWorldIdentity.get();
@@ -384,8 +493,11 @@ final class PersistentStorageAdapter implements AutoCloseable {
         if (Files.isSymbolicLink(path)) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_SYMLINK_UNSUPPORTED", 422, "Storage symlinks are not accepted");
         }
-        if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) return FileStamp.missing();
-        BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attributes;
+        try { attributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS); }
+        catch (java.nio.file.NoSuchFileException missing) { return FileStamp.missing(); }
+        if (!attributes.isRegularFile()) throw new ProtocolState.ProtocolException(
+                "PERSISTED_STORAGE_UNAVAILABLE", 409, "Storage target is not a regular file");
         if (attributes.size() > MAX_SOURCE_BYTES) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_BUDGET_EXCEEDED", 413, "Persistent source file exceeds the read budget");
         }
@@ -401,8 +513,11 @@ final class PersistentStorageAdapter implements AutoCloseable {
         if (Files.isSymbolicLink(path)) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_SYMLINK_UNSUPPORTED", 422, "Storage symlinks are not accepted");
         }
-        if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) return FileStamp.missing();
-        BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        BasicFileAttributes attributes;
+        try { attributes = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS); }
+        catch (java.nio.file.NoSuchFileException missing) { return FileStamp.missing(); }
+        if (!attributes.isRegularFile()) throw new ProtocolState.ProtocolException(
+                "PERSISTED_STORAGE_UNAVAILABLE", 409, "Storage target is not a regular file");
         if (attributes.size() > MAX_SOURCE_BYTES) {
             throw new ProtocolState.ProtocolException("PERSISTED_STORAGE_BUDGET_EXCEEDED", 413, "Persistent identity file exceeds the read budget");
         }
@@ -419,9 +534,10 @@ final class PersistentStorageAdapter implements AutoCloseable {
 
     private boolean active(long requestEpoch, CompletableFuture<JsonObject> result) {
         return this.accepting.get()
-                && this.worldAvailable.get()
+                && (this.worldAvailable.get() || this.fullyStopped)
+                && !this.saving
                 && this.lifecycleEpoch.get() == requestEpoch
-                && !result.isCancelled()
+                && !result.isDone()
                 && !Thread.currentThread().isInterrupted();
     }
 
@@ -434,6 +550,7 @@ final class PersistentStorageAdapter implements AutoCloseable {
     private void cancelPending(String reason) {
         for (CompletableFuture<JsonObject> future : this.pending) future.cancel(false);
         this.worker.getQueue().clear();
+        this.contextCapturePending.set(false);
     }
 
     private static CompletableFuture<JsonObject> failed(String code, int status, String message) {
@@ -474,6 +591,8 @@ final class PersistentStorageAdapter implements AutoCloseable {
     public void close() {
         if (!this.accepting.compareAndSet(true, false)) return;
         this.worldAvailable.set(false);
+        this.fullyStopped = false;
+        this.retainedContext.set(null);
         this.lifecycleEpoch.incrementAndGet();
         this.anchoredWorldIdentity.set(null);
         cancelPending("runtime_shutdown");
@@ -533,7 +652,8 @@ final class PersistentStorageAdapter implements AutoCloseable {
 
         private void account(long amount) throws IOException {
             this.consumed += amount;
-            if (this.consumed > this.maximum) throw new IOException("bounded persisted source exceeded");
+            if (this.consumed > this.maximum) throw new ProtocolState.ProtocolException(
+                    "PERSISTED_STORAGE_BUDGET_EXCEEDED", 413, "Decoded persisted source exceeded budget");
         }
     }
 }

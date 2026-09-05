@@ -25,13 +25,19 @@ $results = foreach ($target in $targets) {
     $combined = $texts -join "`n"
 
     Assert-True ($combined -notmatch '@Overwrite') "$($target.Name) must not use Overwrite"
-    Assert-True ($combined -notmatch 'cancellable\s*=\s*true') "$($target.Name) must not cancel injections"
-    Assert-True ($combined -notmatch '\bci\.cancel\s*\(') "$($target.Name) must not call CallbackInfo.cancel"
-    Assert-True ($combined -notmatch '@Redirect|@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must avoid replacement-style Hook mechanisms in V1"
+    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java')
+    $observationCode = ($files | Where-Object Name -notin $operatorFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    Assert-True ($observationCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect') "$($target.Name) observation Hooks must not change control flow"
+    Assert-True ($combined -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
+    $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
+    $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
+    Assert-True ($cancellableCount -eq 7 -and $redirectCount -eq 2) "$($target.Name) must contain exactly the reviewed seven operator cancellations plus icon/keymapping forwarding Hooks"
+    $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
+    Assert-True ($windowHook -match 'glfwSetWindowIcon' -and $windowHook -match 'onVanillaWindowIcon') "$($target.Name) icon redirect must preserve actual Vanilla pixels"
     Assert-True ($combined -notmatch '@Mixin\s*\(\s*targets\s*=') "$($target.Name) must use typed Minecraft targets"
     foreach ($file in $files) {
         $text = Get-Content -LiteralPath $file.FullName -Raw
-        Assert-True ($text -match 'import net\.minecraft\.') "$($target.Name)/$($file.Name) must target Minecraft, not a third-party Mod"
+        Assert-True ($text -match 'import (net\.minecraft\.|com\.mojang\.blaze3d\.)') "$($target.Name)/$($file.Name) must target Minecraft, not a third-party Mod"
     }
 
     $configPath = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Config)"
@@ -47,7 +53,8 @@ $results = foreach ($target in $targets) {
         Invokers = ([regex]::Matches($combined, '@Invoker\s*\(')).Count
         Accessors = ([regex]::Matches($combined, '@Accessor\s*\(')).Count
         Overwrites = 0
-        Cancellable = 0
+        Cancellable = $cancellableCount
+        Replacement = $redirectCount
         ThirdPartyTargets = 0
         Result = 'PASS'
     }

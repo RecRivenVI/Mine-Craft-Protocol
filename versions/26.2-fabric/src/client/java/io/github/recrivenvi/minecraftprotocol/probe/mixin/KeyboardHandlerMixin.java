@@ -15,6 +15,6 @@ abstract class KeyboardHandlerMixin {
     private void minecraftProtocolProbe$handleNativeEscape(
             long window, int action, KeyEvent event, CallbackInfo callbackInfo) {
         if (event.key() == 256 && action == 1 && !AgentInputContext.isAgentRouted()
-                && FabricProbeRuntime.onNativeEscape()) callbackInfo.cancel();
+                && FabricProbeRuntime.onNativeEscape(window)) callbackInfo.cancel();
     }
 }

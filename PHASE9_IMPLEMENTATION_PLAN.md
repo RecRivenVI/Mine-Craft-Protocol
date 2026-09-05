@@ -5,6 +5,7 @@
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
 > Current phase boundary: Phase 9D-2.1 runtime packaging and five-target packaged-artifact lifecycle attestation are complete; Persistent Write remains unimplemented and the next gate is an independent Entry Review; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
+> Core UX closeout (separate from Phase gates): PARTIAL — representative human override/cursor tests and five-target regressions pass; one isolated Forge save-click timeout remains unexplained. Evidence: `Artifacts/core/core-ux-closeout-20260905.json`. New control modes/pointer are research only in `AGENT_CONTROL_MODEL_RESEARCH.md`.
 
 ## 1. Purpose
 

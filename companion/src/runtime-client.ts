@@ -7,13 +7,22 @@ export class RuntimeError extends Error {
   readonly code: string;
   readonly status: number;
   readonly requestId?: string;
+  readonly controlState?: 'MANUALLY_REVOKED';
+  readonly reconsentRequired?: boolean;
+  readonly manualRevocationReason?: string;
 
-  constructor(code: string, status: number, message: string, requestId?: string) {
+  constructor(code: string, status: number, message: string, requestId?: string, details?: JsonObject) {
     super(message);
     this.name = 'RuntimeError';
     this.code = code;
     this.status = status;
     if (requestId !== undefined) this.requestId = requestId;
+    if (code === 'USER_MANUALLY_ENDED_CONTROL') {
+      this.controlState = 'MANUALLY_REVOKED';
+      this.reconsentRequired = true;
+      this.manualRevocationReason = typeof details?.manualRevocationReason === 'string'
+        ? details.manualRevocationReason : 'human_manual_revocation';
+    }
   }
 }
 
@@ -50,7 +59,7 @@ export class RuntimeClient {
       const code = typeof parsed.error === 'string' ? parsed.error : 'RUNTIME_HTTP_ERROR';
       const message = typeof parsed.message === 'string' ? parsed.message : `Runtime request failed with HTTP ${response.status}`;
       const requestId = typeof parsed.requestId === 'string' ? parsed.requestId : response.headers.get('x-mcp-request-id') ?? undefined;
-      throw new RuntimeError(code, response.status, message, requestId);
+      throw new RuntimeError(code, response.status, message, requestId, parsed);
     }
     return parsed as T;
   }

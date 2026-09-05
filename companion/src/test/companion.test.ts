@@ -32,13 +32,14 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(bytes);
 }
 
-async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[] }> {
+async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[] }> {
   const leases: string[] = [];
   const operationCancels: number[] = [];
   const deepObserveStarts: number[] = [];
   const deepObserveAborts: number[] = [];
   const deepObserveDeadlines: string[] = [];
   let longOperation = false;
+  let manuallyRevoked = false;
   let cancelDeepObserve: (() => void) | undefined;
   const server = createServer(async (request, response) => {
     if (request.headers.authorization !== `Bearer ${token}`) {
@@ -95,6 +96,7 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
     }
     if (path === '/v0/control/status') return json(response, 200, { ...base, type: 'control.status', active: leases.length > 0, leaseId: leases.at(-1) });
     if (path === '/v0/control/acquire') {
+      manuallyRevoked = false;
       leases.push('mock-lease');
       return json(response, 200, { ...base, type: 'control.lease', leaseId: 'mock-lease', status: 'acquired' });
     }
@@ -102,6 +104,10 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
       if (path.endsWith('release') || path.endsWith('emergency-release')) leases.length = 0;
       return json(response, 200, { ...base, type: 'control.lease', leaseId: 'mock-lease', status: 'completed' });
     }
+    if (path === '/v0/ui/action' && manuallyRevoked) return json(response, 409, {
+      error: 'USER_MANUALLY_ENDED_CONTROL', message: '用户手动结束控制', requestId: 'manual-request',
+      controlState: 'MANUALLY_REVOKED', reconsentRequired: true, manualRevocationReason: 'human_manual_revocation'
+    });
     if (path === '/v0/ui/action') {
       if (request.headers['x-mcp-control-lease'] !== 'mock-lease') return json(response, 409, { error: 'CONTROL_LEASE_REQUIRED', message: 'lease required', requestId: 'mock-request' });
       return json(response, 200, { ...base, type: 'ui.action_result', entryLayer: 'GAME_ROUTED_RAW', targetingSource: 'interaction_tree', payload });
@@ -161,6 +167,7 @@ async function startRuntime(): Promise<{ baseUrl: string; close: () => Promise<v
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Mock Runtime did not bind');
   return {
+    revokeControl: () => { manuallyRevoked = true; },
     baseUrl: `http://127.0.0.1:${address.port}`,
     leases,
     operationCancels,
@@ -235,6 +242,23 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const action = await client.callTool({ name: 'minecraft_interact_ui', arguments: { action: 'click', selector: { role: 'button', label: maliciousText } } });
     assert.equal(action.isError, undefined);
     assert.equal(runtime.leases.at(-1), 'mock-lease');
+
+    runtime.revokeControl();
+    for (let i = 0; i < 3; i++) {
+      const rejected = await client.callTool({ name: 'minecraft_interact_ui', arguments: { selector: { label: 'safe' } } });
+      const data = rejected.structuredContent as { error: Record<string, unknown> };
+      assert.equal(rejected.isError, true);
+      assert.equal(data.error.code, 'USER_MANUALLY_ENDED_CONTROL');
+      assert.equal(data.error.controlState, 'MANUALLY_REVOKED');
+      assert.equal(data.error.reconsentRequired, true);
+      assert.equal(data.error.manualRevocationReason, 'human_manual_revocation');
+    }
+    assert.notEqual((await client.callTool({ name: 'minecraft_get_session', arguments: {} })).isError, true);
+    // This fixture explicitly simulates newly granted conversation consent.
+    await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire' } });
+    const afterReacquire = await client.callTool({ name: 'minecraft_interact_ui', arguments: { selector: { label: 'safe' } } });
+    assert.notEqual(afterReacquire.isError, true);
+    assert.equal(JSON.stringify(afterReacquire.structuredContent).includes('reconsentRequired'), false);
 
     const pipeline = await client.callTool({ name: 'minecraft_run_input_pipeline', arguments: { steps: [{ type: 'delay', durationMs: 1 }], waitForCompletion: true } });
     assert.equal(pipeline.isError, undefined);

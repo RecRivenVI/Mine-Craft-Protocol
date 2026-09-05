@@ -62,42 +62,22 @@ final class AutomationEngine implements AutoCloseable {
         });
     }
 
-    CompletableFuture<JsonObject> uiAction(JsonObject request) {
-        String action = string(request, "action", "click");
-        int button = integer(request, "button", 0);
-        int modifiers = integer(request, "modifiers", 0);
-        long holdMillis = bounded(longValue(request, "holdMs", 40L), 0L, 5_000L);
+    CompletableFuture<JsonObject> uiAction(JsonObject request, Runnable leaseCheck) {
+        JsonObject step = request.deepCopy();
+        step.addProperty("type", "ui.action");
+        JsonArray steps = new JsonArray();
+        steps.add(step);
+        JsonObject pipeline = new JsonObject();
+        pipeline.add("steps", steps);
+        pipeline.addProperty("cleanupOnComplete", false);
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                this.executePipeline(pipeline, leaseCheck),
+                result -> CompletableFuture.completedFuture(result.getAsJsonArray("steps")
+                        .get(0).getAsJsonObject().getAsJsonObject("result")));
+    }
 
-        if (request.has("coordinates")) {
-            JsonObject coordinates = request.getAsJsonObject("coordinates");
-            double x = requiredDouble(coordinates, "x");
-            double y = requiredDouble(coordinates, "y");
-            String source = string(request, "source", "explicit_coordinate");
-            return this.performUiAction(action, x, y, button, modifiers, holdMillis, request)
-                    .thenApply(result -> decorateAction(result, null, x, y, source, action));
-        }
-
-        if (!request.has("selector")) {
-            return failed("INVALID_UI_ACTION", 400, "ui.action requires selector or coordinates");
-        }
-        JsonObject selector = request.getAsJsonObject("selector");
-        return this.resolve(selector).thenCompose(resolution -> {
-            JsonObject node = resolution.getAsJsonObject("node");
-            requireActionable(node, action);
-            JsonObject point = resolution.getAsJsonObject("interactionPoint");
-            double x = point.get("x").getAsDouble();
-            double y = point.get("y").getAsDouble();
-            Long screenRevision = resolution.has("screenRevision")
-                    ? resolution.get("screenRevision").getAsLong() : null;
-            Long menuRevision = resolution.has("menuRevision")
-                    ? resolution.get("menuRevision").getAsLong() : null;
-            return this.service.validatePreconditions(screenRevision, menuRevision)
-                    .thenCompose(ignored -> this.performUiAction(
-                            action, x, y, button, modifiers, holdMillis, request))
-                    .thenApply(result -> decorateAction(
-                            result, node, x, y,
-                            "interaction_tree", action));
-        });
+    void cancelControlWork() {
+        for (PipelineExecution execution : this.activeExecutions) execution.result.cancel(false);
     }
 
     CompletableFuture<JsonObject> assertThat(JsonObject condition) {
@@ -133,9 +113,7 @@ final class AutomationEngine implements AutoCloseable {
 
     @Override
     public void close() {
-        for (PipelineExecution execution : this.activeExecutions) {
-            execution.requestCancellation("runtime_shutdown");
-        }
+        this.cancelControlWork();
         this.scheduler.shutdownNow();
     }
 
@@ -626,6 +604,7 @@ final class AutomationEngine implements AutoCloseable {
 
         private <T> CompletableFuture<T> effect(Supplier<CompletableFuture<T>> supplier) {
             this.checkActive();
+            this.leaseCheck.run();
             CompletableFuture<T> future;
             try {
                 future = supplier.get();

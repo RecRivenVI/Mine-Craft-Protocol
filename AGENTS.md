@@ -1,5 +1,18 @@
 # AGENTS.md
 
+## Minecraft Operation and Human Acceptance Boundary
+
+For this repository, operate and validate Minecraft through Mine-Craft-Protocol's
+own Runtime HTTP/WebSocket API or MCP Companion. Do not use Codex Computer Use,
+CUA, desktop automation, or host input injection to operate Minecraft or its
+keyboard, mouse, or window. Do not substitute a Computer Use skill for this rule.
+
+When acceptance requires physical Escape, Alt+Tab, real mouse clicks, or host
+focus changes, ask the user to perform the concrete action and wait. Judge the
+result using Runtime/Event/Audit evidence and the user's visual confirmation.
+Never report injected desktop events as human acceptance. Read-only process
+metadata and normal build/launch commands are not desktop input automation.
+
 ## Repository Philosophy
 
 This repository follows an **Explicit Target Governance** model for multi-version, multi-loader Minecraft Java development.

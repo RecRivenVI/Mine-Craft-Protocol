@@ -6,6 +6,7 @@
 > 修订日期：2026-09-05
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
 > 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0、Phase 9D-1、Phase 9D-2 与 Phase 9D-2.1 已完成；Packaged Artifact Runtime Attestation PASS；Persistent Write Entry Review READY for independent review；Phase 9E/9F/9G 与 Phase 10 未开始
+> 本轮 Core UX 收尾：PARTIAL；两代表端真人输入验收、五端必要回归与正常关闭通过，Forge 一次保存点击超时原因未定。READ / OPERATE / TAKEOVER 与 Virtual Pointer 仅完成研究，未实现。
 
 ---
 
@@ -2283,7 +2284,11 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 
 ## 29. 下一步立即执行项
 
-当前阶段为 **Phase 9D-2.1: PASS**，Packaged Artifact Runtime Attestation PASS，Persistent Write Entry Review READY for independent review。下一步建议先进行 Human-visible Core Demo；Persistent Write 仍须经过独立 Entry Review 授权后才能开始。
+Phase 9D-2.1 与历史 Packaged Artifact Runtime Attestation 保持 PASS；Persistent Write 仍须经过独立 Entry Review，未实现。本轮不是新的 Phase：Human-visible Demo 后续 Core UX 收尾为 **PARTIAL**。Forge/Fabric 真人 Esc、Alt+Tab 与点击交接已由用户操作并与 Runtime 证据核对；五端截图/录制排除 Operator Chrome、保存后离线读取及正常关闭已通过。Forge 一次保存点击超时在复查中未重现，但原因未确定，不能被后续 PASS 覆盖。
+
+证据见 `Artifacts/core/core-ux-closeout-20260905.json`。它绑定工作树产品 blob 与构建 JAR，不冒充新的 clean-remote Phase 8 Release Attestation；本轮没有 Persistent Write 调用。较长 Contact Sheet 录制仍需遵守解码预算，失败详情的可见性不足也已记录。
+
+控制模型研究见 `AGENT_CONTROL_MODEL_RESEARCH.md`，状态为 **PROPOSAL / NOT IMPLEMENTED**。建议先决定是否接受其模式/权限边界和分轮顺序，并保留 Forge 点击问题的最小复现跟踪；不自动开始新模型、Persistent Write、后续 Phase 或 Extension。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2300,6 +2305,8 @@ Persistent Write Entry Review (third review): historical CLOSED — runtime pack
 Phase 9D-2.1: PASS — RUNTIME SAFETY PACKAGING + FIVE-TARGET LIFECYCLE
 Packaged Artifact Runtime Attestation: PASS — five final JARs, five Loader runs
 Persistent Write Entry Review: READY FOR INDEPENDENT REVIEW
+Previous UX Task: PARTIAL — isolated Forge save-click timeout remains open
+Agent Control Model: RESEARCH ONLY — no new modes or Virtual Pointer implementation
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

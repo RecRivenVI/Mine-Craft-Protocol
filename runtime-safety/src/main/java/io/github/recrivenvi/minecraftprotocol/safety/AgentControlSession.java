@@ -45,7 +45,8 @@ public final class AgentControlSession {
     }
 
     public synchronized Snapshot acquire() {
-        return transition(State.AGENT_CONTROLLED, "agent_control_acquired");
+        return transition(State.AGENT_CONTROLLED, this.state == State.MANUALLY_REVOKED
+                ? "agent_control_reacquired" : "agent_control_acquired");
     }
 
     public synchronized Snapshot release(String reason) {

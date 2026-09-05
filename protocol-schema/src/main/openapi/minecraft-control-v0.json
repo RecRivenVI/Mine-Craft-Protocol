@@ -1768,7 +1768,9 @@
           "storageWorldIdentity": { "type": "string" },
           "sessionEpoch": { "type": "string" },
           "storageLifecycleEpoch": { "type": "integer", "format": "int64", "minimum": 0 },
-          "lifecycleState": { "type": "string", "enum": ["active_file_snapshot"] },
+          "lifecycleState": { "type": "string", "enum": ["active_file_snapshot", "offline_file_snapshot"] },
+          "contextSource": { "type": "string", "enum": ["integrated_server", "retained_detached_storage_context"] },
+          "ownershipGuard": { "type": "string", "enum": ["runtime_lifecycle", "shared_read_only_session_lock"] },
           "dimension": { "type": "string" },
           "playerUuid": { "type": "string", "format": "uuid" },
           "chunkX": { "type": "integer" },
@@ -2096,6 +2098,20 @@
                 "format": "int64",
                 "minimum": 0
               },
+              "controlChromeAlpha": { "type": "number", "minimum": 0, "maximum": 1 },
+              "operatorChromeLayer": { "type": "string", "enum": ["after_content_capture_before_present"] },
+              "captureExcludesOperatorChrome": { "type": "boolean" },
+              "captureFrameSequence": { "type": "integer", "format": "int64" },
+              "capturePending": { "type": "integer", "minimum": 0, "maximum": 16 },
+              "captureReadbacks": { "type": "integer", "format": "int64" },
+              "hostFocused": { "type": "boolean" },
+              "hostCursorCaptured": { "type": "boolean" },
+              "hostCursorCaptureGranted": { "type": "boolean" },
+              "nativeRevocations": { "type": "integer", "format": "int64" },
+              "nativeCaptureGrants": { "type": "integer", "format": "int64" },
+              "rejectedHostGrabs": { "type": "integer", "format": "int64" },
+              "windowIconState": { "type": "string", "enum": ["agent_placeholder", "original_minecraft"] },
+              "originalWindowIconCount": { "type": "integer", "minimum": 0, "maximum": 16 },
               "controlChromeRenderedFrames": {
                 "type": "integer",
                 "format": "int64",
@@ -2143,6 +2159,20 @@
                 "format": "int64",
                 "minimum": 0
               },
+              "controlChromeAlpha": { "type": "number", "minimum": 0, "maximum": 1 },
+              "operatorChromeLayer": { "type": "string", "enum": ["after_content_capture_before_present"] },
+              "captureExcludesOperatorChrome": { "type": "boolean" },
+              "captureFrameSequence": { "type": "integer", "format": "int64" },
+              "capturePending": { "type": "integer", "minimum": 0, "maximum": 16 },
+              "captureReadbacks": { "type": "integer", "format": "int64" },
+              "hostFocused": { "type": "boolean" },
+              "hostCursorCaptured": { "type": "boolean" },
+              "hostCursorCaptureGranted": { "type": "boolean" },
+              "nativeRevocations": { "type": "integer", "format": "int64" },
+              "nativeCaptureGrants": { "type": "integer", "format": "int64" },
+              "rejectedHostGrabs": { "type": "integer", "format": "int64" },
+              "windowIconState": { "type": "string", "enum": ["agent_placeholder", "original_minecraft"] },
+              "originalWindowIconCount": { "type": "integer", "minimum": 0, "maximum": 16 },
               "controlChromeRenderedFrames": {
                 "type": "integer",
                 "format": "int64",
@@ -2195,7 +2225,7 @@
           "id": { "type": "string" },
           "mechanism": {
             "type": "string",
-            "enum": ["MIXIN_INJECT", "MIXIN_INVOKER", "MIXIN_ACCESSOR", "PUBLIC_METHOD", "RUNTIME_CALLBACK", "UNAVAILABLE"]
+            "enum": ["MIXIN_INJECT", "MIXIN_REDIRECT", "MIXIN_INVOKER", "MIXIN_ACCESSOR", "PUBLIC_METHOD", "RUNTIME_CALLBACK", "UNAVAILABLE"]
           },
           "target": { "type": "string" },
           "injectionPoint": { "type": "string" },
@@ -2221,6 +2251,8 @@
               "policy": { "type": "string", "enum": ["capability_fidelity_first"] },
               "overwriteCount": { "type": "integer", "minimum": 0 },
               "cancellableInjectionCount": { "type": "integer", "minimum": 0 },
+              "replacementInjectionCount": { "type": "integer", "minimum": 0 },
+              "controlFlowPolicy": { "type": "string" },
               "thirdPartyTargetCount": { "type": "integer", "minimum": 0 },
               "runtimeSelfTest": { "type": "boolean" },
               "overall": { "type": "string", "enum": ["ready", "degraded"] },
@@ -3122,6 +3154,7 @@
             "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
           },
           "reconsentRequired": { "type": "boolean" },
+          "manualRevocationReason": { "type": "string", "enum": ["human_manual_revocation"] },
           "controlTransitionSequence": { "type": "integer", "format": "int64", "minimum": 0 },
           "message": { "type": "string" },
           "requestId": { "type": "string" },
@@ -3150,11 +3183,26 @@
                 "enum": ["IDLE", "AGENT_CONTROLLED", "MANUALLY_REVOKED"]
               },
               "reconsentRequired": { "type": "boolean" },
+          "manualRevocationReason": { "type": "string", "enum": ["human_manual_revocation"] },
               "controlTransitionSequence": {
                 "type": "integer",
                 "format": "int64",
                 "minimum": 0
               },
+              "controlChromeAlpha": { "type": "number", "minimum": 0, "maximum": 1 },
+              "operatorChromeLayer": { "type": "string", "enum": ["after_content_capture_before_present"] },
+              "captureExcludesOperatorChrome": { "type": "boolean" },
+              "captureFrameSequence": { "type": "integer", "format": "int64" },
+              "capturePending": { "type": "integer", "minimum": 0, "maximum": 16 },
+              "captureReadbacks": { "type": "integer", "format": "int64" },
+              "hostFocused": { "type": "boolean" },
+              "hostCursorCaptured": { "type": "boolean" },
+              "hostCursorCaptureGranted": { "type": "boolean" },
+              "nativeRevocations": { "type": "integer", "format": "int64" },
+              "nativeCaptureGrants": { "type": "integer", "format": "int64" },
+              "rejectedHostGrabs": { "type": "integer", "format": "int64" },
+              "windowIconState": { "type": "string", "enum": ["agent_placeholder", "original_minecraft"] },
+              "originalWindowIconCount": { "type": "integer", "minimum": 0, "maximum": 16 },
               "controlChromeRenderedFrames": {
                 "type": "integer",
                 "format": "int64",
@@ -3939,6 +3987,7 @@
           "reconsentRequired": {
             "type": "boolean"
           },
+          "manualRevocationReason": { "type": "string", "enum": ["human_manual_revocation"] },
           "requestId": {
             "type": "string"
           },

@@ -69,7 +69,7 @@ Assert-True (-not [bool]$hookOperation.requiresControlLease) 'Hook diagnostics m
 $initialHooks = Invoke-Json -Method GET -Path '/v0/diagnostics/hooks'
 Assert-True ($initialHooks.policy -eq 'capability_fidelity_first') 'Hook policy must be Capability/Fidelity First'
 Assert-True ($initialHooks.overwriteCount -eq 0) 'Hook manifest must declare zero Overwrite hooks'
-Assert-True ($initialHooks.cancellableInjectionCount -eq 0) 'Hook manifest must declare zero cancellable injections'
+Assert-True ($initialHooks.cancellableInjectionCount -eq 7 -and $initialHooks.replacementInjectionCount -eq 2) 'Hook manifest must report the reviewed operator-control Hooks honestly'
 Assert-True ($initialHooks.thirdPartyTargetCount -eq 0) 'Hook manifest must declare zero third-party targets'
 Assert-True ([bool]$initialHooks.runtimeSelfTest -and $initialHooks.overall -eq 'ready') 'core Hook self-test must be ready'
 
@@ -138,7 +138,7 @@ if ($ModernRenderFacts) {
 
 $hooks = Invoke-Json -Method GET -Path '/v0/diagnostics/hooks'
 foreach ($hook in $hooks.hooks) {
-    Assert-True (-not [bool]$hook.overwrite -and -not [bool]$hook.cancellable -and -not [bool]$hook.thirdPartyTarget) "Hook $($hook.id) must preserve compatibility policy"
+    Assert-True (-not [bool]$hook.overwrite -and (-not [bool]$hook.cancellable -or $hook.plane -eq 'OPERATOR_CONTROL') -and -not [bool]$hook.thirdPartyTarget) "Hook $($hook.id) must preserve compatibility policy"
     Assert-True (-not [string]::IsNullOrWhiteSpace($hook.failureCapability)) "Hook $($hook.id) must declare its degraded capability"
 }
 Assert-True (($hooks.hooks | Where-Object id -eq 'composite_capture').runtimeStatus -eq 'runtime_verified') 'Capture callback must become runtime verified'

@@ -154,6 +154,22 @@ public final class PersistentWriteSafetyFoundation {
                     rootCreated, level.createdMillis(), lock.createdMillis(), evidence, durable);
         }
 
+        /** Read-side identity capture must not open the Minecraft-owned session.lock contents. */
+        public static String readIdentity(Path worldRoot, String target) throws IOException, SafetyFailure {
+            Path root = worldRoot.toAbsolutePath().normalize();
+            if (Files.isSymbolicLink(root) || !Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+                throw new SafetyFailure("STORAGE_IDENTITY_UNAVAILABLE", "World directory is unavailable");
+            }
+            BasicFileAttributes attrs = Files.readAttributes(root, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+            String key = String.valueOf(attrs.fileKey());
+            long created = attrs.creationTime().toMillis();
+            if ("null".equals(key) && created <= 0L) {
+                throw new SafetyFailure("STORAGE_IDENTITY_NOT_DURABLE", "World directory identity is unavailable");
+            }
+            return sha256("persistent-storage-v" + CONTRACT_VERSION + "|target=" + target + "|root=" + root
+                    + "|rootFileKey=" + key + "|rootCreatedMillis=" + created + "|identityBasis=root_directory_lineage");
+        }
+
         public boolean same(StorageIdentity other) {
             return other != null && this.identity.equals(other.identity);
         }

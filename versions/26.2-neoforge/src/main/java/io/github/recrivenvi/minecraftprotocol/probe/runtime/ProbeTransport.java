@@ -86,12 +86,15 @@ final class ProbeTransport implements AutoCloseable {
         this.port = port;
         this.securityGate = new SecurityGate(
                 "token:" + UUID.nameUUIDFromBytes(token.getBytes(StandardCharsets.UTF_8)));
+        this.automation = new AutomationEngine(service);
         this.protocolState = new ProtocolState(
                 ProtocolState.configuredScopes(),
                 this.securityGate.principalId(),
-                reason -> service.releaseAllInput(reason),
-                service::controlPresenceChanged);
-        this.automation = new AutomationEngine(service);
+                reason -> {
+                    this.automation.cancelControlWork();
+                    service.releaseAllInput(reason);
+                },
+                this::controlPresenceChanged);
         this.observation = new ObservationEngine(service);
         this.recording = new RecordingEngine(service, this.observation);
         this.eventHub = new EventHub("26.2-neoforge", this::resyncSnapshot);
@@ -140,6 +143,20 @@ final class ProbeTransport implements AutoCloseable {
     void broadcast(JsonObject event) {
         JsonObject published = this.eventHub.publish(event);
         this.recording.recordEvent("runtime.event", published);
+    }
+
+    private void controlPresenceChanged(io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession.Snapshot snapshot) {
+        this.service.controlPresenceChanged(snapshot);
+        if (this.closed.get()) return;
+        JsonObject event = new JsonObject();
+        event.addProperty("type", "control.presence");
+        event.addProperty("category", "control");
+        event.addProperty("controlState", snapshot.state().name());
+        event.addProperty("reason", snapshot.reason());
+        event.addProperty("reconsentRequired", snapshot.reconsentRequired());
+        event.addProperty("principalId", this.securityGate.principalId());
+        event.addProperty("controlTransitionSequence", snapshot.transitionSequence());
+        this.broadcast(event);
     }
 
     boolean revokeHumanControl() {
@@ -335,7 +352,7 @@ final class ProbeTransport implements AutoCloseable {
                 JsonObject body = jsonBody(request);
                 Supplier<CompletableFuture<JsonObject>> action = () ->
                         service.validatePreconditions(metadata.expectedScreenRevision(), metadata.expectedMenuRevision())
-                                .thenCompose(ignored -> automation.uiAction(body));
+                                .thenCompose(ignored -> automation.uiAction(body, () -> protocolState.requireLease(metadata.leaseId())));
                 String idempotencyKey = metadata.idempotencyKey() == null
                         ? null : path + ":" + metadata.idempotencyKey();
                 CompletableFuture<JsonObject> future = protocolState.idempotent(idempotencyKey, action);
@@ -1110,6 +1127,7 @@ final class ProbeTransport implements AutoCloseable {
         if ("USER_MANUALLY_ENDED_CONTROL".equals(code)) {
             json.addProperty("controlState", "MANUALLY_REVOKED");
             json.addProperty("reconsentRequired", true);
+            json.addProperty("manualRevocationReason", "human_manual_revocation");
         }
         json.addProperty("requestId", requestId);
         json.addProperty("protocolVersion", ProtocolState.PROTOCOL_VERSION);

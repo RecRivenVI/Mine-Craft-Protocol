@@ -110,11 +110,10 @@ try {
                 Assert-True ($offlineLifecycle -eq 'STOPPED_OFFLINE') "$($run.Target) lifecycle did not reach STOPPED_OFFLINE after world/server/connection exit"
                 $tree = Invoke-Json $base GET '/v0/ui/tree' $auth $null
                 if (-not $afterWorld.inWorld) {
-                    try {
-                        [void](Invoke-Json $base POST '/v0/diagnostics/phase9a/storage/read' $auth @{ domain='world' })
-                        throw "$($run.Target) storage read unexpectedly succeeded after world unload"
-                    } catch {
-                        if ($_.Exception.Message -match 'unexpectedly succeeded') { throw }
+                    foreach ($domain in @('world', 'player', 'chunk')) {
+                        $saved = Invoke-Json $base POST '/v0/diagnostics/phase9a/storage/read' $auth @{ domain=$domain }
+                        Assert-True ($saved.dataSource -eq 'PERSISTED' -and $saved.consistency -eq 'last_saved_state') "$($run.Target) saved $domain authority mismatch"
+                        Assert-True ($saved.lifecycleState -eq 'offline_file_snapshot' -and -not $saved.liveWorldExists -and -not $saved.targetLoaded) "$($run.Target) saved $domain must use detached offline context"
                     }
                 }
             }

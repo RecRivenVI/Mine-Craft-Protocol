@@ -745,7 +745,10 @@ final class ProtocolState implements AutoCloseable {
         json.addProperty("controlState", snapshot.state().name());
         json.addProperty("reconsentRequired", snapshot.reconsentRequired());
         json.addProperty("controlTransitionSequence", snapshot.transitionSequence());
-        if (snapshot.manuallyRevoked()) json.addProperty("message", snapshot.message());
+        if (snapshot.manuallyRevoked()) {
+            json.addProperty("message", snapshot.message());
+            json.addProperty("manualRevocationReason", snapshot.reason());
+        }
         return json;
     }
 

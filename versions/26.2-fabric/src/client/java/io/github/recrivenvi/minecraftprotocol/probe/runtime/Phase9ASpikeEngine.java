@@ -122,7 +122,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     void observeStorageLifecycle(Object world, boolean saving, boolean fullyStopped) {
-        this.storageAdapter.observeWorldLifecycle(world);
+        this.storageAdapter.observeStorageLifecycle(world, saving, fullyStopped);
         if (world != null) {
             if (saving) this.writeLifecycle.markSaving();
             else this.writeLifecycle.markRunning();
@@ -1030,7 +1030,16 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 sha256(server.getWorldPath(LevelResource.ROOT).toAbsolutePath() + "|" + level.dimension().identifier()));
     }
 
+    void rememberStorageContext(StorageRequest request) {
+        this.storageAdapter.rememberContext(request);
+    }
+
+    CompletableFuture<JsonObject> readSavedStorage(JsonObject query) {
+        return this.storageAdapter.readSaved(query);
+    }
+
     CompletableFuture<JsonObject> readStorage(StorageRequest request) {
+        this.storageAdapter.rememberContext(request);
         return this.storageAdapter.read(request);
     }
 
