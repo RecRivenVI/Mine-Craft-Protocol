@@ -23,7 +23,10 @@ abstract class MinecraftMixin {
     @Redirect(method = "tick", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/Minecraft;handleKeybinds()V"))
     private void minecraftProtocolProbe$virtualKeymappingConsumption(Minecraft client) {
-        if (ForgeProbeRuntime.isAgentControlActive()) AgentInputContext.routed(this::handleKeybinds);
+        if (ForgeProbeRuntime.isAgentControlActive()) {
+            ForgeProbeRuntime.ensureExclusiveOwnerState();
+            AgentInputContext.routed(this::handleKeybinds);
+        }
         else this.handleKeybinds();
     }
 

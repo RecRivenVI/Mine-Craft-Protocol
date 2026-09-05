@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-control-r1",
+    "version": "0.0.1-control-r24",
     "description": "Unstable V0 with explicit READ / OPERATE / TAKEOVER intent, independent authorization, formal Deep Observation and typed Debug. Wire Protocol v1 is not frozen.",
     "x-stability": "unstable"
   },
@@ -749,6 +749,51 @@
             }
           }
         }
+      }
+    },
+    "/v0/input/mouse/delta": {
+      "post": {
+        "operationId": "mouseDelta",
+        "x-agent-mode": "TAKEOVER_REQUIRED",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ControlLease"
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "$ref": "#/components/parameters/ProtocolVersion"
+          },
+          {
+            "$ref": "#/components/parameters/Deadline"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedScreenRevision"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedMenuRevision"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MouseDeltaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InputResult"
+          }
+        },
+        "description": "TAKEOVER-only bounded relative pixel delta through Vanilla sensitivity/inversion. No host cursor movement; no direct yaw/pitch mutation."
       }
     },
     "/v0/input/mouse/move": {
@@ -3066,23 +3111,60 @@
       },
       "UiActionRequest": {
         "type": "object",
-        "required": ["action"],
+        "required": [
+          "action"
+        ],
         "properties": {
-          "selector": { "$ref": "#/components/schemas/UiSelector" },
-          "coordinates": { "$ref": "#/components/schemas/UiCoordinates" },
+          "selector": {
+            "$ref": "#/components/schemas/UiSelector"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/UiCoordinates"
+          },
           "source": {
             "type": "string",
-            "enum": ["explicit_coordinate", "vision", "vision_coordinate"]
+            "enum": [
+              "explicit_coordinate",
+              "vision",
+              "vision_coordinate"
+            ]
           },
           "action": {
             "type": "string",
-            "enum": ["click", "double_click", "mouse_down", "mouse_up", "scroll"]
+            "enum": [
+              "hover",
+              "click",
+              "double_click",
+              "mouse_down",
+              "mouse_up",
+              "scroll"
+            ]
           },
-          "button": { "type": "integer", "default": 0 },
-          "modifiers": { "type": "integer", "default": 0 },
-          "holdMs": { "type": "integer", "format": "int64", "minimum": 0, "maximum": 5000, "default": 40 },
-          "xOffset": { "type": "number", "format": "double", "default": 0 },
-          "yOffset": { "type": "number", "format": "double", "default": 0 }
+          "button": {
+            "type": "integer",
+            "default": 0
+          },
+          "modifiers": {
+            "type": "integer",
+            "default": 0
+          },
+          "holdMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 5000,
+            "default": 40
+          },
+          "xOffset": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          },
+          "yOffset": {
+            "type": "number",
+            "format": "double",
+            "default": 0
+          }
         },
         "description": "Exactly one of selector or coordinates is required by the Runtime."
       },
@@ -3141,6 +3223,26 @@
             }
           }
         ]
+      },
+      "MouseDeltaRequest": {
+        "type": "object",
+        "required": [
+          "dx",
+          "dy"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "dx": {
+            "type": "number",
+            "minimum": -8192,
+            "maximum": 8192
+          },
+          "dy": {
+            "type": "number",
+            "minimum": -8192,
+            "maximum": 8192
+          }
+        }
       },
       "MouseMoveRequest": {
         "type": "object",
@@ -3957,6 +4059,97 @@
               },
               "modeTransitionReason": {
                 "type": "string"
+              },
+              "presenceActive": {
+                "type": "boolean"
+              },
+              "presenceBasis": {
+                "type": "string"
+              },
+              "presenceInactivityTimeoutMs": {
+                "type": "integer"
+              },
+              "hostCursorPolicy": {
+                "type": "string",
+                "enum": [
+                  "never_capture_or_warp_during_takeover"
+                ]
+              },
+              "nativeInputPolicy": {
+                "type": "string",
+                "enum": [
+                  "exclusive_except_physical_escape"
+                ]
+              },
+              "activeGestureId": {
+                "type": "string"
+              },
+              "pointerOwnership": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "serialized_gesture",
+                  "lease_raw_stream"
+                ]
+              },
+              "inputQueueCapacity": {
+                "type": "integer",
+                "enum": [
+                  16
+                ]
+              },
+              "inputQueueDepth": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "inputSequenceActive": {
+                "type": "boolean"
+              },
+              "suppressedNativeInput": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                }
+              },
+              "agentPointer": {
+                "type": "object",
+                "required": [
+                  "plane",
+                  "x",
+                  "y",
+                  "alpha",
+                  "evidencePixels"
+                ],
+                "properties": {
+                  "plane": {
+                    "type": "string",
+                    "enum": [
+                      "HIDDEN",
+                      "GUI_ABSOLUTE",
+                      "GAMEPLAY_RELATIVE"
+                    ]
+                  },
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "alpha": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "evidencePixels": {
+                    "type": "boolean",
+                    "enum": [
+                      false
+                    ]
+                  }
+                }
               }
             }
           }
@@ -4177,56 +4370,147 @@
       },
       "PipelineStep": {
         "type": "object",
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution.",
         "properties": {
           "type": {
             "type": "string",
             "enum": [
-              "delay", "mouse.move", "mouse.button", "mouse.click", "mouse.scroll", "mouse.drag",
-              "key", "key.tap", "key.chord", "ui.action", "ui.drag", "wait.until", "assert.that"
+              "delay",
+              "mouse.move",
+              "mouse.delta",
+              "mouse.button",
+              "mouse.click",
+              "mouse.scroll",
+              "mouse.drag",
+              "key",
+              "key.tap",
+              "key.chord",
+              "ui.action",
+              "ui.drag",
+              "wait.until",
+              "assert.that"
             ]
           },
-          "durationMs": { "type": "integer", "format": "int64" },
-          "holdMs": { "type": "integer", "format": "int64" },
-          "x": { "type": "number", "format": "double" },
-          "y": { "type": "number", "format": "double" },
-          "fromX": { "type": "number", "format": "double" },
-          "fromY": { "type": "number", "format": "double" },
-          "toX": { "type": "number", "format": "double" },
-          "toY": { "type": "number", "format": "double" },
-          "segments": { "type": "integer", "minimum": 1, "maximum": 120 },
-          "button": { "type": "integer" },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "holdMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "fromX": {
+            "type": "number",
+            "format": "double"
+          },
+          "fromY": {
+            "type": "number",
+            "format": "double"
+          },
+          "toX": {
+            "type": "number",
+            "format": "double"
+          },
+          "toY": {
+            "type": "number",
+            "format": "double"
+          },
+          "segments": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120
+          },
+          "button": {
+            "type": "integer"
+          },
           "action": {
             "oneOf": [
-              { "type": "string" },
-              { "type": "integer" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
             ]
           },
-          "modifiers": { "type": "integer" },
-          "xOffset": { "type": "number", "format": "double" },
-          "yOffset": { "type": "number", "format": "double" },
-          "key": { "type": "integer" },
-          "scanCode": { "type": "integer" },
+          "modifiers": {
+            "type": "integer"
+          },
+          "xOffset": {
+            "type": "number",
+            "format": "double"
+          },
+          "yOffset": {
+            "type": "number",
+            "format": "double"
+          },
+          "key": {
+            "type": "integer"
+          },
+          "scanCode": {
+            "type": "integer"
+          },
           "keys": {
             "type": "array",
             "maxItems": 16,
             "items": {
               "type": "object",
-              "required": ["key"],
+              "required": [
+                "key"
+              ],
               "properties": {
-                "key": { "type": "integer" },
-                "scanCode": { "type": "integer" },
-                "modifiers": { "type": "integer" }
+                "key": {
+                  "type": "integer"
+                },
+                "scanCode": {
+                  "type": "integer"
+                },
+                "modifiers": {
+                  "type": "integer"
+                }
               }
             }
           },
-          "selector": { "$ref": "#/components/schemas/UiSelector" },
-          "coordinates": { "$ref": "#/components/schemas/UiCoordinates" },
-          "fromSelector": { "$ref": "#/components/schemas/UiSelector" },
-          "toSelector": { "$ref": "#/components/schemas/UiSelector" },
-          "condition": { "$ref": "#/components/schemas/AutomationCondition" },
-          "timeoutMs": { "type": "integer", "format": "int64" }
+          "selector": {
+            "$ref": "#/components/schemas/UiSelector"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/UiCoordinates"
+          },
+          "fromSelector": {
+            "$ref": "#/components/schemas/UiSelector"
+          },
+          "toSelector": {
+            "$ref": "#/components/schemas/UiSelector"
+          },
+          "condition": {
+            "$ref": "#/components/schemas/AutomationCondition"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dx": {
+            "type": "number",
+            "minimum": -8192,
+            "maximum": 8192
+          },
+          "dy": {
+            "type": "number",
+            "minimum": -8192,
+            "maximum": 8192
+          }
         },
         "additionalProperties": true
       },

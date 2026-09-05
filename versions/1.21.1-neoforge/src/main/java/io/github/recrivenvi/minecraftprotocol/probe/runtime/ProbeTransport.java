@@ -77,6 +77,10 @@ final class ProbeTransport implements AutoCloseable {
     private final DebugBatchEngine debugBatches;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final java.util.Set<String> presenceChannels = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Set<String> presenceWebSockets = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.concurrent.atomic.AtomicInteger activeResponses = new java.util.concurrent.atomic.AtomicInteger();
+    private volatile long lastAgentActivity;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
@@ -142,7 +146,13 @@ final class ProbeTransport implements AutoCloseable {
         }
     }
 
+    boolean agentPresent() {
+        return !this.closed.get() && (this.recording.hasActiveSessions() || !this.presenceWebSockets.isEmpty()
+                || this.activeResponses.get() > 0 || !this.presenceChannels.isEmpty() && System.currentTimeMillis() - this.lastAgentActivity < 15000);
+    }
+
     void broadcast(JsonObject event) {
+        if (this.closed.get()) return;
         JsonObject published = this.eventHub.publish(event);
         this.recording.recordEvent("runtime.event", published);
     }
@@ -204,6 +214,8 @@ final class ProbeTransport implements AutoCloseable {
                 }
                 securityGate.admit(context.channel(), request.method().name(),
                         new QueryStringDecoder(request.uri()).path());
+                presenceChannels.add(context.channel().id().asLongText());
+                lastAgentActivity = System.currentTimeMillis();
                 if (new QueryStringDecoder(request.uri()).path().equals("/v0/events")) {
                     protocolState.requireScope("event");
                     context.channel().attr(EVENT_REQUEST_URI).set(request.uri());
@@ -240,6 +252,7 @@ final class ProbeTransport implements AutoCloseable {
         @Override
         public void userEventTriggered(ChannelHandlerContext context, Object event) throws Exception {
             if (event == WebSocketServerProtocolHandler.ServerHandshakeStateEvent.HANDSHAKE_COMPLETE) {
+                presenceWebSockets.add(context.channel().id().asLongText());
                 String requestUri = context.channel().attr(EVENT_REQUEST_URI).get();
                 eventHub.register(context.channel(), new QueryStringDecoder(
                         requestUri == null ? "/v0/events" : requestUri));
@@ -249,6 +262,8 @@ final class ProbeTransport implements AutoCloseable {
 
         @Override
         public void channelInactive(ChannelHandlerContext context) throws Exception {
+            presenceChannels.remove(context.channel().id().asLongText());
+            presenceWebSockets.remove(context.channel().id().asLongText());
             eventHub.unregister(context.channel());
             securityGate.remove(context.channel());
             protocolState.releaseLeaseIfMatches(
@@ -385,8 +400,8 @@ final class ProbeTransport implements AutoCloseable {
                 if (!body.has("command")) {
                     throw new ProtocolState.ProtocolException("INVALID_PLAYER_COMMAND", 400, "Missing command");
                 }
-                CompletableFuture<JsonObject> command = protocolState.admitInput(metadata.leaseId(),
-                        () -> service.playerCommand(body.get("command").getAsString()));
+                CompletableFuture<JsonObject> command = automation.playerCommand(body.get("command").getAsString(),
+                        () -> protocolState.requireTakeover(metadata.leaseId()), supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
                 command.thenAccept(result -> recording.recordEvent("command.player.executed", result));
                 sendJsonFuture(context, metadata, path,
                         protocolState.applyDeadline(command, metadata.deadlineAtMillis()));
@@ -736,28 +751,20 @@ final class ProbeTransport implements AutoCloseable {
 
             Supplier<CompletableFuture<JsonObject>> action = () ->
                     service.validatePreconditions(metadata.expectedScreenRevision(), metadata.expectedMenuRevision())
-                            .thenCompose(ignored -> protocolState.admitInput(metadata.leaseId(), () -> {
-                                if (path.equals("/v0/input/mouse/move")) {
-                                    return service.mouseMove(body.get("x").getAsDouble(), body.get("y").getAsDouble());
-                                } else if (path.equals("/v0/input/mouse/button")) {
-                                    return service.mouseButton(
-                                            body.get("button").getAsInt(),
-                                            body.get("action").getAsInt(),
-                                            optionalInt(body, "modifiers"));
-                                } else if (path.equals("/v0/input/mouse/scroll")) {
-                                    return service.mouseScroll(
-                                            optionalDouble(body, "xOffset"),
-                                            optionalDouble(body, "yOffset"));
-                                } else if (path.equals("/v0/input/key")) {
-                                    return service.key(
-                                            body.get("key").getAsInt(),
-                                            optionalInt(body, "scanCode"),
-                                            body.get("action").getAsInt(),
-                                            optionalInt(body, "modifiers"));
-                                }
-                                return CompletableFuture.failedFuture(
-                                        new ProtocolState.ProtocolException("NOT_FOUND", 404, "Unknown input endpoint"));
-                            }));
+                            .thenCompose(ignored -> {
+                                JsonObject step = body.deepCopy();
+                                String type = switch (path) {
+                                    case "/v0/input/mouse/move" -> "mouse.move";
+                                    case "/v0/input/mouse/delta" -> "mouse.delta";
+                                    case "/v0/input/mouse/button" -> "mouse.button";
+                                    case "/v0/input/mouse/scroll" -> "mouse.scroll";
+                                    case "/v0/input/key" -> "key";
+                                    default -> throw new ProtocolState.ProtocolException("NOT_FOUND", 404, "Unknown input endpoint");
+                                };
+                                step.addProperty("type", type);
+                                return automation.rawInput(step, () -> protocolState.requireTakeover(metadata.leaseId()),
+                                        supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
+                            });
 
             String idempotencyKey = metadata.idempotencyKey() == null
                     ? null : path + ":" + metadata.idempotencyKey();
@@ -844,6 +851,8 @@ final class ProbeTransport implements AutoCloseable {
             ProtocolState.RequestMetadata metadata,
             String path,
             CompletableFuture<JsonObject> future) {
+        this.activeResponses.incrementAndGet();
+        future.whenComplete((ignored, error) -> this.activeResponses.decrementAndGet());
         future.whenComplete((json, error) -> {
             if (error != null) {
                 protocolState.audit(metadata.requestId(), auditConnectionId(context.channel()), path, "failed");

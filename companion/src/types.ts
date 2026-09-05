@@ -9,6 +9,22 @@ export interface RuntimeRequestOptions {
   signal?: AbortSignal;
 }
 
+export interface AgentPointerState {
+  plane: 'HIDDEN' | 'GUI_ABSOLUTE' | 'GAMEPLAY_RELATIVE';
+  x: number;
+  y: number;
+  alpha: number;
+  evidencePixels: false;
+}
+export interface OperatorPresenceState extends ControlModeState {
+  presenceActive: boolean;
+  hostCursorPolicy: 'never_capture_or_warp_during_takeover';
+  nativeInputPolicy: 'exclusive_except_physical_escape';
+  activeGestureId: string;
+  pointerOwnership: 'none' | 'serialized_gesture' | 'lease_raw_stream';
+  agentPointer: AgentPointerState;
+}
+
 export interface RuntimeBinary {
   bytes: Uint8Array;
   contentType: string;

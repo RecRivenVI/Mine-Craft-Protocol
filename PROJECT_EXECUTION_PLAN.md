@@ -6,7 +6,7 @@
 > 修订日期：2026-09-05
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
 > 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0、Phase 9D-1、Phase 9D-2 与 Phase 9D-2.1 已完成；Packaged Artifact Runtime Attestation PASS；Persistent Write Entry Review READY for independent review；Phase 9E/9F/9G 与 Phase 10 未开始
-> 本轮 Agent Control Model Round 1：PASS；READ / OPERATE / TAKEOVER 意图与独立权限、五端 Live、真人撤销、reconsent、并发及关闭验收完成。Forge 历史单次保存点击 timeout 有界复测未重现；首次录制在 Loader 关闭后加载类的收尾缺陷已修复。Round 2–4 与 Virtual Pointer 未实现。
+> 本轮 Agent Control Model 剩余设计合并实现：COMPLETE；独占 TAKEOVER、宿主光标隔离、真实 Virtual Pointer、有界手势串行化与像素 Chrome 已实现并完成五端自动 smoke。统一真人/视觉验收未执行。Round 1 权限/意图契约继续生效，Wire Protocol v1 未冻结。
 
 ---
 
@@ -2288,7 +2288,7 @@ Phase 9D-2.1 与历史 Packaged Artifact Runtime Attestation 保持 PASS；Persi
 
 本轮证据见 `Artifacts/core/agent-control-round1-20260905.json`，入口为 `conformance/control/Invoke-ControlRound1Gate.ps1`。证据绑定工作树产品 hash 与构建 JAR，不冒充新的 clean-remote Phase 8 Release Attestation。历史 `Artifacts/core/core-ux-closeout-20260905.json` 及失败记录保留。Forge 历史单次保存点击 timeout 在三次 Pause 开关与一次 Save & Quit 中未重现，不再作为 Round 1 blocker。新增实测发现的 NeoForge 26.2 首次 Contact Sheet 关闭期类加载失败，已通过 Minecraft.close 起点收尾修复，并在五端验证。Contact Sheet 预算不降低；失败现在报告阶段、原因、源文件保留和 Bundle 未完成状态。Persistent Write 调用为 0，正常 GUI 创建世界与 Save & Quit 不属于 Persistent Write API。
 
-控制模型记录见 `AGENT_CONTROL_MODEL_RESEARCH.md`。Round 1 已实现并验收；独占 TAKEOVER、宿主光标始终自由、Virtual Pointer 和像素 Chrome 仍为后续独立任务，未实现。停止并等待用户决定下一轮，不自动开始 Round 2、Persistent Write、后续 Phase 或 Extension。
+控制模型记录见 `AGENT_CONTROL_MODEL_RESEARCH.md`。按用户最新授权，剩余控制设计已合并实现，不再拆分交付。五端自动 smoke 验证真实 hover/click、拖动取消、Vanilla 相对视角与录制/关闭；这不是统一真人验收。下一轮只做统一验收：真实 Esc/IME/鼠标/焦点、宿主光标始终自由、像素 UI 舒适度、resize/fullscreen/Mod GUI 和五端一致性。不得自行启动。Persistent Write、Phase 9E/9F/9G/10 与 E1/E2/E3 仍未开始。
 
 ```text
 Phase 8 Remote Parity: PASS
@@ -2307,7 +2307,8 @@ Packaged Artifact Runtime Attestation: PASS — five final JARs, five Loader run
 Persistent Write Entry Review: READY FOR INDEPENDENT REVIEW
 Previous UX Task: historical PARTIAL — original evidence retained; Forge timeout not reproduced by bounded retest
 Agent Control Model Round 1: PASS — INTENT / AUTHORIZATION CONTRACT
-Agent Control Model Rounds 2–4: NOT STARTED
+Agent Control Model Rounds 2–4 Implementation: COMPLETE
+Unified Acceptance: READY — NOT EXECUTED
 Phase 10: NOT STARTED
 Wire Protocol v1: NOT FROZEN
 ```

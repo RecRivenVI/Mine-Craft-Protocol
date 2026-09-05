@@ -1,7 +1,7 @@
 # Agent Control Model — Research Decision
 
 > Date: 2026-09-05
-> Status: Round 1 PASS — five-Target intent, human revoke, reconsent and lifecycle acceptance. Rounds 2–4 PROPOSAL / NOT IMPLEMENTED. Wire Protocol v1 NOT FROZEN.
+> Status: Round 1 retained. Combined Rounds 2–4 IMPLEMENTATION COMPLETE; Unified Acceptance READY but NOT RUN. Wire Protocol v1 NOT FROZEN.
 > Scope: Core input/presence UX only. No Persistent Write, new Phase, or E1/E2/E3 work.
 > Prior UX closeout: PARTIAL; see `Artifacts/core/core-ux-closeout-20260905.json`.
 
@@ -93,9 +93,9 @@ Bundle status; retained source tracks are not silently certified intact. The
 historical Forge save-click timeout was not reproduced in three Pause cycles and
 one Save & Quit; it remains historical, not a reason to repeat tests indefinitely.
 
-## Human override and host cursor — Round 2 remains a proposal
+## Human override and host cursor — implemented, unified acceptance pending
 
-Recommend exclusive TAKEOVER: native keyboard, character/IME input, mouse
+Implemented exclusive TAKEOVER: native keyboard, character/IME input, mouse
 buttons, scroll and mouse movement do not affect Minecraft, except physical Esc
 which immediately ends player control. Do not block OS Alt+Tab, window close or
 input to other applications. Consume the first Esc; later Esc is Vanilla again.
@@ -111,9 +111,8 @@ input-mode change, but READ cannot use it to mutate. A session must explicitly
 enter OPERATE and meet the existing authorization checks. Agents must not use
 OPERATE/Debug to circumvent a person's instruction to stop. Reads remain usable.
 
-During TAKEOVER, the host cursor should **always stay free**: no grab on entry,
-focus, native click or routed click, and no cursor warp. Remove the current
-human-click capture grant when this new contract is explicitly implemented.
+During TAKEOVER, the host cursor **stays free on the supported standard paths**: no grab on entry,
+focus, native click or routed click, and no cursor warp. The previous human-click capture grant is removed.
 Block automatic grab at its entry point instead of repeatedly grabbing/releasing.
 Focus loss still performs defensive cleanup; it does not itself end a valid
 takeover. Outside takeover, restore ordinary Vanilla behavior.
@@ -123,7 +122,7 @@ A Mod polling GLFW directly, replacing callbacks or executing native code can
 bypass cooperative hooks. Do not advertise protection against arbitrary local
 code. Audit suppression counts and mode transitions, not private human key text.
 
-## Virtual pointer: genuine routed input, separate rendering — Round 3 not implemented
+## Virtual pointer: genuine routed input, separate rendering — implemented, unified acceptance pending
 
 Use an internal absolute pointer in GUI and a logical relative/camera mode in
 gameplay. Both are owned by the same input Lease/gesture generation, neither by
@@ -147,16 +146,16 @@ replacement and cancellation must invalidate or explicitly recompute a gesture;
 never complete a stale click at an old coordinate. Drag retains a gesture owner
 until release/cancel, with no leftover held button on any transition.
 
-The future pixel cursor is visible during TAKEOVER + GUI, with blue glow and
+The implemented pixel cursor is visible during TAKEOVER + GUI, with blue glow and
 short appearance/disappearance easing. It represents the coordinates actually
 delivered to Minecraft. Rendering a fake cursor while clicking elsewhere is not
 acceptable. Hover/tooltip is real tested game content and **stays in captures**;
 only the Operator cursor and chrome are excluded.
 
-Current `AgentInputContext` is synchronous and scoped; the existing coordinate
-cache is not this new pointer model. Future queued gestures need immutable
-origin/owner/generation attached at ingress and revalidated at owner-thread
-dispatch. Do not infer trusted human origin merely from an absent ThreadLocal,
+The earlier ambient-only `AgentInputContext` and coordinate cache have been
+replaced by one-use callback admission plus explicit scheduled native provenance,
+logical pointer state and bounded owner/drain sequencing. Queued gestures retain
+immutable origin/context and revalidate on the owning thread. Do not infer trusted human origin merely from an absent ThreadLocal,
 or let public requests select `NATIVE_HUMAN` themselves.
 
 The [GLFW input guide](https://www.glfw.org/docs/latest/input_guide.html#events)
@@ -166,9 +165,9 @@ concerns the OS cursor; it is not an Agent logical-pointer contract. These are
 reasons to test ingress provenance and the two coordinate domains independently.
 This is a design inference, not proof that the proposed hooks already work.
 
-## Operator chrome — Round 4 not implemented
+## Operator chrome — implemented, unified acceptance pending
 
-Recommend top-center Minecraft pixel typography, square/pixel-stepped borders,
+Implemented top-center Minecraft pixel typography, square/pixel-stepped borders,
 Minecraft-scale spacing and a blue status palette. Reuse the proven edge glow,
 short Fade and final Operator pass; do not introduce an OS overlay or a new
 Render Plane. Suggested text/intensity:
@@ -203,7 +202,7 @@ input-origin ingress, native suppression, current human cursor-capture grant,
 GUI/world logical pointer routing, and chrome layout/copy. Keep Target hooks
 explicit; do not promote new shared Loader abstractions before real evidence.
 
-Proposed small rounds, each with its own exit gate:
+Historical decomposition below is retained for traceability. The user authorized the remaining design as one combined implementation; these are not separate delivery or acceptance rounds:
 
 1. **Intent/authorization contract:** endpoint inventory, Fixture decision,
    actor identity, mode-transition concurrency, manual latch and stable errors.
@@ -225,3 +224,24 @@ and non-cooperative Mod input/render hooks outside the supported boundary.
 
 No round starts automatically. This research does not open Persistent Write or
 any subsequent Phase/Extension and does not freeze Wire Protocol v1.
+
+## Combined implementation contract (control-r24)
+
+- Native key/character/move/button/scroll callbacks are scheduled with explicit native provenance. Modern Targets also guard IME preedit/status/replay. One-use, argument-bound Agent callback tickets cannot be reused by nested/native re-entry; an ambient routed scope is not callback authorization.
+- TAKEOVER masks standard Minecraft key polling and clears prior native held bindings at owner-thread entry. It never installs OS-wide keyboard/mouse hooks; OS Alt+Tab, window close and system shortcuts remain outside the Minecraft suppression boundary.
+- MouseHandler grab/release and InputConstants grab/warp entry points are guarded. Entering TAKEOVER releases any pre-existing Vanilla capture once. There is no native-click grant and no per-tick grab/release contest. Direct non-cooperative Mod GLFW/native code remains outside the supported trust boundary.
+- One bounded 16-entry input sequence queue owns execution and cleanup, including legacy raw endpoints. Queued cancellation never cleans the active owner; stale admission fails before ownership. High-level GUI sequences cannot steal a Lease-owned raw held-button stream (POINTER_HELD); finish that stream with raw button-up or control cleanup first. Cleanup failure fail-closes further Agent input instead of handing off uncertain held state.
+- GUI movement uses 12 deterministic smoothstep samples over 180 ms. Bounded drag uses deterministic samples and one owner. Frame identity, Screen revision, dimensions/scale, target identity and bounds are rechecked on the Minecraft owner thread before each motion and atomic press/scroll. A replaced Screen or changed viewport cannot receive the old gesture's release callback.
+- Interaction identities are process-local monotonic IDs in a bounded 2048-entry map, not JVM addresses or external reflection. Eviction invalidates old guards rather than aliasing them.
+- POST /v0/input/mouse/delta and Pipeline mouse.delta accept bounded relative pixel deltas. The existing Vanilla movement processor applies sensitivity/inversion; no yaw/pitch setter is used. Legacy absolute mouse.move is retained as virtual-coordinate compatibility, not host cursor positioning.
+- ui.action hover uses the same trajectory and Vanilla callback path as click/drag. Hover/tooltip is tested game content and stays in Capture; only the Operator pixels are excluded.
+- Presence is orthogonal to intention/authority. An authenticated active connection has a 15-second activity window; active responses, Recording, admitted OPERATE work or a TAKEOVER Lease keep Presence visible. No connection/work/Lease means visually idle even though the safe intention remains READ.
+- Pixel top-center Chrome uses Minecraft font, stepped rectangular framing and one 160 ms animator for Presence, intensity, text crossfade and pointer fade. READ/OPERATE/TAKEOVER edge strengths are 0.25/0.55/1.0. Only TAKEOVER+GUI shows the pixel pointer. All Operator pixels follow content readback and precede present.
+- Titles distinguish reading/operating/takeover without repeated suffixes. Only TAKEOVER uses the existing placeholder icon; leaving it restores the actual cached Minecraft icon. Inactive Presence and shutdown restore the original title.
+- Native/MCP V0 is 0.0.1-control-r24: 75 formal HTTP operations and the same 24 MCP tools. Modes, scopes, Lease, Debug Arm, Resource Version, manual latch and evidence authority stay independent.
+- This implementation does not promise distributed rollback of previously sent Peer packets, arbitrary native-Mod containment, a new text/JVM/filesystem RPC, or any Phase 9/10/Extension work.
+
+Current automated entry points: Invoke-ControlImplementationStaticGate.ps1 and
+Invoke-ControlImplementationSmoke.ps1. Human Esc/IME/focus/host-cursor validation,
+visual comfort, arbitrary Mod GUI compatibility and the unified five-Target
+human/visual matrix remain explicitly pending the next authorized acceptance.

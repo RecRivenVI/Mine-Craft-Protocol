@@ -18,7 +18,13 @@ interface ProbeService {
     CompletableFuture<JsonObject> trace();
     CompletableFuture<JsonObject> renderFacts();
     CompletableFuture<JsonObject> uiTree();
+    CompletableFuture<JsonObject> pointerState();
     CompletableFuture<JsonObject> mouseMove(double guiX, double guiY);
+    CompletableFuture<JsonObject> mouseMoveGuarded(double guiX, double guiY, JsonObject guard);
+    CompletableFuture<JsonObject> mouseButtonGuarded(int button, int action, int modifiers, JsonObject guard);
+    CompletableFuture<JsonObject> mouseScrollGuarded(double xOffset, double yOffset, JsonObject guard);
+    CompletableFuture<JsonObject> mouseDelta(double dx, double dy);
+    default void gestureEvent(String id, String phase, JsonObject detail) { }
     CompletableFuture<JsonObject> mouseButton(int button, int action, int modifiers);
     CompletableFuture<JsonObject> mouseScroll(double xOffset, double yOffset);
     CompletableFuture<JsonObject> key(int key, int scanCode, int action, int modifiers);

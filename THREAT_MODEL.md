@@ -115,7 +115,7 @@ Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport
 
 Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons and restores the original title/icon; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. READ remains available; explicitly authorized OPERATE does not clear the TAKEOVER-only latch. No mode grants scopes, Lease, Arm or gameplay evidence. Owner-thread input generation admission and bounded OPERATE permits prevent stale input or implicit escalation across mode changes. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
 
-Automatic/background host cursor capture is denied while Agent-controlled. The current model still allows capture after a focused native gameplay click and releases it on focus loss; it is not an exclusive native-input blockade. The proposed stricter TAKEOVER model is research only. Physical acceptance must be performed by the user and correlated with Runtime evidence, never another desktop automation system. Native callback classification is not a hostile local-code or hardware-attestation boundary.
+During TAKEOVER, standard Minecraft native input is exclusively suppressed except physical Esc. Native clicks never grant host capture. MouseHandler/InputConstants capture and warp entry points are blocked, and normal key polling is backed by the Runtime-owned key set. One-shot argument-bound Agent callback tickets and explicitly scheduled native provenance prevent ambient-context leakage across nested callbacks. The bounded sequence queue drains cleanup before handing off ownership, rejects stale admission before touching held state, and fail-closes after cleanup failure. Physical acceptance must be performed by the user and correlated with Runtime evidence, never another desktop automation system. Native callback classification is not a hostile local-code or hardware-attestation boundary.
 
 Operator chrome is rendered after bounded fresh-content evidence readback. It is not gameplay evidence. Capture/Recording exclusion is supported by ordering tests and concurrent live image-region comparisons; sampled image checks are not a claim to exhaustively test arbitrary third-party rendering. Current UX evidence and the unresolved isolated Forge click timeout are recorded in `Artifacts/core/core-ux-closeout-20260905.json`.
 
@@ -217,7 +217,7 @@ Controls: explicit hello/ack negotiation, connection-identity reset, generated r
 
 An invasive Hook may replace another Mod's behavior, cancel a normal call path, target third-party code, or silently stop applying after a Minecraft update.
 
-Controls: Capability/Fidelity First selection, typed Minecraft targets, no Overwrite or third-party Mixin targets, and no control-flow modification in observation Hooks. Current Operator control explicitly audits seven cancellable injections plus two icon/keymapping forwarding redirects per Target. Source/config counts, required injections, runtime self-test and typed Hook capability degradation remain gates. This reduces predictable collision risk but cannot prove compatibility with every future third-party transformation.
+Controls: Capability/Fidelity First selection, typed Minecraft targets, no Overwrite or third-party Mixin targets, and no control-flow modification in observation Hooks. Current Operator control explicitly audits 13 legacy / 15 modern cancellable injections plus four native-ingress/icon/keymapping redirects per Target. Source/config counts, required injections, runtime self-test and typed Hook capability degradation remain gates. This reduces predictable collision risk but cannot prove compatibility with every future third-party transformation.
 
 ### Disabled Semantic Node Confusion
 
@@ -317,7 +317,7 @@ A future explicitly unsafe `EXPLORATORY_JVM` service is not an exception hidden 
 - Non-operator remote players receive `fixture=false` and `debug=false` even when server feature flags are enabled.
 - Peer disconnect cleanup reports `connected=false` and zero pending requests.
 - Peer-backed State Frames preserve `source=dedicated_server_peer` at both wrapper and data levels.
-- Historical Phase 8 inspection found no cancellation/replacement Hooks. Current Operator control adds the explicitly reviewed seven cancellations and two redirects per Target; Overwrite and third-party Mixin targets remain absent, and observation Hooks remain non-cancelling.
+- Historical Phase 8 inspection found no cancellation/replacement Hooks. Current Operator control adds the explicitly reviewed 13 legacy / 15 modern cancellations and four redirects per Target; Overwrite and third-party Mixin targets remain absent, and observation Hooks remain non-cancelling.
 - Runtime Hook manifests report core self-test readiness and per-capability failure behavior.
 - Disabled semantic controls reject selector actions before input is generated.
 - Official MCP Client conformance verifies static Tool/Prompt definitions under malicious-looking game text.

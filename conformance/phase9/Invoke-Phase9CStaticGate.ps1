@@ -5,7 +5,7 @@ function Assert-True([bool]$Condition,[string]$Message) {
     if(-not $Condition) { throw "Phase 9C static gate failed: $Message" }
 }
 $schema=Get-Content (Join-Path $root 'protocol-schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Assert-True ($schema.info.version -eq '0.0.1-control-r1') 'OpenAPI version'
+Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'OpenAPI version'
 foreach($path in @(
     '/v0/debug/capabilities','/v0/debug/mutations','/v0/debug/batches',
     '/v0/debug/evidence','/v0/debug/evidence/act/start','/v0/debug/evidence/act/finish')) {

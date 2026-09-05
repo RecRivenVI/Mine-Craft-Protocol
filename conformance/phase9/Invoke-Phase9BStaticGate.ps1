@@ -5,7 +5,7 @@ function A([bool]$c,[string]$m){if(-not$c){throw "Phase 9B static gate failed: $
 $schema=Get-Content (Join-Path $root 'protocol-schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
 $plan=Get-Content (Join-Path $root 'PHASE9_IMPLEMENTATION_PLAN.md') -Raw
 A ($plan.Contains('Phase 9B — Deep Observation and Provider V2 — COMPLETE') -and $plan.Contains('Phase 9C: PASS')) 'Phase 9B governance status'
-A ($schema.info.version -eq '0.0.1-control-r1') 'OpenAPI version after explicit Control Round 1 evolution'
+A ($schema.info.version -eq '0.0.1-control-r24') 'OpenAPI version after explicit Control Round 1 evolution'
 foreach($p in @('/v0/observe/deep','/v0/observe/deep/capabilities')){A($null-ne$schema.paths.$p) "missing $p"}
 foreach($s in @('DeepObservationRequest','DeepObservationResponse','ObservationMetadata','ResourceRevisionRef','PlayerSnapshot','MenuSnapshot','EntitySnapshot','BlockSnapshot','BlockEntitySnapshot','ChunkSnapshot','ChunkLoadingSummary','ScheduledTickSnapshot','ProviderV2Result')){A($null-ne$schema.components.schemas.$s) "missing schema $s"}
 $targets=@(

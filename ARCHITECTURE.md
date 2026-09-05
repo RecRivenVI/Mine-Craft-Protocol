@@ -218,7 +218,11 @@ Every input mutation requires the active Lease ID. Runtime-owned pressed keys an
 
 The authenticated Runtime control session has explicit `READ`, `OPERATE` and `TAKEOVER` intentions, not permission levels. Its independent manual latch derives the compatibility presentation states `IDLE`, `AGENT_CONTROLLED` and `MANUALLY_REVOKED`. Native Esc consumes its first event, revokes the Lease, cancels input work and releases held input. Agent-routed Esc is an ordinary GUI key. Esc returns TAKEOVER to READ. The manual latch and structured `reconsentRequired=true` persist across denied player-control requests and explicit OPERATE until successful acquire/reacquire. Conversation reconsent is an Agent/Companion policy, not a Runtime-verifiable boolean. Read-only operations and independent Debug authorization are not revoked by input handback.
 
-The current policy prevents automatic/background mouse grab; a focused native click in the gameplay viewport may grant capture until focus loss. It is not exclusive takeover: other human game input is not generally suppressed. Original window icon pixels and title are restored on handback; presentation has a short Fade. Fresh ordinary content is captured through a bounded queue before the final Operator pass, so the blue edge and current bottom-right prompt are not evidence pixels. No timed chrome suppression or separate OS overlay is used.
+TAKEOVER now exclusively admits Agent Minecraft callbacks except physical Esc. Native key/character/move/button/scroll/drop and applicable IME entry points are suppressed; standard Minecraft key polling reads the virtual held-key set. Native callbacks carry explicit scheduled origin, while Agent callbacks use argument-bound one-shot tickets, so callback re-entry cannot borrow an ambient Agent flag. No OS-wide input hook is installed.
+
+The host cursor is released on takeover entry and grab/warp is blocked at the standard entry points. Native clicks no longer grant capture. GUI uses a deterministic absolute virtual pointer; explicit relative deltas use Vanilla camera sensitivity/inversion. A bounded 16-entry sequence queue serializes input and cleanup. Atomic owner-thread GUI guards bind Screen/element identity, dimensions/scale and bounds. Replaced Screens cannot receive an old gesture release.
+
+Operator UI is Minecraft pixel-style at top center, with distinct READ/OPERATE/TAKEOVER text and edge intensity. One short Fade clock blends text, edge and pointer presentation; safety transitions are immediate. Pointer and Chrome draw after content readback and before present. Hover/tooltip remains game content and is captured normally. Inactive Presence/shutdown restores the original title; the actual Minecraft icon is restored when leaving TAKEOVER. No OS overlay, host cursor movement or timed capture suppression is used.
 
 Round 1 implements GET/POST `/v0/control/mode`, session/capability state and MCP typed mode actions. READ permits observation, standalone conditions, capture/recording, events and persisted reads. OPERATE permits separately authorized Fixture/Debug mutation without an input Lease. Player input, GUI, pipelines and player commands require TAKEOVER plus the existing Lease. Mode selection never supplies scopes or Debug Arm. Resource/value preconditions and evidence authority remain independent.
 
@@ -228,7 +232,7 @@ Mode admission is Runtime-local, not a distributed transaction. Already-sent Ded
 
 Minecraft.close HEAD drains the Runtime before Loader teardown and window destruction; a guarded JVM shutdown hook remains fallback. This avoids first-use Recording classes being loaded after the Mod class loader has closed. Contact Sheet/finalization failure is typed by stage and cause, with source-file retention distinguished from a verified completed Bundle.
 
-Always-free host cursor, exclusive native-input suppression, virtual pointer and pixel chrome remain **not implemented** (Rounds 2–4). See `AGENT_CONTROL_MODEL_RESEARCH.md`. Historical UX closeout evidence remains `Artifacts/core/core-ux-closeout-20260905.json`; the isolated Forge save-click timeout is retained as a historical observation, not erased by later passes.
+Exclusive input, separated host cursor, virtual pointer and pixel Chrome are implemented together in control-r24. Automated development checks do not constitute unified human/visual acceptance, which remains pending. See `AGENT_CONTROL_MODEL_RESEARCH.md`. Historical UX closeout evidence remains `Artifacts/core/core-ux-closeout-20260905.json`; the isolated Forge save-click timeout is retained as a historical observation, not erased by later passes.
 
 ## Authentication, Scopes and Audit
 
@@ -269,7 +273,7 @@ The Runtime does not claim that Render Facts reconstruct business semantics. Tre
 
 The five Target fixture covers EditBox, disabled state, duplicate selectors and runtime-added standard Widgets. Selector-based action now validates the resolved node's `active`, `visible` and declared `actions` fields before generating routed input. A semantic node that declares itself non-actionable fails closed; explicit/Vision coordinates remain the fallback for GUI content without reliable semantics.
 
-`GET /v0/diagnostics/hooks` exposes Target-owned mechanism, target, injection point, behavior, runtime status and degraded capability for every V1-critical Hook. The current gate forbids Overwrite and third-party Mixin targets; it explicitly audits seven Operator-control cancellations and two icon/keymapping forwarding redirects per Target. Observation Hooks remain non-cancelling. Runtime self-test remains authoritative over static configuration.
+`GET /v0/diagnostics/hooks` exposes Target-owned mechanism, target, injection point, behavior, runtime status and degraded capability for every V1-critical Hook. The current gate forbids Overwrite and third-party Mixin targets; it explicitly audits 13 legacy / 15 modern Operator-control cancellations and four native-ingress/icon/keymapping redirects per Target. Observation Hooks remain non-cancelling. Runtime self-test remains authoritative over static configuration.
 
 ## Input Pipeline
 

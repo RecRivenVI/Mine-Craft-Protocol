@@ -262,6 +262,11 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal((deniedReadInput.structuredContent as { error: { code: string; control: { mode: string } } }).error.code, 'TAKEOVER_REQUIRED');
     assert.equal((deniedReadInput.structuredContent as { error: { control: { mode: string } } }).error.control.mode, 'READ');
 
+    const hoverWhileRead = await client.callTool({ name: 'minecraft_interact_ui', arguments: { action: 'hover', selector: { label: 'safe' } } });
+    assert.equal((hoverWhileRead.structuredContent as { error: { code: string } }).error.code, 'TAKEOVER_REQUIRED');
+    const relativeWhileRead = await client.callTool({ name: 'minecraft_run_input_pipeline', arguments: { steps: [{ type: 'mouse.delta', dx: 4, dy: 1 }] } });
+    assert.equal((relativeWhileRead.structuredContent as { error: { code: string } }).error.code, 'TAKEOVER_REQUIRED');
+
     const lease = await client.callTool({ name: 'minecraft_control', arguments: { action: 'acquire', ttlMs: 60000 } });
     assert.equal(lease.isError, undefined);
     const action = await client.callTool({ name: 'minecraft_interact_ui', arguments: { action: 'click', selector: { role: 'button', label: maliciousText } } });

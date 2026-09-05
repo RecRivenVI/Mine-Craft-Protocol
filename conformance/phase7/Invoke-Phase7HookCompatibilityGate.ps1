@@ -25,13 +25,14 @@ $results = foreach ($target in $targets) {
     $combined = $texts -join "`n"
 
     Assert-True ($combined -notmatch '@Overwrite') "$($target.Name) must not use Overwrite"
-    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java')
+    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java')
     $observationCode = ($files | Where-Object Name -notin $operatorFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
     Assert-True ($observationCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect') "$($target.Name) observation Hooks must not change control flow"
     Assert-True ($combined -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
-    Assert-True ($cancellableCount -eq 7 -and $redirectCount -eq 2) "$($target.Name) must contain exactly the reviewed seven operator cancellations plus icon/keymapping forwarding Hooks"
+    $expectedCancellable=if($target.Name.StartsWith('26.')){15}else{13}
+    Assert-True ($cancellableCount -eq $expectedCancellable -and $redirectCount -eq 4) "$($target.Name) must match exclusive input/polling/warp guards and native-ingress/icon/keymapping redirects"
     $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
     Assert-True ($windowHook -match 'glfwSetWindowIcon' -and $windowHook -match 'onVanillaWindowIcon') "$($target.Name) icon redirect must preserve actual Vanilla pixels"
     Assert-True ($combined -notmatch '@Mixin\s*\(\s*targets\s*=') "$($target.Name) must use typed Minecraft targets"

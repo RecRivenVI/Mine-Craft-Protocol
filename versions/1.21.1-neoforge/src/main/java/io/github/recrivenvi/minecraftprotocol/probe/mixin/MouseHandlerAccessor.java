@@ -6,6 +6,11 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(MouseHandler.class)
 public interface MouseHandlerAccessor {
+    @Accessor("isLeftPressed") void minecraftProtocolProbe$setLeftPressed(boolean value);
+    @Accessor("isRightPressed") void minecraftProtocolProbe$setRightPressed(boolean value);
+    @Accessor("isMiddlePressed") void minecraftProtocolProbe$setMiddlePressed(boolean value);
+    @Accessor("activeButton") void minecraftProtocolProbe$setActiveButton(int value);
+    @Accessor("mousePressedTime") void minecraftProtocolProbe$setMousePressedTime(double value);
     @Accessor("mouseGrabbed") void minecraftProtocolProbe$setMouseGrabbed(boolean value);
     @Accessor("ignoreFirstMove") void minecraftProtocolProbe$setIgnoreFirstMove(boolean value);
     @Accessor("xpos") void minecraftProtocolProbe$setXpos(double value);

@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 function Require([bool]$ok,[string]$reason){if(-not$ok){throw "Control Round 1: $reason"}}
 $schema=Get-Content (Join-Path $root 'protocol-schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Require ($schema.info.version-eq'0.0.1-control-r1') 'wrong V0 schema version'
+Require ($schema.info.version-eq'0.0.1-control-r24') 'wrong V0 schema version'
 $policies=@('READ_COMPATIBLE','OPERATE_REQUIRED','TAKEOVER_REQUIRED','MODE_INDEPENDENT')
 $count=0
 foreach($path in $schema.paths.PSObject.Properties){foreach($operation in $path.Value.PSObject.Properties){
@@ -39,4 +39,4 @@ $meta=[regex]::Matches($server,"minecraft/modePolicy").Count
 Require ($meta-eq24) 'all 24 MCP tools must declare mode policy'
 Require ($server-match'controlToolSchema'-and$server-match"action: z.literal\('set_mode'\)") 'MCP typed mode discriminator missing'
 Require ($server-notmatch'state.debugArmId = undefined;[\s\S]{0,60}return result;[\s\S]{0,60}const active') 'Lease release must not impersonate Debug disarm'
-[pscustomobject]@{Result='PASS';Targets=5;ClassifiedHttpOperations=$count;ClassifiedMcpTools=$meta;WireProtocolV1='NOT_FROZEN';NewCursorModel='NOT_IMPLEMENTED'}
+[pscustomobject]@{Result='PASS';Targets=5;ClassifiedHttpOperations=$count;ClassifiedMcpTools=$meta;WireProtocolV1='NOT_FROZEN';NewCursorModel='IMPLEMENTED_PENDING_UNIFIED_ACCEPTANCE'}

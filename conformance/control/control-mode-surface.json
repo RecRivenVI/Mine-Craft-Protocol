@@ -1,5 +1,5 @@
 {
-  "contractVersion": "0.0.1-control-r1",
+  "contractVersion": "0.0.1-control-r24",
   "modeScope": "One stable authenticated Runtime control session across HTTP connections; not per TCP request and not multi-account tenancy.",
   "authorizationOrder": [
     "Bearer + Host/Origin + request/expensive budgets",
@@ -10,6 +10,7 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"POST","path":"/v0/input/mouse/delta","operationId":"mouseDelta","modeRequirement":"TAKEOVER_REQUIRED"},
     {
       "method": "GET",
       "path": "/v0/control/mode",

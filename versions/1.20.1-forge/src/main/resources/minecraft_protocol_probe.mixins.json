@@ -9,6 +9,7 @@
     "BaseContainerBlockEntityAccessor",
     "ClientPacketListenerMixin",
     "DistanceManagerAccessor",
+    "InputConstantsMixin",
     "KeyboardHandlerMixin",
     "LevelTicksAccessor",
     "MinecraftMixin",

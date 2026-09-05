@@ -41,8 +41,8 @@ const requiredSchemas = [
   ,'DebugBatchRequest'
 ];
 
-if (specification.info?.version !== '0.0.1-control-r1') {
-  throw new Error(`Companion requires OpenAPI 0.0.1-control-r1, received ${specification.info?.version ?? 'missing'}`);
+if (specification.info?.version !== '0.0.1-control-r24') {
+  throw new Error(`Companion requires OpenAPI 0.0.1-control-r24, received ${specification.info?.version ?? 'missing'}`);
 }
 for (const path of requiredPaths) {
   if (!specification.paths?.[path]) throw new Error(`Companion-required protocol path is missing: ${path}`);

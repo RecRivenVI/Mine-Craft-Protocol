@@ -155,6 +155,8 @@ public final class AgentControlSession {
         transition(Mode.READ, "transport_close");
     }
 
+    public synchronized boolean hasOperateWork() { return !this.operateWork.isEmpty(); }
+
     public synchronized Snapshot snapshot() {
         State state = mode == Mode.TAKEOVER ? State.AGENT_CONTROLLED
                 : manuallyRevoked ? State.MANUALLY_REVOKED : State.IDLE;

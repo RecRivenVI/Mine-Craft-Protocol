@@ -162,6 +162,10 @@ final class RecordingEngine implements AutoCloseable {
         }
     }
 
+    boolean hasActiveSessions() {
+        return this.sessions.values().stream().anyMatch(session -> session.status.equals("recording") || session.status.equals("finalizing"));
+    }
+
     void contaminate(String mode, String operation, JsonObject evidence) {
         for (RecordingSession session : this.sessions.values()) {
             if (!session.status.equals("recording")) continue;

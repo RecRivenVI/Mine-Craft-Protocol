@@ -9,6 +9,7 @@
     "ConnectionMixin",
     "DistanceManagerAccessor",
     "GuiRenderStateMixin",
+    "InputConstantsMixin",
     "KeyboardHandlerMixin",
     "KeyboardHandlerInvoker",
     "LevelTicksAccessor",

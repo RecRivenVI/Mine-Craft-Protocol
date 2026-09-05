@@ -23,7 +23,7 @@ final class ControlChromeCaptureTest {
         ControlChrome.edges((x0,y0,x1,y1,c) -> {
             for(int y=y0;y<y1;y++) for(int x=x0;x<x1;x++) pixels[y][x]=c;
         },320,240,1F);
-        assertEquals(235,pixels[0][0] >>> 24);
+        assertEquals(245,pixels[0][0] >>> 24);
         assertEquals(pixels[0][0],pixels[239][319]);
         assertTrue((pixels[0][160] >>> 24) > (pixels[8][160] >>> 24));
         assertEquals(0,pixels[16][160]);

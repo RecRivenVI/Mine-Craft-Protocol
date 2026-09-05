@@ -92,6 +92,7 @@ const keyDescriptorSchema = z.object({
 const pipelineStepSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('delay'), durationMs: z.number().int().min(0).max(60_000) }),
   z.object({ type: z.literal('mouse.move'), x: z.number(), y: z.number() }),
+  z.object({ type: z.literal('mouse.delta'), dx: z.number().min(-8192).max(8192), dy: z.number().min(-8192).max(8192) }),
   z.object({ type: z.literal('mouse.button'), button: z.number().int().min(0).max(8), action: z.number().int().min(0).max(2), modifiers: z.number().int().optional() }),
   z.object({ type: z.literal('mouse.click'), x: z.number(), y: z.number(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional() }),
   z.object({ type: z.literal('mouse.scroll'), xOffset: z.number().optional(), yOffset: z.number().optional() }),
@@ -99,7 +100,7 @@ const pipelineStepSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('key'), key: z.number().int(), scanCode: z.number().int().optional(), action: z.number().int().min(0).max(2), modifiers: z.number().int().optional() }),
   z.object({ type: z.literal('key.tap'), key: z.number().int(), scanCode: z.number().int().optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional() }),
   z.object({ type: z.literal('key.chord'), keys: z.array(keyDescriptorSchema).min(1).max(16), holdMs: z.number().int().min(0).max(60_000).optional() }),
-  z.object({ type: z.literal('ui.action'), action: z.enum(['click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).optional(), selector: uiSelectorSchema.optional(), coordinates: z.object({ x: z.number(), y: z.number() }).optional(), source: z.enum(['interaction_tree', 'explicit_coordinate', 'vision']).optional(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional(), xOffset: z.number().optional(), yOffset: z.number().optional() }),
+  z.object({ type: z.literal('ui.action'), action: z.enum(['hover', 'click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).optional(), selector: uiSelectorSchema.optional(), coordinates: z.object({ x: z.number(), y: z.number() }).optional(), source: z.enum(['interaction_tree', 'explicit_coordinate', 'vision']).optional(), button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), holdMs: z.number().int().min(0).max(5000).optional(), xOffset: z.number().optional(), yOffset: z.number().optional() }),
   z.object({ type: z.literal('ui.drag'), fromSelector: uiSelectorSchema, toSelector: uiSelectorSchema, button: z.number().int().min(0).max(8).optional(), modifiers: z.number().int().optional(), segments: z.number().int().min(1).max(120).optional(), durationMs: z.number().int().min(0).max(60_000).optional() }),
   z.object({ type: z.literal('wait.until'), condition: conditionSchema, timeoutMs: z.number().int().min(1).max(60_000).optional() }),
   z.object({ type: z.literal('assert.that'), condition: conditionSchema })
@@ -356,7 +357,7 @@ export function buildServer(config: CompanionConfig): McpServer {
     title: 'Interact With Minecraft UI',
     description: 'Activate a semantic UI node or explicit/Vision coordinate through GAME_ROUTED input. Requires explicit TAKEOVER and the control lease. READ/OPERATE never auto-upgrade.',
     inputSchema: z.object({
-      action: z.enum(['click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).default('click'),
+      action: z.enum(['hover', 'click', 'double_click', 'mouse_down', 'mouse_up', 'scroll']).default('click'),
       selector: uiSelectorSchema.optional(),
       coordinates: z.object({ x: z.number(), y: z.number() }).optional(),
       source: z.enum(['interaction_tree', 'explicit_coordinate', 'vision']).optional(),
@@ -373,7 +374,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_run_input_pipeline', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_run_input_pipeline },
     title: 'Run Minecraft Input Pipeline',
-    description: 'Run a bounded TAKEOVER input macro (including its wait/assert steps) with cancellation-safe cleanup. Standalone wait/assert is READ-compatible. No automatic acquire or mode upgrade.',
+    description: 'Run a bounded serialized TAKEOVER macro with deterministic GUI pointer motion and atomic target revalidation; mouse.delta drives Vanilla relative camera without moving the host cursor (including wait/assert steps) with cancellation-safe cleanup. Standalone wait/assert is READ-compatible. No automatic acquire or mode upgrade.',
     inputSchema: z.object({
       steps: z.array(pipelineStepSchema).min(1).max(256),
       timeoutMs: z.number().int().min(1).max(300000).default(60000),
