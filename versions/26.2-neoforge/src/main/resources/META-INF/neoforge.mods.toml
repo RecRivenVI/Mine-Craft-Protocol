@@ -1,24 +1,24 @@
-license="All Rights Reserved"
+license="${mod_license}"
 
 [[mods]]
-modId="minecraft_protocol_probe"
+modId="${mod_id}"
 version="${mod_version}"
-displayName="Minecraft Protocol Probe"
+displayName="${mod_name}"
 description='''${mod_description}'''
 
 [[mixins]]
 config="minecraft_protocol_probe.mixins.json"
 
-[[dependencies.minecraft_protocol_probe]]
+[[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
-versionRange="[26.2.0.67,)"
+versionRange="[${neo_version},)"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.minecraft_protocol_probe]]
+[[dependencies.${mod_id}]]
 modId="minecraft"
 type="required"
-versionRange="[26.2]"
+versionRange="[${minecraft_version}]"
 ordering="NONE"
 side="BOTH"

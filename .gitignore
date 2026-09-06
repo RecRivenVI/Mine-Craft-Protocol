@@ -1,18 +1,17 @@
 /.gradle/
 /build/
 **/build/
-/runs/
+/instances/**
+!/instances/**/
+# Only individually reviewed, exact-path fixture/config exceptions may be added
+# below. Never whitelist worlds, tokens, logs, caches, mods or an entire variant.
+/validations/.local/
 /local.properties
-/probes/
-/companion/node_modules/
-/companion/dist/
-/companion/coverage/
+/components/companion/node_modules/
+/components/companion/dist/
+/components/companion/coverage/
+/.vscode/launch.json
 
-/probes/**/.gradle/
-/probes/**/build/
-/probes/**/run/
-/probes/**/run-*/
-/probes/**/local.properties
 
 *.log
 hs_err_pid*

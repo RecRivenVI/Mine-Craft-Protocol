@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "minecraft-protocol": {
+      "command": "node",
+      "args": ["<repository>/components/companion/dist/index.js"],
+      "env": {
+        "MCP_MINECRAFT_BASE_URL": "http://127.0.0.1:25583",
+        "MCP_MINECRAFT_TOKEN_FILE": "<repository>/instances/26.2-fabric/client/minecraft-protocol/token"
+      }
+    }
+  }
+}

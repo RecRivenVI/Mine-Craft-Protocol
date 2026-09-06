@@ -1,0 +1,156 @@
+import groovy.json.JsonSlurper
+
+if (providers.gradleProperty('mod_environment').get() != 'both') throw new GradleException('This project declares the both-side three-variant contract')
+
+// One repository-infrastructure implementation, not a product component or Loader layer.
+class InstanceCascade {
+    static final List<String> VARIANTS = ['client', 'client-multiplayer', 'server']
+    static final List<String> FIELDS = ['memory', 'width', 'height', 'playerName', 'extraJvmArgs', 'extraGameArgs']
+
+    static Map<String, String> fromFile(Properties facts, String target, String variant) {
+        Map<String, String> values = [:]
+        FIELDS.each { field ->
+            def keys = ["instance.[${target}].${variant}.${field}", "instance.[${target}].${field}",
+                        "instance.${variant}.${field}", "instance.${field}"]
+            def key = keys.find { facts.containsKey(it.toString()) }
+            if (key != null) values[field] = facts.getProperty(key.toString()).trim()
+        }
+        values
+    }
+
+    static Map<String, String> resolve(Properties repository, Properties local, String target, String variant, Set<String> targets) {
+        if (!targets.contains(target) || !VARIANTS.contains(variant)) throw new GradleException('Unknown instance Target/variant')
+        def values = fromFile(repository, target, variant)
+        // Do NOT merge Properties then look up specificity. File priority is the outer layer.
+        values.putAll(fromFile(local, target, variant))
+        values
+    }
+
+    static Properties read(File path) {
+        def values = new Properties()
+        if (path.isFile()) path.withReader('UTF-8') { values.load(it) }
+        values
+    }
+
+    static List<String> args(String raw, String field) {
+        if (raw == null || raw.isEmpty()) return []
+        def parsed
+        try { parsed = new JsonSlurper().parseText(raw) } catch (Exception ignored) { throw new GradleException("${field} must be a JSON string array") }
+        if (!(parsed instanceof List) || parsed.any { !(it instanceof String) || it.contains('\u0000') || it.contains('\n') || it.contains('\r') })
+            throw new GradleException("${field} must be a JSON string array without control characters")
+        parsed.collect { it.toString() }
+    }
+
+    static void validate(Map<String, String> values) {
+        if (values.containsKey('memory') && !(values.memory ==~ /[1-9][0-9]*[kKmMgG]/)) throw new GradleException('instance.memory must be a positive heap size, for example 2G')
+        ['width', 'height'].each { field ->
+            if (values.containsKey(field) && (!(values[field] ==~ /[1-9][0-9]{0,4}/) || values[field].toInteger() > 16384))
+                throw new GradleException("instance.${field} must be 1..16384")
+        }
+        if (values.containsKey('playerName') && !(values.playerName ==~ /[A-Za-z0-9_]{1,16}/)) throw new GradleException('instance.playerName must be a valid 1..16 character player name')
+        if (args(values.extraJvmArgs, 'extraJvmArgs').any { it.startsWith('-Xmx') }) throw new GradleException('Use instance.memory, not a second -Xmx authority')
+        if (args(values.extraGameArgs, 'extraGameArgs').any { arg -> ['--username', '--width', '--height', '--gameDir', '--universe'].any { option -> arg == option || arg.startsWith(option + '=') } })
+            throw new GradleException('Use typed instance fields; extraGameArgs cannot override identity/window/directory ownership')
+    }
+
+    static List<String> jvm(Map<String, String> values) {
+        validate(values)
+        (values.memory ? ["-Xmx${values.memory}".toString()] : []) + args(values.extraJvmArgs, 'extraJvmArgs')
+    }
+
+    static List<String> game(Map<String, String> values, String variant) {
+        validate(values)
+        List<String> output = []
+        if (variant != 'server') {
+            ['width':'--width', 'height':'--height', 'playerName':'--username'].each { field, flag ->
+                if (values.containsKey(field)) output.addAll([flag, values[field]])
+            }
+        }
+        output + args(values.extraGameArgs, 'extraGameArgs')
+    }
+}
+
+def registeredTargets = { rootProject.allprojects.findAll { it.path.startsWith(':versions:') }.collect { it.name }.toSet() }
+def effective = { String target, String variant ->
+    InstanceCascade.resolve(InstanceCascade.read(rootProject.file('instance.properties')),
+            InstanceCascade.read(rootProject.file('local.properties')), target, variant, registeredTargets())
+}
+ext.instanceJvmArgs = { String target, String variant -> InstanceCascade.jvm(effective(target, variant)) }
+ext.instanceGameArgs = { String target, String variant -> InstanceCascade.game(effective(target, variant), variant) }
+
+gradle.projectsEvaluated {
+    rootProject.allprojects.findAll { it.path.startsWith(':versions:') }.each { target ->
+        target.tasks.matching { it.name == 'runClientMultiplayer' }.configureEach {
+            doFirst {
+                def primary = effective(target.name, 'client')
+                def secondary = effective(target.name, 'client-multiplayer')
+                if (!secondary.playerName) throw new GradleException('Set an explicit instance.client-multiplayer.playerName before launching a second player')
+                if (primary.playerName != null && primary.playerName.equalsIgnoreCase(secondary.playerName))
+                    throw new GradleException('Client and client-multiplayer must have distinct playerName values')
+            }
+        }
+    }
+}
+
+tasks.register('verifyInstanceConfiguration') {
+    group = 'verification'
+    description = 'Deterministic two-file/four-level instance cascade and argument validation tests; no game launch.'
+    doLast {
+        def targets = ['1.20.1-forge', '26.2-fabric'] as Set
+        def props = { Map values -> def p = new Properties(); values.each { k, v -> p.setProperty(k, v) }; p }
+        def reject = { Closure action -> boolean failed = false; try { action() } catch (GradleException expected) { failed = true }; assert failed }
+        def r = props(['instance.memory':'1G', 'instance.client.memory':'2G', 'instance.[26.2-fabric].memory':'3G', 'instance.[26.2-fabric].client.memory':'4G'])
+        def empty = new Properties()
+        assert InstanceCascade.resolve(r, empty, '26.2-fabric', 'client', targets).memory == '4G'
+        r.remove('instance.[26.2-fabric].client.memory')
+        assert InstanceCascade.resolve(r, empty, '26.2-fabric', 'client', targets).memory == '3G'
+        r.remove('instance.[26.2-fabric].memory')
+        assert InstanceCascade.resolve(r, empty, '26.2-fabric', 'client', targets).memory == '2G'
+        assert InstanceCascade.resolve(r, empty, '26.2-fabric', 'server', targets).memory == '1G'
+        r.setProperty('instance.[26.2-fabric].client.memory', '4G')
+        assert InstanceCascade.resolve(r, props(['instance.memory':'5G']), '26.2-fabric', 'client', targets).memory == '5G'
+        assert InstanceCascade.resolve(r, empty, '1.20.1-forge', 'client', targets).memory == '2G'
+        InstanceCascade.VARIANTS.each { assert InstanceCascade.resolve(empty, empty, '26.2-fabric', it, targets).isEmpty() }
+        reject { InstanceCascade.resolve(r, empty, '26.2-forge', 'client', targets) }
+        reject { InstanceCascade.resolve(r, empty, '26.2-fabric', 'client-vulkan', targets) }
+        assert InstanceCascade.read(new File(temporaryDir, 'absent-local.properties')).isEmpty()
+        def cleared = InstanceCascade.resolve(props(['instance.client.extraJvmArgs':'["-Dsample=true"]']), props(['instance.extraJvmArgs':'']), '26.2-fabric', 'client', targets)
+        assert InstanceCascade.jvm(cleared).isEmpty()
+        assert InstanceCascade.args('["-Dname=two words", "-ea"]', 'extraJvmArgs') == ['-Dname=two words', '-ea']
+        ['memory':'', 'width':'0', 'height':'wrong', 'playerName':'invalid space'].each { key, value -> reject { InstanceCascade.validate([(key):value]) } }
+        reject { InstanceCascade.jvm([extraJvmArgs:'["-Xmx4G"]']) }
+        reject { InstanceCascade.game([extraGameArgs:'["--gameDir", "outside"]'], 'client') }
+        reject { InstanceCascade.game([extraGameArgs:'["--width=1200"]'], 'client') }
+        assert InstanceCascade.game([width:'1000',height:'600',playerName:'TestPlayer'], 'client') == ['--width','1000','--height','600','--username','TestPlayer']
+        assert InstanceCascade.game([width:'1000',playerName:'TestPlayer',extraGameArgs:'["--nogui"]'], 'server') == ['--nogui']
+        logger.lifecycle('INSTANCE_CASCADE: PASS (specificity, local priority, empty args, bounds, Target, three variants; no Minecraft IO)')
+    }
+}
+
+tasks.register('verifyInstanceBindings') {
+    group = 'verification'
+    description = 'Checks all five real Loader run models consume the instance cascade and standard directories, without launching.'
+    doLast {
+        def targets = rootProject.allprojects.findAll { it.path.startsWith(':versions:') }
+        assert targets.size() == 5
+        targets.each { target ->
+            def extension = target.extensions.findByName('legacyForge') ?: target.extensions.findByName('neoForge') ?: target.extensions.findByName('loom')
+            assert extension != null
+            ['client':'client', 'clientMultiplayer':'client-multiplayer', 'server':'server'].each { runName, variant ->
+                def run = extension.runs.getByName(runName)
+                def directory = target.name.endsWith('-fabric') ? run.runDirectory.get().asFile : run.gameDirectory.get().asFile
+                assert directory.canonicalFile == rootProject.file("instances/${target.name}/${variant}").canonicalFile
+                assert run.jvmArguments.get().containsAll(InstanceCascade.jvm(effective(target.name, variant)))
+                assert run.programArguments.get().containsAll(InstanceCascade.game(effective(target.name, variant), variant))
+                assert target.tasks.findByName('run' + runName.capitalize()) != null
+            }
+            if (target.name.startsWith('26.')) {
+                def run = extension.runs.getByName('clientVulkan')
+                def directory = target.name.endsWith('-fabric') ? run.runDirectory.get().asFile : run.gameDirectory.get().asFile
+                assert directory.canonicalFile == rootProject.file("validations/.local/vulkan/${target.name}").canonicalFile
+                assert run.programArguments.get().containsAll(['--graphicsBackend', 'vulkan'])
+            }
+        }
+        logger.lifecycle('INSTANCE_BINDINGS: PASS (five Targets, 15 canonical run models, Vulkan client scenarios; no launch)')
+    }
+}

@@ -1,0 +1,345 @@
+# Mine-Craft-Protocol Threat Model Baseline
+
+> Status: CURRENT Core threat baseline; acceptance status is tracked in [the execution plan](../product/execution-plan.md). No Persistent Write route exists.
+> Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
+
+## Protected Assets
+
+- Player input authority.
+- Loaded client and server world state.
+- Fixture and DEBUG_PRIVILEGED authority.
+- Authentication tokens and control leases.
+- Screenshots, chat, books, signs, logs and recorded state.
+- Local game stability and save integrity.
+
+## Trust Boundaries
+
+```text
+Agent / Companion
+  │ authenticated request
+  ▼
+loopback HTTP/WS worker
+  │ scheduled immutable command
+  ▼
+Minecraft client thread
+  │ normal packet or Server Peer bridge
+  ▼
+Minecraft server thread
+```
+
+Minecraft-provided content is untrusted even when it originates from a locally loaded world. A remote server, resource pack or Mod may control visible text and rendered content.
+
+Optional E1 could add boundaries that are not present in the current Runtime:
+
+```text
+Agent / Human Inspector
+  -> Platform Companion
+       -> current Runtime Adapter -> loopback Minecraft Runtime
+       -> planned Development Intelligence Service -> artifact repositories / managed cache
+       -> planned Exploratory Plane -> explicitly armed local JVM
+```
+
+These optional planes are inactive. If E1 is started, a separate Threat Model extension must define them; a Runtime token or Debug Arm must not implicitly authorize artifact acquisition, cache mutation, unsafe JVM execution or host process control.
+
+E3 native/GPU diagnostics likewise require an independent Threat Model extension before any Vulkan/device/driver hooks are activated. Documenting E1/E2/E3 does not expand the Core attack surface.
+
+## Current Implemented Controls
+
+- Bind to `127.0.0.1` only.
+- Generate a fresh 256-bit Bearer token unless an explicit token is supplied; hand it off through the game-directory token file without logging its value.
+- Require the Bearer token on HTTP and WebSocket upgrade and compare it in constant time.
+- Return `401` without valid authorization.
+- Require exact loopback Host and Origin values; prefix lookalikes are rejected.
+- Enforce per-operation scopes.
+- Require a bounded single-writer Control Lease for every input mutation.
+- Release Runtime-owned input on explicit release, TTL expiry, associated control-channel disconnect, transport close and emergency release.
+- Enforce optional relative deadlines, operation-local idempotency and Screen/Menu resource preconditions.
+- Expose cancellable long operations and a bounded metadata-only audit ring.
+- Bound input Pipelines to 256 steps/five minutes, validate the Lease before every step and run input cleanup on completion, failure or cancellation.
+- Treat selector labels, GUI text, Render Facts and vision-model coordinates as untrusted data-plane input.
+- Label registered third-party Provider output as untrusted and keep the Phase 4 Provider SPI LIVE-only.
+- Refuse unloaded Server block queries without chunk loading or persistent-storage fallback.
+- Keep Fixture/Debug scopes disabled by default. Fixture and Debug mutation require explicit OPERATE rather than the input Lease; formal Phase 9C Debug retains independent scopes, world/session-bound TTL Arm and resource/value preconditions.
+- Bound Recording acquisition and writer queues; drop and record gaps instead of blocking game threads.
+- Limit aggregated HTTP request bodies to 1 MiB.
+- Bound world entity radius and result count.
+- Bound wait timeout.
+- Schedule Minecraft operations onto the client thread.
+- Do not expose arbitrary filesystem, shell, process, ClassLoader or reflection operations.
+- Report actual input provenance and direct-mutation flags.
+
+No default credential is tracked. The token file is still readable by processes with the same user authority; loopback does not defend against a fully compromised local account. V1 is formally loopback-only under [ADR 0004](adr/0004-v1-loopback-release-profile.md). LAN exposure remains unavailable and in Ultimate Scope.
+
+## Prompt Injection Isolation
+
+Minecraft text may enter only the data plane:
+
+```text
+chat/book/sign/MOTD/GUI text
+  → observation result
+  → trust/source metadata
+```
+
+It must never modify:
+
+- MCP Tool descriptions.
+- System prompts.
+- Runtime policy.
+- Scope definitions.
+- Debug Arm state.
+- Destructive-action authorization.
+
+The Companion preserves trust/provenance metadata and adds a data-plane-only boundary to every Agent-visible Runtime result.
+
+## Principal Threats
+
+### Unauthorized Local Control
+
+Another local process may discover the port or token and inject input.
+
+Implemented controls: random per-run token, loopback-only listener, scopes, Control Lease, TTL, constant-time credential comparison, stable token-lifetime principal identity, per-principal/per-connection request budgets, category-specific expensive-operation budgets, bounded active operations and audit correlation across principal/connection/Lease/Debug Arm/Operation. Stronger platform-specific token-file ACL hardening is defense-in-depth beyond the portable V1 baseline.
+
+### LAN Exposure
+
+Binding beyond loopback exposes full player control to the network.
+
+Current status: LAN binding is deliberately unavailable in the V1 Release Profile under ADR 0004. Host/Origin validation, audit, scopes and rate budgets are active on loopback. TLS, pairing, revocable persistent principals, IP allowlists and a separate LAN conformance gate are required before future LAN enablement.
+
+### Input State Sticking
+
+Disconnect or cancellation may leave keys/buttons held.
+
+Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport-close cleanup, emergency release, observable Runtime-owned input dispatch sequence/state, a Pipeline cancellation token, tracked current child and scheduled handles, owner-thread cancellation barriers and deferred-callback checks. Hardening conformance covers delay, single/multi-key hold, mouse hold, mid-drag, multi-step, wait, UI hold, immediate/near completion, disconnect and Lease expiry, and verifies no later input sequence after cleanup.
+
+### Human Override and Operator Presentation
+
+Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons, restores the actual Minecraft icon and exits the TAKEOVER title; an active reader may still show READ Presence/title until activity expires; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. READ remains available; explicitly authorized OPERATE does not clear the TAKEOVER-only latch. No mode grants scopes, Lease, Arm or gameplay evidence. Owner-thread input generation admission and bounded OPERATE permits prevent stale input or implicit escalation across mode changes. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
+
+During TAKEOVER, standard Minecraft native input is exclusively suppressed except physical Esc. Native clicks never grant host capture. MouseHandler/InputConstants capture and warp entry points are blocked, and normal key polling is backed by the Runtime-owned key set. One-shot argument-bound Agent callback tickets and explicitly scheduled native provenance prevent ambient-context leakage across nested callbacks. The bounded sequence queue drains cleanup before handing off ownership, rejects stale admission before touching held state, and fail-closes after cleanup failure. Physical acceptance must be performed by the user and correlated with Runtime evidence, never another desktop automation system. Native callback classification is not a hostile local-code or hardware-attestation boundary.
+
+Operator chrome is rendered after bounded fresh-content evidence readback. It is not gameplay evidence. Capture/Recording exclusion is supported by ordering tests and concurrent live image-region comparisons; sampled image checks are not a claim to exhaustively test arbitrary third-party rendering. Current UX evidence are recorded in `validations/results/core/core-ux-closeout-20260905.json`. Its isolated Forge click timeout is historical and did not reproduce in the bounded Round 1 retest; it is not a current unexplained blocker. The newer exclusive-input/pointer/pixel-Chrome implementation still requires unified human/visual acceptance.
+
+### Malicious Automation Pipeline
+
+A caller may submit very large, slow or deliberately stuck macro programs.
+
+Controls: bounded body size, maximum 256 steps, per-step delay limits, maximum five-minute Pipeline lifetime, propagated operation cancellation, Lease validation before every step and a maximum of 16 concurrently retained operations before terminal eviction. Unknown step and condition types fail closed.
+
+### Vision Coordinate Confusion
+
+A screenshot model may return stale, off-screen or adversarially influenced coordinates.
+
+Controls: explicit `gui_scaled` coordinate space, Screen/Menu preconditions where supplied, targeting provenance (`interaction_tree`, `explicit_coordinate` or `vision`), normal Minecraft input routing and no interpretation of game text as control-plane policy.
+
+### Malicious or Oversized Game Data
+
+NBT, Components, entity queries or rendered text may exhaust memory or Agent context.
+
+Implemented controls include bounded queries/projections, response/serialized-state budgets, bounded NBT accounting and untrusted-content tagging. Coverage is capability-specific; missing domain projection or pagination remains unavailable/partial rather than an unbounded fallback.
+
+### Thread-Safety Violation
+
+Transport threads may read live Minecraft objects or mutate state.
+
+Control: all current operations schedule onto the owner thread and return detached results. This remains a release gate.
+
+### Debug Privilege Confusion
+
+Fixture or direct mutation could be reported as gameplay success.
+
+Implemented controls: separate default-disabled scopes, authenticated token-lifetime principal, `debug.write` plus domain scopes, world/session/namespace-bound TTL Debug Arm, resource lifecycle/revision and value preconditions, owner-thread validation/mutation, strongly typed operations, mutation provenance, recording contamination propagation, gameplay Act contamination windows and audit. Debug mutation does not require the unrelated input Lease.
+
+Phase 9C additionally bounds Debug batches to 64 items, 256 KiB, four writes per tick and 30 seconds. Batch is explicitly non-transactional, exposes per-item/partial results, revalidates Arm and world authority before every write, and uses a cross-thread cancellation permit so operation cancel, Arm expiry, world exit and Runtime shutdown stop later mutation. Live conformance verifies zero post-cancel/post-exit writes.
+
+Provider Debug is a separate typed mutation method with registered mutation/result schemas, required scope, Arm, declared affinity, native resource revision integrity, cancellation and bounded result size. Observation query payloads cannot smuggle mutation. Query-view revisions are ineligible for mutation guards. Provider cancellation is cooperative for in-process extensions and does not claim hostile-bytecode isolation.
+
+### Recording Resource Exhaustion
+
+Continuous capture may exhaust GPU readback slots, memory, disk or writer capacity.
+
+Controls: bounded duration/sample count, maximum two in-flight samples, fixed 64-entry writer queue, drop-and-gap backpressure, asynchronous PNG encoding/writes/composition, bounded State Frame reads and explicit Artifact status. Aggregate frame/state/event/session/Contact Sheet/bundle budgets are implemented; long-term retention and full Recording V2 remain future work.
+
+### Artifact Data Exposure
+
+Artifacts may contain screenshots, player/world state and untrusted Mod text.
+
+Controls: authenticated loopback download, per-session opaque IDs, source/trust metadata, checksums, no arbitrary filesystem browsing endpoint and no path parameter supplied by callers. Artifact directories are Runtime-generated beneath the game directory.
+
+### Persistent Storage Corruption
+
+Future storage mutation may conflict with live state or partial saves.
+
+Planned controls: separate `storage.world.*` namespace, distinct Runtime/persistent/file identities, explicit consistency, lifecycle barrier, backup/checkpoint and no implicit fallback from live query.
+
+Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
+
+Phase 9D-2 hardens the safety-only foundation without enabling Persistent Write. Stable world-directory lineage is separate from mutable File Revision; replacement holds an exclusive `session.lock`, rechecks after backup and immediately before `ATOMIC_MOVE`, and all five Target sources consume Runtime lifecycle facts. Phase 9D-2.1 packages the shared safety module into all five development and final runtimes, removes the Java split-package failure, and verifies running → saving → unload → title lifecycle evidence on every Target. The packaged-artifact attestation then launches each final JAR from an isolated `mods` directory with no standalone safety JAR, confirming Loader resolution and Runtime initialization. The exclusive session lock is a cooperative ownership boundary; arbitrary local programs that ignore it are outside the portable guarantee, and a final hash check is not universal filesystem compare-and-swap. Windows testing establishes file/backup force and namespace atomicity, but directory durability remains explicitly unverified; this is process-crash-recoverable replacement, not a power-loss transaction. Typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven. A new Persistent Write Entry Review remains required before any writer is implemented.
+
+### Malicious Read Provider
+
+A third-party Mod may register a provider that returns oversized, misleading or prompt-injection content.
+
+Controls: explicit namespaced registration, reserved `minecraft:` namespace, detached JSON-only contract, standard request-body limits, trust/source propagation and no promotion of provider data into Tool descriptions, scopes or Runtime policy. Provider code remains part of the registering Mod's trust boundary and must own its thread scheduling.
+
+Phase 9B.1 turns every Provider V2 declaration into enforced policy. Required scopes come only from the authenticated Runtime principal; unsupported perspectives do not invoke the provider; declared Client/Server affinity is scheduled on the owner thread while unsupported Render affinity is reported unavailable. `allowReadEffects` can authorize only declared lazy initialization. It never authorizes data loading, persistent storage access or mutation. Those providers are skipped/denied in ordinary observation and remain reserved for later typed, separately authorized planes.
+
+Provider entry and completion are bounded separately. A provider that blocks before returning its Future is detected after the call returns, marked degraded/quarantined and not automatically reinvoked. A timed-out/cancelled Future is retired, cancellation is attempted, accounting is released and late completion cannot publish data or revisions. Executable snapshot/query schema validators are resolved at registration and applied before data becomes visible. Audit records principal, provider ID, required scopes, policy decision, perspective, read effects, duration and status, but not provider payload.
+
+Deep Observation request cancellation has three Runtime paths: deadline, HTTP disconnect and typed request-ID cancellation. The Companion binds modern MCP AbortSignal delivery to the typed cancellation route. Legacy `2025-11-25` stdio does not deliver cancellation notifications to the server handler; this limitation is reported honestly, every Deep Observation carries a Runtime deadline, and asynchronous operations remain manageable through explicit status/wait/cancel Tools.
+
+A deliberately malicious in-process Mod can still stall a Minecraft owner thread or otherwise violate JVM process integrity. Provider V2 is a cooperative correctness and containment contract for trusted-but-buggy extensions; it is not a process sandbox and does not claim to isolate hostile in-process bytecode.
+
+Phase 9B.2 hardens revision identity before privileged mutation may consume it. Generic JSON canonicalization preserves array order; only domain-owned unordered collections are explicitly normalized. Resource-scoped Provider fallback revisions validate a query-independent revisionState, while query-view revisions include the query fingerprint and are marked ineligible for mutation preconditions. Native Provider revisions must be non-decreasing and consistent with canonical revisionState; regression or same-revision/different-state quarantines the provider.
+
+Every resource version is bound to sessionEpoch and a session-local lifecycle generation. Menu/container ID reuse, entity recreation, Block Entity replacement and chunk unload/reload invalidate older tokens. Revision and lifecycle caches remain bounded. Detached revision and Provider entry executors use bounded queues with controlled 429/provider failures; active Deep Observation requests are capped at 16 so moving work off owner threads cannot create unbounded heap growth.
+
+### Observation Authority Confusion
+
+Client-known state may be stale or incomplete compared with Integrated Server state.
+
+Controls: separate endpoints and provider IDs, explicit `perspective`, `source`, `authority`, `stalePossible`, Server tick evidence and typed unavailability when no authoritative server is present. State Frames declare `coordinated_best_effort`, not transactional consistency.
+
+### Dedicated Server Peer Abuse
+
+A modified client or another client-side Mod may craft Peer payloads directly, bypassing the loopback HTTP surface.
+
+Controls: the server accepts only a closed set of Minecraft-domain operations, bounds every JSON payload below 32 KiB, validates all arguments, runs on the logical Server owner thread, refuses unloaded chunk mutation, and independently gates Fixture/Debug by explicit server flags plus operator/Integrated-owner authority. Read results are limited to the connected player's current server/dimension context. No generic RPC, reflection or persistent-storage operation exists.
+
+The client-side Debug Arm remains required for the supported HTTP workflow, but it is not treated as a server authentication credential. The server's independent flag/operator decision is the security boundary against a crafted payload.
+
+### Peer Authority or Lifecycle Confusion
+
+A remote server without the Mod could be mislabeled authoritative, or stale requests could survive a disconnect and complete against a replacement connection.
+
+Controls: explicit hello/ack negotiation, connection-identity reset, generated request IDs, five-second timeout, pending-future failure/clear on disconnect, `peerAuthenticated` and `serverTick` evidence, and typed `SERVER_PEER_UNAVAILABLE` degradation. Provider/State Frame wrappers propagate the actual returned source instead of a static Integrated Server label.
+
+### Hook Collision and Silent Degradation
+
+An invasive Hook may replace another Mod's behavior, cancel a normal call path, target third-party code, or silently stop applying after a Minecraft update.
+
+Controls: Capability/Fidelity First selection, typed Minecraft targets, no Overwrite or third-party Mixin targets, and no control-flow modification in observation Hooks. Current Operator control explicitly audits 13 legacy / 15 modern cancellable injections plus four native-ingress/icon/keymapping redirects per Target. Source/config counts, required injections, runtime self-test and typed Hook capability degradation remain gates. This reduces predictable collision risk but cannot prove compatibility with every future third-party transformation.
+
+### Disabled Semantic Node Confusion
+
+An Agent may trust a Tree node's `active=false` or empty `actions` declaration while the Runtime still emits a coordinate click.
+
+Control: selector-based UI action now revalidates visibility, active state and supported action before input generation and fails `UI_NODE_NOT_ACTIONABLE`. Explicit/Vision coordinate actions remain deliberately available as a separately-provenanced fallback.
+
+### Companion Control-Plane Injection
+
+Minecraft text could be copied into Tool descriptions, Prompt instructions or permission definitions and become control-plane input.
+
+Controls: all Tool/Resource/Prompt registrations are static source declarations; Prompt construction performs no Runtime read; every Runtime result is wrapped `dataPlaneOnly=true` and `dynamicPolicyApplied=false`; conformance injects instruction-like GUI text and verifies it appears only in result data.
+
+### MCP stdio Corruption or Credential Disclosure
+
+Logging on stdout can corrupt JSON-RPC, while errors or configuration output may disclose the Runtime token.
+
+Controls: `serveStdio(factory)`, no production `console.log`, static stderr-only readiness, structured safe errors, credential redaction tests, exact token environment/file lookup and no token value in Tool/Resource output.
+
+### Companion Network Expansion
+
+A Companion pointed at a non-loopback Runtime could silently expand the attack surface.
+
+Controls: loopback is the default and non-loopback URLs fail unless `MCP_COMPANION_ALLOW_NON_LOOPBACK=true` is explicit. The opt-in does not claim TLS/pairing and the Companion exposes no general proxy, shell, filesystem browser or process control.
+
+### Release Evidence Source Drift
+
+Tests run against a dirty worktree can describe capabilities that are absent from the published commit, while a tracked evidence document can retain an obsolete source SHA after later commits.
+
+Controls: formal release evidence must be generated from a clean detached worktree at the fetched `origin/master` commit. The Remote Parity Gate records `sourceCommit`, `originCommit`, branch, cleanliness, gate version/time, critical Git blob hashes and built Artifact hashes. Dirty-tree results are labeled working-tree candidates and cannot establish a remote Release Candidate PASS.
+
+### E1 Development Intelligence Supply-Chain and Cache Poisoning — OPTIONAL / INACTIVE
+
+Minecraft/Loader/Mod JARs, mappings, upstream sources, decompiler input and indexes can be replaced, poisoned or resolved from an unintended repository. Decompiled output may be incomplete or misleading. Third-party JAR contents are untrusted input to resolvers, decompilers and parsers.
+
+Required future controls: explicit repository/source origin, cryptographic hashes, immutable content-addressed inputs where practical, Target and mapping namespace binding, bounded parser/index workers, cache manifests, deterministic rebuild verification and quarantine of inconsistent entries. Source/decompiler facts carry origin and confidence and never override a contradictory Runtime observation.
+
+### E1 Source Licence and Redistribution Confusion — OPTIONAL / INACTIVE
+
+A local cache of generated/decompiled Minecraft or Mod source may be mistaken for redistributable project source.
+
+Required future controls: record origin, licence metadata, generated/decompiled status and redistribution restrictions; keep managed corpora outside project Git; avoid embedding bulk source in Runtime Artifact bundles; require separate legal/release review before redistribution.
+
+### E1 Cross-Plane Authority Confusion — OPTIONAL / INACTIVE
+
+An Agent may attempt to reuse Runtime read/debug authority for source acquisition, project writes, build/process execution or exploratory JVM execution.
+
+Required future controls: separate capability declarations, scopes and audit identities for Runtime, Development Intelligence and Exploratory planes. Unified MCP routing must not create a unified super-token or a second hidden authority state machine.
+
+### E1 Unsafe Exploratory JVM Execution — OPTIONAL / INACTIVE / HIGHEST RISK
+
+Full JVM scripting cannot be reliably described as a sandbox. It may obtain filesystem, network, reflection, ClassLoader, process and JVM-internal access and may corrupt the game or host data.
+
+Required future controls: disabled by default; loopback-only initial design; explicit local configuration plus human-visible enablement; separate short-lived session-bound Exploratory Arm; trusted-local-developer-only threat model; duration/result budgets and emergency disarm; audit of principal/session/request/script hash/duration/result/exception. Full script text is excluded by default because it may contain secrets.
+
+Every Safe Probe or unsafe JVM result must return exploratory authority/mechanism and `evidence=invalid_for_acceptance`. Exploratory actions can investigate or arrange state but can never satisfy PLAYTEST evidence. The ordinary Debug Arm does not authorize this plane.
+
+### E1 Human Inspector Privilege Confusion — OPTIONAL / INACTIVE
+
+A Web UI can make high-risk actions appear equivalent to read-only inspection or can expose sensitive Runtime/source data to browser origins.
+
+Required future controls: use the same typed service contracts and capability truth as Agents, separate read and armed actions visually, retain Host/Origin/CSRF-equivalent protections appropriate to its transport, never embed credentials in served assets and label all exploratory output as non-acceptance evidence.
+
+## Explicit Non-Goals
+
+The current normal Runtime and typed Debug planes will not provide:
+
+- Arbitrary shell execution.
+- Arbitrary filesystem browsing.
+- Arbitrary JVM reflection RPC.
+- ClassLoader manipulation.
+- General process control.
+
+Internal invasive implementation remains restricted behind typed Minecraft-domain operations.
+
+A future explicitly unsafe `EXPLORATORY_JVM` service is not an exception hidden inside the normal Runtime API. It is a separate, default-off, loopback-only, separately armed, non-sandboxed highest-risk plane with invalid-for-acceptance evidence. Its implementation requires a dedicated architecture/security gate and is currently absent.
+
+## Historical Phase 8 security evidence (not rerun by documentation governance)
+
+- Readiness and capabilities cannot overclaim failed hooks.
+- Black-box conformance checks authentication, Origin rejection, protocol negotiation, scopes, single-writer Lease behavior, stale resource preconditions, deadlines, cancellation, TTL cleanup, control-channel disconnect cleanup and audit.
+- No tracked production credential exists and generated token values are not logged.
+- No listener binds beyond `127.0.0.1`.
+- Request bodies, credentials and game text are excluded from the Phase 2 audit ring.
+- Thread-affinity diagnostics return detached data rather than live Minecraft objects.
+- Automation conformance verifies Pipeline cancellation while W is held and observes that all Runtime-owned input is released.
+- The standard Mod GUI is opened only through a typed Fixture operation that marks evidence contamination.
+- A far unloaded Server block returns `chunk_not_loaded`, `chunkLoadRequested=false` and `storageAccessed=false` on all five Runtime Targets.
+- Provider discovery/read and State Frame output preserve LIVE/source/trust metadata.
+- OpenGL/Vulkan capture concurrency tests finish with no held Runtime input.
+- Default-scope conformance rejects Fixture and Debug endpoints with `SCOPE_DENIED`.
+- Wrong fingerprints, missing Arms, disarmed Arms and expired Arms fail closed.
+- Recording manifests and timelines preserve Fixture/Debug contamination.
+- Debug block mutation uses an expected-value precondition and refuses unloaded targets.
+- Every Target starts as a physical Dedicated Server without loading client-only Runtime hooks.
+- Every Target completes a separate Client-to-Dedicated-Server Peer round trip without forced routing.
+- Non-operator remote players receive `fixture=false` and `debug=false` even when server feature flags are enabled.
+- Peer disconnect cleanup reports `connected=false` and zero pending requests.
+- Peer-backed State Frames preserve `source=dedicated_server_peer` at both wrapper and data levels.
+- Historical Phase 8 inspection found no cancellation/replacement Hooks. Current Operator control adds the explicitly reviewed 13 legacy / 15 modern cancellations and four redirects per Target; Overwrite and third-party Mixin targets remain absent, and observation Hooks remain non-cancelling.
+- Runtime Hook manifests report core self-test readiness and per-capability failure behavior.
+- Disabled semantic controls reject selector actions before input is generated.
+- Official MCP Client conformance verifies static Tool/Prompt definitions under malicious-looking game text.
+- PNG and Artifact data use bounded MCP Resources with UUID-only Recording identifiers.
+- The cited Phase 8 run reported zero known vulnerabilities against its pinned lockfile. This is dated evidence, not a current Registry audit result.
+- Companion production sources contain no shell/process execution API and no stdout logging.
+- Real Phase 8 Minecraft MCP conformance returns to title and releases the Control Lease cleanly.
+
+## Compatibility testing boundary
+
+The [large-modpack matrix](../testing/modpack-compatibility.md) is PLANNED and has
+not been executed. READ/OPERATE/TAKEOVER tests use the existing authority model;
+they do not authorize third-party config rewriting or arbitrary host control.
+Tier 1 explicitly checks passive installation impact. Mods that replace callbacks,
+poll native input directly or render after the cooperative Operator pass remain
+compatibility risks, not capabilities proven by static gates or Showcase smoke.
+Only the user supplies physical Esc/focus/click acceptance; CUA is prohibited.
+
+## Current Residual Risks
+
+- A process running as the same OS user may read the token handoff file or inspect the game process.
+- The audit ring is volatile and bounded; it is not a tamper-evident security log.
+- LAN pairing/TLS and persistent, independently revocable account principals are Ultimate/deferred; V1 remains loopback-only and uses a token-lifetime authenticated principal.
+- Idempotency storage is in-memory and process-local.
+- Scope configuration is per Runtime process; fine-grained multi-account principals are deferred.

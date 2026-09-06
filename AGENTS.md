@@ -15,26 +15,49 @@ metadata and normal build/launch commands are not desktop input automation.
 
 ## Documentation Authority and Navigation
 
-The user-authorized documentation home is [docs/README.md](docs/README.md).
+The user-authorized documentation home is [documents/README.md](documents/README.md).
 Keep only this file and the concise project README as root Markdown entries.
 
-- [Core vision](docs/product/vision.md): the committed Autonomous Testing product.
-- [Optional extensions](docs/product/extensions.md): E1/E2/E3, never implicit Core gates.
-- [Execution plan](docs/product/execution-plan.md): current status and next authorized gates.
-- [Architecture](docs/architecture/overview.md), [control model](docs/architecture/agent-control.md)
-  and [threat model](docs/architecture/threat-model.md): adopted design and current limits.
-- Historical Phase records and immutable `Artifacts/` are evidence, not current work orders.
+- [Core vision](documents/product/vision.md): the committed Autonomous Testing product.
+- [Optional extensions](documents/product/extensions.md): E1/E2/E3, never implicit Core gates.
+- [Execution plan](documents/product/execution-plan.md): current status and next authorized gates.
+- [Architecture](documents/architecture/overview.md), [control model](documents/architecture/agent-control.md)
+  and [threat model](documents/architecture/threat-model.md): adopted design and current limits.
+- Historical Phase records and immutable `validations/results/` are evidence, not current work orders.
   Do not rewrite their historical paths, hashes or failures to match newer results.
-- Testing plans live in `docs/testing/`; executable drivers stay in `conformance/`.
-  Module-local operational references such as `companion/README.md` may stay beside code.
-  The root uses `settings.gradle.kts` / `build.gradle.kts`; concrete Target
-  projects currently use Groovy `build.gradle`. Target `.gradle.kts` examples
-  below illustrate governance rather than literal Target file paths.
+- Testing plans live in `documents/testing/`; executable drivers stay in `validations/tests/`.
+  Module-local operational references such as `components/companion/README.md` may stay beside code.
+  Root, Targets and Gradle components use native `build.gradle.kts` files; shared
+  Instance Cascade infrastructure lives in `gradle/instances.gradle`.
 - Documentation examples use repository-root command paths unless explicitly stated.
   After moving documents, update live references and run
-  `pwsh -File conformance/Invoke-DocumentationGate.ps1`.
+  `pwsh -File validations/tests/core/repository/Invoke-DocumentationGate.ps1`.
 - Plans, Showcase READY, implementation COMPLETE and human/remote acceptance PASS
   are different states. Never promote one by editing documentation alone.
+
+## Placement Decision Tree
+
+Use the first applicable responsibility, not a historical development phase:
+
+1. Minecraft-version/Loader implementation -> `versions/<target>/`.
+2. Product code independent of a single Target -> a real `components/<component>/`.
+   Gradle components: runtime-safety and protocol-schema. Companion is an independent
+   Node/TypeScript component and is **not** registered as a Gradle project.
+3. Normal local Minecraft runtime -> `instances/<target>/<variant>/`.
+4. A validation-specific isolated runtime (Vulkan/Showcase) -> ignored
+   `validations/.local/<scenario>/<target>/`; never a fourth canonical variant.
+5. Project documentation -> `documents/`.
+6. How to prove behavior -> `validations/tests/{core,compatibility,releases}/`.
+7. Produced evidence -> `validations/results/{core,compatibility,releases}/`.
+   Create a category only when it has real content; do not add empty placeholders.
+8. Native/shared Gradle infrastructure -> `gradle/`.
+9. An official ecosystem directory may remain where its tool requires it, but
+   tracking is a separate decision. Local generated IDE state is not product truth.
+
+Core authority remains **Agent-native Minecraft Autonomous Testing Platform**.
+E1/E2/E3 are optional and non-blocking. READ/OPERATE/TAKEOVER express intent, not
+permission. PLAYTEST / FIXTURE / DEBUG_PRIVILEGED evidence stays separate; no
+directory migration, passing build or documentary claim grants gameplay acceptance.
 
 ## Repository Philosophy
 
@@ -278,46 +301,18 @@ Do not optimize for DRY at the expense of readability.
 
 ---
 
-# 8. Shared Facts Are Different From Shared Implementation
+# 8. Project / Target / Instance / Local Facts
 
-Stable repository-level product identity should normally have one source of truth.
-
-Examples:
-
-```text
-Mod ID
-Mod display name
-Maven group
-artifact base name
-release version
-author
-```
-
-These belong at repository/root level when they are genuinely common.
-
-Target-specific facts belong to the target.
-
-Examples:
-
-```text
-Minecraft version
-loader version
-Fabric API version
-Forge version
-NeoForge version
-mappings
-Java toolchain
-target-specific dependencies
-target-specific plugins
-```
-
-Do not turn the root `gradle.properties` into a database containing every target's dependency matrix.
-
-Use this ownership rule:
-
-> **“What product is this?” belongs to the root.**
-
-> **“How does this target build and run?” belongs to the target.**
+- `gradle.properties`: product identity (`mod_id`, `mod_name`, `maven_group`,
+  `mod_version`, `mod_environment=both`, licence/authors/description) and real
+  `org.gradle.*` options. One authoritative key per fact; no group/archive aliases.
+- `versions/<target>/target.properties`: Minecraft/Loader/Java and Target dependency facts.
+  Loader plugin bootstrap versions remain in that Target's native plugins block.
+- `instance.properties`: tracked runtime defaults, never Minecraft/Loader dependency versions.
+- `local.properties`: ignored environment-like tool paths and final `instance.*`
+  overrides only. Unknown user keys are preserved; they are not merged into Project/Target facts.
+- Component-specific versioning may remain component-owned; moving a module must
+  not silently change its Maven identity or embedded-library version.
 
 ---
 
@@ -358,45 +353,22 @@ Target directories already express the target identity.
 
 ---
 
-# 10. Gradle Must Stay Explicit
-
-`settings.gradle.kts` should explicitly declare real targets.
-
-Example:
-
-```kotlin
-include(":versions:1.20.1-forge")
-include(":versions:1.21.1-neoforge")
-include(":versions:26.2-neoforge")
-include(":versions:26.2-fabric")
-```
-
-Prefer explicit declarations over:
+# 10. Explicit Hierarchical Gradle Topology
 
 ```text
-automatic target discovery
-directory scanning
-generated matrices
-dynamic loader detection
-implicit target activation
+versions/<target>       <-> :versions:<target>
+components/<component> <-> :components:<component>
 ```
 
-The root `build.gradle.kts` should remain thin.
+Use explicit `includeTarget` / `includeComponent` calls in settings. Missing real
+directories/build scripts must fail; no scanning, alias modules or fake projects.
+Intermediate `:versions` / `:components` projects only express hierarchy and own
+no product logic. Companion remains outside the Gradle graph.
 
-Root tasks may aggregate real target tasks, but the root must not become a hidden framework that decides what each target means.
-
-Avoid introducing, without demonstrated need:
-
-```text
-buildSrc/
-Convention Plugins
-custom target frameworks
-dynamic source-set matrices
-automatic loader selection
-generated target graphs
-```
-
-Do not introduce Stonecutter or an equivalent conditional-source framework unless the user explicitly chooses that governance model.
+Keep required pluginManagement, repositories and toolchain bootstrap. Root
+build.gradle.kts stays coordination-only; the single Instance Cascade implementation
+belongs in `gradle/`, not five copies, buildSrc, or a speculative build-logic framework.
+Do not introduce Stonecutter without an explicit user decision.
 
 ---
 
@@ -442,100 +414,65 @@ Explicit project paths are preferred.
 
 ---
 
-# 12. Run Instance Layout
+# 12. Canonical Instance Variants
 
-Development instances live under repository-root:
-
-```text
-runs/<target>/
-```
-
-A target may expose:
+Mine-Craft-Protocol is a both-side project; all three variants are real:
 
 ```text
-runs/<target>/
-├─ client/
-├─ client-multiplayer/
-└─ server/
+instances/<target>/
+  client/
+  client-multiplayer/
+  server/
 ```
 
-`client` is the normal development client.
+Do not create these directories until local tooling/runtime actually needs them.
+Vulkan is a client launch scenario, not `client-vulkan` as a fourth instance type.
+The retained `runClientVulkan` task uses a validation-isolated work directory and
+the standard client configuration. Do not weaken actual backend verification.
 
-`client-multiplayer` is a second independent client profile used for multiplayer/LAN/server testing.
+All instance files are ignored by default. Only reviewed exact-path exceptions
+may be whitelisted; never whitelist a world/token/cache/log/mod or whole variant.
+Local runtime-data moves are separate from Git moves: inspect, require absent
+destination, preserve conflicts, never overwrite or erase worlds to tidy the tree.
 
-`server` is the dedicated server profile.
+# 13. Instance Cascade and Local Overrides
 
-The latter two may be omitted for projects that genuinely do not need them, but a reference repository may deliberately implement all three.
+Supported fields: memory, width, height, playerName, extraJvmArgs, extraGameArgs.
 
-`runs/` is local runtime state and must not be committed.
-
-Typical ignore rule:
-
-```gitignore
-/runs/
-```
-
----
-
-# 13. Local Developer Configuration
-
-Machine-specific developer configuration belongs in:
-
-```text
-/local.properties
-```
-
-`local.properties` is optional and Git ignored.
-
-Example:
-
-```gitignore
-/local.properties
-```
-
-Do not create a tracked `run.properties` merely to provide editable defaults.
-
-Defaults that are part of the target's development behavior should live directly in the relevant build logic.
-
-`local.properties` should only override local developer values.
-
-Example:
+Within each file, in descending specificity:
 
 ```properties
-player.client.name=LocalPlayer
+instance.[<target>].<variant>.<property>
+instance.[<target>].<property>
+instance.<variant>.<property>
+instance.<property>
 ```
 
-Partial overrides must be allowed.
+Resolve tracked instance.properties independently, then local.properties
+independently. ANY applicable local value wins, even local Global over repository
+Target+Variant. Never merge two Properties objects before searching specificity.
 
-The repository must work when `local.properties` does not exist.
+Extra arguments are JSON arrays of strings; a present empty value means an empty
+list and clears repository extra args. Missing memory/size/name preserves Loader
+defaults. An explicitly invalid/empty typed value fails before the relevant run,
+not an unrelated build. Do not duplicate memory/name/size/game-directory options
+inside extra args. No fake defaults merely to fill a table.
 
----
+The shared resolver is consumed by all five native Loader run models. Preserve
+existing local files/unknown keys and migrate only proven legacy instance keys.
+Do not print local secrets or unrelated machine settings into evidence.
 
 # 14. Client Player Profiles
 
-Where multiple development clients exist, use separate player identities.
+The new client-multiplayer variant requires an explicit playerName before launch;
+the repository does not invent a new primary player identity. If both names are
+configured they must differ. Invalid/missing second-client identity must not block
+build/test/server or the ordinary client. Configure a distinct value in ignored
+local.properties before a multiplayer validation; never reuse two identical players.
 
-Conceptually:
-
-```text
-runClient
-→ client player
-
-runClientMultiplayer
-→ second player
-```
-
-Names should be validated only when the corresponding client task runs.
-
-Invalid client configuration must not block unrelated operations such as:
-
-```text
-build
-test
-runServer
-```
-
-The two multiplayer-testing client identities should not resolve to the same player name.
+One client at a time for ordinary acceptance. A deliberately scoped multiplayer
+test may use server + client + client-multiplayer with separate directories and
+identities. Do not confuse that explicit test with unexplained duplicate clients.
 
 ---
 
@@ -546,7 +483,7 @@ During development, the project itself should normally be loaded through the loa
 Do not copy the project's own built JAR into:
 
 ```text
-runs/<target>/<profile>/mods/
+instances/<target>/<profile>/mods/
 ```
 
 for ordinary development runs.
@@ -823,7 +760,7 @@ The repository should communicate its structure directly through:
 
 ```text
 versions/
-runs/
+instances/
 settings.gradle.kts
 gradle.properties
 target build.gradle.kts
@@ -836,7 +773,7 @@ Do not add:
 
 ```text
 README
-docs/
+documents/
 architecture documents
 workflow documentation
 ```

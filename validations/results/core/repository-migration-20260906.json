@@ -1,0 +1,151 @@
+{
+  "schema": "repository-structure-migration-v1",
+  "result": "PASS",
+  "date": "2026-09-06",
+  "baseCommit": "e95362eb424859865fd3dfd7a8efcde418313ac8",
+  "binding": "WORKING_TREE_MIGRATION_NOT_NEW_REMOTE_RELEASE_ATTESTATION",
+  "layout": {
+    "targets": "versions",
+    "productComponents": "components",
+    "canonicalInstances": "instances",
+    "documents": "documents",
+    "validationMethods": "validations/tests",
+    "validationEvidence": "validations/results",
+    "gradleInfrastructure": "gradle"
+  },
+  "gradle": {
+    "targetModules": 5,
+    "componentModules": [
+      ":components:runtime-safety",
+      ":components:protocol-schema"
+    ],
+    "companionGradleModule": false,
+    "legacyModuleAliases": false,
+    "kotlinTargetScripts": 5,
+    "nativeRunModels": 15,
+    "variants": [
+      "client",
+      "client-multiplayer",
+      "server"
+    ],
+    "vulkanScenarios": 3,
+    "vulkanDirectory": "validations/.local/vulkan/<target>",
+    "vulkanLiveReattested": false
+  },
+  "facts": {
+    "modIdUnchanged": true,
+    "packageRootUnchanged": true,
+    "minecraftLoaderVersionsUnchanged": true,
+    "modVersion": "0.0.1-phase8",
+    "modEnvironment": "both",
+    "groupAuthority": "maven_group",
+    "archiveAuthority": "mod_id",
+    "descriptionUpdated": true,
+    "instanceDefaults": {
+      "clientExtraJvmArgs": [
+        "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"
+      ],
+      "multiplayerExtraJvmArgs": [
+        "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"
+      ],
+      "serverExtraGameArgs": [
+        "--nogui"
+      ],
+      "memory": null,
+      "width": null,
+      "height": null,
+      "primaryPlayerName": null
+    },
+    "localPriority": "local file wins after independent four-level specificity",
+    "localPropertiesInitiallyExisted": false,
+    "secondClientName": "explicit distinct playerName required before launch, no invented primary identity"
+  },
+  "localData": {
+    "movedGroups": 14,
+    "files": 2267,
+    "bytes": 1414403485,
+    "runDataVerification": "ALL_MOVED_FILES_SHA256_VERIFIED",
+    "conflicts": 0,
+    "standardGroups": 10,
+    "showcaseGroups": 2,
+    "vulkanGroups": 2,
+    "archivedProbesFiles": 282,
+    "probesVerification": "NON_DESTRUCTIVE_DIRECTORY_RENAME_FILE_COUNT_CHECK",
+    "oldEmptyRoots": "preserved in validations/.local/legacy-empty-roots",
+    "legacyRunLock": "preserved in validations/.local/legacy-runs-root",
+    "dataDeleted": false
+  },
+  "ide": {
+    "launchJsonTracked": false,
+    "originalLocalFilePreserved": true,
+    "sha256": "507A83E816EA4560186BEF885F94E0411E4A25F15CCF6C764DC6D840203D8DC4",
+    "ignore": "/.vscode/launch.json",
+    "wholeVscodeIgnored": false
+  },
+  "historicEvidence": {
+    "files": 15,
+    "contents": "BYTE_IDENTICAL",
+    "pathsMovedOnly": true
+  },
+  "verification": {
+    "projects": "PASS",
+    "fiveTargetBuild": "PASS",
+    "runtimeSafetyComponentBuildTest": "PASS_5_TESTS",
+    "protocolComponentGenerationTest": "PASS",
+    "generatedJavaModels": 140,
+    "generatedTypeScriptModels": 140,
+    "companionTests": "PASS_3_TESTS",
+    "phase8LocalGate": "PASS",
+    "dependencyAudit": {
+      "attempts": 1,
+      "high": 0,
+      "critical": 0
+    },
+    "targetJavaTests": 103,
+    "instanceCascade": "PASS",
+    "instanceBindings": "PASS",
+    "ignoreExactWhitelist": "PASS",
+    "scriptPathAndSyntax": "PASS",
+    "documentationGate": "PASS",
+    "controlStatic": "PASS",
+    "phase9B2C_D0_D1_D2Static": "PASS",
+    "finalJarEmbedding": "PASS_FIVE_TARGETS_ONE_SAFETY_JAR",
+    "showcaseTests": "PASS_32_CHECKS",
+    "diffCheck": "PASS"
+  },
+  "live": [
+    {
+      "target": "1.20.1-forge",
+      "showcase": "PASS",
+      "report": "validations/.local/control-ui-showcase/1.20.1-forge/showcase-20260906-183758967.json",
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "shutdown": "PASS",
+      "canonicalClientTitle": "PASS",
+      "canonicalDirectory": "instances/1.20.1-forge/client",
+      "canonicalWorldOpened": false
+    },
+    {
+      "target": "26.2-fabric",
+      "showcase": "PASS",
+      "report": "validations/.local/control-ui-showcase/26.2-fabric/showcase-20260906-184138749.json",
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "shutdown": "PASS",
+      "canonicalClientTitle": "PASS",
+      "canonicalDirectory": "instances/26.2-fabric/client",
+      "canonicalWorldOpened": false
+    }
+  ],
+  "notClaimed": [
+    "new five-target full live/release attestation",
+    "new physical human/visual acceptance",
+    "new Dedicated Peer remote matrix",
+    "new Vulkan live acceptance"
+  ],
+  "legacyGate": "Phase 9A phase-entry assertions predate this task; historical-context failure is not rewritten into a current PASS",
+  "runtimeBusinessSourceChanged": false,
+  "nativeProtocolSchemaChanged": false,
+  "persistentWriteInvocations": 0,
+  "RavensModTemplateTouched": false
+}

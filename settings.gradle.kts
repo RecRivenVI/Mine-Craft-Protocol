@@ -15,10 +15,24 @@ plugins {
 
 rootProject.name = "Mine-Craft-Protocol"
 
-include(":protocol-schema")
-include(":runtime-safety")
-include(":versions:1.20.1-forge")
-include(":versions:1.21.1-neoforge")
-include(":versions:26.1.2-neoforge")
-include(":versions:26.2-neoforge")
-include(":versions:26.2-fabric")
+fun includeTarget(id: String) {
+    val directory = file("versions/$id")
+    require(directory.isDirectory && directory.resolve("build.gradle.kts").isFile && directory.resolve("target.properties").isFile) {
+        "Missing real Target: $id"
+    }
+    include(":versions:$id")
+}
+
+fun includeComponent(id: String) {
+    val directory = file("components/$id")
+    require(directory.isDirectory && directory.resolve("build.gradle.kts").isFile) { "Missing Gradle component: $id" }
+    include(":components:$id")
+}
+
+includeComponent("protocol-schema")
+includeComponent("runtime-safety")
+includeTarget("1.20.1-forge")
+includeTarget("1.21.1-neoforge")
+includeTarget("26.1.2-neoforge")
+includeTarget("26.2-neoforge")
+includeTarget("26.2-fabric")
