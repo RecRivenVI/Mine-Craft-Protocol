@@ -1,6 +1,7 @@
-# ADR-0001: V1 Loopback-Only Release Profile
+# ADR 0004: V1 Loopback-Only Release Profile
 
 - Status: Accepted
+- Archive identity: formerly root `ADR-0001-V1-LOOPBACK-RELEASE-PROFILE.md`; renumbered during documentation governance to avoid colliding with Explicit Target Governance ADR 0001. Decision unchanged.
 - Date: 2026-08-28
 - Scope: V1 release security profile only
 - Ultimate Scope impact: none

@@ -1,13 +1,27 @@
-# Agent Control Model — Research Decision
+# Agent Control Architecture
 
-> Date: 2026-09-05
+> Authority: CURRENT adopted control architecture; implementation facts are checked against Native/MCP source.
+> Date: 2026-09-06
 > Status: Round 1 retained. Combined Rounds 2–4 IMPLEMENTATION COMPLETE; Unified Acceptance READY but NOT RUN. Wire Protocol v1 NOT FROZEN.
 > Scope: Core input/presence UX only. No Persistent Write, new Phase, or E1/E2/E3 work.
-> Prior UX closeout: PARTIAL; see `Artifacts/core/core-ux-closeout-20260905.json`.
+> Prior UX closeout: historical PARTIAL; see `Artifacts/core/core-ux-closeout-20260905.json`.
 
-## Recommendation
+## Authority and acceptance labels
 
-Adopt **READ / OPERATE / TAKEOVER as explicit work intentions**, not a permission
+- **CURRENT**: Round 1 accepted; Rounds 2–4 implemented in all five Targets.
+- **NOT YET ACCEPTED**: unified human/visual/five-Target acceptance of the new
+  exclusive-input, pointer and pixel-Chrome behavior. Automated smoke is not that gate.
+- **FUTURE**: third-party pack coverage and any separately approved scope changes.
+  The [compatibility matrix](../testing/modpack-compatibility.md) is a test plan,
+  not proof that arbitrary Mods cannot bypass cooperative hooks.
+
+Current delivery status belongs to the [execution plan](../product/execution-plan.md).
+The [Showcase](../testing/control-ui-showcase.md) is READY for repeated viewing;
+its Forge/Fabric Runner smoke does not promote Unified Acceptance to PASS.
+
+## Current contract — CURRENT
+
+The Runtime uses **READ / OPERATE / TAKEOVER as explicit work intentions**, not a permission
 ladder. Authentication, scopes, Control Lease, Debug Arm and evidence authority
 remain independent checks. A request must never silently upgrade its mode.
 
@@ -17,7 +31,7 @@ remain independent checks. A request must never silently upgrade its mode.
 | OPERATE / 操控 | explicitly authorized typed Fixture/Debug and non-player control-plane operations | GUI/Inventory clicks, WASD, camera, attack/use or player commands |
 | TAKEOVER / 接管 | the existing leased GAME_ROUTED player path, including GUI, Container and normal player command packets | Debug authority, elevated server permissions or gameplay acceptance merely because the mode is active |
 
-Player-style APIs should return a stable `TAKEOVER_REQUIRED`-equivalent result
+Player-style APIs return stable `TAKEOVER_REQUIRED` / manual-revocation errors
 outside TAKEOVER. Mode selection alone cannot satisfy a missing scope or Arm.
 Read-only Debug capability/status queries remain READ. A typed Debug menu mutation
 can be OPERATE only as a diagnostic mutation, never as a surrogate player click.
@@ -32,16 +46,17 @@ can be OPERATE only as a diagnostic mutation, never as a surrogate player click.
   mode generation guards explicit transitions; stale session/generation is rejected.
   HTTP pooling/reconnection is not an intent transition. Token-lifetime principal
   identity is not multi-user tenancy; this is not a per-MCP-client mode system.
-- Future Round 4 presentation should display actual activity: TAKEOVER owner first, then active OPERATE,
-  then active READ. Another reader cannot overwrite a takeover's visible state.
-  Merely possessing a token should not leave a permanent “reading” banner.
+- CURRENT presentation reflects authenticated activity/work separately from intention:
+  TAKEOVER keeps Presence active, as do admitted OPERATE work, Recording and active
+  responses. Ordinary authenticated activity has a 15-second window. A reader
+  does not change the current intent; a token alone does not pin a permanent banner.
 - Keep Presence Mode, Human Override Latch, Lease, Evidence Authority, Debug Arm
   and logical Pointer Ownership separate. Coordinate their transitions through
   small entry/exit barriers, not one combinatorial global state machine.
-- First implementation should serialize effectful input gestures under the
-  existing Lease and reject overlapping Debug/Fixture writes during TAKEOVER.
-  One Lease currently permits multiple Operations; that is not yet a guarantee
-  that two pointer trajectories or two cleanup routines cannot interfere.
+- CURRENT input gestures and cleanup are serialized by one bounded 16-entry queue
+  under the existing Lease. OPERATE mutations are not admitted during TAKEOVER.
+  Multiple Operation handles do not authorize concurrent pointer owners; raw held
+  streams must finish before a high-level GUI gesture can acquire the pointer.
 - Switching to OPERATE must drain/cancel leased player input first. Switching
   from OPERATE to TAKEOVER must finish/cancel the affected mutation/batch first.
   Retain per-item cancellation and owner-thread resource/value checks; do not
@@ -62,7 +77,7 @@ latch. Reacquire is the only latch-clearing path. Conversation consent remains
 Agent policy; the Runtime cannot verify chat or accept a fake consent field.
 
 Round 1 classification is indexed in `conformance/control/control-mode-surface.json`:
-74 formal HTTP operations, 24 MCP tools with typed action discriminators, retained
+75 formal HTTP operations, 24 MCP tools with typed action discriminators, retained
 diagnostics and WS commands. Native GET/POST `/v0/control/mode` and MCP
 `minecraft_control` status/set_mode expose stable state rather than error-string
 inference. Only existing Lease acquire enters TAKEOVER. Ordinary HTTP disconnect
@@ -70,7 +85,7 @@ is not a new logical session; Lease-bound WS disconnect, TTL and Runtime close e
 TAKEOVER. Mode transitions emit bounded audit/event metadata. Existing response
 `mode=FIXTURE/DEBUG_PRIVILEGED` fields remain evidence authority, not work intention.
 
-Current acceptance: `conformance/control/Invoke-ControlRound1Gate.ps1` and
+Round 1 acceptance: `conformance/control/Invoke-ControlRound1Gate.ps1` and
 `Artifacts/core/agent-control-round1-20260905.json`. This is working-tree candidate
 evidence, not another clean-remote Phase 8 release attestation. Historical Phase
 9A–9C drivers predate explicit intent: diagnostic bodies need OPERATE and player
@@ -163,20 +178,21 @@ documents separate key/character callbacks and callback reentrancy from window
 system calls. Its [cursor mode contract](https://www.glfw.org/docs/latest/input_guide.html#cursor_mode)
 concerns the OS cursor; it is not an Agent logical-pointer contract. These are
 reasons to test ingress provenance and the two coordinate domains independently.
-This is a design inference, not proof that the proposed hooks already work.
+This is retained decision rationale. Current hooks have automated implementation
+coverage; it is not a claim that every native/Mod/desktop path has passed human acceptance.
 
 ## Operator chrome — implemented, unified acceptance pending
 
 Implemented top-center Minecraft pixel typography, square/pixel-stepped borders,
 Minecraft-scale spacing and a blue status palette. Reuse the proven edge glow,
 short Fade and final Operator pass; do not introduce an OS overlay or a new
-Render Plane. Suggested text/intensity:
+Render Plane. Current text/intensity (not a visual acceptance verdict):
 
 | Activity | Text | Presentation |
 |---|---|---|
-| READ | 智能体正在读取您的实例 | quiet activity indicator; little or no perimeter glow |
-| OPERATE | 智能体正在操控您的实例 | stronger blue indicator, diagnostic provenance in evidence |
-| TAKEOVER | 智能体已接管您的实例 · Esc 以退出 | clear blue perimeter and escape instruction; GUI pointer |
+| READ | 智能体正在读取您的实例 | weak blue Presence; edge strength 0.25 |
+| OPERATE | 智能体正在操控您的实例 | medium blue Presence; edge strength 0.55; independent diagnostic provenance |
+| TAKEOVER | 智能体已接管您的实例 · Esc 以退出 | strong blue perimeter, strength 1.0; escape instruction; GUI pointer |
 
 Permission changes are immediate; only appearance fades. No model ID. Ordinary
 HUD/Toast/Screen rendering precedes evidence readback, then Operator chrome and
@@ -184,23 +200,23 @@ pointer, then presentation. Preserve this explicit ordering, including loading
 frames, async GPU readback and shutdown. Resize/fullscreen behavior remains a
 five-Target acceptance case, not a claim about arbitrary post-present Mod hooks.
 
-Timeline/Audit should record bounded pointer trajectory samples, gesture ID,
+Timeline/Audit records bounded input/pointer samples, gesture ID,
 origin, mode transition and cancellation reason. These are operator metadata,
 not proof of gameplay success. READ/OPERATE/TAKEOVER must never replace source,
 perspective, resource identity or the existing contamination window.
 
-## Reuse, change and execution order
+## Decision rationale and historical implementation decomposition
 
 Reuse: Lease/expiry/disconnect, Operation cancellation, ConditionEngine, semantic
 target resolution, normal Screen/Menu/packet routing, Debug Arm/resource/value
 checks, evidence classification, bounded capture queue, final Operator render
 boundary, Fade and cached original title/icon restoration.
 
-Round 1 changes Fixture's Lease coupling and mode-generation admission only.
-Change in later authorized rounds: per-gesture serialization,
-input-origin ingress, native suppression, current human cursor-capture grant,
-GUI/world logical pointer routing, and chrome layout/copy. Keep Target hooks
-explicit; do not promote new shared Loader abstractions before real evidence.
+Round 1 delivered Fixture/Lease decoupling and mode-generation admission. The
+combined Rounds 2–4 implementation subsequently delivered per-gesture serialization,
+explicit ingress provenance, exclusive native suppression, removal of the old
+human-click cursor grant, logical pointer routing and pixel Chrome. These are not
+future proposals. Target hooks remain explicit; no new shared Loader framework is implied.
 
 Historical decomposition below is retained for traceability. The user authorized the remaining design as one combined implementation; these are not separate delivery or acceptance rounds:
 
@@ -215,14 +231,15 @@ Historical decomposition below is retained for traceability. The user authorized
    Widgets/Inventory, cancellations, resize and concurrent requests.
 4. **Pixel chrome and product acceptance:** top-center design, pointer visibility,
    deterministic capture/recording exclusion, five-Target runtime coverage and
-   a new Human-visible Demo. Do not hide the current isolated Forge UI timeout.
+   a new Human-visible Demo. The historical Forge save-click timeout is retained;
+   the bounded Round 1 retest did not reproduce it.
 
-Structural risks to resolve in those rounds: intent mistaken for authorization;
+Risks that motivated the implementation and remain regression subjects: intent mistaken for authorization;
 native callbacks/queued work misclassified across transitions; concurrent input
 gestures sharing mutable MouseHandler state; hover causing Mod GUI side effects;
 and non-cooperative Mod input/render hooks outside the supported boundary.
 
-No round starts automatically. This research does not open Persistent Write or
+No acceptance or implementation task starts automatically. This architecture does not open Persistent Write or
 any subsequent Phase/Extension and does not freeze Wire Protocol v1.
 
 ## Combined implementation contract (control-r24)
@@ -241,7 +258,7 @@ any subsequent Phase/Extension and does not freeze Wire Protocol v1.
 - Native/MCP V0 is 0.0.1-control-r24: 75 formal HTTP operations and the same 24 MCP tools. Modes, scopes, Lease, Debug Arm, Resource Version, manual latch and evidence authority stay independent.
 - This implementation does not promise distributed rollback of previously sent Peer packets, arbitrary native-Mod containment, a new text/JVM/filesystem RPC, or any Phase 9/10/Extension work.
 
-Current automated entry points: Invoke-ControlImplementationStaticGate.ps1 and
-Invoke-ControlImplementationSmoke.ps1. Human Esc/IME/focus/host-cursor validation,
+Current automated entry points: [static gate](../../conformance/control/Invoke-ControlImplementationStaticGate.ps1)
+and [implementation smoke](../../conformance/control/Invoke-ControlImplementationSmoke.ps1). Human Esc/IME/focus/host-cursor validation,
 visual comfort, arbitrary Mod GUI compatibility and the unified five-Target
 human/visual matrix remain explicitly pending the next authorized acceptance.

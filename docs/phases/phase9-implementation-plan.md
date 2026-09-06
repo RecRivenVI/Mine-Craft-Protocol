@@ -5,7 +5,11 @@
 > Attested V1 product commit: `2dda8448d00852d42fb3e07525ee05daaaddd66f`  
 > Current phase boundary: Phase 9D-2.1 runtime packaging and five-target packaged-artifact lifecycle attestation are complete; Persistent Write remains unimplemented and the next gate is an independent Entry Review; Phase 9E/9F/9G and Phase 10 are not started
 > Contract status: formal Deep Observation V0 plus retained experimental diagnostics; Wire Protocol v1 is not frozen
-> Core UX closeout (separate from Phase gates): PARTIAL — representative human override/cursor tests and five-target regressions pass; one isolated Forge save-click timeout remains unexplained. Evidence: `Artifacts/core/core-ux-closeout-20260905.json`. New control modes/pointer are research only in `AGENT_CONTROL_MODEL_RESEARCH.md`.
+> Current Core control status: Round 1 PASS; Rounds 2–4 implementation COMPLETE; Unified Acceptance READY / NOT EXECUTED; Showcase READY. See [current execution status](../product/execution-plan.md) and [adopted control architecture](../architecture/agent-control.md). The older UX PARTIAL and its non-reproduced Forge timeout are historical evidence.
+
+> Authority: current Phase 9 decomposition plus explicitly dated historical evidence.
+> Sections labelled Historical retain their original measurements and decisions;
+> they do not override the current status table in the product execution plan.
 
 ## 1. Purpose
 
@@ -17,7 +21,7 @@ This document is the Phase 9 capability inventory, Spike evidence index and exec
 26.2-fabric
 ```
 
-NeoForge 1.21.1 and NeoForge 26.1.2 retain the attested V1 Runtime and are intentionally not Phase 9A implementation Targets.
+At Phase 9A entry, NeoForge 1.21.1 and NeoForge 26.1.2 were excluded from the three-target Spike. They were subsequently implemented and verified for formal Phase 9B/9C and Phase 9D-0 through 9D-2.1; they are not current placeholders.
 
 Allowed inventory states are:
 
@@ -41,13 +45,13 @@ REQUIRES_NEW_HOOK
 
 ### 1.1 Core and Optional Extension Boundary
 
-The committed product is the **Agent-native Minecraft Autonomous Testing Platform** described by `PLATFORM_VISION.md`. The Minecraft Agent Control Runtime remains its Runtime Control, Testing and Observation subsystem.
+The committed product is the **Agent-native Minecraft Autonomous Testing Platform** described by `docs/product/vision.md`. The Minecraft Agent Control Runtime remains its Runtime Control, Testing and Observation subsystem.
 
-This governance separation does not change Phase 9 scope, implementation order, evidence or exit gates. E1 Development Intelligence & Exploratory Debug, E2 Autonomous Gameplay and E3 Deterministic Graphics Acceptance & Render Forensics are independently governed Optional Extensions in `PLATFORM_EXTENSION_GOALS.md`. They are outside Phase 9 and have not started implementation.
+This governance separation does not change Phase 9 scope, implementation order, evidence or exit gates. E1 Development Intelligence & Exploratory Debug, E2 Autonomous Gameplay and E3 Deterministic Graphics Acceptance & Render Forensics are independently governed Optional Extensions in `docs/product/extensions.md`. They are outside Phase 9 and have not started implementation.
 
 Phase 9C has passed its independent implementation gate with strongly typed Minecraft-domain mutations. An optional exploratory path cannot compensate for a missing or incorrect typed Debug contract. Runtime Phase 9D-9G and Phase 10 remain unchanged. No Extension is a Phase 9 or first Developer Preview blocker.
 
-## 2. Entry Reconciliation
+## 2. Historical Phase 9A Entry Reconciliation
 
 Phase 8 is complete. Final Release Evidence binds V1 to `2dda8448d00852d42fb3e07525ee05daaaddd66f`. The post-attestation remote delta contained only:
 
@@ -56,11 +60,11 @@ Artifacts/phase8/remote-parity-2dda8448....json
 Artifacts/phase8/final-attestation-2dda8448....json
 ```
 
-No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting build logic or protocol implementation changed after the attested product commit. Phase 9A therefore starts from the accepted V1 behavior rather than reopening Phase 8.
+At that entry check, the fetched post-attestation delta had no Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting build logic or protocol implementation changes. This statement does not describe commits made during later phases. Phase 9A therefore starts from the accepted V1 behavior rather than reopening Phase 8.
 
 ## 3. Existing Capability Inventory
 
-| Capability | Existing status | Current mechanism | Target coverage before 9A | Phase 9 action |
+| Capability | Existing status | Current mechanism | Coverage through 9D-2.1 | Phase 9 action |
 |---|---|---|---|---|
 | Basic Player LIVE read | IMPLEMENTED | Client/Server owner-thread projection | five Targets | expand fields and resource revisions |
 | Basic Entity LIVE read | IMPLEMENTED | bounded radius query | five Targets | add stable typed Living/equipment/relationship projections |
@@ -68,7 +72,7 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 | State Frame | PARTIAL | coordinated best-effort Provider reads | five Targets | become one input to bounded Keyframes |
 | Provider V2 | IMPLEMENTED | typed descriptor, detached schema-backed snapshot, effects/budget/failure isolation | five Targets | consumed by later Recording/Debug phases |
 | Recording | PARTIAL | frame + selected State Frame + events | five Targets | integrate world Keyframe/Delta later; current codec remains unfrozen |
-| Debug Arm | IMPLEMENTED | Control Lease + world fingerprint + TTL | five Targets | retain as the authority boundary |
+| Debug Arm | IMPLEMENTED | authenticated scope + world/session/namespace + TTL; no input Lease | five Targets | retain as the authority boundary |
 | Typed Deep Debug core | IMPLEMENTED | Arm/scope/world/resource/value guarded owner-thread mutation | five Targets | retain as the trusted Debug path |
 | Debug loaded block | IMPLEMENTED | loaded state + ResourceVersion/value preconditions | five Targets | retain no-load policy |
 | Deep Player | IMPLEMENTED | formal typed server snapshot plus explicit client-known counterpart | five Targets | optional domains remain limitations |
@@ -86,7 +90,7 @@ No Runtime, Mixin, OpenAPI, Companion production source, artifact-affecting buil
 
 ## 4. Phase 9A Runtime Surface
 
-The Phase 9A diagnostics surface remains an unstable compatibility route, now backed by the bounded Phase 9D-0 read adapter on all five Targets:
+These are retained, unstable Phase 9A diagnostic routes, not a new public API namespace. Specifically the persisted-read route is now backed by the bounded Phase 9D-0 adapter on all five Targets; other diagnostic availability remains Target/capability-specific:
 
 ```text
 GET  /v0/diagnostics/phase9a/inventory
@@ -105,7 +109,9 @@ These routes do not freeze Wire Protocol v1. The storage route is described by t
 
 All Minecraft reads run on the Server owner thread and detach JSON before returning. Typed persisted reads capture only immutable path/identity metadata on the Server thread, then perform IO on a dedicated storage worker. HTTP/WS workers never hold live Minecraft objects.
 
-## 5. Deep Observation Findings
+## 5. Historical Phase 9A Deep Observation Findings
+
+These are Spike-time findings, not the current five-Target gap list. Sections 16–18 record the subsequent formal contracts and hook coverage.
 
 ### 5.1 Player
 
@@ -209,7 +215,7 @@ Ticket models are materially different:
 
 Phase 9B should expose a normalized semantic loading summary plus optional Target diagnostic detail. A raw unified Ticket DTO would hide real semantic differences.
 
-## 6. Three-Target Matrix
+## 6. Historical Phase 9A Three-Target Matrix
 
 | Capability | Forge 1.20.1 | NeoForge 26.2 | Fabric 26.2 |
 |---|---|---|---|
@@ -226,7 +232,7 @@ Phase 9B should expose a normalized semantic loading summary plus optional Targe
 | Delta capture | PASS | PASS | PASS |
 | Reconstruction | PASS | PASS | PASS |
 
-## 7. Deep Debug Spike
+## 7. Historical Phase 9A Deep Debug Spike
 
 Every representative Target proved:
 
@@ -246,9 +252,9 @@ Assert = internal + visible
 
 All values and the test block are restored. The experimental scenario helper used by Reconstruction is a closed enum for stone inventory add/remove and pig spawn/remove. It requires Control Lease, Debug Arm and `debug` scope; it is not a general command, reflection or object mutation API.
 
-## 8. Persistent Storage Read
+## 8. Persistent Storage Read and Write Review Timeline
 
-Phase 9A implements READ SPIKE ONLY.
+Phase 9A began as READ SPIKE ONLY. Phase 9D-0 now supplies the formal five-Target read foundation. Old review decisions below are dated history; the current write state is **no route, independent Entry Review READY**, not authorization to implement a writer.
 
 ### 8.1 Storage layout facts
 
@@ -299,7 +305,9 @@ PERSISTED player record absent before the first save
 
 After explicit Save and re-entry, the persisted player record became available. The Runtime did not synthesize it from LIVE state and did not auto-reconcile.
 
-### 8.3 Future write safety matrix
+### 8.3 Historical Phase 9A proposed write safety matrix
+
+The candidate policies in this table were superseded by the narrower review boundary in 8.4–8.10: the next candidate is offline/stopped, current-Target, typed single-file level.dat only. An unloaded object in a running world is **not** currently write-authorized.
 
 | State | Proposed Phase 9D policy |
 |---|---|
@@ -316,7 +324,7 @@ After explicit Save and re-entry, the persisted player record became available. 
 
 No Persistent Write is implemented in Phase 9A or Phase 9D-0.
 
-### 8.4 Phase 9D Persistent Write Entry Review — CLOSED
+### 8.4 Historical first Persistent Write Entry Review — CLOSED
 
 The Phase 9D-0 read foundation is sufficient for bounded, explicitly persisted observation, but it is not yet a safe Persistent Write foundation. No Persistent Write route, schema, adapter method or writer is implemented, and this review does not authorize one.
 
@@ -332,7 +340,7 @@ The smallest future implementation candidate is **offline/stopped, single-file, 
 
 **Entry decision before Phase 9D-1:** `Phase 9D Persistent Write Entry Gate: CLOSED`. The safety foundation below addresses these prerequisites; it does not implement or expose Persistent Write. Core Developer Preview remains unblocked because Persistent Write is outside its required contract.
 
-### 8.5 Phase 9D-1 — Persistent Write Safety Foundation — COMPLETE
+### 8.5 Historical Phase 9D-1 — Persistent Write Safety Foundation — COMPLETE
 
 Phase 9D-1 adds a safety-only, target-local foundation with no `storage.write` route and no Minecraft save mutation. `StorageIdentity` separates Runtime session identity, persistent world/storage identity and file snapshot identity. It combines the normalized target context with root/`level.dat`/`session.lock` file evidence and bounded content hashes; no marker file is created. Filesystems without stable identity evidence are rejected for ownership.
 
@@ -346,7 +354,7 @@ The foundation is present and compiles on all five Targets. Phase 9D-1 conforman
 
 Exit gate result: `PASS`. The first `Phase 9D Persistent Write Entry Review` was marked READY for independent review only; it did not authorize Persistent Write. The second review is recorded below.
 
-### 8.6 Phase 9D Persistent Write Entry Review — SECOND REVIEW CLOSED
+### 8.6 Historical second Persistent Write Entry Review — CLOSED
 
 The second review does not open Persistent Write. It verified the 9D-1 foundation with synthetic files and source call-site inspection and found four release-blocking correctness gaps:
 
@@ -391,15 +399,15 @@ The packaging gate built all five Targets and verified one embedded safety JAR p
 
 No Persistent Write route or save mutation was added. Real Minecraft Persistent Write count remains zero. The next action is a new independent Persistent Write Entry Review; Phase 9C/9D-0/9D-1/9D-2 and Phase 8/V1 contracts remain unchanged.
 
-### 8.10 Packaged Artifact Runtime Attestation — COMPLETE
+### 8.10 Packaged Artifact Runtime Attestation — COMPLETE (historical run)
 
 The five release JARs were each placed alone in an isolated temporary instance with no standalone `runtime-safety` JAR and no source-set Mod loaded. Forge 1.20.1 used a production Forge client installation; NeoForge 1.21.1, NeoForge 26.1.2, NeoForge 26.2 and Fabric 26.2 used their Loader run paths with the local source Mod disabled. Loader output identified the Mod from the final JAR, resolved its embedded `runtime-safety` dependency, and initialized the Runtime.
 
 All five packaged runs completed the title → test world → running → Save-and-Quit → `STOPPED_OFFLINE` → clean shutdown path. The final environments produced no `NoClassDefFoundError`, duplicate-class conflict or classloader failure. SHA-256 hashes and the exact source commit are recorded in `Artifacts/phase9/packaged-artifact-attestation-dc12612dd0c31f86c26fa8b18aee17f6f4733e04.json`.
 
-This attestation proves the Phase 9D-2.1 packaging boundary only; it does not implement or authorize Persistent Write. The next gate remains an independent Persistent Write Entry Review, followed by the planned Human-visible Core Demo.
+This attestation proves the Phase 9D-2.1 packaging boundary only; it does not implement or authorize Persistent Write. The write boundary remains an independent Persistent Write Entry Review. Subsequent Core Demo/control/Showcase work is tracked separately by the product execution plan and does not authorize writes.
 
-## 9. Experimental Keyframe and Delta
+## 9. Historical Phase 9A Experimental Keyframe and Delta
 
 The bounded experimental Keyframe schema contains:
 
@@ -446,7 +454,7 @@ sequence
 
 It is not represented as a native captured event. The missing native inventory/entity/block-entity/chunk/scheduled-tick hooks are an explicit Phase 9B/9E implementation gap.
 
-## 10. Reconstruction Evidence
+## 10. Historical Phase 9A Reconstruction Evidence
 
 The deterministic bounded scenario was:
 
@@ -470,7 +478,7 @@ All DEBUG Arrange state was cleaned up. The operation sequence was applied to th
 
 This proves the bounded snapshot-diff model is internally reconstructable. It does not prove event-complete long-term World Recording.
 
-## 11. Data Volume Probe
+## 11. Historical Phase 9A Data Volume Probe
 
 The following figures are short mutation-burst measurements, not a final 20 TPS storage benchmark:
 
@@ -482,7 +490,7 @@ The following figures are short mutation-burst measurements, not a final 20 TPS 
 
 Phase 9E must benchmark at least custom framed binary, a CBOR-like candidate and a protobuf-like candidate using representative entity-heavy and block-change-heavy tracks. Required measures are size, encode/decode throughput, allocation, random seek and schema evolution. Phase 9A does not select or freeze a codec.
 
-## 12. Cross-Target Findings
+## 12. Historical Phase 9A Cross-Target Findings
 
 ### COMMON SEMANTIC CORE
 
@@ -514,6 +522,8 @@ Phase 9E must benchmark at least custom framed binary, a CBOR-like candidate and
 - Raw NBT/Data Component equivalence.
 
 ## 13. Shared-Code Promotion
+
+Current note: later phases already promoted proven safety/control helpers into `runtime-safety`. The paragraph below records the Phase 9A decision about experimental Delta/reconstruction sharing, not a denial that the shared module now exists.
 
 The 26.2 NeoForge/Fabric experimental engines are currently behaviorally close, and detached Delta/reconstruction logic is a future promotion candidate. No shared Runtime module is created in Phase 9A. Promotion waits until NeoForge 1.21.1 and 26.1.2 have real Phase 9B implementations and the extraction does not hide Target lifecycle or storage differences.
 
@@ -559,13 +569,15 @@ Exit gate: T0 + typed Delta sequence reconstructs final authoritative bounded st
 
 ### Phase 9G — Five-Target Alignment, Stress and Release Gate
 
-Promote 1.21.1/26.1.2, run five-Target capability matrix, 20-minute mixed stress and complete Phase 8 regression.
+Align the future storage/recording/diff work across all five Targets, then run the capability matrix, 20-minute mixed stress and Phase 8 regression. 1.21.1/26.1.2 already have formal Observation/Debug; this is not a second promotion from placeholders.
 
 Exit gate: Phase 9 DoD is evidence-backed and Phase 10 becomes ready for a separate independent review.
 
 The Optional Extension Portfolio does not append E1/E2/E3 work to Phase 9 or renumber it as Phase 11+. Separately authorized extension research may proceed independently, but it cannot waive, expand or block a Runtime gate.
 
-## 15. Phase 9A Conformance and Exit
+## 15. Historical Phase 9A Conformance and Exit
+
+`Invoke-Phase9AStaticGate.ps1` is retained for its original phase context. It still asserts Phase-9A-only status and old storage markers; it already failed on the pre-governance current branch. Only its document paths are migrated here. Use the current 9B/control gates for present contracts; do not insert obsolete status strings merely to turn a historical gate green.
 
 Phase 9A conformance lives in `conformance/phase9/` and is separate from Phase 8:
 
@@ -609,7 +621,7 @@ GET  /v0/observe/deep/capabilities
 POST /v0/observe/deep
 ```
 
-OpenAPI V0 version is `0.0.1-phase9b2`; Wire Protocol v1 remains unfrozen. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
+The Phase 9B.2 evidence used OpenAPI `0.0.1-phase9b2`; current OpenAPI is `0.0.1-control-r24`. Historical counts/timings below are not rerun results. Wire Protocol v1 remains unfrozen. The MCP Companion exposes one typed aggregation Tool, `minecraft_deep_observe`, without duplicating every domain endpoint.
 
 Every formal response carries `ObservationMetadata`, session epoch, snapshot ID, client/server ticks, alignment quality, limitations and resource-local `ResourceRevisionRef` values. Runtime-derived revisions use canonical semantic state captured before response projection. Provider results retain their declared provider revision source. Block Entity lifecycle/type state and opt-in serialized state have separate revisions. No global world revision exists.
 
@@ -675,10 +687,10 @@ Companion tests: 3 PASS, 24 Tools
 dependency audit: 0 high / 0 critical
 ```
 
-Remaining planned work is unchanged:
+Remaining work (9C is complete, not a new task):
 
 ```text
-9C Deep Debug expansion
+9C COMPLETE with declared Chunk/Client/Network and Peer limitations
 9D Persistent Write lifecycle/safety (Phase 9D-2.1 complete; new Persistent Write Entry Review READY)
 9E native/event Delta, Recording V2 and Canonical Store
 9F Structured Diff/reconstruction
@@ -699,7 +711,9 @@ Persistent Write Entry Review (new review): READY — no write route implemented
 Phase 10: NOT STARTED
 ```
 
-## 17. Phase 9B.1 Contract Hardening Evidence
+## 17. Historical Phase 9B.1 Contract Hardening Evidence
+
+Revision descriptions here are phase-time evidence. The subsequent 9B.2 contract in section 18 is authoritative for ordered arrays, query-independent revisionState and lifecycle-bound versions.
 
 ### 17.1 Resource revision model
 

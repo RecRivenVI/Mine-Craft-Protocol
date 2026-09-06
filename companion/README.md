@@ -32,11 +32,24 @@ node companion\dist\index.js
 
 The Companion uses `serveStdio(factory)` and logs only to stderr. stdout is reserved for MCP JSON-RPC.
 
-See `mcp.example.json` for host configuration. Do not store token values in the repository.
+See [mcp.example.json](mcp.example.json) for host configuration. Do not store token values in the repository.
+
+## Documentation authority
+
+Product scope and delivery status live in the [documentation index](../docs/README.md).
+[Native V0](../docs/reference/protocol-v0.md) and the [control architecture](../docs/architecture/agent-control.md)
+define the typed boundary. This module README stays beside its npm scripts and host
+configuration; it is not a second product roadmap.
 
 ## Surface
 
-The Companion publishes 19 static Tools, four static Resources, two Recording Resource Templates and one static acceptance Prompt. Tool descriptions never incorporate Minecraft text.
+The `minecraft_control` Tool exposes explicit READ / OPERATE transitions and the
+existing Lease acquire path for TAKEOVER. Modes never grant scopes or Debug Arm.
+Structured `USER_MANUALLY_ENDED_CONTROL` / `reconsentRequired` state is preserved;
+another TAKEOVER requires fresh conversation consent as Agent policy, not a fake
+Runtime consent field. OPERATE does not clear the latch.
+
+The Companion publishes 24 static Tools, four static Resources, two Recording Resource Templates and one static acceptance Prompt. Tool descriptions never incorporate Minecraft text.
 
 Large PNG and Artifact bytes are returned through:
 
@@ -63,7 +76,7 @@ Chat, books, signs, MOTD, GUI labels and Mod/provider text remain untrusted data
 
 ## Compatibility
 
-- Native Runtime protocol: exact `v0`, checked against OpenAPI `0.0.1-phase8` during every build.
+- Native Runtime protocol: exact `v0`, checked against OpenAPI `0.0.1-control-r24` during every build.
 - MCP SDK: v2 stable line with `serveStdio` compatibility negotiation.
 - Runtime-tested MCP revision: `2025-11-25` using the official v2 Client.
 - The SDK adapter can serve the 2026-07-28 era and legacy clients; a separate 2026-era Client gate remains future compatibility evidence.

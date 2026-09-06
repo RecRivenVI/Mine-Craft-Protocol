@@ -4,9 +4,9 @@
 > Authority: Core Product Vision
 > Status: COMMITTED
 > Date: 2026-08-29
-> Current implementation baseline: Runtime V1 attested; Runtime Phase 9C, Phase 9D-0, Phase 9D-1, Phase 9D-2 and Phase 9D-2.1 packaged-artifact attested; Persistent Write Entry Review READY for independent review
+> Delivery status: [execution-plan.md](execution-plan.md) is the current status/next-gate authority; this document owns product scope, not a duplicate release ledger.
 > Wire Protocol v1: NOT FROZEN
-> Optional extensions: governed separately by `PLATFORM_EXTENSION_GOALS.md`
+> Optional extensions: governed separately by `docs/product/extensions.md`
 
 ## 1. Committed Product Definition
 
@@ -29,7 +29,7 @@ Mine-Craft-Protocol Platform
 │   └── Agent-native Minecraft Autonomous Testing Platform
 │
 └── OPTIONAL EXTENSION PORTFOLIO
-    └── governed only by PLATFORM_EXTENSION_GOALS.md
+    └── governed only by docs/product/extensions.md
 ```
 
 The repository name, Java package, Mod ID and artifact IDs remain unchanged.
@@ -203,19 +203,11 @@ Optional external services may exist in the future, but their authority, securit
 
 Runtime phases and capabilities keep their existing status vocabulary and gates. The optional-extension portfolio has its own lifecycle vocabulary; it does not replace or reinterpret Runtime Phase status.
 
-Current Core status:
-
-| Capability | Status | Core stage |
-|---|---|---|
-| Runtime Control and Testing | CURRENT | V1 / continuing regression |
-| MCP Runtime Companion | CURRENT | V1 / continuing regression |
-| Deep Runtime Observation | CURRENT | Phase 9B complete |
-| Typed Deep Debug | CURRENT | Phase 9C complete |
-| Persistent Storage Plane | SAFETY FOUNDATION | Phase 9D-0 read + Phase 9D-1/9D-2/9D-2.1 safety foundation and five-target packaged-artifact runtime attestation complete; new Persistent Write Entry Review required; no write route |
-| Recording V2 / reconstructable state | PARTIAL | Phase 9E-9F planned |
-| Runtime advanced diagnostics and recovery | PLANNED | Phase 10 |
-
-No optional extension status changes any row in this table.
+Current capability and phase status is maintained once in the
+[execution plan](execution-plan.md), with adopted implementation boundaries in
+[Architecture](../architecture/overview.md). Historical Phase PASS, current
+implementation COMPLETE, Showcase READY and final human/remote acceptance are not
+interchangeable. No optional-extension status changes a Core gate.
 
 ## 11. First Developer Preview Contract
 
@@ -253,7 +245,7 @@ Optional Source Intelligence, Autonomous Gameplay and deterministic Render Foren
 
 The Platform may host ambitious optional extensions without weakening or delaying the Core. Their single authority is:
 
-> `PLATFORM_EXTENSION_GOALS.md`
+> `docs/product/extensions.md`
 
 The current optional portfolio is summarized only as:
 
@@ -294,36 +286,10 @@ The Core makes Mine-Craft-Protocol useful and releasable. Extensions make it bro
 
 ## 16. Current Governance Decision
 
-```text
-Committed Core:
-  Agent-native Minecraft Autonomous Testing Platform
-
-First Developer Preview:
-  Core gate only; no Extension blockers
-
-Runtime Phase 9:
-  unchanged
-
-Runtime Phase 10:
-  unchanged
-
-Phase 9C:
-  complete under its existing Gate
-
-Phase 9D-0:
-  complete; followed by Phase 9D-1 safety foundation
-
-Phase 9D-1:
-  complete; followed by Phase 9D-2 safety hardening
-
-Phase 9D-2:
-  complete; followed by Phase 9D-2.1 runtime packaging and lifecycle attestation
-Phase 9D-2.1:
-  complete; five-target development/final artifact integration PASS; Persistent Write Entry Review READY; no real save mutation or write route
-
-E1 / E2 / E3:
-  optional; not started by this governance task
-
-Wire Protocol v1:
-  NOT FROZEN
-```
+- Committed Core: **Agent-native Minecraft Autonomous Testing Platform**.
+- First Developer Preview: Core gate only; Extension requirements **NONE**.
+- Runtime Phase 9 / Phase 10 scope remains committed but is not all required for
+  the first preview. In particular Persistent Write is not a preview prerequisite.
+- E1 / E2 / E3 remain independent, optional and not implemented.
+- Wire Protocol v1 remains **NOT FROZEN**.
+- Status and next authorized actions: [execution plan](execution-plan.md).

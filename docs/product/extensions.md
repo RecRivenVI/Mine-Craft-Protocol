@@ -4,7 +4,7 @@
 > Authority: Optional Extension Goals
 > Status: ASPIRATIONAL / NON-BLOCKING
 > Date: 2026-08-29
-> Core authority: `PLATFORM_VISION.md`
+> Core authority: `docs/product/vision.md`
 > Current implementation claim: NONE
 
 ## 1. Purpose

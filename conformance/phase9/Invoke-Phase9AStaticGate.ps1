@@ -14,8 +14,8 @@ $targets = @(
     @{ Id='26.2-fabric'; Source='src\client\java' }
 )
 
-$plan = Get-Content -LiteralPath (Join-Path $root 'PHASE9_IMPLEMENTATION_PLAN.md') -Raw
-$executionPlan = Get-Content -LiteralPath (Join-Path $root 'PROJECT_EXECUTION_PLAN.md') -Raw
+$plan = Get-Content -LiteralPath (Join-Path $root 'docs/phases/phase9-implementation-plan.md') -Raw
+$executionPlan = Get-Content -LiteralPath (Join-Path $root 'docs/product/execution-plan.md') -Raw
 Assert-True ($plan.Contains('Phase 9A PASS WITH IDENTIFIED IMPLEMENTATION GAPS') `
     -and $plan.Contains('Phase 9B Entry Gate: READY FOR INDEPENDENT REVIEW')) `
     'Phase 9 implementation plan is not reconciled'

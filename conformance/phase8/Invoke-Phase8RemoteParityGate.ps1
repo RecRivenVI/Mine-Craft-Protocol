@@ -71,7 +71,7 @@ try {
     $localGateSource = Read-RemoteFile 'conformance\phase8\Invoke-Phase8LocalGate.ps1'
     $recordingShutdownTest = Read-RemoteFile `
         'versions\26.2-neoforge\src\test\java\io\github\recrivenvi\minecraftprotocol\probe\runtime\RecordingEngineTest.java'
-    $evidence = Read-RemoteFile 'PHASE8_HARDENING_EVIDENCE.md'
+    $evidence = Read-RemoteFile 'docs/phases/phase8-hardening-evidence.md'
 
     foreach ($status in @('PASS_NO_THRESHOLD_VULNERABILITIES','FAIL_VULNERABILITIES_FOUND',
             'FAIL_AUDIT_UNAVAILABLE','FAIL_INVALID_RESPONSE')) {

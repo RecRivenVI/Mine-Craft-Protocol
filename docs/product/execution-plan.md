@@ -1,12 +1,56 @@
 # Mine-Craft-Protocol 项目执行计划书
 
-> 文档状态：Core Product Goal Separated；Phase 9D-2.1 Packaged Artifact Runtime Attestation PASS — Persistent Write Entry Review READY for independent review
-> 文档版本：0.8
+> 文档状态：CURRENT — Core 状态与下一门槛的唯一执行台账；长期设计条目不等于已实现能力
+> 文档版本：0.9
 > 编制日期：2026-08-27  
-> 修订日期：2026-09-05
+> 修订日期：2026-09-06
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
 > 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0、Phase 9D-1、Phase 9D-2 与 Phase 9D-2.1 已完成；Packaged Artifact Runtime Attestation PASS；Persistent Write Entry Review READY for independent review；Phase 9E/9F/9G 与 Phase 10 未开始
-> 本轮 Agent Control Model 剩余设计合并实现：COMPLETE；独占 TAKEOVER、宿主光标隔离、真实 Virtual Pointer、有界手势串行化与像素 Chrome 已实现并完成五端自动 smoke。统一真人/视觉验收未执行。Round 1 权限/意图契约继续生效，Wire Protocol v1 未冻结。
+> Agent Control：Round 1 PASS；Rounds 2–4 Implementation COMPLETE；Unified Acceptance READY / NOT EXECUTED；Control UI Showcase READY。
+
+## 当前状态与阅读规则
+
+治理核对基线：`180fb4264bbdddff0b2d210f0311996596741e89`。本次只整理文档，
+不产生新 Runtime/整合包/人工验收结论；旧 attestation 只证明其绑定的源码 SHA。
+
+| 范围 | 当前状态 | 证据 / 边界 |
+|---|---|---|
+| Phase 0–7 基础链路 | COMPLETE（历史 Phase 记录） | [Phase 索引](../README.md#phase-records)，不是当前 UI 的新验收 |
+| Phase 8 / V1 | PASS | [2dda8448 final attestation](../../Artifacts/phase8/final-attestation-2dda8448d00852d42fb3e07525ee05daaaddd66f.json) |
+| Phase 9A | PASS WITH IDENTIFIED IMPLEMENTATION GAPS | 三代表 Target Spike，不是完整 Recording V2 |
+| Phase 9B / 9B.1 / 9B.2 | PASS | 五端 Observation / Provider / revision identity |
+| Phase 9C | PASS | typed Debug / bounded batch；显式 Target limitation 保留 |
+| Phase 9D-0 / 9D-1 / 9D-2 / 9D-2.1 | PASS（各自限定范围） | read、安全基础、runtime-safety packaging/lifecycle |
+| Packaged Artifact Runtime Attestation | PASS | [五个最终制品](../../Artifacts/phase9/packaged-artifact-attestation-dc12612dd0c31f86c26fa8b18aee17f6f4733e04.json) |
+| Persistent Write Entry Review | READY FOR INDEPENDENT REVIEW | 不是 Entry Gate OPEN；正式 write 未实现 |
+| Agent Control Round 1 | PASS | [五端意图/授权证据](../../Artifacts/core/agent-control-round1-20260905.json) |
+| Agent Control Rounds 2–4 | Implementation COMPLETE | [自动实现证据](../../Artifacts/core/agent-control-r24-implementation-20260905.json) |
+| Unified Acceptance | READY — NOT EXECUTED | 新独占输入 / Pointer / 像素 UI 的真人与统一五端验收待授权 |
+| Control UI Showcase | READY | [使用说明](../testing/control-ui-showcase.md)；[Forge/Fabric Runner smoke](../../Artifacts/core/control-ui-showcase-20260906.json)；未跑整套人工评价 |
+| ATM 长期 Compatibility Matrix | PLANNED — NOT STARTED | [四包计划](../testing/modpack-compatibility.md)，等待用户固定 Prism 实例/版本 |
+| Phase 9E / 9F / 9G / Phase 10 | NOT STARTED | 各自独立任务与 Gate |
+| E1 / E2 / E3 | OPTIONAL — NOT STARTED | [独立 Portfolio](extensions.md)，不阻塞首个 Preview |
+
+**权威顺序**：[Core 产品合同](vision.md)定义交付边界；本表与第 29 节定义当前
+状态/下一门槛；[Architecture](../architecture/overview.md)与[Agent Control](../architecture/agent-control.md)
+描述采用的实现；[OpenAPI](../../protocol-schema/src/main/openapi/minecraft-control-v0.json)与
+Runtime capability 描述实际 API。历史 Phase 文档保留当时事实，不是当前任务指令。
+
+以下第 3–22 节含长期设计、示例命名和尚未实现的 Ultimate 能力，**不是当前 API 清单**。
+例如高级 Pipeline DSL、文本输入、完整 Delta、Crash Recovery、LAN 等不得从设计清单推导为可用。
+与新采用控制模型冲突的旧提议已在对应段落注明或替换；无证据的能力继续不可用/部分可用。
+
+### 第一次 Developer Preview 的交付边界
+
+- 只以 Core 自主测试闭环和既有 V1 质量合同（第 27.2 节）为目标；
+  不要求全量 Runtime Ultimate、Persistent Write、Phase 9E–10 或 E1/E2/E3 同时完成。
+- 发布制品、Native/MCP 合同、认证/权限/取消/输入清理、受控测试世界与证据分级必须可复核；
+  新控制模型的人工/统一验收仍是待办，不能由 Showcase smoke 或文档整理替代。
+- 已知 capability limitation、运行前提和可重复测试入口必须随发布说明；
+  本次不宣布 Developer Preview 已发布或最终验收 PASS。
+- 四个大型整合包是长期 Core 兼容性资产，不自动追加为首个 Preview 的全量交付前置条件。
+  对某个包宣传兼容必须有版本绑定结果；发现真实 Core 安全/正确性 blocker 时仍需处理。
+  它们不是 E1/E2/E3 的实现或验收。
 
 ---
 
@@ -16,7 +60,7 @@
 
 现有 **Minecraft Agent Control Runtime** 不是被替换的旧产品，而是 Platform 内负责 Runtime Control、Testing 与 Observation 的核心子系统。它在 Minecraft 客户端与可选服务器端 Peer 中提供深度观察、真实 GUI/键鼠操作、世界交互、特权调试、连续画面录制、世界状态录制、事件等待、断言、追踪与诊断能力，并通过独立原生 HTTP/WebSocket 协议以及 MCP Companion 向 Agent 和测试程序开放。
 
-Core Product Contract 以 `PLATFORM_VISION.md` 为准。Development Intelligence、Autonomous Gameplay、Deterministic Graphics Acceptance 等独立机会由 `PLATFORM_EXTENSION_GOALS.md` 管理；它们不属于现有 Phase 9/10 Gate，也不阻塞第一次 Developer Preview 或 Core 1.0。
+Core Product Contract 以 `docs/product/vision.md` 为准。Development Intelligence、Autonomous Gameplay、Deterministic Graphics Acceptance 等独立机会由 `docs/product/extensions.md` 管理；它们不属于现有 Phase 9/10 Gate，也不阻塞第一次 Developer Preview 或 Core 1.0。
 
 项目不是普通的 Minecraft Bot，也不是简单地把 MCP SDK 嵌入游戏。其目标更接近以下能力的组合：
 
@@ -162,7 +206,7 @@ PLAYTEST、FIXTURE 和 DEBUG_PRIVILEGED 继续构成受治理的 Runtime 操作�
 
 ## 4. 总体系统架构
 
-下图继续描述当前已实现和正在推进的 Minecraft Agent Control Runtime。长期 Platform 顶层架构、Development Intelligence Service、Exploratory Debug 与 Human Inspector 边界见 `PLATFORM_VISION.md`；Runtime Mod 不承担重型反编译、源码缓存、AST/Call Graph 或任意构建进程控制。
+下图继续描述当前已实现和正在推进的 Minecraft Agent Control Runtime。当前架构见 `docs/architecture/overview.md`；可选 Development Intelligence Service、Exploratory Debug 与 Human Inspector 边界见 `docs/product/extensions.md`；Runtime Mod 不承担重型反编译、源码缓存、AST/Call Graph 或任意构建进程控制。
 
 ```text
                        Coding Agent / Test Runner
@@ -214,8 +258,10 @@ PLAYTEST、FIXTURE 和 DEBUG_PRIVILEGED 继续构成受治理的 Runtime 操作�
 
 ### 4.1 网络暴露策略
 
+当前 V1 **仅 loopback**；没有 LAN listener、TLS 或配对实现，见 [ADR 0004](../architecture/adr/0004-v1-loopback-release-profile.md)。下列 LAN 条目仅是 Ultimate 目标，不是当前功能：
+
 - 默认绑定 `127.0.0.1`；
-- 支持显式启用 LAN；
+- 未来经独立安全 Gate 后，才允许显式启用 LAN；
 - LAN 可由 Mod 直接开放，也可由 Companion 代理；
 - 推荐由 Companion 承担 TLS、配对和外部网络暴露；
 - Mod 内直接 LAN 模式必须具有等效的认证、来源验证和审计能力；
@@ -223,53 +269,26 @@ PLAYTEST、FIXTURE 和 DEBUG_PRIVILEGED 继续构成受治理的 Runtime 操作�
 
 ---
 
-## 5. 计划中的模块边界
+## 5. 当前仓库模块边界
+
+早期 `runtime-common / target-* / gateway-http-ws` 等拟议拆分没有成为构建框架。
+当前以实际目录为准：
 
 ```text
-protocol-schema
-protocol-java
-runtime-contracts
-runtime-common
-
-target-forge-1.20.1
-target-neoforge-1.21.1
-target-neoforge-26.1.2
-target-neoforge-26.2
-target-fabric-26.2
-
-server-peer-common
-gateway-http-ws
-recording-core
-artifact-core
-conformance-kit
-compatibility-testmods
-
-mcp-companion
-docs
-examples
+versions/<minecraft-version>-<loader>/  # 五个真实 sibling Target
+protocol-schema/                       # V0 schema；生成模型为 build output
+runtime-safety/                        # 已验证并嵌入的共享安全/控制帮助代码
+companion/                             # 独立 MCP 适配器
+conformance/                           # 可执行 Gate / Showcase
+Artifacts/                             # 既有证据，保持绑定
+docs/                                  # 文档导航、产品/架构/计划/测试
 ```
 
-### 5.1 Target 内部建议结构
+### 5.1 Target 内部结构
 
-```text
-target-*/
-  bootstrap/
-  bridge/
-  mixins/
-    client/
-    input/
-    ui/
-    render/
-    network/
-    server/
-    debug/
-  accessors/
-  recording/
-  resources/
-  tests/
-```
-
-不建议用过厚的统一 Loader 抽象隐藏版本差异。允许 Target 层重复少量实现，以换取调用路径清晰、注入点可验证和故障容易定位。
+每端拥有 `build.gradle`、`target.properties` 和 `src/`。
+Fabric 使用真实 `src/main` / `src/client` 边界。Target 不继承其他 Target 源码。
+进一步拆分只在多个实际 Target 证明等价、且能减少理解成本时进行，不以文档中的模块名创建空壳。
 
 ---
 
@@ -569,7 +588,8 @@ control.emergency_release
 - Lease 具有 TTL；
 - 连接断开或超时自动释放全部按键和鼠标按钮；
 - 游戏内保留人工紧急接管热键；
-- 人工输入是否中止 Agent 流水线由策略配置决定。
+- 当前 TAKEOVER 独占标准 Minecraft 输入，只有真人物理 Esc 立即退回 READ 并设置人工撤销 latch；Agent Esc 不触发人工撤销；
+- READ / OPERATE 不自动持有玩家 Lease，模式不授予 scope 或 Debug Arm；细则以 `docs/architecture/agent-control.md` 为准。
 
 ### 7.2 资源锁
 
@@ -633,7 +653,7 @@ world.get_loaded_regions
 - pagination/cursor；
 - sort；
 - side/perspective；
-- 是否允许加载数据；
+- 普通 LIVE 观察禁止 force-load；未来单独显式加载能力不属于当前读取合同；
 - 每 tick 时间预算；
 - 结果完整性标记。
 
@@ -757,7 +777,7 @@ Render Tree 只表达渲染事实。通过目标版本的 GUI 渲染提交点捕
 - Bounds；
 - 调用来源与对象关联信息。
 
-1.20.1 与 26.2 可以使用不同实现，但输出统一 Render Tree。
+这是长期目标；当前 Forge 1.20.1 / NeoForge 1.21.1 的 Render Facts 仍为 unsupported，现代 Target 只提供已验证的 GUI render primitives，不是完整业务 Render Tree。
 
 第三方 Mod 可能先在自定义 framebuffer 中用 shader 生成完整 GUI，再只向最终界面提交一张 texture。Runtime 在这种情况下可以确认 texture、bounds、layer 和最终画面，但不能知道纹理内部是否包含按钮、图表、图标、文字或滑块。除非存在可靠 Interaction Tree、对象关联或 Provider 语义，不得从常见位置、颜色或纹理形状直接推断成已知业务控件。
 
@@ -868,7 +888,9 @@ Container:
 - 鼠标与键盘组合；
 - 可选游戏内虚拟光标显示。
 
-### 10.4 键盘能力
+### 10.4 键盘能力（长期目标，非当前支持列表）
+
+当前正式 surface 没有通用 text/char 输入 RPC；原生 character/IME 的 TAKEOVER 屏蔽不等于 Agent 文本注入已实现。
 
 - keyDown/keyUp/tap；
 - 长按；
@@ -909,9 +931,9 @@ selector 解析
   → 消费路径和结果验证
 ```
 
-### 10.6 长流水线 DSL
+### 10.6 长流水线 DSL（Ultimate 设计目标）
 
-必须支持：
+当前提供有界顺序步骤、wait/assert、取消与 cleanup；以下并行块、分支、变量、子流水线等扩展不能被当作已实现：
 
 - 顺序步骤；
 - 并行块；
@@ -1113,7 +1135,7 @@ GUI
 - 裁剪区域；
 - PNG、JPEG、WebP、RAW_RGBA；
 - 压缩质量；
-- 是否包含虚拟鼠标；
+- 默认证据排除 Agent Virtual Pointer 与 Control Chrome；仅 Timeline/Audit 记录其操作元数据；
 - 是否包含 HUD；
 - 是否包含 Debug Overlay；
 - GUI scale；
@@ -1218,7 +1240,7 @@ Composer Worker
 - 排序；
 - 变化字段过滤；
 - 是否记录 NBT/Components/Attachments；
-- 是否允许加载未加载数据；
+- 未加载数据明确 unavailable / partial；不以录制或读取隐式 force-load；
 - 采样预算。
 
 ### 13.4 Keyframe + Delta
@@ -1589,7 +1611,7 @@ Runtime 启动后执行 Hook Self-Test：
 
 ### 19.1 网络安全
 
-下列清单描述 Ultimate 网络安全目标。V1 Release Profile 按 ADR-0001 仅开放 loopback；其中 LAN、配对、TLS、IP allowlist 与持久可撤销 Principal 不得被误报为 V1 已实现。
+下列清单描述 Ultimate 网络安全目标。V1 Release Profile 按 ADR 0004 仅开放 loopback；其中 LAN、配对、TLS、IP allowlist 与持久可撤销 Principal 不得被误报为 V1 已实现。
 
 - 默认 loopback；
 - LAN 显式启用；
@@ -1745,7 +1767,7 @@ Companion 使用独立 TypeScript 工程，支持 stdio，并根据客户端兼�
 
 MCP 层不机械复制全部底层 RPC。建议按稳定领域提供约 15–30 个类型明确的工具，并将大数据通过 Resources/Artifacts 返回。
 
-候选工具：
+当前已有 24 个静态 MCP Tool，准确名称/参数见 `companion/README.md`、`docs/reference/protocol-v0.md` 与源码。下面保留的是早期领域命名草图，不是可直接调用的当前 Tool 清单：
 
 ```text
 minecraft_get_capabilities
@@ -1830,14 +1852,14 @@ diagnostics.*
 
 Runtime Ultimate Scope 是本计划书描述的完整 Runtime 长期目标，包括五 Target、Interaction Tree、Render Tree、Vision、完整键鼠宏与 Pipeline DSL、Live World 查询、世界状态录制、Server Peer、完整 DEBUG_PRIVILEGED、连续录制与 Artifact、Golden Diff、Rolling Recorder、网络追踪、人类操作回放、Tick Step、MCP Companion、持久化世界诊断和高级崩溃恢复。
 
-Runtime Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。任何 Optional Extension 均由 `PLATFORM_EXTENSION_GOALS.md` 独立治理，不叠加到 Runtime Ultimate DoD。
+Runtime Ultimate Scope 不因为 Phase 0 或 V1 暂时没有实现而从长期架构中删除。其完成标准见 27.3。任何 Optional Extension 均由 `docs/product/extensions.md` 独立治理，不叠加到 Runtime Ultimate DoD。
 
 ### 23.2 V1 Product Scope
 
 V1 是首个可称为完整可用产品的范围，重点建立 Coding Agent 自主测试闭环：
 
 - 五 Target 共享外部核心契约并通过 V1 Conformance；
-- Runtime 启动、V1 loopback-only 安全基线、Capability Self-Test；LAN 按 ADR-0001 保留在 Ultimate Scope；
+- Runtime 启动、V1 loopback-only 安全基线、Capability Self-Test；LAN 按 ADR 0004 保留在 Ultimate Scope；
 - get session/get capabilities；
 - Vanilla 与标准 Mod GUI 的 Interaction Tree；
 - Render Facts 基线和真实可执行的 Screenshot/Vision fallback；
@@ -1976,9 +1998,9 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### Phase 0G：形成正式 Multi-Target Repository Skeleton
 
-建立 Target 工程、Java Toolchain 隔离、协议模块、测试夹具、CI 基线、Hook 清单模板和 ADR 机制。
+建立真实 Target 工程、Java Toolchain 隔离、协议模块、测试夹具、本地 Gradle Gate、Hook 清单模板和 ADR 机制。CI 只有单独授权才增加。
 
-退出条件：三个 Probe Target 进入正式骨架；其余两个 Target 有可构建占位和明确接入点。
+历史退出条件：三个 Probe Target 进入正式骨架；未实现的 Target 不创建空壳。其余两端已在后续 Phase 6 成为真实 Runtime，不能把早期占位提议当作当前治理。
 
 ### Phase 0H：形成 Conformance V0
 
@@ -1990,7 +2012,7 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### Phase 1：V0 执行基线与构建系统
 
-基于 Phase 0 结果完善多 Target 构建、Protocol V0 代码生成、CI、ADR、`ARCHITECTURE.md`、`THREAT_MODEL.md`、Hook/Capability Self-Test 基线和 Conformance Harness。
+基于 Phase 0 结果完善多 Target 构建、Protocol V0 代码生成、本地门禁、ADR、`docs/architecture/overview.md`、`docs/architecture/threat-model.md`、Hook/Capability Self-Test 基线和 Conformance Harness。
 
 退出门槛：五个 Target 均能构建最小 Mod；三个 Probe Target 运行 V0 场景；Schema 变化有版本和迁移纪律。
 
@@ -2237,7 +2259,7 @@ Runtime V1、已有 Phase PASS、第一次 Developer Preview 和 Core 1.0 均不
 
 ### 27.4 Optional Extension Portfolio（非 Core DoD）
 
-E1 Development Intelligence & Exploratory Debug、E2 Autonomous Gameplay、E3 Deterministic Graphics Acceptance & Render Forensics 由 `PLATFORM_EXTENSION_GOALS.md` 独立管理。它们不是 Runtime Ultimate、第一次 Developer Preview 或 Core 1.0 的 Definition of Done。
+E1 Development Intelligence & Exploratory Debug、E2 Autonomous Gameplay、E3 Deterministic Graphics Acceptance & Render Forensics 由 `docs/product/extensions.md` 独立管理。它们不是 Runtime Ultimate、第一次 Developer Preview 或 Core 1.0 的 Definition of Done。
 
 Extension 只有在用户明确做出 Product Governance Decision 后才能提升为 Core；部分实现、共享接口或较高战略价值都不能自动扩展 Core Gate。
 
@@ -2264,7 +2286,7 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 15. 世界状态录制必须支持自定义轨道、选择器、Keyframe 和 Delta；
 16. 输入、帧、世界状态、事件、网络和日志共享统一时间线；
 17. Server Peer 用于服务器权威观察、录制、Fixture 和 Debug；
-18. 默认 loopback；V1 Release Profile 仅允许 loopback。LAN 显式启用能力保留在 Ultimate Scope，并须先完成 ADR-0001 所列 TLS、配对、可撤销 Principal、IP Policy 和独立 Conformance；
+18. 默认 loopback；V1 Release Profile 仅允许 loopback。LAN 显式启用能力保留在 Ultimate Scope，并须先完成 ADR 0004 所列 TLS、配对、可撤销 Principal、IP Policy 和独立 Conformance；
 19. 正常 Runtime 与 typed Debug 不提供任意 Shell、任意文件系统、任意进程控制或通用 JVM Reflection/RAT；长期不安全 EXPLORATORY_JVM 如被实现，必须是默认关闭、loopback、独立 Arm、明确非 Sandbox 的单独最高风险平面；
 20. 不使用全局 `expectedWorldRevision` 作为普通 optimistic concurrency，采用资源级 revision 与 value precondition；
 21. Request Envelope 公共层最小化，Lease、Idempotency、Precondition、Operation Handle 和 Debug Context 按能力声明；
@@ -2282,37 +2304,24 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 
 ---
 
-## 29. 下一步立即执行项
+## 29. 下一步门槛（需分别授权，不自动执行）
 
-Phase 9D-2.1 与历史 Packaged Artifact Runtime Attestation 保持 PASS；Persistent Write 仍须经过独立 Entry Review，未实现。本轮不是新的 Phase：**Agent Control Model Round 1 PASS**。五 Target 已验证 READ/OPERATE/TAKEOVER、Lease loss、真人 Esc、持续 reconsent 提示、显式 reacquire、模式/取消竞争与干净关闭。模式不是权限等级：Fixture/Debug 不依赖输入 Lease，但仍保留自身 scope、Arm、resource/value precondition 和证据分级。
+1. **Control UI Showcase 用户观察与反馈**：案例已准备，用户可按
+   [Showcase](../testing/control-ui-showcase.md)逐个观察。它不改变现有美术/缓动，也不形成最终 UX 评价。
+2. **Agent Control Unified Acceptance**：单独验真人物理 Esc/IME/鼠标/焦点、
+   Host cursor 自由、UI 覆盖/resize/fullscreen、Capture 隔离与五 Target 一致性；
+   只由 Mine-Craft-Protocol Runtime/MCP 操作游戏，真人动作由用户执行，不使用 CUA。
+3. **Large-Modpack Compatibility Baseline**：用户安装并固定四个 Prism 实例后，
+   才按[长期矩阵](../testing/modpack-compatibility.md)逐包执行。当前不安装、升级或启动整合包。
+4. **Persistent Write Entry Review**：9D-2.1 与 packaged attestation 已解除原 packaging blocker，
+   但 READY 不是 OPEN，不授权实现 writer；候选范围仍仅 offline/current-Target/typed level.dat。
+5. Phase 9E/9F/9G/10 与 E1/E2/E3 不随上述步骤自动启动。
 
-本轮证据见 `Artifacts/core/agent-control-round1-20260905.json`，入口为 `conformance/control/Invoke-ControlRound1Gate.ps1`。证据绑定工作树产品 hash 与构建 JAR，不冒充新的 clean-remote Phase 8 Release Attestation。历史 `Artifacts/core/core-ux-closeout-20260905.json` 及失败记录保留。Forge 历史单次保存点击 timeout 在三次 Pause 开关与一次 Save & Quit 中未重现，不再作为 Round 1 blocker。新增实测发现的 NeoForge 26.2 首次 Contact Sheet 关闭期类加载失败，已通过 Minecraft.close 起点收尾修复，并在五端验证。Contact Sheet 预算不降低；失败现在报告阶段、原因、源文件保留和 Bundle 未完成状态。Persistent Write 调用为 0，正常 GUI 创建世界与 Save & Quit 不属于 Persistent Write API。
+历史 [UX PARTIAL](../../Artifacts/core/core-ux-closeout-20260905.json)、
+[Round 1 PASS](../../Artifacts/core/agent-control-round1-20260905.json)、
+[Rounds 2–4 implementation](../../Artifacts/core/agent-control-r24-implementation-20260905.json)
+以及 [Showcase preparation](../../Artifacts/core/control-ui-showcase-20260906.json)
+各保留自身范围与结果。Forge 单次 save-click timeout 在有界 Round 1 复测中未重现；
+已修复的 Recording 关闭类加载问题不再写成当前 blocker。所有旧失败证据保留。
 
-控制模型记录见 `AGENT_CONTROL_MODEL_RESEARCH.md`。按用户最新授权，剩余控制设计已合并实现，不再拆分交付。五端自动 smoke 验证真实 hover/click、拖动取消、Vanilla 相对视角与录制/关闭；这不是统一真人验收。下一轮只做统一验收：真实 Esc/IME/鼠标/焦点、宿主光标始终自由、像素 UI 舒适度、resize/fullscreen/Mod GUI 和五端一致性。不得自行启动。Persistent Write、Phase 9E/9F/9G/10 与 E1/E2/E3 仍未开始。
-
-```text
-Phase 8 Remote Parity: PASS
-V1 Remote Release Candidate: PASS
-Phase 9A: PASS WITH IDENTIFIED IMPLEMENTATION GAPS
-Phase 9B.1: PASS
-Phase 9B.2: PASS
-Phase 9B: PASS — CONTRACT + REVISION IDENTITY HARDENED
-Phase 9C: PASS — TYPED DEEP DEBUG + BOUNDED BATCH HARDENED
-Phase 9D-0: PASS — BOUNDED FIVE-TARGET PERSISTENT READ FOUNDATION
-Phase 9D-1: PASS — PERSISTENT WRITE SAFETY FOUNDATION
-Phase 9D-2: PASS — PERSISTENT WRITE SAFETY HARDENING
-Persistent Write Entry Review (third review): historical CLOSED — runtime packaging blocker was resolved by Phase 9D-2.1
-Phase 9D-2.1: PASS — RUNTIME SAFETY PACKAGING + FIVE-TARGET LIFECYCLE
-Packaged Artifact Runtime Attestation: PASS — five final JARs, five Loader runs
-Persistent Write Entry Review: READY FOR INDEPENDENT REVIEW
-Previous UX Task: historical PARTIAL — original evidence retained; Forge timeout not reproduced by bounded retest
-Agent Control Model Round 1: PASS — INTENT / AUTHORIZATION CONTRACT
-Agent Control Model Rounds 2–4 Implementation: COMPLETE
-Unified Acceptance: READY — NOT EXECUTED
-Phase 10: NOT STARTED
-Wire Protocol v1: NOT FROZEN
-```
-
-Phase 9 与 Phase 10 必须保持独立：Phase 9 完成 Conformance、Exit Gate 和独立审查后，才能另行启动 Phase 10。
-
-当前 Runtime 任务继续遵循既有 Gate。E1 Development Intelligence & Exploratory Debug、E2 Autonomous Gameplay、E3 Deterministic Graphics Acceptance & Render Forensics 均未开始实现，见 `PLATFORM_EXTENSION_GOALS.md`。
+Phase 9 与 Phase 10 保持独立；Wire Protocol v1 **NOT FROZEN**。

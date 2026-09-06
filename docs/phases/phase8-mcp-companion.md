@@ -1,3 +1,10 @@
+> **Historical phase record — 历史记录，非当前执行入口。**
+> 当前产品状态见[执行计划](../product/execution-plan.md)，当前实现见[架构](../architecture/overview.md)及[控制模型](../architecture/agent-control.md)。
+> Phase 8.1 的 FAIL / working-tree candidate 是当时事实，不是当前远程结论。
+> Phase 8/V1 后来在 `2dda8448d00852d42fb3e07525ee05daaaddd66f` 完成验收，见[最终 attestation](../../Artifacts/phase8/final-attestation-2dda8448d00852d42fb3e07525ee05daaaddd66f.json)。
+> 下方原始记录保留；旧路径、SHA、结果与当时版本号不回写。
+
+<!-- historical-body:begin -->
 # Phase 8 MCP Companion and V1 Release Hardening
 
 > Status: Phase 8.1 working-tree candidate PASS; origin/master Release Candidate FAIL pending commit-bound revalidation

@@ -1,5 +1,9 @@
 # Agent Control UI Showcase
 
+> Status: READY — preparation and representative Runner smoke only.
+> [Documentation index](../README.md) · [Control architecture](../architecture/agent-control.md) · [Execution status](../product/execution-plan.md)
+> Runner remains [conformance/control/Invoke-ControlUiShowcase.ps1](../../conformance/control/Invoke-ControlUiShowcase.ps1).
+
 Repeatable viewing cases, **not Unified Acceptance or a visual PASS verdict**.
 Forge 1.20.1 and Fabric 26.2 are supported. No CUA/host input injection is used.
 The existing Chrome, pointer art, 12-step easing and mode contract are unchanged.

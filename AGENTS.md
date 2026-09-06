@@ -13,6 +13,29 @@ result using Runtime/Event/Audit evidence and the user's visual confirmation.
 Never report injected desktop events as human acceptance. Read-only process
 metadata and normal build/launch commands are not desktop input automation.
 
+## Documentation Authority and Navigation
+
+The user-authorized documentation home is [docs/README.md](docs/README.md).
+Keep only this file and the concise project README as root Markdown entries.
+
+- [Core vision](docs/product/vision.md): the committed Autonomous Testing product.
+- [Optional extensions](docs/product/extensions.md): E1/E2/E3, never implicit Core gates.
+- [Execution plan](docs/product/execution-plan.md): current status and next authorized gates.
+- [Architecture](docs/architecture/overview.md), [control model](docs/architecture/agent-control.md)
+  and [threat model](docs/architecture/threat-model.md): adopted design and current limits.
+- Historical Phase records and immutable `Artifacts/` are evidence, not current work orders.
+  Do not rewrite their historical paths, hashes or failures to match newer results.
+- Testing plans live in `docs/testing/`; executable drivers stay in `conformance/`.
+  Module-local operational references such as `companion/README.md` may stay beside code.
+  The root uses `settings.gradle.kts` / `build.gradle.kts`; concrete Target
+  projects currently use Groovy `build.gradle`. Target `.gradle.kts` examples
+  below illustrate governance rather than literal Target file paths.
+- Documentation examples use repository-root command paths unless explicitly stated.
+  After moving documents, update live references and run
+  `pwsh -File conformance/Invoke-DocumentationGate.ps1`.
+- Plans, Showcase READY, implementation COMPLETE and human/remote acceptance PASS
+  are different states. Never promote one by editing documentation alone.
+
 ## Repository Philosophy
 
 This repository follows an **Explicit Target Governance** model for multi-version, multi-loader Minecraft Java development.

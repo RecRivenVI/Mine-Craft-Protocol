@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol Threat Model Baseline
 
-> Status: Core Runtime threat baseline through Phase 9D-2.1 and packaged-artifact runtime attestation; Persistent Write Entry Review READY for independent review
+> Status: CURRENT Core threat baseline; acceptance status is tracked in [the execution plan](../product/execution-plan.md). No Persistent Write route exists.
 > Scope: committed Autonomous Testing Core; optional E1/E2/E3 require separate threat-model activation and are not current attack surface
 
 ## Protected Assets
@@ -68,7 +68,7 @@ E3 native/GPU diagnostics likewise require an independent Threat Model extension
 - Do not expose arbitrary filesystem, shell, process, ClassLoader or reflection operations.
 - Report actual input provenance and direct-mutation flags.
 
-No default credential is tracked. The token file is still readable by processes with the same user authority; loopback does not defend against a fully compromised local account. V1 is formally loopback-only under ADR-0001. LAN exposure remains unavailable and in Ultimate Scope.
+No default credential is tracked. The token file is still readable by processes with the same user authority; loopback does not defend against a fully compromised local account. V1 is formally loopback-only under [ADR 0004](adr/0004-v1-loopback-release-profile.md). LAN exposure remains unavailable and in Ultimate Scope.
 
 ## Prompt Injection Isolation
 
@@ -103,7 +103,7 @@ Implemented controls: random per-run token, loopback-only listener, scopes, Cont
 
 Binding beyond loopback exposes full player control to the network.
 
-Current status: LAN binding is deliberately unavailable in the V1 Release Profile under ADR-0001. Host/Origin validation, audit, scopes and rate budgets are active on loopback. TLS, pairing, revocable persistent principals, IP allowlists and a separate LAN conformance gate are required before future LAN enablement.
+Current status: LAN binding is deliberately unavailable in the V1 Release Profile under ADR 0004. Host/Origin validation, audit, scopes and rate budgets are active on loopback. TLS, pairing, revocable persistent principals, IP allowlists and a separate LAN conformance gate are required before future LAN enablement.
 
 ### Input State Sticking
 
@@ -113,11 +113,11 @@ Implemented controls: Lease TTL, control WebSocket disconnect cleanup, transport
 
 ### Human Override and Operator Presentation
 
-Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons and restores the original title/icon; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. READ remains available; explicitly authorized OPERATE does not clear the TAKEOVER-only latch. No mode grants scopes, Lease, Arm or gameplay evidence. Owner-thread input generation admission and bounded OPERATE permits prevent stale input or implicit escalation across mode changes. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
+Native Esc and Agent-routed Esc are distinguished in the current input path. Human revocation cancels leased input, releases held keys/buttons, restores the actual Minecraft icon and exits the TAKEOVER title; an active reader may still show READ Presence/title until activity expires; repeated control errors preserve `USER_MANUALLY_ENDED_CONTROL` and `reconsentRequired=true`. READ remains available; explicitly authorized OPERATE does not clear the TAKEOVER-only latch. No mode grants scopes, Lease, Arm or gameplay evidence. Owner-thread input generation admission and bounded OPERATE permits prevent stale input or implicit escalation across mode changes. The Runtime cannot authenticate external chat consent; the Agent must obtain it before explicit reacquire, and no public consent flag is accepted as proof.
 
 During TAKEOVER, standard Minecraft native input is exclusively suppressed except physical Esc. Native clicks never grant host capture. MouseHandler/InputConstants capture and warp entry points are blocked, and normal key polling is backed by the Runtime-owned key set. One-shot argument-bound Agent callback tickets and explicitly scheduled native provenance prevent ambient-context leakage across nested callbacks. The bounded sequence queue drains cleanup before handing off ownership, rejects stale admission before touching held state, and fail-closes after cleanup failure. Physical acceptance must be performed by the user and correlated with Runtime evidence, never another desktop automation system. Native callback classification is not a hostile local-code or hardware-attestation boundary.
 
-Operator chrome is rendered after bounded fresh-content evidence readback. It is not gameplay evidence. Capture/Recording exclusion is supported by ordering tests and concurrent live image-region comparisons; sampled image checks are not a claim to exhaustively test arbitrary third-party rendering. Current UX evidence and the unresolved isolated Forge click timeout are recorded in `Artifacts/core/core-ux-closeout-20260905.json`.
+Operator chrome is rendered after bounded fresh-content evidence readback. It is not gameplay evidence. Capture/Recording exclusion is supported by ordering tests and concurrent live image-region comparisons; sampled image checks are not a claim to exhaustively test arbitrary third-party rendering. Current UX evidence are recorded in `Artifacts/core/core-ux-closeout-20260905.json`. Its isolated Forge click timeout is historical and did not reproduce in the bounded Round 1 retest; it is not a current unexplained blocker. The newer exclusive-input/pointer/pixel-Chrome implementation still requires unified human/visual acceptance.
 
 ### Malicious Automation Pipeline
 
@@ -135,7 +135,7 @@ Controls: explicit `gui_scaled` coordinate space, Screen/Menu preconditions wher
 
 NBT, Components, entity queries or rendered text may exhaust memory or Agent context.
 
-Planned controls: projections, limits, pagination, byte budgets, depth limits and untrusted-content tagging.
+Implemented controls include bounded queries/projections, response/serialized-state budgets, bounded NBT accounting and untrusted-content tagging. Coverage is capability-specific; missing domain projection or pagination remains unavailable/partial rather than an unbounded fallback.
 
 ### Thread-Safety Violation
 
@@ -157,7 +157,7 @@ Provider Debug is a separate typed mutation method with registered mutation/resu
 
 Continuous capture may exhaust GPU readback slots, memory, disk or writer capacity.
 
-Controls: bounded duration/sample count, maximum two in-flight samples, fixed 64-entry writer queue, drop-and-gap backpressure, asynchronous PNG encoding/writes/composition, bounded State Frame reads and explicit Artifact status. Ultimate size budgets and retention policies remain future work.
+Controls: bounded duration/sample count, maximum two in-flight samples, fixed 64-entry writer queue, drop-and-gap backpressure, asynchronous PNG encoding/writes/composition, bounded State Frame reads and explicit Artifact status. Aggregate frame/state/event/session/Contact Sheet/bundle budgets are implemented; long-term retention and full Recording V2 remain future work.
 
 ### Artifact Data Exposure
 
@@ -173,7 +173,7 @@ Planned controls: separate `storage.world.*` namespace, distinct Runtime/persist
 
 Current Phase 9D-0 enforcement: ordinary `world.*` and Provider responses remain `dataSource=LIVE` with `storageAccessed=false`, and unloaded chunks remain unavailable. All five Targets expose the typed, bounded read-only storage surface for `world`, `player` and `chunk` domains. It accepts no filesystem path, requires the explicit authenticated `storage.read` scope, uses a bounded worker and read-only region channel, reports `dataSource=PERSISTED`, storage identity, file revision, loaded/stale state and side effects, and implements no storage write. File changes, save-at-capture, world lifecycle changes and shutdown fail closed.
 
-Phase 9D-2 hardens the safety-only foundation without enabling Persistent Write. Stable world-directory lineage is separate from mutable File Revision; replacement holds an exclusive `session.lock`, rechecks after backup and immediately before `ATOMIC_MOVE`, and all five Target sources consume Runtime lifecycle facts. Phase 9D-2.1 packages the shared safety module into all five development and final runtimes, removes the Java split-package failure, and verifies running → saving → unload → title lifecycle evidence on every Target. The packaged-artifact attestation then launches each final JAR from an isolated `mods` directory with no standalone safety JAR, confirming Loader resolution and Runtime initialization. Windows testing establishes file/backup force and namespace atomicity, but directory durability remains explicitly unverified; this is process-crash-recoverable replacement, not a power-loss transaction. Typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven. A new Persistent Write Entry Review remains required before any writer is implemented.
+Phase 9D-2 hardens the safety-only foundation without enabling Persistent Write. Stable world-directory lineage is separate from mutable File Revision; replacement holds an exclusive `session.lock`, rechecks after backup and immediately before `ATOMIC_MOVE`, and all five Target sources consume Runtime lifecycle facts. Phase 9D-2.1 packages the shared safety module into all five development and final runtimes, removes the Java split-package failure, and verifies running → saving → unload → title lifecycle evidence on every Target. The packaged-artifact attestation then launches each final JAR from an isolated `mods` directory with no standalone safety JAR, confirming Loader resolution and Runtime initialization. The exclusive session lock is a cooperative ownership boundary; arbitrary local programs that ignore it are outside the portable guarantee, and a final hash check is not universal filesystem compare-and-swap. Windows testing establishes file/backup force and namespace atomicity, but directory durability remains explicitly unverified; this is process-crash-recoverable replacement, not a power-loss transaction. Typed preconditions still require storage identity, file/content revision, exact DataVersion, resource/value identity, principal, `storage.write` plus `debug.storage`, Debug Arm, deadline and audit correlation. Online/loaded/save/shutdown/Peer writes, playerdata and Region/Anvil/`.mcc` writes remain denied. Older or unknown DataVersion must be rejected until per-Target DataFix policy is proven. A new Persistent Write Entry Review remains required before any writer is implemented.
 
 ### Malicious Read Provider
 
@@ -295,7 +295,7 @@ Internal invasive implementation remains restricted behind typed Minecraft-domai
 
 A future explicitly unsafe `EXPLORATORY_JVM` service is not an exception hidden inside the normal Runtime API. It is a separate, default-off, loopback-only, separately armed, non-sandboxed highest-risk plane with invalid-for-acceptance evidence. Its implementation requires a dedicated architecture/security gate and is currently absent.
 
-## Phase 8 Security Evidence
+## Historical Phase 8 security evidence (not rerun by documentation governance)
 
 - Readiness and capabilities cannot overclaim failed hooks.
 - Black-box conformance checks authentication, Origin rejection, protocol negotiation, scopes, single-writer Lease behavior, stale resource preconditions, deadlines, cancellation, TTL cleanup, control-channel disconnect cleanup and audit.
@@ -322,9 +322,19 @@ A future explicitly unsafe `EXPLORATORY_JVM` service is not an exception hidden 
 - Disabled semantic controls reject selector actions before input is generated.
 - Official MCP Client conformance verifies static Tool/Prompt definitions under malicious-looking game text.
 - PNG and Artifact data use bounded MCP Resources with UUID-only Recording identifiers.
-- npm audit reports zero known vulnerabilities and dependencies are lockfile-pinned.
+- The cited Phase 8 run reported zero known vulnerabilities against its pinned lockfile. This is dated evidence, not a current Registry audit result.
 - Companion production sources contain no shell/process execution API and no stdout logging.
 - Real Phase 8 Minecraft MCP conformance returns to title and releases the Control Lease cleanly.
+
+## Compatibility testing boundary
+
+The [large-modpack matrix](../testing/modpack-compatibility.md) is PLANNED and has
+not been executed. READ/OPERATE/TAKEOVER tests use the existing authority model;
+they do not authorize third-party config rewriting or arbitrary host control.
+Tier 1 explicitly checks passive installation impact. Mods that replace callbacks,
+poll native input directly or render after the cooperative Operator pass remain
+compatibility risks, not capabilities proven by static gates or Showcase smoke.
+Only the user supplies physical Esc/focus/click acceptance; CUA is prohibited.
 
 ## Current Residual Risks
 

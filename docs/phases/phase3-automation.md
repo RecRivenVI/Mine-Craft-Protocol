@@ -1,3 +1,9 @@
+> **Historical phase record — 历史记录，非当前执行入口。**
+> 当前产品状态见[执行计划](../product/execution-plan.md)，当前实现见[架构](../architecture/overview.md)及[控制模型](../architecture/agent-control.md)。
+> 此记录可能同时包含最初三 Target 验证与后来 Phase 6 五 Target 推进的说明；以各段运行范围为准，不把历史配置、API 数量或 Hook 规则当成当前声明。
+> 下方原始记录保留；旧路径、SHA、结果与当时版本号不回写。
+
+<!-- historical-body:begin -->
 # Phase 3 UI and Input Automation
 
 > Status: complete for all five Runtime Targets (1.21.1/26.1.2 promoted during Phase 6)  

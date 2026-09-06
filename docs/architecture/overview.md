@@ -1,7 +1,7 @@
-# Mine-Craft-Protocol Architecture Baseline
+# Mine-Craft-Protocol Architecture
 
-> Status: Platform charter adopted; Phase 8/V1 attested; Phase 9A/9B/9C, Phase 9D-0/9D-1/9D-2/9D-2.1 and packaged-artifact runtime attestation complete; Persistent Write Entry Review READY for independent review
-> Authority: `PLATFORM_VISION.md` defines the committed Core, `PLATFORM_EXTENSION_GOALS.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
+> Status: CURRENT implementation architecture; not an independent release attestation. Delivery/acceptance status is owned by [the execution plan](../product/execution-plan.md).
+> Authority: `docs/product/vision.md` defines the committed Core, `docs/product/extensions.md` defines optional extensions, and this file records the current implemented Runtime and Companion architecture.
 
 ## Product Boundary
 
@@ -64,7 +64,9 @@ versions/
 
 Targets are siblings. They do not depend on one another. `26.2-neoforge` remains the modern semantic reference and `26.2-fabric` its same-version Loader comparison, but all five Targets now own complete Runtime implementations. Cross-Target repetition remains intentional until a later evidence-backed extraction decision.
 
-Current implementation status:
+The following is historical capability coverage retained from the phase gates, not a claim that the newest control UI has passed unified human acceptance:
+
+Implementation baseline coverage:
 
 | Target | Build | Client runtime | Dedicated server | V0 control runtime |
 |---|---|---|---|---|
@@ -90,7 +92,7 @@ loopback HTTP/WebSocket probe transport
 minimal trace and readiness
 layered request metadata and typed errors
 scope enforcement and single-writer Control Lease
-resource-level Screen/Menu preconditions
+resource-level Screen/Menu and epoch/lifecycle-bound typed mutation preconditions
 deadlines, input idempotency and cancellable operations
 bounded audit and thread-affinity diagnostics
 semantic selector and bounds-center coordinate generation
@@ -119,6 +121,11 @@ Dedicated Server-authoritative LIVE query routing
 server-side operator/feature-flag gates for Peer Fixture/Debug
 Peer timeout, disconnect and pending-request cleanup
 ```
+
+The adopted [Agent control architecture](agent-control.md) also supplies explicit
+READ / OPERATE / TAKEOVER intention, independent human override, bounded gesture
+ownership, a logical GUI/relative pointer and a final Operator presentation pass.
+Combined implementation is complete; unified human/visual acceptance is still pending.
 
 The proven, Minecraft-independent `runtime-safety` helpers are shared and embedded in each Target. Minecraft/Loader adapters remain Target-local; this is not an inheritance chain or a shared Loader framework.
 
@@ -171,7 +178,7 @@ X-MCP-Expected-Menu-Revision
 
 MCP exposes native Operation get/wait/cancel without creating a second lifecycle state machine. Cancelling a waiting MCP Pipeline request issues native `DELETE /v0/operations/{operationId}`.
 
-There is still no global `expectedWorldRevision`. Current mutations accept only the Screen/Menu resources they actually depend on. Later world operations must add resource or value preconditions appropriate to the target block, chunk, entity, container or provider.
+There is no global `expectedWorldRevision`. GUI input uses Screen/Menu/element and viewport guards. Formal Phase 9C mutations already consume `expectedResourceVersion` with sessionEpoch, resourceType/key, lifecycle identity, revision/source/scope and precondition eligibility; typed value checks remain additional requirements. A stale or query-view token cannot authorize an unrelated resource mutation.
 
 ## Thread Ownership
 
@@ -202,7 +209,7 @@ Active Minecraft objects must not escape their owning thread.
 
 ## Control Lease and Input Cleanup
 
-The five runtimes implement one input writer and arbitrarily many readers. A Lease has a bounded TTL of 1–60 seconds and supports acquire, renew, release and emergency release.
+The five runtimes implement one input writer and multiple readers within the existing request, operation and subscription budgets. A Lease has a bounded TTL of 1–60 seconds and supports acquire, renew, release and emergency release.
 
 Every input mutation requires the active Lease ID. Runtime-owned pressed keys and mouse buttons are released through the same Minecraft input handlers when:
 
@@ -232,7 +239,7 @@ Mode admission is Runtime-local, not a distributed transaction. Already-sent Ded
 
 Minecraft.close HEAD drains the Runtime before Loader teardown and window destruction; a guarded JVM shutdown hook remains fallback. This avoids first-use Recording classes being loaded after the Mod class loader has closed. Contact Sheet/finalization failure is typed by stage and cause, with source-file retention distinguished from a verified completed Bundle.
 
-Exclusive input, separated host cursor, virtual pointer and pixel Chrome are implemented together in control-r24. Automated development checks do not constitute unified human/visual acceptance, which remains pending. See `AGENT_CONTROL_MODEL_RESEARCH.md`. Historical UX closeout evidence remains `Artifacts/core/core-ux-closeout-20260905.json`; the isolated Forge save-click timeout is retained as a historical observation, not erased by later passes.
+Exclusive input, separated host cursor, virtual pointer and pixel Chrome are implemented together in control-r24. Automated development checks do not constitute unified human/visual acceptance, which remains pending. See `docs/architecture/agent-control.md`. Historical UX closeout evidence remains `Artifacts/core/core-ux-closeout-20260905.json`; the isolated Forge save-click timeout is retained as a historical observation, not erased by later passes.
 
 ## Authentication, Scopes and Audit
 
@@ -314,19 +321,19 @@ Live observation is split into explicit sources:
   stalePossible=false
 ```
 
-Both return `dataSource=LIVE` and `storageAccessed=false`. Server block queries use only already-loaded state, return `chunk_not_loaded` for an unloaded target and record `chunkLoadRequested=false`. No ordinary query falls back to region files, playerdata or other persisted state.
+Both return `dataSource=LIVE` and `storageAccessed=false`. Client block queries also reject unloaded chunks; `minecraft:void_air` must not stand in for unknown distant data. Server block queries use only already-loaded state, return `chunk_not_loaded` for an unloaded target and record `chunkLoadRequested=false`. No ordinary query falls back to region files, playerdata or other persisted state.
 
 ### Phase 9D-0 Persistent Read Boundary
 
-The five Targets expose the unstable V0 `phase9a/storage/read` route through a target-local `PersistentStorageAdapter`. The external result is uniform (`dataSource=PERSISTED`, `consistency=last_saved_state`, stale risk, storage identity and file revision); path resolution remains Target-local through Minecraft's `LevelResource` and dimension storage APIs. Reads use bounded NBT accounting, a bounded storage executor and read-only region channels. File snapshots and the session-lock identity are checked across the read; lifecycle changes, save-at-capture and shutdown fail closed. `storage.read` is separate from the broad `debug` scope, and no Persistent Write operation exists.
+The five Targets expose the unstable V0 `/v0/diagnostics/phase9a/storage/read` route through a target-local `PersistentStorageAdapter`. The external result is uniform (`dataSource=PERSISTED`, `consistency=last_saved_state`, stale risk, storage identity and file revision); path resolution remains Target-local through Minecraft's `LevelResource` and dimension storage APIs. Reads use bounded NBT accounting, a bounded storage executor and read-only region channels. File snapshots and the session-lock identity are checked across the read; lifecycle changes, save-at-capture and shutdown fail closed. `storage.read` is separate from the broad `debug` scope, and no Persistent Write operation exists.
 
-Windows lock/access contention is reported as busy/unavailable, not inferred corruption. After a real Save & Quit and loss of LIVE ownership, a detached, identity-checked last-world context permits read-only `offline_file_snapshot` access guarded by the existing session lock. No Server object, force-load or LIVE fallback is required. The bounded Anvil reader accepts a valid unpadded final sector, still rejects truncated payloads, and explicitly reports unsupported external `.mcc` chunks. Runtime close retires the read worker/context.
+Windows lock/access contention is reported as busy/unavailable, not inferred corruption; not-found, changed/stale and corrupt input remain distinct outcomes. After a real Save & Quit and loss of LIVE ownership, a detached, identity-checked last-world context permits read-only `offline_file_snapshot` access guarded by the existing session lock. No Server object, force-load or LIVE fallback is required. The bounded Anvil reader accepts a valid unpadded final sector, still rejects truncated payloads, and explicitly reports unsupported external `.mcc` chunks. Runtime close retires the read worker/context.
 
 ### Persistent Write Entry Boundary
 
-Phase 9D-2 supplies the hardened safety foundation without enabling writes. `StorageIdentity` uses stable world-directory lineage and excludes mutable `level.dat`/`session.lock` content and file lineage; mutable content remains in `FileSnapshot`/File Revision. The single-file foundation rechecks after backup and immediately before `ATOMIC_MOVE`, rejects external lock competition and returns explicit commit/recovery states. Windows file/backup force and namespace atomicity are covered; directory durability is explicitly unproven, so this is not a power-loss transaction. Phase 9D-2.1 packages the shared `runtime-safety` module into every Target's development runtime and final artifact (Jar-in-Jar for Forge/NeoForge, Loom `include` for Fabric), isolates its package from target runtime classes, and verifies the five-target running → saving → unload → title lifecycle. The foundation exposes no write route and has not modified a Minecraft save. A new Persistent Write Entry Review is now required before any writer work.
+Phase 9D-2 supplies the hardened safety foundation without enabling writes. `StorageIdentity` uses stable world-directory lineage and excludes mutable `level.dat`/`session.lock` content and file lineage; mutable content remains in `FileSnapshot`/File Revision. The single-file foundation rechecks after backup and immediately before `ATOMIC_MOVE`, rejects external lock competition and returns explicit commit/recovery states. The ownership boundary is cooperative `session.lock` exclusion, not atomic compare-and-swap against arbitrary lock-ignoring local programs. Windows file/backup force and namespace atomicity are covered; directory durability is explicitly unproven, so this is not a power-loss transaction. Phase 9D-2.1 packages the shared `runtime-safety` module into every Target's development runtime and final artifact (Jar-in-Jar for Forge/NeoForge, Loom `include` for Fabric), isolates its package from target runtime classes, and verifies the five-target running → saving → unload → title lifecycle. The foundation exposes no write route and has not modified a Minecraft save. A new Persistent Write Entry Review is now required before any writer work.
 
-`AtomicWriteRequest` is synthetic-fixture-only: bounded same-directory temp output, durable file force, precondition recheck, backup, required `ATOMIC_MOVE`, explicit commit point, post-verification and recovery statuses. The backup-window and final-precommit mutation tests now reject stale targets, while an external process holding `session.lock` is rejected. `requireDirectoryForce=true` reports `DIRECTORY_DURABILITY_UNVERIFIED` on the current Windows/Java environment. Non-atomic replacement is rejected, and Region/Anvil/`.mcc` is not implemented. A future first implementation may consider only an offline/stopped, typed single-file `level.dat` metadata candidate after the shared runtime artifact is proven in all Targets. Online or loaded targets, save/unload/shutdown races, playerdata, Region/Anvil/`.mcc` and Peer-owned storage writes remain rejected. This boundary does not block the Core Developer Preview.
+`AtomicWriteRequest` is synthetic-fixture-only: bounded same-directory temp output, durable file force, precondition recheck, backup, required `ATOMIC_MOVE`, explicit commit point, post-verification and recovery statuses. The backup-window and final-precommit mutation tests now reject stale targets, while an external process holding `session.lock` is rejected. `requireDirectoryForce=true` reports `DIRECTORY_DURABILITY_UNVERIFIED` on the current Windows/Java environment. Non-atomic replacement is rejected, and Region/Anvil/`.mcc` is not implemented. A future first implementation may consider only an offline/stopped, typed single-file `level.dat` metadata candidate after the separately required Write Entry Review; shared runtime packaging is already proven in all Targets. Online or loaded targets, save/unload/shutdown races, playerdata, Region/Anvil/`.mcc` and Peer-owned storage writes remain rejected. This boundary does not block the Core Developer Preview.
 
 Authoritative state comes from an active Integrated Server or a negotiated Dedicated Server Peer. Title screen and remote-without-Peer contexts return a typed unavailable error rather than client data relabeled as authoritative.
 
@@ -346,11 +353,21 @@ per-read querySnapshotId / providerRevision / perspective
 
 Client and Server reads are scheduled concurrently onto their owner threads. The result does not claim a global transaction or global world revision.
 
-## Provider Read SPI
+## Provider Read SPI and Provider V2
 
 Third-party Mods may explicitly register a namespaced `ReadProvider` through `MinecraftProtocolProviders`. The SPI accepts detached JSON queries and returns detached JSON futures; it does not expose object-graph traversal, reflection or live Minecraft objects.
 
 The Phase 4 registry is deliberately LIVE-only. External provider output is labeled `trust=untrusted_mod_provider`, `thirdParty=true`, `source=registered_provider` and `storageAccessed=false`. The bundled echo provider exists solely to exercise registration, discovery and read conformance.
+
+Formal Deep Observation additionally uses `AgentDataProviderV2` /
+`MinecraftProtocolProvidersV2` and an executable `ProviderSchemaRegistry`.
+Declarations enforce scopes, perspective, owner-thread affinity, schema and bounded
+entry/completion. Normal observation cannot invoke declared loading, storage or
+mutation effects. Only explicitly allowed declared lazy initialization is eligible.
+Resource revisionState is separate from response projection; native regression or
+same-revision/different-state quarantines the provider. Typed Provider Debug is a
+separate armed mutation method. This is cooperative in-process containment, not
+hostile-Mod sandboxing.
 
 ## Capture Backend and Concurrency
 
@@ -414,7 +431,7 @@ Formal V1/Phase release evidence is generated from a clean detached worktree at 
 
 `fixture` and `debug` are absent from default scopes. Phase 5 conformance enables them explicitly.
 
-Fixture operations require the Control Lease and report:
+Fixture operations require explicit OPERATE and their own scopes, not the player input Lease. Debug mutation also requires OPERATE and its own authorization. These compatibility result fields describe **evidence**, not Agent intention:
 
 ```text
 mode=FIXTURE
@@ -431,6 +448,8 @@ debug.world.block
 ```
 
 Block Debug accepts `expectedBlockId` and only mutates an already-loaded block. No generic field setter, method invocation or reflection surface exists.
+
+These legacy examples coexist with the formal `/v0/debug/mutations` and bounded `/v0/debug/batches` union. Formal Debug requires `debug`, `debug.write`, a domain scope, scoped Arm and eligible resource/value preconditions. It is not a generic reflection API.
 
 Any Fixture/Debug action during a Recording marks the session, timeline and Artifact manifest as contaminated. Such evidence cannot be presented as pure PLAYTEST acceptance.
 
@@ -463,7 +482,7 @@ debug.world.block
 
 The external HTTP contract remains semantic and strongly typed. There is no reflection, arbitrary method invocation, object traversal or generic field mutation. Server block reads and writes operate only on loaded chunks; Debug block mutation retains `expectedBlockId` as a value precondition.
 
-Peer reads are available to the connected player. Peer Fixture and Debug additionally require an explicit dedicated-server feature flag and operator/singleplayer-owner authority. HTTP scope, Control Lease and Debug Arm checks still run on the Client Runtime before its typed mutation is sent. The server applies its own independent flag/operator gate.
+Peer reads are available to the connected player. Peer Fixture and Debug additionally require an explicit dedicated-server feature flag and operator/singleplayer-owner authority. HTTP authentication, operation scopes, explicit OPERATE and applicable Debug Arm checks still run on the Client Runtime before Fixture/Debug mutation is sent. TAKEOVER plus Control Lease governs player-style input, not these non-player mutations. The server applies its own independent flag/operator gate.
 
 `GET /v0/server/peer` reports negotiation state without pretending the capability exists. `POST /v0/server/peer/probe` performs an actual serialized round trip. Remote-without-Peer requests fail `SERVER_PEER_UNAVAILABLE`; disconnect resets negotiation and completes every pending request exceptionally before clearing it.
 
@@ -501,9 +520,9 @@ Interaction Tree starts at `Screen.children()`. Container slots are projected se
 
 ## Revision Model
 
-V0 implements `screenRevision` and `menuRevision`. Screen revision refresh occurs during ticks and relevant queries/mutations because a Screen can change inside one input call.
+V0 retains fast `screenRevision` / `menuRevision` guards and formal `ResourceRevisionRef` values. Every typed resource version includes sessionEpoch and lifecycle identity; Menu ID reuse, entity recreation, Block Entity replacement and chunk unload/reload invalidate old tokens. Revisions are resource-local and caches are bounded. Object keys are canonicalized; arrays preserve order unless a domain explicitly normalizes an unordered collection. Provider resource revisions use query-independent revision state or an integrity-checked native revision; query-view revisions are not mutation-precondition eligible.
 
-There is no global world revision. Future concurrency protection uses resource revisions and value preconditions.
+Screen revisions refresh on ticks and relevant queries/mutations because a Screen can change inside one input call. Resource and value preconditions are implemented, not a future global world revision.
 
 ## Readiness
 
