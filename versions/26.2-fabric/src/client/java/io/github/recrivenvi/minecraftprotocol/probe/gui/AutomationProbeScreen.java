@@ -49,5 +49,26 @@ public final class AutomationProbeScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.literal("Close Probe"), button -> this.onClose())
                 .bounds(left + 102, top + 112, 98, 20)
                 .build());
+        // Opt-in diagnostic fixture, not an Agent UI or a public Toast capability.
+        if (Boolean.getBoolean("minecraft.protocol.showcaseFixture")) {
+            this.addRenderableWidget(Button.builder(Component.literal("Showcase Toasts (Fixture)"),
+                    button -> this.showcaseToasts()).bounds(left, top + 168, 200, 20).build());
+        }
+    }
+
+    private void showcaseToasts() {
+        var toasts = this.minecraft.gui.toastManager();
+        toasts.addToast(new net.minecraft.client.gui.components.toasts.TutorialToast(
+                this.font, net.minecraft.client.gui.components.toasts.TutorialToast.Icons.MOUSE,
+                Component.literal("Showcase Fixture"), Component.literal("Tutorial Toast / not gameplay"), false) {
+            @Override
+            public void update(net.minecraft.client.gui.components.toasts.ToastManager manager, long elapsed) {
+                super.update(manager, elapsed);
+                if (elapsed >= 12000) this.hide();
+            }
+        });
+        net.minecraft.client.gui.components.toasts.SystemToast.add(toasts,
+                new net.minecraft.client.gui.components.toasts.SystemToast.SystemToastId(12000),
+                Component.literal("Showcase Fixture"), Component.literal("System Toast / not an advancement"));
     }
 }

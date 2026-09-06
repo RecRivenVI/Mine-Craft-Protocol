@@ -1,0 +1,137 @@
+{
+  "schema": "control-ui-showcase-preparation-v1",
+  "date": "2026-09-06",
+  "status": "READY",
+  "baseCommit": "581d6ec03055201de82ee16eae6bb45108fd3b8d",
+  "validationScope": "WORKING_TREE_RUNNER_PREPARATION_NOT_IMMUTABLE_RELEASE_ATTESTATION",
+  "runner": "conformance/control/Invoke-ControlUiShowcase.ps1",
+  "runtimeLoading": "standard_loader_development_source_sets_in_dedicated_instances",
+  "allImplemented": true,
+  "allExecuted": false,
+  "visualAcceptance": "NOT_PERFORMED",
+  "unifiedAcceptance": "NOT_PERFORMED",
+  "automaticCases": [
+    "read",
+    "operate",
+    "takeover-gameplay",
+    "pointer-move",
+    "takeover-gui",
+    "mode-transition",
+    "ui-overlay",
+    "gui-scenes"
+  ],
+  "optionalHumanCase": "manual-esc",
+  "manualCaseInAll": false,
+  "physicalInputInjected": false,
+  "cuaUsed": false,
+  "modesContractChanged": false,
+  "chromeDesignChanged": false,
+  "pointerEasingChanged": false,
+  "inventoryFixture": {
+    "mechanism": "OPERATE + typed menu.slot.set + scoped Debug Arm + resource/value preconditions",
+    "items": "8 minecraft:stone",
+    "reservedInitiallyEmptySlots": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "interaction": "TAKEOVER / GAME_ROUTED hover, click, ui.drag",
+    "cleanup": "return carried stack via Vanilla GUI; clear only reserved test items"
+  },
+  "toastFixture": {
+    "kind": "opt_in_diagnostic_screen_button",
+    "targets": [
+      "1.20.1-forge",
+      "26.2-fabric"
+    ],
+    "renderers": [
+      "Vanilla TutorialToast",
+      "Vanilla SystemToast"
+    ],
+    "label": "Showcase Fixture",
+    "newPublicRoute": false,
+    "naturalAdvancementClaimed": false
+  },
+  "smoke": [
+    {
+      "target": "1.20.1-forge",
+      "result": "PASS",
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "cleanup": "CLEAN_SHUTDOWN_PORT_RELEASED",
+      "localReport": "runs/1.20.1-forge/control-ui-showcase/showcase-20260906-095905008.json",
+      "sha256": "bac3cb8454b32f6903914cf7b8c2e51b2ac3209afeaf3125075a3bfe5dae4b1d"
+    },
+    {
+      "target": "26.2-fabric",
+      "result": "PASS",
+      "heldKeys": 0,
+      "heldButtons": 0,
+      "cleanup": "CLEAN_SHUTDOWN_PORT_RELEASED",
+      "localReport": "runs/26.2-fabric/control-ui-showcase/showcase-20260906-095728519.json",
+      "sha256": "78511aa6b7ee23dbc7f3fbcfaadbe6975264fe5fe8ef1eb69580af916ba8475c"
+    }
+  ],
+  "smokeCoverage": [
+    "fresh_instance_Vanilla_onboarding_and_world_creation",
+    "repeat_existing_single_demo_world",
+    "READ_OPERATE_TAKEOVER",
+    "real_inventory_slot_to_slot_move",
+    "real_ui_drag_and_carried_stack_cleanup",
+    "fixture_toast_rendering",
+    "Options_Language_scroll_navigation",
+    "normal_save_quit",
+    "normal_quit_process_and_port_release"
+  ],
+  "finalScriptChecks": 32,
+  "postSmokeScriptChecks": [
+    "structured stale-revision-only retry and per-attempt disarm",
+    "authoritative cleanup postcheck",
+    "active gesture empty check",
+    "no cleanup of a foreign controller on failed admission",
+    "no report writes into rejected unknown instances"
+  ],
+  "regressions": {
+    "fiveTargetBuild": "PASS",
+    "controlImplementationStatic": "PASS",
+    "classifiedHttpOperations": 75,
+    "classifiedMcpTools": 24,
+    "representativeJavaTests": {
+      "result": "PASS",
+      "tests": 103,
+      "failures": 0,
+      "rerun": true
+    },
+    "companionTests": {
+      "result": "PASS",
+      "tests": 3,
+      "failures": 0
+    },
+    "diffCheck": "PASS"
+  },
+  "preparationIssuesResolved": [
+    "first-launch AccessibilityOnboardingScreen navigation",
+    "wait for actual loading overlay removal before target resolution",
+    "Quit Game transport-response race judged by process exit and port release"
+  ],
+  "knownViewingLimitations": [
+    "Dedicated instance uses English Vanilla button labels.",
+    "World list lacks semantic row children: a first-row coordinate is restricted to the validated single-world test instance.",
+    "READ Fade Out waits existing 15-second inactivity timeout; no UI timing changes.",
+    "Demo toasts are fixtures, not natural tutorials or advancements.",
+    "Visual size, glow, short/long easing feel and overlap are for user review; no visual verdict is recorded.",
+    "After physical revocation the Runner never silently reacquires; interrupted item cleanup may require explicit human-approved continuation."
+  ],
+  "persistentWriteInvocations": 0,
+  "vanillaTestWorldSaves": "EXPECTED_NORMAL_GAME_SAVES",
+  "excludedFromGit": [
+    "worlds",
+    "tokens",
+    "caches",
+    "logs",
+    "local screenshots",
+    "temporary execution reports"
+  ],
+  "nextAction": "USER_SELECTS_SHOWCASE_CASE_AND_PROVIDES_VISUAL_FEEDBACK"
+}
