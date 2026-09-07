@@ -19,6 +19,12 @@ export interface AgentPointerState {
 export interface OperatorPresenceState extends ControlModeState {
   presenceActive: boolean;
   hostCursorPolicy: 'never_capture_or_warp_during_takeover';
+  /** Observed state; Vanilla may capture outside TAKEOVER. Absent while closing. */
+  hostCursorCaptured?: boolean;
+  /** @deprecated Compatibility only; native-click capture grants were removed. */
+  hostCursorCaptureGranted: false;
+  /** @deprecated Compatibility only; not a human-verification counter. */
+  nativeCaptureGrants: 0;
   nativeInputPolicy: 'exclusive_except_physical_escape';
   activeGestureId: string;
   pointerOwnership: 'none' | 'serialized_gesture' | 'lease_raw_stream';

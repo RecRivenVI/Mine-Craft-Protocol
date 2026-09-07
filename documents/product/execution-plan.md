@@ -3,10 +3,26 @@
 > 文档状态：CURRENT — Core 状态与下一门槛的唯一执行台账；长期设计条目不等于已实现能力
 > 文档版本：0.9
 > 编制日期：2026-08-27  
-> 修订日期：2026-09-06
+> 修订日期：2026-09-07
 > 项目性质：Agent-native Minecraft 自主测试平台；可选扩展组合独立治理
 > 当前阶段：Phase 8/V1、Phase 9B.1/9B.2、Phase 9C、Phase 9D-0、Phase 9D-1、Phase 9D-2 与 Phase 9D-2.1 已完成；Packaged Artifact Runtime Attestation PASS；Persistent Write Entry Review READY for independent review；Phase 9E/9F/9G 与 Phase 10 未开始
 > Agent Control：Round 1 PASS；Rounds 2–4 Implementation COMPLETE；Unified Acceptance READY / NOT EXECUTED；Control UI Showcase READY。
+
+## 本轮控制声明收尾（2026-09-07）
+
+核对基线 `5dc95a7240f477ed2a8e5359b9f2c9c5b5e20229`，开始时工作树 clean。
+五端 capabilities 仍残留 `agent_gated_native_click`，本轮统一更正为
+`blocked_during_takeover`。能力支持、TAKEOVER 策略和 GLFW 当前捕获状态分别表达；
+保留废弃兼容 grant 字段，不恢复真人点击捕获。不改输入钩子、模式状态机或 UI/UX。
+验证结果见[本轮声明回归](../../validations/results/core/control-capability-correction-20260907.json)；历史 Phase / commit-bound JSON 不回写。
+
+自动检查另观察到 NeoForge 26.2 加载初期 `presentOperatorChrome` 调用栈出现
+`Pipeline contains invalid shader program`，日志报告 shader source 不可用。
+等待资源加载后声明复测通过，但不代表这个启动期风险已经修复；本轮不修改渲染/输入钩子。
+后续可随用户 UI/UX 需求独立核查 render-readiness 边界。
+
+**人工统一验收尚未执行，按用户决定暂缓；下一步等待用户提供 UI/UX 调整需求。**
+历史 Rounds 2–4 Implementation COMPLETE、Unified Acceptance READY 不变，也不升级为 PASS。
 
 ## 当前状态与阅读规则
 
@@ -2307,6 +2323,8 @@ Extension 只有在用户明确做出 Product Governance Decision 后才能提�
 ---
 
 ## 29. 下一步门槛（需分别授权，不自动执行）
+
+**当前排程覆盖以下候选顺序：等待用户提供 UI/UX 调整需求。Showcase 与统一人工验收暂缓；不自动执行。**
 
 1. **Control UI Showcase 用户观察与反馈**：案例已准备，用户可按
    [Showcase](../testing/control-ui-showcase.md)逐个观察。它不改变现有美术/缓动，也不形成最终 UX 评价。

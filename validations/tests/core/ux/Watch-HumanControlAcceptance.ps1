@@ -7,9 +7,11 @@ param(
     [int]$TimeoutSeconds=150
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot '../control/ControlCursorContract.ps1')
 $token=(Get-Content -LiteralPath $TokenFile -Raw).Trim()
 $auth=@{Authorization="Bearer $token"}
 $base=$BaseUri.TrimEnd('/')
+$capabilities=Invoke-RestMethod "$base/v0/capabilities" -Headers $auth -TimeoutSec 5
 $samples=[Collections.Generic.List[object]]::new()
 $timer=[Diagnostics.Stopwatch]::StartNew()
 $manualAt=$null
@@ -17,20 +19,20 @@ $lastSequence=$null
 $postRevokeEffects=0
 $lastSignature=''
 $manualAudit=@()
-$initialGrants=$null
 while($timer.Elapsed.TotalSeconds -lt $TimeoutSeconds){
     $state=Invoke-RestMethod "$base/v0/input/state" -Headers $auth -TimeoutSec 5
-    if($null-eq$initialGrants){$initialGrants=[long]$state.nativeCaptureGrants}
+    Assert-ControlCursorResponse $capabilities $state
     $sample=[ordered]@{
         ms=[long]$timer.ElapsedMilliseconds;state=$state.controlState;focused=[bool]$state.hostFocused
         captured=[bool]$state.hostCursorCaptured;grant=[bool]$state.hostCursorCaptureGranted
         grants=[long]$state.nativeCaptureGrants;revocations=[long]$state.nativeRevocations
+        mode=$state.mode;reconsent=$state.reconsentRequired;suppressedButtons=[long]$state.suppressedNativeInput.button
         keys=[int]$state.pressedKeyCount;buttons=[int]$state.pressedButtonCount
         dispatch=[long]$state.inputDispatchSequence;alpha=$state.controlChromeAlpha;icon=$state.windowIconState
     }
     $signature=($sample.GetEnumerator()|Where-Object Key -ne 'ms'|ForEach-Object Value)-join '|'
     if($signature-ne$lastSignature){$samples.Add([pscustomobject]$sample);$lastSignature=$signature}
-    if($state.controlState-eq'MANUALLY_REVOKED' -and $state.pressedKeyCount-eq0 -and $state.pressedButtonCount-eq0){
+    if($state.controlState-eq'MANUALLY_REVOKED' -and $state.mode-eq'READ' -and $state.reconsentRequired -and $state.pressedKeyCount-eq0 -and $state.pressedButtonCount-eq0){
         if($null-eq$manualAt){
             $manualAt=$timer.Elapsed.TotalSeconds;$lastSequence=[long]$state.inputDispatchSequence
             $audit=Invoke-RestMethod "$base/v0/audit?limit=256" -Headers $auth -TimeoutSec 5
@@ -42,23 +44,15 @@ while($timer.Elapsed.TotalSeconds -lt $TimeoutSeconds){
     Start-Sleep -Milliseconds 100
 }
 $operation=Invoke-RestMethod "$base/v0/operations/$OperationId" -Headers $auth -TimeoutSec 5
-$everFocusedFree=@($samples|Where-Object {$_.state-eq'AGENT_CONTROLLED'-and$_.focused-and-not$_.captured-and-not$_.grant}).Count-gt0
-$captureSample=$samples|Where-Object {$_.state-eq'AGENT_CONTROLLED'-and$_.captured-and$_.grant-and$_.grants-gt$initialGrants}|Select-Object -First 1
-$everCaptured=$null-ne$captureSample
-$backgroundFree=@($samples|Where-Object {$_.state-eq'AGENT_CONTROLLED'-and-not$_.focused-and-not$_.captured-and-not$_.grant}).Count-gt0
-# The host cursor restriction is a control-lease rule, not a replacement for Vanilla
-# after handback. Keep post-revocation samples for input-quiescence evidence only.
-$backgroundCapture=@($samples|Where-Object {$_.state-eq'AGENT_CONTROLLED'-and-not$_.focused-and$_.captured}).Count
-$lossAfterClick=$samples|Where-Object {$null-ne$captureSample-and$_.ms-gt$captureSample.ms-and$_.state-eq'AGENT_CONTROLLED'-and-not$_.focused-and-not$_.captured-and-not$_.grant}|Select-Object -First 1
-$returnWithoutClick=$samples|Where-Object {$null-ne$lossAfterClick-and$_.ms-gt$lossAfterClick.ms-and$_.state-eq'AGENT_CONTROLLED'-and$_.focused-and-not$_.captured-and-not$_.grant}|Select-Object -First 1
+$cursor=Measure-ControlCursorSamples $samples.ToArray()
 $result=[ordered]@{
     evidenceType='human_physical_input_runtime_attestation';nativeEventGenerator='HUMAN_ONLY'
-    result=$(if($null-ne$manualAt-and$postRevokeEffects-eq0-and$operation.state-eq'cancelled'-and$everFocusedFree-and$everCaptured-and$null-ne$returnWithoutClick-and$backgroundCapture-eq0-and$manualAudit.Count-gt0){'PASS'}else{'PARTIAL'})
+    result=$(if($cursor.violations-gt0){'FAIL'}elseif($null-ne$manualAt-and$postRevokeEffects-eq0-and$operation.state-eq'cancelled'-and$cursor.complete-and$manualAudit.Count-gt0){'PASS'}else{'PARTIAL'})
     manualObserved=$null-ne$manualAt;operationId=$OperationId;operationState=$operation.state
     postRevokeAgentInput=$postRevokeEffects;heldKeys=$state.pressedKeyCount;heldButtons=$state.pressedButtonCount
-    focusWithoutGrab=$everFocusedFree;nativeClickCapture=$everCaptured;focusLossRelease=$backgroundFree
-    focusLossAfterClick=$null-ne$lossAfterClick;returnWithoutRecapture=$null-ne$returnWithoutClick
-    backgroundCaptureSamples=$backgroundCapture;manualAuditEntries=$manualAudit.Count
+    contract='exclusive_takeover_no_host_capture';nativeClickCapture=($cursor.capturedSamples-gt0)
+    nativeButtonSuppressed=$cursor.nativeButtonSuppressed;focusLossObserved=$cursor.focusLoss;returnWithoutRecapture=$cursor.returnWithoutCapture
+    takeoverCaptureViolations=$cursor.violations;manualAuditEntries=$manualAudit.Count
     elapsedSeconds=$timer.Elapsed.TotalSeconds;samples=$samples
 }
 $destination=[IO.Path]::GetFullPath($OutputPath)

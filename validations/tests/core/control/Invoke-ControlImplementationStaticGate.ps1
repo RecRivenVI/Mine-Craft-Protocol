@@ -5,6 +5,8 @@ function Require([bool]$ok,[string]$reason){if(-not$ok){throw "Control implement
 $schema=Get-Content (Join-Path $root 'components/protocol-schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
 Require ($schema.info.version-eq'0.0.1-control-r24') 'wrong Native contract version'
 Require ($null-ne$schema.paths.'/v0/input/mouse/delta') 'relative input route missing'
+$cursorContract=& (Join-Path $PSScriptRoot 'Test-ControlCursorContract.ps1')
+Require ($cursorContract.Result-eq'PASS') 'cursor contract response classifier failed'
 $mode=& (Join-Path $PSScriptRoot 'Invoke-ControlRound1StaticGate.ps1')
 Require ($mode.Result-eq'PASS') 'Round 1 intention/authorization contract regression'
 $hooks=& (Join-Path $PSScriptRoot '../../compatibility/phase7/Invoke-Phase7HookCompatibilityGate.ps1')
@@ -21,6 +23,7 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.2-ne
  Require ($keyboard-match'nativeTask'-and$keyboard-match'AgentInputContext.consume'-and$keyboard-match'charTyped') "$target keyboard/character origin missing"
  if($target.StartsWith('26.')){Require ($keyboard-match'preeditCallback'-and$keyboard-match'resubmitLastPreeditEvent') "$target IME boundary missing"}
  Require ($mouse-match'nativeTask'-and$mouse-match'method = "onMove"'-and$mouse-match'method = "onScroll"'-and$mouse-match'method = "onDrop"') "$target native mouse boundary missing"
+ Require ($runtime.Contains('capabilities.addProperty("input.host_cursor_capture", "blocked_during_takeover")')-and-not$runtime.Contains('agent_gated_native_click')) "$target obsolete cursor capability"
  Require ($runtime-notmatch'humanCursorCaptureGranted = true|glfwSetCursorPos') "$target still grants/warps host cursor"
  Require ($constants-match'grabOrReleaseMouse'-and$constants-match'isKeyDown') "$target standard capture/polling guard missing"
  Require ($runtime-match'validatePointerGuard'-and$runtime-match'interactionIdentity'-and$runtime-match'mouseDelta') "$target atomic GUI/relative pointer path missing"

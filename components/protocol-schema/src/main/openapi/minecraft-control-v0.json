@@ -2616,10 +2616,18 @@
                 "type": "boolean"
               },
               "hostCursorCaptured": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Observed GLFW cursor mode when available. May be true under Vanilla outside TAKEOVER; must be false during TAKEOVER."
+              },
+              "hostCursorPolicy": {
+                "type": "string",
+                "enum": ["never_capture_or_warp_during_takeover"],
+                "description": "TAKEOVER policy, separate from observed hostCursorCaptured and from capability support."
               },
               "hostCursorCaptureGranted": {
-                "type": "boolean"
+                "type": "boolean",
+                "deprecated": true,
+                "description": "Compatibility state, always false: native-click capture grants were removed. Not Vanilla capture state."
               },
               "nativeRevocations": {
                 "type": "integer",
@@ -2627,7 +2635,9 @@
               },
               "nativeCaptureGrants": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int64",
+                "deprecated": true,
+                "description": "Compatibility counter, zero under exclusive TAKEOVER. Suppressed native input has separate counters."
               },
               "rejectedHostGrabs": {
                 "type": "integer",
@@ -2695,6 +2705,7 @@
             "properties": {
               "capabilities": {
                 "type": "object",
+                "description": "Capability support/mechanism map, not live state. input.host_cursor_capture=blocked_during_takeover declares standard-path capture/warp blocking support during TAKEOVER, replacing agent_gated_native_click while retaining the string field. hostCursorPolicy is policy; hostCursorCaptured is observed state.",
                 "additionalProperties": {
                   "type": "string"
                 }
@@ -2749,10 +2760,18 @@
                 "type": "boolean"
               },
               "hostCursorCaptured": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Observed GLFW cursor mode when available. May be true under Vanilla outside TAKEOVER; must be false during TAKEOVER."
+              },
+              "hostCursorPolicy": {
+                "type": "string",
+                "enum": ["never_capture_or_warp_during_takeover"],
+                "description": "TAKEOVER policy, separate from observed hostCursorCaptured and from capability support."
               },
               "hostCursorCaptureGranted": {
-                "type": "boolean"
+                "type": "boolean",
+                "deprecated": true,
+                "description": "Compatibility state, always false: native-click capture grants were removed. Not Vanilla capture state."
               },
               "nativeRevocations": {
                 "type": "integer",
@@ -2760,7 +2779,9 @@
               },
               "nativeCaptureGrants": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int64",
+                "deprecated": true,
+                "description": "Compatibility counter, zero under exclusive TAKEOVER. Suppressed native input has separate counters."
               },
               "rejectedHostGrabs": {
                 "type": "integer",
@@ -4005,10 +4026,13 @@
                 "type": "boolean"
               },
               "hostCursorCaptured": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Observed GLFW cursor mode when available. May be true under Vanilla outside TAKEOVER; must be false during TAKEOVER."
               },
               "hostCursorCaptureGranted": {
-                "type": "boolean"
+                "type": "boolean",
+                "deprecated": true,
+                "description": "Compatibility state, always false: native-click capture grants were removed. Not Vanilla capture state."
               },
               "nativeRevocations": {
                 "type": "integer",
@@ -4016,7 +4040,9 @@
               },
               "nativeCaptureGrants": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int64",
+                "deprecated": true,
+                "description": "Compatibility counter, zero under exclusive TAKEOVER. Suppressed native input has separate counters."
               },
               "rejectedHostGrabs": {
                 "type": "integer",
@@ -4073,7 +4099,8 @@
                 "type": "string",
                 "enum": [
                   "never_capture_or_warp_during_takeover"
-                ]
+                ],
+                "description": "Current TAKEOVER policy on supported standard paths, not live capture state or human-verification evidence."
               },
               "nativeInputPolicy": {
                 "type": "string",

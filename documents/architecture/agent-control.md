@@ -126,6 +126,27 @@ input-mode change, but READ cannot use it to mutate. A session must explicitly
 enter OPERATE and meet the existing authorization checks. Agents must not use
 OPERATE/Debug to circumvent a person's instruction to stop. Reads remain usable.
 
+### Capability, policy and state (2026-09-07 correction)
+
+- `capabilities["input.host_cursor_capture"]="blocked_during_takeover"` describes
+  supported standard-path blocking. The field remains a string; the former
+  `agent_gated_native_click` value was erroneous and is no longer emitted.
+- `hostCursorPolicy="never_capture_or_warp_during_takeover"` is the control policy.
+- `hostCursorCaptured` is observed GLFW state, not capability support. Vanilla
+  may capture outside TAKEOVER; the field may be unavailable during window close.
+- `hostCursorCaptureGranted=false` and `nativeCaptureGrants=0` remain deprecated
+  compatibility fields, not a live permission or proof of human acceptance.
+
+Repository Companion consumers pass these fields through without inferring state.
+External consumers matching the obsolete capability value must accept the corrected
+value; object shape, policy, permissions and input behavior are unchanged.
+V0 remains `0.0.1-control-r24`; this is a declaration/schema-documentation correction,
+not a new intent or input contract.
+
+Unified human acceptance has not run and is deferred by the user's decision.
+Next action: await the user's UI/UX adjustment requirements, not automatic Showcase
+or acceptance. Historical implementation COMPLETE / READY remains unchanged.
+
 During TAKEOVER, the host cursor **stays free on the supported standard paths**: no grab on entry,
 focus, native click or routed click, and no cursor warp. The previous human-click capture grant is removed.
 Block automatic grab at its entry point instead of repeatedly grabbing/releasing.

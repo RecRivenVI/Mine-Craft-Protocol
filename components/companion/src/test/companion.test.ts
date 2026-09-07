@@ -43,6 +43,8 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
   let mode = 'READ';
   let generation = 0;
   const control = () => ({
+    hostCursorPolicy: 'never_capture_or_warp_during_takeover', hostCursorCaptureGranted: false, nativeCaptureGrants: 0,
+    hostCursorCaptured: mode !== 'TAKEOVER',
     mode, modeVersion: { controlSessionId: recordingId, generation }, takeoverActive: mode === 'TAKEOVER',
     controlState: mode === 'TAKEOVER' ? 'AGENT_CONTROLLED' : manuallyRevoked ? 'MANUALLY_REVOKED' : 'IDLE',
     reconsentRequired: manuallyRevoked, reconsentScope: 'TAKEOVER_ONLY', modeTransitionReason: 'mock_transition'
@@ -59,7 +61,7 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     const base = { target: 'mock-26.2-fabric', clientTick: 42, requestId: 'mock-request', protocolVersion: 'v0' };
 
     if (path === '/v0/session') return json(response, 200, { ...base, ...control(), type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
-    if (path === '/v0/capabilities') return json(response, 200, { ...base, type: 'capabilities', capabilities: { 'ui.interaction_tree': 'runtime_verified', 'capture.composite': 'runtime_verified' } });
+    if (path === '/v0/capabilities') return json(response, 200, { ...base, ...control(), type: 'capabilities', capabilities: { 'ui.interaction_tree': 'runtime_verified', 'capture.composite': 'runtime_verified', 'input.host_cursor_capture': 'blocked_during_takeover' } });
     if (path === '/v0/ui/tree') return json(response, 200, { ...base, type: 'ui.tree', screenClass: 'TitleScreen', screenRevision: 3, menuRevision: 1, coverage: 'semantic_native', children: [{ nodeId: 'mock:1', role: 'button', label: maliciousText, active: true, visible: true, actions: ['click'] }] });
     if (path === '/v0/ui/vision/context') return json(response, 200, { ...base, type: 'ui.vision_context', coordinateSpace: 'gui_scaled', visionFallbackAvailable: true });
     if (path === '/v0/render/facts') return json(response, 200, { ...base, type: 'render.facts', coverage: 'render_primitives', semanticInference: false, factCount: 1, facts: [] });
@@ -230,6 +232,19 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const sessionData = session.structuredContent as Record<string, unknown>;
     assert.equal((sessionData.companion as Record<string, unknown>).dataPlaneOnly, true);
     assert.equal(JSON.stringify(sessionData).includes(maliciousText), true);
+
+    const cursorCapabilities = await client.callTool({ name: 'minecraft_get_capabilities', arguments: {} });
+    const cursorData = (cursorCapabilities.structuredContent as { data: Record<string, unknown> }).data;
+    assert.equal((cursorData.capabilities as Record<string, unknown>)['input.host_cursor_capture'], 'blocked_during_takeover');
+    assert.equal(cursorData.hostCursorPolicy, 'never_capture_or_warp_during_takeover');
+    assert.equal(cursorData.hostCursorCaptureGranted, false);
+    assert.equal(cursorData.hostCursorCaptured, true, 'READ Vanilla capture state is passed through, not rewritten from policy');
+
+    const cursorResource = await client.readResource({ uri: 'minecraft://capabilities' });
+    const cursorResourceData = JSON.parse((cursorResource.contents[0] as { text: string }).text).data as Record<string, unknown>;
+    assert.deepEqual(cursorResourceData.capabilities, cursorData.capabilities);
+    assert.equal(cursorResourceData.hostCursorPolicy, cursorData.hostCursorPolicy);
+    assert.equal(cursorResourceData.hostCursorCaptured, true);
 
     const deepController = new AbortController();
     const deepObserve = client.callTool({

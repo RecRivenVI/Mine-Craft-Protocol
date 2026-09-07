@@ -597,7 +597,8 @@ public final class ForgeProbeRuntime implements ProbeService {
             capabilities.addProperty("input.pipeline", "runtime_verified");
             capabilities.addProperty("control.agent_presence", this.evidenceCaptures.frameSequence() > 0 ? "runtime_verified" : "unverified_until_present");
             capabilities.addProperty("control.native_escape_revoke", this.nativeRevocations.get() > 0 ? "runtime_verified" : "unverified_until_native_escape");
-            capabilities.addProperty("input.host_cursor_capture", "agent_gated_native_click");
+            // Supported standard-path restriction, not a current capture/grant or human-verification claim.
+            capabilities.addProperty("input.host_cursor_capture", "blocked_during_takeover");
             capabilities.addProperty("input.multi_key", "runtime_verified");
             capabilities.addProperty("input.drag_scroll", "runtime_verified");
             capabilities.addProperty("command.player.execute", "normal_network_current_permissions");

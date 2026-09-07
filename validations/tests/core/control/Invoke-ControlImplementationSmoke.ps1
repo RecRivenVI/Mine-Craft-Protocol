@@ -22,6 +22,8 @@ function Pipeline([array]$steps,[int]$timeout=20000){
  Check ($done.state-eq'completed') "pipeline $($done.state) / $($done.error)"
  $done
 }
+$declaration=& (Join-Path $PSScriptRoot 'Invoke-ControlCapabilityConformance.ps1') -BaseUri $base -TokenFile $TokenFile -ExpectedTarget $ExpectedTarget
+Check ($declaration.Result-eq'PASS') 'production control capability/state contradiction'
 $session=Json GET '/v0/session'
 Check ($session.target-eq$ExpectedTarget-and$session.screenClass-match'TitleScreen') 'fresh title instance required'
 $connection=Get-NetTCPConnection -LocalPort ([uri]$base).Port -State Listen|Select-Object -First 1
