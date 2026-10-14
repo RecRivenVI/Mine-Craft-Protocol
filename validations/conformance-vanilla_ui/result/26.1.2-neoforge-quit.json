@@ -1,0 +1,357 @@
+{
+  "status": "PASS",
+  "target": "26.1.2-neoforge",
+  "runtime": "development_native",
+  "runtimePort": 28593,
+  "launchAttestation": {
+    "batchId": "c27d8edc9bf5478e895265278b23fe3e",
+    "titleReadyAt": "2026-10-13T19:06:34.8721609Z",
+    "port": 28593,
+    "maximumHeapBytes": 4294967296,
+    "target": "26.1.2-neoforge",
+    "processId": 61164
+  },
+  "phase": "quit",
+  "scenario": "all",
+  "testedAt": "2026-10-13T19:16:15.978Z",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "dirty": true,
+  "screens": [
+    "net.minecraft.client.gui.screens.PauseScreen",
+    "net.minecraft.client.gui.screens.TitleScreen"
+  ],
+  "coverage": [
+    {
+      "family": "title",
+      "encountered": [
+        "TitleScreen"
+      ],
+      "notEncountered": []
+    },
+    {
+      "family": "world_selection",
+      "encountered": [],
+      "notEncountered": [
+        "SelectWorldScreen"
+      ]
+    },
+    {
+      "family": "world_creation",
+      "encountered": [],
+      "notEncountered": [
+        "CreateWorldScreen",
+        "CreateFlatWorldScreen",
+        "PresetFlatWorldScreen",
+        "EditGameRulesScreen",
+        "WorldCreationGameRulesScreen"
+      ],
+      "limitation": "Creation draft, flat preset selection and rules/data-pack navigation do not prove every generator or rule combination."
+    },
+    {
+      "family": "world_management",
+      "encountered": [],
+      "notEncountered": [
+        "EditWorldScreen",
+        "WorldBackupConfirmScreen",
+        "ConfirmScreen",
+        "DatapackLoadFailureScreen",
+        "RecoverWorldDataScreen"
+      ],
+      "limitation": "Conversion and recovery are destructive flows and need dedicated disposable fixtures."
+    },
+    {
+      "family": "options",
+      "encountered": [],
+      "notEncountered": [
+        "OptionsScreen",
+        "SoundOptionsScreen",
+        "VideoSettingsScreen",
+        "ControlsScreen",
+        "KeyBindsScreen",
+        "MouseSettingsScreen",
+        "AccessibilityOptionsScreen",
+        "ChatOptionsScreen",
+        "SkinCustomizationScreen",
+        "LanguageSelectScreen",
+        "OnlineOptionsScreen",
+        "TelemetryInfoScreen",
+        "FontOptionsScreen"
+      ]
+    },
+    {
+      "family": "packs",
+      "encountered": [],
+      "notEncountered": [
+        "PackSelectionScreen"
+      ]
+    },
+    {
+      "family": "multiplayer",
+      "encountered": [],
+      "notEncountered": [
+        "JoinMultiplayerScreen",
+        "DirectJoinServerScreen",
+        "EditServerScreen",
+        "ManageServerScreen",
+        "ConnectScreen",
+        "DisconnectedScreen",
+        "SafetyScreen"
+      ],
+      "limitation": "Saved-list management uses disposable loopback entries; server join, authentication and third-party services are not validated."
+    },
+    {
+      "family": "pause_and_stats",
+      "encountered": [
+        "PauseScreen"
+      ],
+      "notEncountered": [
+        "StatsScreen",
+        "SocialInteractionsScreen"
+      ]
+    },
+    {
+      "family": "inventory_and_recipe",
+      "encountered": [],
+      "notEncountered": [
+        "InventoryScreen",
+        "CreativeModeInventoryScreen",
+        "CraftingScreen"
+      ]
+    },
+    {
+      "family": "containers",
+      "encountered": [],
+      "notEncountered": [
+        "ContainerScreen",
+        "FurnaceScreen",
+        "BlastFurnaceScreen",
+        "SmokerScreen",
+        "AnvilScreen",
+        "BrewingStandScreen",
+        "HopperScreen",
+        "DispenserScreen",
+        "ShulkerBoxScreen",
+        "GrindstoneScreen",
+        "SmithingScreen",
+        "CartographyTableScreen"
+      ]
+    },
+    {
+      "family": "rendered_menus",
+      "encountered": [],
+      "notEncountered": [
+        "StonecutterScreen",
+        "LoomScreen",
+        "EnchantmentScreen",
+        "MerchantScreen",
+        "BeaconScreen"
+      ]
+    },
+    {
+      "family": "books_and_signs",
+      "encountered": [],
+      "notEncountered": [
+        "BookEditScreen",
+        "BookSignScreen",
+        "BookViewScreen",
+        "SignEditScreen",
+        "HangingSignEditScreen"
+      ],
+      "limitation": "BookSignScreen is separate only on newer Targets; the older editor signs in place. Front-side sign editing does not prove every side, waxed state or material."
+    },
+    {
+      "family": "commands",
+      "encountered": [],
+      "notEncountered": [
+        "ChatScreen",
+        "CommandBlockEditScreen",
+        "MinecartCommandBlockEditScreen",
+        "StructureBlockEditScreen",
+        "JigsawBlockEditScreen"
+      ]
+    },
+    {
+      "family": "advancements",
+      "encountered": [],
+      "notEncountered": [
+        "AdvancementsScreen"
+      ]
+    },
+    {
+      "family": "death_and_credits",
+      "encountered": [],
+      "notEncountered": [
+        "DeathScreen",
+        "WinScreen",
+        "CreditsAndAttributionScreen",
+        "ConfirmLinkScreen"
+      ],
+      "limitation": "External URL opening is not tested; native confirmation is preserved."
+    },
+    {
+      "family": "account_gated",
+      "encountered": [],
+      "notEncountered": [
+        "RealmsMainScreen",
+        "FriendsScreen",
+        "ReportingScreen",
+        "DialogScreen"
+      ],
+      "limitation": "Account, service and server-authored state cannot be inferred from an offline fixture."
+    }
+  ],
+  "checks": [],
+  "sourceHashes": {
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "ffa77a2d00ea74a21cdc5c11747f527b93d13d258c5cbfaeca31adc0fe976d46",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java": "98f0f07a36882706aac5025b0ae25b21d118034ba038cb58a96f725e2d5e68e5",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentInputContext.java": "cb4bf144c4fd62fa5a4533817e13f9045e20ebe09290b5b2114dfa7b588c1f6f",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentPointer.java": "10526dcb9a7e5f1e33cc8bf855600e8c730961a5fb0dcc25b8f5bfc9c0f9a66b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentTaskLifecycle.java": "6bdfd5ec9e3545169a5be4806bb922bf3948ca54ba7d31f3788f92cbcb11b199",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/CancellableWork.java": "f814865dc327cde5098ba5831654a85f90f5f469a840ebdec7694b9149673e40",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java": "2375a2d1b19c37ceb669e6e3cd696cca1a0c5542dbe698aeddf3622b719e6196",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ExclusiveInputPolicy.java": "a596eeb81f740050f2206d33cd30252d6cc76110771955cb56fa49e5b91145f1",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/FrameCaptureQueue.java": "83ace4bd92643157b46ecce844c2d12b589fc2885b47f451cfb51348a7b3489f",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InputSequenceQueue.java": "d4f0cf1ef96c0f2d8a1b9d518779bfa36b883481fe01da542a05fe67aa1aec78",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InteractionPacing.java": "3381649c1898677973ed3d2a191d2cc88f40deedcf04166b1388c342d0cf8441",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java": "07ae72797cf0474fbbd0818e91587098bedee4bb91eb6c4f164f1de23b29671b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiDataView.java": "0f5f5a69097060e38accc395b8001d91f5c45d42b1a86c86a8531374f490dafe",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiInteractionIdentities.java": "3c239402e4222abcea49e5c0a5f4a4f04356c0ed2bf1ee5501cee5a1ea53b82b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedText.java": "e801f3999e6528ea2cdff49622e3a7f073a5c110dd8569aafe3a406a4cfda673",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WindowDecoration.java": "da9e6f2339f04f69f65b8b6f22b05d03cf9060257935719f855913d675ff7313",
+    "components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1": "2648936a992a5ccc1c7ceaa77b33c0442fcec88cdd893571c0290208c34392df",
+    "components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs": "59f869e2f081a06039f5cb3308b7718b283add051dcacaedd2be946340d07fd8",
+    "components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs": "a9cf48ac685fe77f5e1bc498af750ee229e3e503059e0dd14c971a35e2be0edb",
+    "components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle": "677e447f73c2b8a4b86b898d2b1550789738f66bc6ad1921cdc37f1665c13721",
+    "components\\validation_tools\\conformance-vanilla_ui\\task\\run-vanilla-ui.mjs": "28b84cda326f8dcd86e00bc27a74300c53792ce66aea79d35514bb66690cb949",
+    "validations/conformance-vanilla_ui/task/screens.json": "790e65f82104f769df8adf1b266c71eb066b8236c288a12ee85137671647e1a5",
+    "validations/conformance-vanilla_ui/validation.toml": "0780f37c3756f5adcc48fa5ef468848530253da4a93e9a4fe7474679aeae0666",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "af693dd874ae1e76a4840f2e58997605a93cb3505ab1e3cfd15a084d91f5d97c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/ProbeEchoReadProvider.java": "ea220f2391182a840d12207dbdc358e8d688c70f86a125178b44c83d3c249b49",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/ProbeV2Providers.java": "c4199c3a7216225ec608e5caa092d79515f7bda3733f0360ffbedcffbf003670",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java": "7675847c52c068d787a7bdab2b99c59aeff97f8bf8c663ff3a4a7a75e63bde90",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProviders.java": "3b9bc9c8f314970c187c5d9b71634c0c9d6b41a8221e262ce4f83058a6177ff8",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java": "b9105c25b687da5d33353ec4057d8ebcda6da1f49bcc8a40b276a7e85715e5c4",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java": "e76f8dcef0ba6e8b1b4b3fc4e3274d2667f8e006bd1311c2f592d51651579e20",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ReadProvider.java": "9512ba382990bad409b26e3d9c226831c6a21bbc0e085f86836d57f14beae18c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java": "dfd9a3de92fdc0f3c50b0aadbdfd318e97610f79213a26f43132ff3018736fdd",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "2b30dec16710c1973e565485020a3ab3fa70f536401fe9f2e3c4b7c39a902028",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTabUiAccessor.java": "9524531141f6c1b1115560074850dadc287f983b23bae89fea7550a58c3cc17a",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementToastUiAccessor.java": "18904c2ab107584891a74502612d9f1984a78da91d06e6fa3baefafe15f44403",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTypeUiAccessor.java": "b20a132f3f71686347a04a207913f8d9a4abe5d728757210777547f4086866f6",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementWidgetUiAccessor.java": "5aa422c480db4792098cb0af0a9068016a715956dd54c2b4db6436f41403b5cd",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementsUiAccessor.java": "6d0b51c7f7aba2f3bea9dfe62811de76ccb6c43c5cb647d7f55876477654cdca",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BaseContainerBlockEntityAccessor.java": "3a777701950655b045ff4792f6cae496763bf7f1116c219b4035dfffbcf7519f",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconButtonUiAccessor.java": "092d96abe23b07a020f7de3de200e0bf327dbb4074333a0d07a60a0eb8db8dce",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconCancelUiMarker.java": "baee20efdcef49f4cfb1b686440844b3c673c898956b569d520a957c5d247e3d",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconConfirmUiMarker.java": "f64df6ede2292cda1faeabe6c90faf0e42121d5844db13d84d926374160a9bea",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconPowerUiAccessor.java": "f09cbe5f92c7c34936acdaa64756bce2417b88b3993197ee72d8706584e0bfe6",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookUiAccessor.java": "6d9cc0494f672f8e0e6ebc6896e0c739c20d55373d9df62b335520e668d80f7c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookViewUiAccessor.java": "51d64e3cfd5edeff59d76a63986d052e2a4439f00f496423668e23954a144839",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BossOverlayUiAccessor.java": "7aad80e94c54c130004629f309294c44131f2650cf443d8cb0bd8473d25d8923",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ChatUiAccessor.java": "332e05c2c6d97a4f4c818633ef1052e1a67198e6a9369aa56f9c3040fe19a9d4",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandSuggestionsUiAccessor.java": "3ebfad1d597a292bd321921e05bf039f54b09a814605ebf6eb4ef5bb056cbaa7",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ConnectionMixin.java": "5ba85bd265b0e4f427534dab59d7df6451318146e73666da3f4b342af8da7c13",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CreativeUiAccessor.java": "53f4a99e52db67bf805f8bb1f20628a9bb25e886580356ef1c890931a92e5dfa",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DistanceManagerAccessor.java": "d32221250229928bc499d124f9c2a2519b2bfc05def2b8dfe3e7b130ad7bdf3c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java": "0876e6e35d556bd81554e6b0d692bcf1cb4a0679673ef48c43565e23f645b374",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java": "2904b621ce9f1ef4cbabacb35e1b7417cbb33402de8b28f102bafc9652c925dd",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiRenderStateMixin.java": "07a5ad982f0acbd0686db5ca63d35fe8776beb43cad7fbf8b7222b2f4d85995b",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudUiAccessor.java": "61cee35025df5eb58a6329386c3fa48a3db0f30f689fd1e4f69985414b6d18fa",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/InputConstantsMixin.java": "ed46af281ddf9aa6b1716153d0e1f944456d8e3278338433a0a2407141df3cb5",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardCharacterInvoker.java": "b12c9b270034833337d181c88d663f91cb1408340c4a043f2283fa53b0528882",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerInvoker.java": "1f4b167e6342fe18875fdbda1f06b7bc5e50156522965c9281c0156082409566",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java": "06a947f8b6a39907ec67c07783628e24bd12d8dfa133c56365ffe96ddab70cff",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LevelTicksAccessor.java": "1d832bbfb463f8781c365d39223ff63e16720e0c493def2bac36814c2d192455",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LoomUiAccessor.java": "fe96fb721f07d084169aa2bf245414dab0735a80acb09405826da2077ec9eb0a",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantTradeUiAccessor.java": "1b1359091b44bd34b99f80418aea3eb7ddc339372728a6e8b7edb79d15b8758a",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantUiAccessor.java": "a5a31558af06d05aeda05933b023a98b60bf00d3264775ed379f7e5b3b0bf633",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "a1c5b355529a49a6177ba93d610cb4153328810cccd92f9af4b2e1d67c921650",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java": "ddcc6231d6494f086577fc5e957e0d765782aa517fc79a8023a468b09ad1658c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerInvoker.java": "8cf20d968303cc40424e4a5629b69460ba31ed6e64adc9662cd8cabe2b3562d0",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java": "972ae2bf0c6046fd1f3ba495c3f70f567fa933be0f8b208c07b8a3e4240e9546",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MultiPlayerGameModeMixin.java": "110a3a36b6e14042b18864db5d888547cfe53e1ef507344120a96f4f58d7d72e",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PackEntryUiAccessor.java": "b2afef9377fe0302918d254729b4154a76af514c7193b503de319c6cd4afae3a",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PlayerListUiAccessor.java": "0c48aa8907248524a9e3e52f6cbd66e40702d738aced3ff3a92d3e7ac4106d29",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeOverlayUiAccessor.java": "adaef34bcd43eda7511c6168db9b8af5568a9b1f30e29d31e291871cc59ccb78",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipePageAccessor.java": "3d769a4710ad409525f33e2e57a83bc43472801d247cd1def02a6119537bfc12",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeUiAccessor.java": "d594603973815e8ab8be0026c635763cc31e709b48d36a25d3e4be304218b346",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScrollAreaUiAccessor.java": "1883ecb700bae4d6082d430d54f167a791bab31d94d57a16cb0485af2607f898",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ServerGamePacketListenerImplMixin.java": "bed1e4b7c6dbe52d3c1ac173ccde95c0ec1ac82196fd338a50e2794cf35c7b55",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SignUiAccessor.java": "8a6653e42b19ef23aa55808ca23329821f87d9138ea20d9a64032e1fdb616740",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SliderValueAccessor.java": "1c15d759cbb61c6cb3049bc8f0cf4f1bfccbceb43f378cab0d187294c29d80fc",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/StonecutterUiAccessor.java": "744d00f444e409c5564914753fa3a72b3325da22c9f65d1b61d8d8f9f3d9f214",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SuggestionListUiAccessor.java": "0c286868945fbb277a8ded6e0b9d959e02cb15e34f3c8858cb311878dce62704",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SystemToastUiAccessor.java": "742c365c4834df2aec1a341d65e94d4a72fb1b5d42dabd0801e69f241746ba93",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastInstanceUiAccessor.java": "4ae252c74b0980691a1ac73cb79cb10c388eab55217b146a1b9a10c7631b370f",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastManagerUiAccessor.java": "c951ea522b94ced8261a4bab116952fa7196f6a578835f5751c8dce9b7ea6c8c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastRenderTextMixin.java": "8d64d463eb1d6da15ad59583084ff3239655181d99e85d90a5b759fd1f00a898",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TooltipUiAccessor.java": "f979c1da37686af3d1abf11a0393d2cd0fdb7338fdc5f764e08ad39393cb2050",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TutorialToastUiAccessor.java": "54f8c4e1696c837454841521f6414393b9cca3cbfc9eb38bb537ceea02d65333",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WidgetTooltipUiAccessor.java": "0d3796838b4617d612d4fe31fd32c48674e902f8f3059777241fd9b865d75103",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java": "ba800f3f727b33b49bf95cf2ad2f1b652b4ab57886f4691f37bbeaec35f13cad",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "d8c8864302b681e7209e550196679ccd8dc0551b62192be20fc1923fb8d96b0b",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "8eaa90d5777020803ac95890c34769622ccb36408ae4386ab0f0dd42e93983d8",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "c89afa39e0b959f1183fcb742e6fea937d057e94f61b4a22a7906b21354b66b6",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "e7035d15d88e5f175a5155e6506369810ebcab7616fbf633741118984f1fec8b",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/BoundedTaskExecutor.java": "e6ec1ac552b59c8085bcd104ad51c17d66c6c37d90cc88d184c8cef2ac5ef01d",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java": "42f71aa335272e865a6d074597fb8468194e270738125ca765223d632df68359",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "3324ab6747a034d54ae30a19b7a22f1e9ae68109e55ad795be53d2666b7fcdcb",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugMutationAuthorization.java": "e2393947b2dfc521b2bbdde83392c2af79756d0f2bf2b6585d6242f66e3d191a",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "9286e78577bbdf0ab20908d6be5c75d7cb55ef1d430c184c6f4a0fe1ddeeadd9",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DeepObservationRequestContext.java": "373f43f40f328916b59736aaf96a7e8c54ca8178911320a959e9ed6ebaf26c7c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/EventHub.java": "c8138f33fdd506c48450900153285a9148e86353e92c4a2e407602211e8c6306",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "3bbbe5c9718f11d937bc2750d0ac3bf4f7129d97cb2561b409f0aaf8f852b20b",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationEngine.java": "2a9937a6945b3d187734bef25c3092609fb0c32ae019bf32faf72d4fa09660e9",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationLifecycleTracker.java": "c5cdad4e80118d70fc0479fa45ce5f36d0f82078bc8af1b548753b8468d3ceb5",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationRevisionTracker.java": "7cd022a83c7212c77c33032ca309b5376ca7b82fc90952d65cf3ec8b6b5d8a52",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "023d28f220c003e8dcb35ae10d1941fb615140c33c94a17a7721089c3fecd5b7",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "42795d9916a42322702e4083a2858e69d654394f16cfba4884f35de8024855be",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "3b4835388ed46c3a83e7d62435221d8cd4768398655b014156c8f13d61d89c6c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "65aaa289d04354cb70d1451e86c7069afbe7cd04c59bc8fecb0e992f42fbdf3c",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "a0e9a9accb81bcf76ba54d16093075cacce5f73b1c8c648265711205061ad365",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProviderExecutionEngine.java": "1b67aff09ca9b9c75f2064ecdaa8abd46aaba0ba0db83ecf62cd8c6bf65b9786",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "09470da0223efd855da8ab64190ef1d0cf6f0300909d5933f37b795d4b3bb3ac",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "40519b16683f1d9ca73e4be92245f771a6cf605cabade0fe3a8e504b6d02f9d0",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ResourceVersionVerifier.java": "2e2451cbe8decf5fb5a431bbd989d12c85d87e0c4b266b12943378bdb4a85873",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RichTextUiRegions.java": "5cc10ad5c2cb191a5f60d502d8e3d8254320c44b75c6f00d1a1a9d27bca024ca",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RuntimeToken.java": "03acbf6e8831763592766fa276045b2c6a645fd0146662a10a4e59352b0820d0",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SecurityGate.java": "e248a71ce8d7e9fb7885b38feb2867902abd78e34cf702169f09c225daba62a9",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugEngine.java": "aaa37b3d3f89db98628d2b063552d9e99b99b7549857b7a8fe4974652067a688",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiPresentationSnapshot.java": "8b0c9c062daafbaddc8d3c90961121a7cb434ff8eac43366180e9dde40390c8d",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastText.java": "b904c7f2275e1a674bbf353f16b8389556438f9bf390a856efbc53b395e4914b",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaInteractionRegions.java": "1249c6723cb1ec7f6a5f8903e35c26a404f614a440c72e604cd34cb41a18baed",
+    "versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java": "e21362667ca35003e2806db3400b9cde3d5a012c12c449556ff7228198f3aa40",
+    "versions/26.1.2-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "8771854842a29bff06d75bc04bce09d55f9e66ae4c7bade5e80e920689fc725d",
+    "versions/26.1.2-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AgentTaskContractTest.java": "e1f00a327579f3f0040b93e6c1f2a3d208fd9d2a5d4e0f8fe24b73e362539a34",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/CreativeSlotIdentityTest.java": "86dac9b9ab2b0dfc6dafb829a0c9e568b8f08f11f724add3a0beb04bf1f61ada",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DeadlineCancellationTest.java": "9646cda77e10eeb1add5fc82e209bcb7f5ce4234e3a8cba689481d7939e340d7",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/GameCursorGuardTest.java": "60a7bb7d38b614205058a7891c7a99a89e05de8466d697b65794fc0a08c038cd",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedScrollbarContractTest.java": "6d86bca754b2ffbd01246791ee01371260bcd5663650954d378c6fe78055072e",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ServerListUiContractTest.java": "cb55d82bb956988204d1ab33c9ed050bb4d448a1f47a52fe43510aa2feea6cf4",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugAuthorizationTest.java": "e6b72ab707486da3597bb8c4aacaf719fc6f4dd3f429f4cb50624a8644d51055",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugBatchDeadlineTest.java": "d5c1c8498ec10f73d7219391db0d21e8b4b35925565cbe37ac91ea6dc7959557",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugRevisionTest.java": "52c0afc752663d8223159de146cf28c9b6fa06789ca93a0ae22c8d8ec95a2f4a",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiReadAuthorizationTest.java": "ec8d165bd9302b5d5801411ff005fda85d53df9bda5a89e400d9d46dcda8fb75",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiTargetGeometryTest.java": "50a72540e8e930bd3649263717072a043de87d94f95e169a76f11eef43746159",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastTextTest.java": "340041dc46aff6c67b5ae35699d7a41980597b779b3b7724deca0816e9a3d232",
+    "versions/26.1.2-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiContractTest.java": "44431d6fb1da3ad936bbd502b274cea6cc745c36effd7d34faf0cba110a92f03"
+  },
+  "sourceChangedDuringRun": false,
+  "fixtureSha256": "9c4823017b5e2d435ce95816db66a0afa0063ccee9e2d7785f9300b641753c09",
+  "noMultimodal": true,
+  "screenshotAssertions": 0,
+  "persistentWriteCalls": 0,
+  "notExecuted": [
+    "external server authentication",
+    "Realms/account-gated UI",
+    "world conversion/repair",
+    "all settings combinations",
+    "all recipe combinations",
+    "all world presets/rules/data-pack combinations",
+    "player-list header/footer, multiplayer sorting and 80-player boundary",
+    "third-party UI"
+  ],
+  "toastSamples": [],
+  "editorSamples": []
+}

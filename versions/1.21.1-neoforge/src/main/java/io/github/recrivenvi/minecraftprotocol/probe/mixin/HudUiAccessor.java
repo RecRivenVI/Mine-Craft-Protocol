@@ -1,0 +1,24 @@
+package io.github.recrivenvi.minecraftprotocol.probe.mixin;
+
+import net.minecraft.client.gui.Gui;
+import net.minecraft.network.chat.Component;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
+
+@Mixin(Gui.class)
+public interface HudUiAccessor {
+    @Accessor("title")
+    Component minecraftProtocolProbe$title();
+
+    @Accessor("subtitle")
+    Component minecraftProtocolProbe$subtitle();
+
+    @Accessor("titleTime")
+    int minecraftProtocolProbe$titleTime();
+
+    @Accessor("overlayMessageString")
+    Component minecraftProtocolProbe$actionbar();
+
+    @Accessor("overlayMessageTime")
+    int minecraftProtocolProbe$actionbarTime();
+}

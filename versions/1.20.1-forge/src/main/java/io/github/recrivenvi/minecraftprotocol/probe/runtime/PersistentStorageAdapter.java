@@ -2,6 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.safety.PersistentWriteSafetyFoundation;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mine-Craft-Protocol V0",
-    "version": "0.0.1-control-r24",
+    "version": "0.0.1-ui-m1",
     "description": "Unstable V0 with explicit READ / OPERATE / TAKEOVER intent, independent authorization, formal Deep Observation and typed Debug. Wire Protocol v1 is not frozen.",
     "x-stability": "unstable"
   },
@@ -658,6 +658,8 @@
       "get": {
         "operationId": "getUiTree",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "USER (default) returns visible semantic controls, not hidden rows or internal payloads. DEBUG returns the bounded captured UI graph and additionally requires debug and debug.ui.read; no write scope, Arm or input Lease. READ allows both categories, TAKEOVER only USER, OPERATE only DEBUG. Authorization and mode are rechecked before publishing. Neither view proves full Vanilla UI coverage.",
+        "parameters": [{ "name": "category", "in": "query", "schema": { "$ref": "#/components/schemas/UiDataCategory" } }],
         "responses": {
           "200": {
             "description": "Current screen interaction tree",
@@ -676,11 +678,12 @@
       "post": {
         "operationId": "resolveUiNode",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Resolve only the selected USER/DEBUG view. USER cannot disclose an offscreen or occluded node through resolve. DEBUG has the same independent read authorization as tree.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UiSelector" }
+              "schema": { "$ref": "#/components/schemas/UiReadSelector" }
             }
           }
         },
@@ -935,13 +938,15 @@
       "get": {
         "operationId": "getPlayerState",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Basic WORLD read. USER (default) returns only existing visible HUD hotbar/offhand/effect presentation, not precise internal player state. DEBUG requires read, debug and debug.world.read; READ/OPERATE only, no Arm or Lease. Other world consumers are not yet fully classified; inspect worldContract.",
+        "parameters": [{ "$ref": "#/components/parameters/WorldReadCategory" }],
         "responses": {
           "200": {
             "description": "Client-known player state",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerStateResponse"
+                  "oneOf": [{ "$ref": "#/components/schemas/WorldUserPlayerResponse" }, { "$ref": "#/components/schemas/PlayerStateResponse" }]
                 }
               }
             }
@@ -1016,6 +1021,8 @@
       "get": {
         "operationId": "getServerPlayerState",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "DEBUG-only internal server player read in this increment; USER fails WORLD_USER_PERCEPTION_UNAVAILABLE before server dispatch. No client fallback.",
+        "parameters": [{ "$ref": "#/components/parameters/WorldReadCategory" }],
         "responses": {
           "200": {
             "description": "Integrated Server or negotiated Dedicated Server Peer authoritative live player state",
@@ -1033,7 +1040,9 @@
       "get": {
         "operationId": "getBlockState",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Categorized basic WORLD read. USER perception is not yet supported and is rejected before capture; DEBUG reads loaded internal state with read/debug/debug.world.read and compatible mode. Never loads chunks or reads storage.",
         "parameters": [
+          { "$ref": "#/components/parameters/WorldReadCategory" },
           {
             "name": "x",
             "in": "query",
@@ -1077,7 +1086,9 @@
       "get": {
         "operationId": "queryEntities",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Categorized basic WORLD read. A received entity set is DEBUG, not proof of player perception; default USER is rejected before scanning.",
         "parameters": [
+          { "$ref": "#/components/parameters/WorldReadCategory" },
           {
             "name": "radius",
             "in": "query",
@@ -1109,7 +1120,9 @@
       "get": {
         "operationId": "getServerBlockState",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Categorized basic WORLD read; internal state requires explicit DEBUG. USER is rejected before dispatch; never falls back to client or storage.",
         "parameters": [
+          { "$ref": "#/components/parameters/WorldReadCategory" },
           { "name": "x", "in": "query", "required": true, "schema": { "type": "integer" } },
           { "name": "y", "in": "query", "required": true, "schema": { "type": "integer" } },
           { "name": "z", "in": "query", "required": true, "schema": { "type": "integer" } }
@@ -1131,7 +1144,9 @@
       "get": {
         "operationId": "queryServerEntities",
         "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Categorized basic WORLD read; explicit DEBUG requires read/debug/debug.world.read in READ/OPERATE. USER is not a server entity scan.",
         "parameters": [
+          { "$ref": "#/components/parameters/WorldReadCategory" },
           {
             "name": "radius",
             "in": "query",
@@ -1827,6 +1842,11 @@
       }
     },
     "parameters": {
+      "WorldReadCategory": {
+        "name": "category", "in": "query", "required": false,
+        "description": "Basic read category, default USER. DEBUG requires read/debug/debug.world.read, no write/Arm/Lease; TAKEOVER permits only USER, OPERATE only DEBUG. USER block/entities/server reads are not implemented and fail before capture.",
+        "schema": { "allOf": [{ "$ref": "#/components/schemas/WorldDataCategory" }], "default": "USER" }
+      },
       "RequestId": {
         "name": "X-MCP-Request-Id",
         "in": "header",
@@ -2364,7 +2384,7 @@
         "required": ["sessionEpoch", "resourceType", "resourceKey", "lifecycleId", "revision", "revisionSource", "revisionScope", "mutationPreconditionEligible"],
         "properties": {
           "sessionEpoch": { "type": "string", "format": "uuid" },
-          "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "block", "chunk", "block_entity", "block_entity_serialized", "provider"] },
+          "resourceType": { "type": "string", "enum": ["player", "menu", "entity", "block", "chunk", "block_entity", "block_entity_serialized", "provider", "ui_node"] },
           "resourceKey": { "type": "string" },
           "lifecycleId": { "type": "string" },
           "revision": { "type": "integer", "format": "int64", "minimum": 0 },
@@ -2689,10 +2709,23 @@
               },
               "windowIconState": {
                 "type": "string",
+                "description": "Latest game-supplied icon, with the Agent pointer badge only during TAKEOVER.",
                 "enum": [
-                  "agent_placeholder",
+                  "original_with_agent_pointer",
                   "original_minecraft"
                 ]
+              },
+              "windowBaseTitle": {
+                "type": "string",
+                "description": "Latest undecorated title supplied by the game."
+              },
+              "windowTitle": {
+                "type": "string",
+                "description": "Last title successfully submitted to the native window backend."
+              },
+              "windowDecorationError": {
+                "type": "string",
+                "description": "Empty when no native decoration failure was reported."
               },
               "originalWindowIconCount": {
                 "type": "integer",
@@ -2747,6 +2780,8 @@
               "reconsentRequired"
             ],
             "properties": {
+              "uiContract": { "$ref": "#/components/schemas/UiContract" },
+              "worldContract": { "$ref": "#/components/schemas/WorldReadContract" },
               "capabilities": {
                 "type": "object",
                 "description": "Capability support/mechanism map, not live state. input.host_cursor_capture=blocked_during_takeover declares standard-path capture/warp blocking support during TAKEOVER, replacing agent_gated_native_click while retaining the string field. hostCursorPolicy is policy; hostCursorCaptured is observed state.",
@@ -2833,10 +2868,23 @@
               },
               "windowIconState": {
                 "type": "string",
+                "description": "Latest game-supplied icon, with the Agent pointer badge only during TAKEOVER.",
                 "enum": [
-                  "agent_placeholder",
+                  "original_with_agent_pointer",
                   "original_minecraft"
                 ]
+              },
+              "windowBaseTitle": {
+                "type": "string",
+                "description": "Latest undecorated title supplied by the game."
+              },
+              "windowTitle": {
+                "type": "string",
+                "description": "Last title successfully submitted to the native window backend."
+              },
+              "windowDecorationError": {
+                "type": "string",
+                "description": "Empty when no native decoration failure was reported."
               },
               "originalWindowIconCount": {
                 "type": "integer",
@@ -2998,6 +3046,32 @@
           }
         ]
       },
+      "UiPresentation": {
+        "type": "object",
+        "description": "Bounded read-only HUD/Toast observations. Not semantic input targets. USER excludes hidden/queued content; unsupported families remain explicit limitations.",
+        "required": ["coverage", "limitations", "children"],
+        "properties": {
+          "coverage": {"type":"string","enum":["partial_typed_presentation"]},
+          "hudOcclusionPolicy": {"type":"string"},
+          "limitations": {"type":"array","items":{"type":"string"}},
+          "queuedToastCount": {"type":"integer","minimum":0,"description":"DEBUG only; no queued text is exposed in USER."},
+            "children": {"type":"array","maxItems":215,"items":{"type":"object","required":["nodeId","role","label","visible","active","boundsAvailable","actions"],"properties":{
+              "nodeId":{"type":"string"},"controlKey":{"type":"string"},"role":{"type":"string","enum":["hud_text","hud_item","progress_bar","status_icon","toast"]},"label":{"type":"string","maxLength":2048},
+              "labelSource":{"type":"string","description":"For supported Toast text: last_native_toast_render. Native callback evidence, not framebuffer recognition."},
+              "textPhase":{"type":"string","enum":["static","header_and_title","header","title","transparent","empty","unobserved"]},
+              "textSupported":{"type":"boolean"},
+              "debugLabel":{"type":"string","maxLength":2048,"description":"DEBUG only: bounded pending/native metadata; may differ from the last rendered label."},
+              "effect":{"type":"string","description":"Visible icon identity only, not effect duration or amplifier."},
+              "iconSource":{"type":"string","enum":["last_native_effect_icon_draw"],"description":"Actual native effect-icon draw arguments; not framebuffer or third-party rendering proof."},
+              "renderPhase":{"type":"string","enum":["drawn","transparent","unobserved"]},
+              "opacity":{"type":"number","minimum":0,"maximum":1,"description":"Opacity observed in a completed native frame no older than 250 ms, bound to player, Screen and GUI size; never inferred from effect duration."},
+              "item":{"type":"string"},"count":{"type":"integer","minimum":0},"selected":{"type":"boolean"},
+              "value":{"type":"number","minimum":0,"maximum":1},"valueMinimum":{"type":"number"},"valueMaximum":{"type":"number"},"valueSemantics":{"type":"string"},
+            "class":{"type":"string"},"visible":{"type":"boolean"},"active":{"type":"boolean","enum":[false]},"boundsAvailable":{"type":"boolean"},
+            "x":{"type":"number"},"y":{"type":"number"},"width":{"type":"number"},"height":{"type":"number"},"actions":{"type":"array","maxItems":0,"items":{"type":"string"}}
+          }}}
+        }
+      },
       "UiTreeResponse": {
         "allOf": [
           {
@@ -3009,9 +3083,36 @@
               "screenClass",
               "screenRevision",
               "menuRevision",
+              "domain",
+              "dataCategory",
               "children"
             ],
             "properties": {
+              "domain": { "type": "string", "enum": ["UI"] },
+              "dataCategory": { "$ref": "#/components/schemas/UiDataCategory" },
+              "authority": { "type": "string", "enum": ["CLIENT_UI"] },
+              "debugFacts": { "type": "object", "description": "DEBUG only: bounded captured UI graph, not all received game data.", "properties": { "capturedNodeCount": { "type": "integer", "minimum": 0 }, "scope": { "type": "string", "enum": ["bounded_captured_ui_graph"] }, "completeGameData": { "type": "boolean", "enum": [false] } } },
+              "uiContextId": {"type":"string","description":"DEBUG only: session-bound UI Arm context, not a world fingerprint."},
+              "presentation": {"$ref":"#/components/schemas/UiPresentation"},
+              "uiInputContext": { "type": "string", "enum": ["spectator", "spectator_menu"] },
+              "spectatorContextKey": { "type": "string", "description": "Native spectator menu, category, page and selection identity; not an authority token." },
+              "editorContextKey": {
+                "type": "string",
+                "description": "Native editor page/signing context. A change invalidates stale web frames even if Screen identity remains the same."
+              },
+              "carriedStack": {
+                "allOf": [{"$ref":"#/components/schemas/ItemSnapshot"}],
+                "description": "Client current Screen menu carried item, not a slot, server authority or persisted state. Present only for container Screens."
+              },
+              "screenData": {
+                "type": "object",
+                "properties": {
+                  "family": { "type": "string", "enum": ["book_edit", "book_read"] },
+                  "pageIndex": { "type": "integer", "minimum": 0 },
+                  "pageCount": { "type": "integer", "minimum": 0 },
+                  "pageText": { "type": "string", "maxLength": 2048 }
+                }
+              },
               "screenClass": {
                 "type": "string"
               },
@@ -3064,15 +3165,92 @@
           }
         ]
       },
+      "WorldDataCategory": { "type": "string", "enum": ["USER", "DEBUG"] },
+      "WorldReadContract": {
+        "type": "object",
+        "required": ["domain", "implementationStage", "defaultReadCategory", "debugReadScope", "consumerIsolationComplete", "milestoneComplete", "categorizedReadPaths", "pendingClassification"],
+        "properties": {
+          "domain": { "type": "string", "enum": ["WORLD"] },
+          "implementationStage": { "type": "string", "enum": ["basic_read_classification"] },
+          "defaultReadCategory": { "type": "string", "enum": ["USER"] },
+          "debugReadScope": { "type": "string", "enum": ["debug.world.read"] },
+          "debugReadRequiresArm": { "type": "boolean", "enum": [false] },
+          "userPlayerCoverage": { "type": "string", "enum": ["visible_hud_only"] },
+          "userScenePerception": { "type": "string", "enum": ["not_implemented"] },
+          "consumerIsolationComplete": { "type": "boolean", "enum": [false] },
+          "milestoneComplete": { "type": "boolean", "enum": [false] },
+          "categorizedReadPaths": { "type": "array", "items": { "type": "string" } },
+          "pendingClassification": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "WorldUserPlayerResponse": {
+        "type": "object",
+        "required": ["type", "domain", "dataCategory", "authority", "source", "dataSource", "available", "presentation", "stateSemantics", "precision", "limitations", "requestId", "protocolVersion"],
+        "properties": {
+          "type": { "type": "string", "enum": ["player.state"] },
+          "target": { "type": "string" },
+          "requestId": { "type": "string" },
+          "protocolVersion": { "type": "string" },
+          "protocol": { "type": "string" },
+          "sessionEpoch": { "type": "string" },
+          "domain": { "type": "string", "enum": ["WORLD"] },
+          "dataCategory": { "type": "string", "enum": ["USER"] },
+          "authority": { "type": "string", "enum": ["CLIENT_UI"] },
+          "source": { "type": "string", "enum": ["native_hud_presentation"] },
+          "dataSource": { "type": "string", "enum": ["LIVE"] },
+          "available": { "type": "boolean", "description": "Visible supported presentation exists, not proof that the player/server is absent." },
+          "presentation": { "type": "array", "maxItems": 64, "items": { "type": "object", "required": ["nodeId", "controlKey", "role", "visible"], "description": "Existing projected native HUD node, not a UI widget and not an actionable world target." } },
+          "stateSemantics": { "type": "string", "enum": ["visible_hud_only"] },
+          "precision": { "type": "string", "enum": ["native_presented_fields_only"] },
+          "storageAccessed": { "type": "boolean", "enum": [false] },
+          "completeGameData": { "type": "boolean", "enum": [false] },
+          "perceptionFiltered": { "type": "boolean", "enum": [true] },
+          "presentationTruncated": { "type": "boolean" },
+          "maxPresentationNodes": { "type": "integer", "enum": [64] },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "UiDataCategory": {
+        "type": "string", "enum": ["USER", "DEBUG"], "default": "USER",
+        "description": "UI data/operation category, independent of mode. READ supports both; TAKEOVER input is USER; OPERATE mutations are DEBUG. This does not grant authority."
+      },
+      "UiReadSelector": {
+        "allOf": [{ "$ref": "#/components/schemas/UiSelector" }, { "type": "object", "properties": { "category": { "$ref": "#/components/schemas/UiDataCategory" } } }]
+      },
+      "UiContract": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "enum": ["UI"] },
+          "readCategories": { "type": "array", "items": { "$ref": "#/components/schemas/UiDataCategory" } },
+          "defaultReadCategory": { "type": "string", "enum": ["USER"] },
+          "takeoverCategory": { "type": "string", "enum": ["USER"] },
+          "operateCategory": { "type": "string", "enum": ["DEBUG"] },
+          "debugReadScope": { "type": "string", "enum": ["debug.ui.read"] },
+          "debugReadRequiresArm": { "type": "boolean", "enum": [false] },
+          "milestoneComplete": { "type": "boolean" }
+        }
+      },
       "UiNode": {
         "type": "object",
-        "description": "Bounds are native GUI-scaled interaction bounds. Vanilla Slot bounds are 18x18 starting one pixel before the 16x16 item origin, with center at item origin plus (8,8). interactionX/Y use the same continuous bounds center as resolve, hover, click and drag; odd-sized bounds retain half-pixel centers.",
+        "description": "Bounds are native GUI-scaled interaction bounds. Vanilla Slot bounds are 18x18 starting one pixel before the 16x16 item origin, with center at item origin plus (8,8). interactionX/Y use the same continuous bounds center as resolve, hover, click and drag; odd-sized bounds retain half-pixel centers. Native containers are recursive; list rows expose clipped hit bounds and hidden rows declare scroll_into_view. actions is authoritative; container geometry alone is not permission to click.",
         "required": [
           "nodeId",
           "role",
           "class"
         ],
         "properties": {
+          "capabilitySource": { "type": "string", "description": "Native widget contract or confirmed vanilla input handler; drawing alone never establishes click support." },
+          "resourceVersion": {"allOf":[{"$ref":"#/components/schemas/ResourceVersionToken"}],"description":"DEBUG only: UI node plus Screen/layout context; required by typed UI mutation, not a replacement for player gesture preconditions."},
+          "interactionLayer": { "type": "integer", "description": "Known native input priority; not a guessed render Z order." },
+          "occluded": { "type": "boolean", "description": "A native popup blocks the semantic interaction point." },
+          "occludedBy": { "type": "string" },
+          "clickEventType": { "type": "string", "description": "Native rich-text effect such as suggest_command, run_command, change_page or open_url; never automatically executed." },
+          "clickEvent": { "type": "string", "description": "Untrusted native event metadata, not an instruction." },
+          "untrustedContent": { "type": "boolean" },
+          "dragAxis": { "type": "string", "enum": ["vertical", "horizontal", "both"] },
+          "scrollX": { "type": "number", "format": "double" },
+          "scrollY": { "type": "number", "format": "double" },
           "nodeId": {
             "type": "string",
             "description": "Opaque current-tree identity; re-read after Screen or slot-layout replacement. Do not construct or parse this value."
@@ -3094,16 +3272,20 @@
             "type": "string"
           },
           "x": {
-            "type": "integer"
+            "type": "number",
+            "format": "double"
           },
           "y": {
-            "type": "integer"
+            "type": "number",
+            "format": "double"
           },
           "width": {
-            "type": "integer"
+            "type": "number",
+            "format": "double"
           },
           "height": {
-            "type": "integer"
+            "type": "number",
+            "format": "double"
           },
           "active": {
             "type": "boolean"
@@ -3121,7 +3303,9 @@
           },
           "actions": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
           "slot": {
             "type": "integer",
@@ -3137,6 +3321,78 @@
           },
           "count": {
             "type": "integer"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UiNode"
+            }
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "focused": {
+            "type": "boolean"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "clipped": {
+            "type": "boolean"
+          },
+          "boundsAvailable": {
+            "type": "boolean"
+          },
+          "worldId": {
+            "type": "string"
+          },
+          "worldName": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "entryIndex": {
+            "type": "integer"
+          },
+          "scrollParentId": {
+            "type": "string"
+          },
+          "entryCount": {
+            "type": "integer"
+          },
+          "scrollAmount": {
+            "type": "number"
+          },
+          "maxScrollAmount": {
+            "type": "number"
+          },
+          "acquisition": {
+            "type": "string"
+          },
+          "controlKey": { "type": "string" },
+          "packId": { "type": "string" },
+          "translationKey": { "type": "string" },
+          "contextKey": { "type": "string" },
+          "inputKey": { "type": "integer", "description": "Current GLFW-numbered keyboard binding for a spectator shortcut; -1 means unsupported." },
+          "activationEnabled": { "type": "boolean" },
+          "boundsSemantics": { "type": "string", "enum": ["display_only"] },
+          "focusOffset": { "type": "integer", "minimum": -3, "maximum": 3 },
+          "lineIndex": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "collectionTruncated": { "type": "boolean" },
+          "semanticState": { "type": "string" },
+          "multiline": { "type": "boolean" },
+          "inputRoute": {
+            "type": "string",
+            "enum": ["screen_keyboard", "spectator_hotbar", "spectator_open"],
+            "description": "Typed native input route. Spectator bounds are display-only; click/select highlights and only explicit activate executes the selected item."
           }
         }
       },
@@ -3144,17 +3400,60 @@
         "type": "object",
         "description": "Current-tree selector. Multiple matches require nth; selectors are re-resolved before actions.",
         "properties": {
-          "nodeId": { "type": "string" },
-          "role": { "type": "string" },
-          "label": { "type": "string" },
-          "labelContains": { "type": "string" },
-          "class": { "type": "string" },
-          "classContains": { "type": "string" },
-          "slot": { "type": "integer", "minimum": 0, "description": "Current-tree UiNode.slot (unique Screen menu view position), not nativeSlotIndex or a server inventory index." },
-          "nth": { "type": "integer", "minimum": 0 },
-          "caseSensitive": { "type": "boolean", "default": false },
-          "visibleOnly": { "type": "boolean", "default": true },
-          "activeOnly": { "type": "boolean", "default": false }
+          "nodeId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "labelContains": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "classContains": {
+            "type": "string"
+          },
+          "slot": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Current-tree UiNode.slot (unique Screen menu view position), not nativeSlotIndex or a server inventory index."
+          },
+          "nth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "default": false
+          },
+          "visibleOnly": {
+            "type": "boolean",
+            "default": true
+          },
+          "activeOnly": {
+            "type": "boolean",
+            "default": false
+          },
+          "worldId": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "entryIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "controlKey": { "type": "string" },
+          "packId": { "type": "string" },
+          "translationKey": {
+            "type": "string"
+          }
         },
         "minProperties": 1
       },
@@ -3173,15 +3472,18 @@
           { "$ref": "#/components/schemas/BaseResponse" },
           {
             "type": "object",
-            "required": ["screenRevision", "menuRevision", "matchCount", "selectedIndex", "node", "interactionPoint"],
+            "required": ["domain", "dataCategory", "screenRevision", "menuRevision", "matchCount", "selectedIndex", "node"],
             "properties": {
+              "domain": { "type": "string", "enum": ["UI"] },
+              "dataCategory": { "$ref": "#/components/schemas/UiDataCategory" },
               "screenClass": { "type": "string" },
               "screenRevision": { "type": "integer", "format": "int64" },
               "menuRevision": { "type": "integer", "format": "int64" },
               "matchCount": { "type": "integer", "minimum": 1 },
               "selectedIndex": { "type": "integer", "minimum": 0 },
               "node": { "$ref": "#/components/schemas/UiNode" },
-              "interactionPoint": { "$ref": "#/components/schemas/InteractionPoint" }
+              "interactionPoint": { "$ref": "#/components/schemas/InteractionPoint", "description": "Present only for targets with a real mouse hit area." },
+              "inputRoute": { "type": "string", "enum": ["screen_keyboard", "spectator_hotbar", "spectator_open"] }
             }
           }
         ]
@@ -3200,6 +3502,8 @@
           "action"
         ],
         "properties": {
+          "category": { "type": "string", "enum": ["USER"], "default": "USER", "description": "USER input only. DEBUG never auto-falls back to player input; use an explicitly supported OPERATE Debug capability instead." },
+          "focusOnly": { "type": "boolean", "default": false, "description": "Preserve existing caret/selection; reject an unfocused text field instead of clicking it." },
           "selector": {
             "$ref": "#/components/schemas/UiSelector"
           },
@@ -3222,7 +3526,13 @@
               "double_click",
               "mouse_down",
               "mouse_up",
-              "scroll"
+              "scroll",
+              "scroll_into_view",
+              "type_text",
+              "set_value",
+              "select",
+              "activate",
+              "open"
             ]
           },
           "button": {
@@ -3249,6 +3559,22 @@
             "type": "number",
             "format": "double",
             "default": 0
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Unicode text through native character callbacks; no control characters. type_text requires a semantic text_field."
+          },
+          "replace": {
+            "type": "boolean",
+            "default": true,
+            "description": "Select all and replace through native keys, not direct field mutation."
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Normalized native slider fraction; set_value requires a semantic slider."
           }
         },
         "description": "Exactly one of selector or coordinates is required by the Runtime."
@@ -3258,8 +3584,10 @@
           { "$ref": "#/components/schemas/InputResult" },
           {
             "type": "object",
-            "required": ["action", "targetingSource", "x", "y"],
+            "required": ["action", "targetingSource", "domain", "dataCategory"],
             "properties": {
+              "domain": { "type": "string", "enum": ["UI"] },
+              "dataCategory": { "type": "string", "enum": ["USER"] },
               "action": { "type": "string" },
               "targetingSource": {
                 "type": "string",
@@ -3336,6 +3664,7 @@
           "y"
         ],
         "properties": {
+          "motion": { "type": "string", "enum": ["paced", "direct"], "default": "paced", "description": "Direct motion is GUI-only and still GAME_ROUTED, authenticated and Lease-bound." },
           "x": {
             "type": "number",
             "format": "double"
@@ -3583,6 +3912,7 @@
         ]
       },
       "PlayerStateResponse": {
+        "description": "DEBUG basic player response, not USER perception; independent read/debug/debug.world.read and compatible mode required.",
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseResponse"
@@ -3590,7 +3920,11 @@
           {
             "type": "object",
             "required": [
-              "available"
+              "available",
+              "domain",
+              "dataCategory",
+              "perceptionFiltered",
+              "completeGameData"
             ],
             "properties": {
               "available": {
@@ -3624,13 +3958,32 @@
                 "type": "number",
                 "format": "float"
               },
-              "maxHealth": { "type": "number", "format": "float" },
-              "absorption": { "type": "number", "format": "float" },
-              "food": { "type": "integer" },
-              "air": { "type": "integer" },
-              "velocityX": { "type": "number", "format": "double" },
-              "velocityY": { "type": "number", "format": "double" },
-              "velocityZ": { "type": "number", "format": "double" },
+              "maxHealth": {
+                "type": "number",
+                "format": "float"
+              },
+              "absorption": {
+                "type": "number",
+                "format": "float"
+              },
+              "food": {
+                "type": "integer"
+              },
+              "air": {
+                "type": "integer"
+              },
+              "velocityX": {
+                "type": "number",
+                "format": "double"
+              },
+              "velocityY": {
+                "type": "number",
+                "format": "double"
+              },
+              "velocityZ": {
+                "type": "number",
+                "format": "double"
+              },
               "selectedSlot": {
                 "type": "integer"
               },
@@ -3640,18 +3993,61 @@
               "perspective": {
                 "type": "string"
               },
-              "source": { "type": "string" },
-              "authority": { "type": "string" },
-              "dataSource": { "type": "string", "enum": ["LIVE"] },
-              "storageAccessed": { "type": "boolean" },
-              "stalePossible": { "type": "boolean" },
-              "serverTick": { "type": "integer", "format": "int64" },
-              "thread": { "type": "string" }
+              "source": {
+                "type": "string"
+              },
+              "authority": {
+                "type": "string"
+              },
+              "dataSource": {
+                "type": "string",
+                "enum": [
+                  "LIVE"
+                ]
+              },
+              "storageAccessed": {
+                "type": "boolean"
+              },
+              "stalePossible": {
+                "type": "boolean"
+              },
+              "serverTick": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "thread": {
+                "type": "string"
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "WORLD"
+                ]
+              },
+              "dataCategory": {
+                "type": "string",
+                "enum": [
+                  "DEBUG"
+                ]
+              },
+              "perceptionFiltered": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              },
+              "completeGameData": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              }
             }
           }
         ]
       },
       "BlockStateResponse": {
+        "description": "DEBUG basic block response; USER scene perception is not implemented.",
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseResponse"
@@ -3659,7 +4055,11 @@
           {
             "type": "object",
             "required": [
-              "available"
+              "available",
+              "domain",
+              "dataCategory",
+              "perceptionFiltered",
+              "completeGameData"
             ],
             "properties": {
               "available": {
@@ -3674,25 +4074,76 @@
               "state": {
                 "type": "string"
               },
-              "x": { "type": "integer" },
-              "y": { "type": "integer" },
-              "z": { "type": "integer" },
-              "dimension": { "type": "string" },
-              "source": { "type": "string" },
-              "authority": { "type": "string" },
-              "dataSource": { "type": "string", "enum": ["LIVE"] },
-              "storageAccessed": { "type": "boolean" },
-              "stalePossible": { "type": "boolean" },
-              "chunkLoadRequested": { "type": "boolean" },
-              "serverTick": { "type": "integer", "format": "int64" },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              },
+              "dimension": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "authority": {
+                "type": "string"
+              },
+              "dataSource": {
+                "type": "string",
+                "enum": [
+                  "LIVE"
+                ]
+              },
+              "storageAccessed": {
+                "type": "boolean"
+              },
+              "stalePossible": {
+                "type": "boolean"
+              },
+              "chunkLoadRequested": {
+                "type": "boolean"
+              },
+              "serverTick": {
+                "type": "integer",
+                "format": "int64"
+              },
               "perspective": {
                 "type": "string"
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "WORLD"
+                ]
+              },
+              "dataCategory": {
+                "type": "string",
+                "enum": [
+                  "DEBUG"
+                ]
+              },
+              "perceptionFiltered": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              },
+              "completeGameData": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
               }
             }
           }
         ]
       },
       "EntityQueryResponse": {
+        "description": "DEBUG basic entity response; a synchronized set is not a visible entity set.",
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseResponse"
@@ -3701,7 +4152,11 @@
             "type": "object",
             "required": [
               "entities",
-              "perspective"
+              "perspective",
+              "domain",
+              "dataCategory",
+              "perceptionFiltered",
+              "completeGameData"
             ],
             "properties": {
               "entities": {
@@ -3713,14 +4168,59 @@
               "perspective": {
                 "type": "string"
               },
-              "source": { "type": "string" },
-              "authority": { "type": "string" },
-              "dataSource": { "type": "string", "enum": ["LIVE"] },
-              "storageAccessed": { "type": "boolean" },
-              "stalePossible": { "type": "boolean" },
-              "dimension": { "type": "string" },
-              "radius": { "type": "number", "format": "double" },
-              "serverTick": { "type": "integer", "format": "int64" }
+              "source": {
+                "type": "string"
+              },
+              "authority": {
+                "type": "string"
+              },
+              "dataSource": {
+                "type": "string",
+                "enum": [
+                  "LIVE"
+                ]
+              },
+              "storageAccessed": {
+                "type": "boolean"
+              },
+              "stalePossible": {
+                "type": "boolean"
+              },
+              "dimension": {
+                "type": "string"
+              },
+              "radius": {
+                "type": "number",
+                "format": "double"
+              },
+              "serverTick": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "WORLD"
+                ]
+              },
+              "dataCategory": {
+                "type": "string",
+                "enum": [
+                  "DEBUG"
+                ]
+              },
+              "perceptionFiltered": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              },
+              "completeGameData": {
+                "type": "boolean",
+                "enum": [
+                  false
+                ]
+              }
             }
           }
         ]
@@ -4114,10 +4614,23 @@
               },
               "windowIconState": {
                 "type": "string",
+                "description": "Latest game-supplied icon, with the Agent pointer badge only during TAKEOVER.",
                 "enum": [
-                  "agent_placeholder",
+                  "original_with_agent_pointer",
                   "original_minecraft"
                 ]
+              },
+              "windowBaseTitle": {
+                "type": "string",
+                "description": "Latest undecorated title supplied by the game."
+              },
+              "windowTitle": {
+                "type": "string",
+                "description": "Last title successfully submitted to the native window backend."
+              },
+              "windowDecorationError": {
+                "type": "string",
+                "description": "Empty when no native decoration failure was reported."
               },
               "originalWindowIconCount": {
                 "type": "integer",
@@ -4479,6 +4992,10 @@
         ],
         "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution.",
         "properties": {
+          "fromOffset": { "$ref": "#/components/schemas/UiOffset" },
+          "toOffset": { "$ref": "#/components/schemas/UiOffset" },
+          "motion": { "type": "string", "enum": ["paced", "direct"], "default": "paced" },
+          "focusOnly": { "type": "boolean", "default": false, "description": "type_text preserves caret and refuses an unfocused field; no automatic click." },
           "type": {
             "type": "string",
             "enum": [
@@ -4614,10 +5131,27 @@
             "type": "number",
             "minimum": -8192,
             "maximum": 8192
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Unicode text through native character callbacks; no control characters. type_text requires a semantic text_field."
+          },
+          "replace": {
+            "type": "boolean",
+            "default": true,
+            "description": "Select all and replace through native keys, not direct field mutation."
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Normalized native slider fraction; set_value requires a semantic slider."
           }
         },
         "additionalProperties": true
       },
+      "UiOffset": { "type": "object", "properties": { "x": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 }, "y": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 } }, "description": "Normalized point within freshly resolved semantic bounds, not hand-written screen coordinates." },
       "PipelineRequest": {
         "type": "object",
         "required": ["steps"],
@@ -4769,13 +5303,14 @@
       },
       "DebugArmRequest": {
         "type": "object",
-        "required": ["worldFingerprint"],
+        "oneOf": [{"required":["worldFingerprint"],"not":{"required":["uiContextId"]}},{"required":["uiContextId","namespaces"],"not":{"required":["worldFingerprint"]}}],
         "properties": {
+          "uiContextId": {"type":"string","description":"Client UI session context from DEBUG UI tree; namespaces must be exactly [ui]."},
           "worldFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
           "namespaces": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "type": "string", "enum": ["player", "entity", "world", "block_entity", "chunk", "menu", "client", "network", "provider"] }
+            "items": { "type": "string", "enum": ["player", "entity", "world", "block_entity", "chunk", "menu", "client", "network", "provider", "ui"] }
           },
           "ttlMs": { "type": "integer", "format": "int64", "minimum": 1000, "maximum": 60000, "default": 15000 }
         }
@@ -4784,6 +5319,8 @@
         "type": "object",
         "required": ["type", "status", "requestId", "protocolVersion"],
         "properties": {
+          "uiContextId": {"type":"string"},
+          "authority": {"type":"string","enum":["CLIENT_UI"]},
           "type": { "type": "string" },
           "status": { "type": "string", "enum": ["armed", "renewed", "disarmed"] },
           "debugArmId": { "type": "string", "format": "uuid" },
@@ -4884,8 +5421,21 @@
           { "type": "object", "required": ["operation", "providerId", "mutation"], "properties": { "operation": { "type": "string", "enum": ["provider.mutate"] }, "providerId": { "type": "string" }, "mutation": { "type": "object", "description": "Validated against the registered Provider mutation schema." }, "timeoutMs": { "type": "integer", "minimum": 25, "maximum": 1000 }, "resultByteBudget": { "type": "integer", "minimum": 256, "maximum": 16384 } } }
         ]
       },
+      "DebugUiMutation": {
+        "type":"object",
+        "required":["operation","nodeId","expectedResourceVersion","value"],
+        "properties": {
+          "operation":{"type":"string","enum":["ui.widget.active.set","ui.widget.visible.set","ui.text.set","ui.scroll.set","ui.slider.set"]},
+          "nodeId":{"type":"string"},
+          "expectedResourceVersion":{"$ref":"#/components/schemas/ResourceVersionToken"},
+          "value":{"oneOf":[{"type":"boolean"},{"type":"number","minimum":0},{"type":"string","maxLength":4096}]},
+          "expectedValue":{"oneOf":[{"type":"boolean"},{"type":"number"},{"type":"string"}]}
+        },
+        "description":"OPERATE, debug + debug.write + debug.ui, session-bound UI Arm; typed widget/text/list/slider mutation, no input Lease or arbitrary callbacks. Value type must match operation. ui.slider.set requires a finite normalized number in [0,1], invokes the native setter and its setting callback (which may change/persist client settings), and updates the displayed label; it is not player input."
+      },
       "DebugMutationRequest": {
         "oneOf": [
+          { "$ref": "#/components/schemas/DebugUiMutation" },
           { "$ref": "#/components/schemas/DebugPlayerHealthMutation" },
           { "$ref": "#/components/schemas/DebugPlayerAttributeMutation" },
           { "$ref": "#/components/schemas/DebugEntityNoGravityMutation" },
@@ -4905,16 +5455,21 @@
           "debugOperationId": { "type": "string" },
           "operation": { "type": "string" },
           "namespace": { "type": "string" },
-          "authority": { "type": "string", "enum": ["runtime_internal"] },
+          "authority": { "type": "string", "enum": ["runtime_internal", "CLIENT_UI"] },
           "mechanism": { "type": "string" },
           "invariants": { "type": "string" },
           "synchronization": { "type": "string" },
           "evidence": { "type": "string", "enum": ["diagnostic", "boundary", "invalid_for_acceptance"] },
           "gameplayEvidence": { "type": "boolean", "enum": [false] },
           "before": { "type": "object" },
-          "after": { "type": "object" },
+          "after": { "type": "object", "nullable": true },
           "beforeResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" },
-          "afterResourceVersion": { "$ref": "#/components/schemas/ResourceVersionToken" },
+          "afterResourceVersion": { "allOf":[{"$ref": "#/components/schemas/ResourceVersionToken"}], "nullable": true },
+          "postMutationContextChanged":{"type":"boolean","description":"UI native responder replaced the Screen; mutation applied, no current-node after token exists."},
+          "dataCategory":{"type":"string","enum":["DEBUG"]},
+          "domain":{"type":"string"},
+          "evidenceAuthority":{"type":"string","enum":["DEBUG_PRIVILEGED"]},
+          "sideEffects":{"type":"string","description":"For ui.slider.set: native_slider_setting_callback; native settings may be persisted by Minecraft."},
           "preconditions": { "type": "object" },
           "resync": { "type": "string" },
           "cleanup": { "type": "string" },

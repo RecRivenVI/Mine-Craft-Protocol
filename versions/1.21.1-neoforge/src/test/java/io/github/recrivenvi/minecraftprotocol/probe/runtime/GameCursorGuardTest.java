@@ -3,6 +3,8 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.core.AutomationEngine;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentPointer;
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import net.minecraft.client.input.KeyEvent;
 import org.lwjgl.sdl.SDLKeyboard;
 import org.lwjgl.sdl.SDLScancode;
@@ -8,6 +9,24 @@ import org.lwjgl.sdl.SDLScancode;
 /** Preserve the V0 GLFW-numbered wire contract while Vanilla consumes SDL scancodes. */
 public final class NativeInputMapping {
     private NativeInputMapping() {}
+
+    private static final java.util.Map<Integer, Integer> WIRE_KEYS = wireKeys();
+
+    private static java.util.Map<Integer, Integer> wireKeys() {
+        var keys = new java.util.HashMap<Integer, Integer>();
+        for (int wire = 32; wire <= 348; wire++) {
+            try {
+                keys.put(key(wire), wire);
+            } catch (ProtocolState.ProtocolException unsupported) {
+                /* Not a supported wire key. */
+            }
+        }
+        return java.util.Map.copyOf(keys);
+    }
+
+    public static int wireKey(int nativeKey) {
+        return WIRE_KEYS.getOrDefault(nativeKey, -1);
+    }
 
     public static int key(int wire) {
         if (wire >= 65 && wire <= 90) return InputConstants.KEY_A + wire - 65;

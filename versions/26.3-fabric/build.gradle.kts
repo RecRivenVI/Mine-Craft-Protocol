@@ -10,6 +10,7 @@ configurations.named("testCompileClasspath") {
 }
 
 tasks.test {
+    workingDir = layout.buildDirectory.get().asFile
     useJUnitPlatform()
     classpath += configurations.getByName("clientRuntimeClasspath")
     classpath += sourceSets["client"].output

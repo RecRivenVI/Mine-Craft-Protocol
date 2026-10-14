@@ -36,11 +36,7 @@ try {
     }
 
     $routes = @(
-        'versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java',
-        'versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java',
-        'versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java',
-        'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java',
-        'versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java'
+        'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java'
     )
     foreach ($route in $routes) {
         $source = Get-Content -LiteralPath (Join-Path $root $route) -Raw

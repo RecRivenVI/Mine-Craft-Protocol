@@ -11,7 +11,42 @@ Unified Acceptance READY，尚未执行。Wire Protocol v1 NOT FROZEN。
 - NOT YET ACCEPTED：新独占输入/光标/视觉模型的统一真人与五端验收。
 - FUTURE：真实大型整合包覆盖及任何另行批准的能力扩展。
 
-## 意图不是权限
+## 两个领域、三模式、二类别
+
+UI 与游戏世界是交互领域，不是互斥的会话状态；READ、TAKEOVER、OPERATE 是模式，
+USER、DEBUG 是数据/操作类别。模式按读取、用户接管、调试操控分层，但不采用自动权限继承。
+UI 已接入类别合同，游戏世界接口尚未按新类别全面改造；两个领域各自设首个里程碑。
+交付状态与推进安排以[执行计划](../project/plan-execution.md)为准。
+世界的 USER 感知/精度、玩家命令、完整操作目录与五端门禁见[世界控制设计](concept-world_control.md)。
+六个基础世界读取已接入类别，其他世界消费者与完整感知仍未迁移；协议未冻结。
+源码调查保留在[研究记录](../research/investigation-world_control.md)，实际阶段见执行计划。
+
+| 模式 | USER | DEBUG |
+| --- | --- | --- |
+| READ | 用户当前可见内容及通过正常操作已获得的状态 | 独立授权的内部图与状态 |
+| TAKEOVER | 用户可复现的真实输入 | 不允许替代玩家输入 |
+| OPERATE | 不提供玩家模拟路径 | 明确支持的受控调试操作 |
+
+USER 默认不暴露屏幕外列表、被遮挡内容、隐藏祖先的子节点或未知内部字段；
+nodeId、版本、边界与语义键是定位/安全元数据，不是额外游戏情报。
+隐藏信息不能先发给 Companion/网页再隐藏，隔离发生在 Runtime 服务边界。
+当前分类投影是首步基础，不意味着所有 UI 自绘文字、特殊业务或调试写入都已完成。
+DEBUG 读取要求 ui、debug、debug.ui.read，不要求 write scope、Arm 或输入 Lease。
+DEBUG 图受原有节点/深度预算限制，报告 bounded captured UI graph，不宣称游戏全部数据。
+
+UI DEBUG 已提供原生控件 active/visible、EditBox 文本、列表 scrollAmount 和滑块设值五类强类型修改。
+它们要求 OPERATE、debug/debug.write/debug.ui、有效 Arm 与 expectedResourceVersion；可叠加 expectedValue。
+Arm 使用 DEBUG tree 的 uiContextId 和 namespace=ui，绑定客户端 sessionEpoch，不要求世界已打开，
+也不能混入 worldFingerprint 或世界 namespace。复用现有 Arm、审计、取消与 bounded batch；不新增第二套授权。
+节点 token 绑定 Screen、对象、布局和语义状态；切页、布局或值变化使旧条件失效。
+原生文本 responder 可能替换 Screen，此时返回 postMutationContextChanged，after token 为空，不冒充未执行。
+这些调用不发玩家输入、不获取 Lease，证据始终为 DEBUG_PRIVILEGED；不支持任意回调、反射或原始对象写入。
+
+presentation 提供有限 HUD/Toast 只读内容，与可操作 children 分开。
+USER 仅提供确认可见的标题、副标题、动作栏和完全显示的已支持 Toast；隐藏/排队内容不泄漏。
+非交互文字的 actions 为空，不把屏幕上画出的矩形自动当作按钮。
+
+### 模式不自动授予权限
 
 | 模式 | 可执行 | 不会授予 |
 | --- | --- | --- |
@@ -129,8 +164,16 @@ Operator Chrome/Pointer 位于正常 HUD、Toast、Screen、Mod UI 之上，但�
 Minecraft 内容 → evidence readback → Operator pass → present。
 Timeline/Audit 可记 mode transition 和 pointer trajectory，不把 Operator UI 当被测画面。
 
-窗口标题/placeholder 图标切换与真正原始标题/图标恢复幂等。
-close guard 防止 GLFW 关闭后继续访问 window。重连、多次 acquire/release 不累积后缀。
+窗口标题和图标统一在 Window 向原生窗口后端提交的最终调用处加工，不取消游戏的更新。
+最新游戏标题原样保留，按 Presence 追加既有“智能体读取中 / 智能体操控中 / 由智能体接管”后缀；
+没有 Presence 或关闭时恢复原文。重复模式切换只从原文重新计算，不在上次输出上追加。
+图标仅在 TAKEOVER 时为游戏最新原图叠加右下角蓝色圆球，不替换整个图标。
+角标复用当前 Pointer 的 24×24 静态像素图案，以最近邻缩放到图标短边的一半，贴齐右下角；
+正方形窗口图标中只占右下四分之一块，不向其他区域扩散，也不重新生成平滑大圆球。
+原图透明度正确合成，各分辨率独立处理；不改变游戏内 Pointer 尺寸。
+退出 TAKEOVER 恢复最近一次游戏提供的实际图标；各尺寸分别保留和合成，不用系统默认图标代替恢复。
+GLFW 图标数组和 SDL 的多尺寸 surface 均按原生生命周期释放；异常降级保留游戏输出并报告状态。
+close guard 防止原生窗口关闭后继续发布。第三方绕过 Window 直接操作 OS 的行为不在该拦截边界内。
 
 ## 并发与边界
 

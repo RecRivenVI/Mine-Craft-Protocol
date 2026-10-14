@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

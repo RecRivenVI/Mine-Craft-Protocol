@@ -1,0 +1,654 @@
+package io.github.recrivenvi.minecraftprotocol.core.providers;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+public final class ProbeV2Providers {
+    private ProbeV2Providers() {}
+
+    public static void registerAll(String modId) {
+        new Registration(modId).registerAll();
+    }
+
+    private static final class Registration {
+        private final String MOD_ID;
+        private final String SNAPSHOT_SCHEMA;
+        private final String QUERY_SCHEMA;
+        private final String DEBUG_SCHEMA;
+        private final String DEBUG_RESULT_SCHEMA;
+
+        private Registration(String modId) {
+            MOD_ID = java.util.Objects.requireNonNull(modId);
+            SNAPSHOT_SCHEMA = modId + "://schemas/provider-test-snapshot-v1";
+            QUERY_SCHEMA = modId + "://schemas/provider-test-query-v1";
+            DEBUG_SCHEMA = modId + "://schemas/provider-test-debug-v1";
+            DEBUG_RESULT_SCHEMA = modId + "://schemas/provider-test-debug-result-v1";
+        }
+
+        void registerAll() {
+            registerSchemas();
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "safe",
+                            "none",
+                            true,
+                            false,
+                            "server_thread",
+                            List.of("server_authoritative", "client_known"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "lazy",
+                            "lazy_initialization",
+                            false,
+                            true,
+                            "detached_provider_worker",
+                            List.of("server_authoritative", "client_known"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "scope",
+                            "none",
+                            true,
+                            false,
+                            "detached_provider_worker",
+                            List.of("server_authoritative"),
+                            List.of("read.internal"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "server-thread",
+                            "none",
+                            true,
+                            false,
+                            "server_thread",
+                            List.of("server_authoritative"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "client-thread",
+                            "none",
+                            true,
+                            false,
+                            "client_thread",
+                            List.of("client_known"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "render-thread",
+                            "none",
+                            true,
+                            false,
+                            "render_thread",
+                            List.of("client_known"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "load-data",
+                            "none",
+                            false,
+                            false,
+                            "detached_provider_worker",
+                            List.of("server_authoritative"),
+                            List.of("read"),
+                            Policy.LOAD,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "storage",
+                            "none",
+                            false,
+                            false,
+                            "detached_provider_worker",
+                            List.of("server_authoritative"),
+                            List.of("read"),
+                            Policy.STORAGE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "mutate",
+                            "none",
+                            false,
+                            false,
+                            "server_thread",
+                            List.of("server_authoritative"),
+                            List.of("read"),
+                            Policy.MUTATE,
+                            "provider_revision"));
+            MinecraftProtocolProvidersV2.register(
+                    new TestProvider(
+                            "snapshot-fallback",
+                            "none",
+                            true,
+                            false,
+                            "detached_provider_worker",
+                            List.of("server_authoritative"),
+                            List.of("read"),
+                            Policy.NONE,
+                            "snapshot_change_sequence"));
+            MinecraftProtocolProvidersV2.register(
+                    new RevisionContractProvider("fallback-query", RevisionMode.FALLBACK_QUERY));
+            MinecraftProtocolProvidersV2.register(
+                    new RevisionContractProvider("query-view", RevisionMode.QUERY_VIEW));
+            MinecraftProtocolProvidersV2.register(
+                    new RevisionContractProvider(
+                            "native-regression", RevisionMode.NATIVE_REGRESSION));
+            MinecraftProtocolProvidersV2.register(
+                    new RevisionContractProvider(
+                            "native-inconsistent", RevisionMode.NATIVE_INCONSISTENT));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("failure", FailureMode.THROW));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("timeout", FailureMode.TIMEOUT));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("late-success", FailureMode.LATE_SUCCESS));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("blocking-before-future", FailureMode.BLOCKING_ENTRY));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("oversized", FailureMode.OVERSIZED));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("invalid", FailureMode.VERSION));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("schema-missing", FailureMode.MISSING_FIELD));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("schema-type", FailureMode.WRONG_TYPE));
+            MinecraftProtocolProvidersV2.register(
+                    new FailureProvider("schema-nested", FailureMode.INVALID_NESTED));
+        }
+
+        private void registerSchemas() {
+            if (!ProviderSchemaRegistry.contains(SNAPSHOT_SCHEMA)) {
+                ProviderSchemaRegistry.register(SNAPSHOT_SCHEMA, this::validateSnapshot);
+                ProviderSchemaRegistry.register(QUERY_SCHEMA, this::validateQuery);
+                ProviderSchemaRegistry.register(
+                        DEBUG_SCHEMA,
+                        value ->
+                                value.has("operation")
+                                                && value.get("operation").isJsonPrimitive()
+                                                && List.of(
+                                                                "temperature.set",
+                                                                "temperature.delayed_set")
+                                                        .contains(
+                                                                value.get("operation")
+                                                                        .getAsString())
+                                                && value.has("value")
+                                                && value.get("value").isJsonPrimitive()
+                                                && value.getAsJsonPrimitive("value").isNumber()
+                                                && (!value.has("delayMs")
+                                                        || value.get("delayMs").isJsonPrimitive()
+                                                                && value.getAsJsonPrimitive(
+                                                                                "delayMs")
+                                                                        .isNumber()
+                                                                && value.get("delayMs").getAsInt()
+                                                                        >= 25
+                                                                && value.get("delayMs").getAsInt()
+                                                                        <= 500)
+                                        ? ProviderSchemaRegistry.ValidationResult.pass()
+                                        : ProviderSchemaRegistry.ValidationResult.fail(
+                                                "invalid_temperature_mutation"));
+                ProviderSchemaRegistry.register(
+                        DEBUG_RESULT_SCHEMA,
+                        value ->
+                                value.has("before")
+                                                && value.get("before").isJsonObject()
+                                                && value.has("after")
+                                                && value.get("after").isJsonObject()
+                                                && value.has("revisionStateBefore")
+                                                && value.get("revisionStateBefore").isJsonObject()
+                                                && value.has("revisionStateAfter")
+                                                && value.get("revisionStateAfter").isJsonObject()
+                                                && value.has("providerRevisionBefore")
+                                                && value.get("providerRevisionBefore")
+                                                        .isJsonPrimitive()
+                                                && value.has("providerRevisionAfter")
+                                                && value.get("providerRevisionAfter")
+                                                        .isJsonPrimitive()
+                                        ? ProviderSchemaRegistry.ValidationResult.pass()
+                                        : ProviderSchemaRegistry.ValidationResult.fail(
+                                                "invalid_debug_result"));
+            }
+        }
+
+        private ProviderSchemaRegistry.ValidationResult validateSnapshot(JsonObject value) {
+            if (!value.has("temperature")
+                    || !value.get("temperature").isJsonPrimitive()
+                    || !value.getAsJsonPrimitive("temperature").isNumber()) {
+                return ProviderSchemaRegistry.ValidationResult.fail("temperature_must_be_number");
+            }
+            if (!value.has("meta") || !value.get("meta").isJsonObject()) {
+                return ProviderSchemaRegistry.ValidationResult.fail("meta_must_be_object");
+            }
+            JsonObject meta = value.getAsJsonObject("meta");
+            if (!meta.has("label")
+                    || !meta.get("label").isJsonPrimitive()
+                    || !meta.getAsJsonPrimitive("label").isString()) {
+                return ProviderSchemaRegistry.ValidationResult.fail("meta.label_must_be_string");
+            }
+            if (!meta.has("details") || !meta.get("details").isJsonObject()) {
+                return ProviderSchemaRegistry.ValidationResult.fail("meta.details_must_be_object");
+            }
+            JsonObject details = meta.getAsJsonObject("details");
+            if (!details.has("enabled")
+                    || !details.get("enabled").isJsonPrimitive()
+                    || !details.getAsJsonPrimitive("enabled").isBoolean()) {
+                return ProviderSchemaRegistry.ValidationResult.fail(
+                        "meta.details.enabled_must_be_boolean");
+            }
+            if (value.has("payload")
+                    && (!value.get("payload").isJsonPrimitive()
+                            || !value.getAsJsonPrimitive("payload").isString())) {
+                return ProviderSchemaRegistry.ValidationResult.fail("payload_must_be_string");
+            }
+            if (value.has("threadName")
+                    && (!value.get("threadName").isJsonPrimitive()
+                            || !value.getAsJsonPrimitive("threadName").isString())) {
+                return ProviderSchemaRegistry.ValidationResult.fail("threadName_must_be_string");
+            }
+            return ProviderSchemaRegistry.ValidationResult.pass();
+        }
+
+        private ProviderSchemaRegistry.ValidationResult validateQuery(JsonObject value) {
+            for (String key : value.keySet()) {
+                if (!key.equals("probe") && !key.equals("correlation")) {
+                    return ProviderSchemaRegistry.ValidationResult.fail(
+                            "unknown_query_field:" + key);
+                }
+            }
+            if (value.has("probe")
+                    && (!value.get("probe").isJsonPrimitive()
+                            || !value.getAsJsonPrimitive("probe").isString())) {
+                return ProviderSchemaRegistry.ValidationResult.fail("probe_must_be_string");
+            }
+            if (value.has("correlation")) {
+                if (!value.get("correlation").isJsonObject()) {
+                    return ProviderSchemaRegistry.ValidationResult.fail(
+                            "correlation_must_be_object");
+                }
+                JsonObject correlation = value.getAsJsonObject("correlation");
+                if (!correlation.has("id")
+                        || !correlation.get("id").isJsonPrimitive()
+                        || !correlation.getAsJsonPrimitive("id").isString()) {
+                    return ProviderSchemaRegistry.ValidationResult.fail(
+                            "correlation.id_must_be_string");
+                }
+            }
+            return ProviderSchemaRegistry.ValidationResult.pass();
+        }
+
+        private AgentDataProviderV2.Descriptor descriptor(
+                String name,
+                String effects,
+                boolean safe,
+                boolean mayInitialize,
+                String affinity,
+                List<String> perspectives,
+                List<String> scopes,
+                Policy policy,
+                String revisionSource) {
+            return descriptor(
+                    name,
+                    effects,
+                    safe,
+                    mayInitialize,
+                    affinity,
+                    perspectives,
+                    scopes,
+                    policy,
+                    revisionSource,
+                    "resource");
+        }
+
+        private AgentDataProviderV2.Descriptor descriptor(
+                String name,
+                String effects,
+                boolean safe,
+                boolean mayInitialize,
+                String affinity,
+                List<String> perspectives,
+                List<String> scopes,
+                Policy policy,
+                String revisionSource,
+                String revisionScope) {
+            boolean mayMutate = policy == Policy.MUTATE;
+            return new AgentDataProviderV2.Descriptor(
+                    MOD_ID + ":" + name,
+                    "1",
+                    List.of("snapshot"),
+                    SNAPSHOT_SCHEMA,
+                    QUERY_SCHEMA,
+                    affinity,
+                    perspectives,
+                    effects,
+                    "complete",
+                    safe,
+                    mayInitialize,
+                    policy == Policy.LOAD,
+                    policy == Policy.STORAGE,
+                    mayMutate,
+                    revisionSource,
+                    revisionScope,
+                    revisionScope.equals("resource") ? SNAPSHOT_SCHEMA : "",
+                    revisionScope.equals("resource"),
+                    name.equals("safe") ? "snapshot_diff_delta" : "none",
+                    new AgentDataProviderV2.DebugDeclaration(
+                            mayMutate || name.equals("safe"),
+                            mayMutate || name.equals("safe") ? DEBUG_SCHEMA : "",
+                            mayMutate || name.equals("safe") ? DEBUG_RESULT_SCHEMA : "",
+                            "debug.provider",
+                            true,
+                            mayMutate || name.equals("safe"),
+                            mayMutate || name.equals("safe") ? "must_advance" : "none",
+                            mayMutate || name.equals("safe") ? "provider_declared" : "none"),
+                    scopes);
+        }
+
+        private JsonObject result(AgentDataProviderV2.Descriptor descriptor, long revision) {
+            return result(descriptor, revision, 20.5D);
+        }
+
+        private JsonObject result(
+                AgentDataProviderV2.Descriptor descriptor, long revision, double temperature) {
+            JsonObject result = new JsonObject();
+            result.addProperty("schemaVersion", descriptor.schemaVersion());
+            JsonObject revisionState = new JsonObject();
+            revisionState.addProperty("temperature", temperature);
+            JsonObject meta = new JsonObject();
+            meta.addProperty("label", descriptor.providerId());
+            JsonObject details = new JsonObject();
+            details.addProperty("enabled", true);
+            meta.add("details", details);
+            revisionState.add("meta", meta);
+            JsonObject data = revisionState.deepCopy();
+            data.addProperty("threadName", Thread.currentThread().getName());
+            result.add("data", data);
+            result.add("revisionState", revisionState);
+            result.addProperty("providerRevision", revision);
+            return result;
+        }
+
+        private enum Policy {
+            NONE,
+            LOAD,
+            STORAGE,
+            MUTATE
+        }
+
+        private enum RevisionMode {
+            FALLBACK_QUERY,
+            QUERY_VIEW,
+            NATIVE_REGRESSION,
+            NATIVE_INCONSISTENT
+        }
+
+        private final class RevisionContractProvider implements AgentDataProviderV2 {
+            private final Descriptor descriptor;
+            private final RevisionMode mode;
+            private final AtomicLong invocations = new AtomicLong();
+
+            private RevisionContractProvider(String name, RevisionMode mode) {
+                this.mode = mode;
+                this.descriptor =
+                        Registration.this.descriptor(
+                                name,
+                                "none",
+                                true,
+                                false,
+                                "detached_provider_worker",
+                                List.of("server_authoritative"),
+                                List.of("read"),
+                                Policy.NONE,
+                                mode == RevisionMode.FALLBACK_QUERY
+                                                || mode == RevisionMode.QUERY_VIEW
+                                        ? "snapshot_change_sequence"
+                                        : "provider_revision",
+                                mode == RevisionMode.QUERY_VIEW ? "query_view" : "resource");
+            }
+
+            @Override
+            public Descriptor descriptor() {
+                return this.descriptor;
+            }
+
+            @Override
+            public CompletableFuture<JsonObject> capture(ReadContext context) {
+                long invocation = this.invocations.incrementAndGet();
+                long revision =
+                        this.mode == RevisionMode.NATIVE_REGRESSION
+                                ? invocation == 1L ? 10L : 9L
+                                : 10L;
+                JsonObject result = Registration.this.result(this.descriptor, revision);
+                if (this.mode == RevisionMode.FALLBACK_QUERY
+                        || this.mode == RevisionMode.QUERY_VIEW) {
+                    result.getAsJsonObject("data")
+                            .addProperty(
+                                    "view",
+                                    context.query().has("probe")
+                                            ? context.query().get("probe").getAsString()
+                                            : "none");
+                }
+                if (this.mode == RevisionMode.NATIVE_INCONSISTENT && invocation > 1L) {
+                    result.getAsJsonObject("data").addProperty("temperature", 21.0D);
+                    result.getAsJsonObject("revisionState").addProperty("temperature", 21.0D);
+                }
+                return CompletableFuture.completedFuture(result);
+            }
+        }
+
+        private final class TestProvider implements AgentDataProviderV2 {
+            private final Descriptor descriptor;
+            private final AtomicLong invocations = new AtomicLong();
+            private final AtomicLong semanticRevision = new AtomicLong(1L);
+            private volatile double temperature = 20.5D;
+
+            private TestProvider(
+                    String name,
+                    String effects,
+                    boolean safe,
+                    boolean mayInitialize,
+                    String affinity,
+                    List<String> perspectives,
+                    List<String> scopes,
+                    Policy policy,
+                    String revisionSource) {
+                this.descriptor =
+                        Registration.this.descriptor(
+                                name,
+                                effects,
+                                safe,
+                                mayInitialize,
+                                affinity,
+                                perspectives,
+                                scopes,
+                                policy,
+                                revisionSource);
+            }
+
+            @Override
+            public Descriptor descriptor() {
+                return this.descriptor;
+            }
+
+            @Override
+            public CompletableFuture<JsonObject> capture(ReadContext context) {
+                this.invocations.incrementAndGet();
+                return CompletableFuture.completedFuture(
+                        result(this.descriptor, this.semanticRevision.get(), this.temperature));
+            }
+
+            @Override
+            public CompletableFuture<JsonObject> mutate(DebugContext context) {
+                if (!this.descriptor.debugDeclaration().supported()) {
+                    return AgentDataProviderV2.super.mutate(context);
+                }
+                if (context.cancellationRequested().getAsBoolean()) {
+                    return CompletableFuture.failedFuture(
+                            new java.util.concurrent.CancellationException(
+                                    "provider_debug_cancelled"));
+                }
+                double requested = context.mutation().get("value").getAsDouble();
+                if (context.mutation()
+                        .get("operation")
+                        .getAsString()
+                        .equals("temperature.delayed_set")) {
+                    int delay =
+                            context.mutation().has("delayMs")
+                                    ? context.mutation().get("delayMs").getAsInt()
+                                    : 250;
+                    return CompletableFuture.supplyAsync(
+                            () -> this.applyTemperature(context, requested),
+                            CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS));
+                }
+                return CompletableFuture.completedFuture(this.applyTemperature(context, requested));
+            }
+
+            private synchronized JsonObject applyTemperature(
+                    DebugContext context, double requested) {
+                if (context.cancellationRequested().getAsBoolean()) {
+                    throw new java.util.concurrent.CancellationException(
+                            "provider_debug_cancelled");
+                }
+                long expectedRevision =
+                        context.expectedResourceVersion().has("revision")
+                                ? context.expectedResourceVersion().get("revision").getAsLong()
+                                : -1L;
+                if (expectedRevision != this.semanticRevision.get()) {
+                    throw new IllegalStateException("provider_stale_resource_revision");
+                }
+                long beforeRevision = this.semanticRevision.get();
+                double beforeTemperature = this.temperature;
+                this.temperature = requested;
+                long afterRevision = this.semanticRevision.incrementAndGet();
+                JsonObject result = new JsonObject();
+                result.add(
+                        "before",
+                        Registration.this
+                                .result(this.descriptor, beforeRevision, beforeTemperature)
+                                .getAsJsonObject("data"));
+                result.add(
+                        "after",
+                        Registration.this
+                                .result(this.descriptor, afterRevision, this.temperature)
+                                .getAsJsonObject("data"));
+                result.add(
+                        "revisionStateBefore",
+                        Registration.this
+                                .result(this.descriptor, beforeRevision, beforeTemperature)
+                                .getAsJsonObject("revisionState"));
+                result.add(
+                        "revisionStateAfter",
+                        Registration.this
+                                .result(this.descriptor, afterRevision, this.temperature)
+                                .getAsJsonObject("revisionState"));
+                result.addProperty("providerRevisionBefore", beforeRevision);
+                result.addProperty("providerRevisionAfter", afterRevision);
+                result.addProperty("synchronization", "provider_declared");
+                return result;
+            }
+        }
+
+        private enum FailureMode {
+            THROW,
+            TIMEOUT,
+            LATE_SUCCESS,
+            BLOCKING_ENTRY,
+            OVERSIZED,
+            VERSION,
+            MISSING_FIELD,
+            WRONG_TYPE,
+            INVALID_NESTED
+        }
+
+        private final class FailureProvider implements AgentDataProviderV2 {
+            private final Descriptor descriptor;
+            private final FailureMode mode;
+
+            private FailureProvider(String name, FailureMode mode) {
+                this.descriptor =
+                        Registration.this.descriptor(
+                                name,
+                                "none",
+                                true,
+                                false,
+                                "detached_provider_worker",
+                                List.of("server_authoritative", "client_known"),
+                                List.of("read"),
+                                Policy.NONE,
+                                "provider_revision");
+                this.mode = mode;
+            }
+
+            @Override
+            public Descriptor descriptor() {
+                return this.descriptor;
+            }
+
+            @Override
+            public CompletableFuture<JsonObject> capture(ReadContext context) {
+                return switch (this.mode) {
+                    case THROW ->
+                            CompletableFuture.failedFuture(
+                                    new IllegalStateException("intentional provider failure"));
+                    case TIMEOUT -> new CompletableFuture<>();
+                    case LATE_SUCCESS ->
+                            CompletableFuture.supplyAsync(
+                                    () -> result(this.descriptor, 1L),
+                                    CompletableFuture.delayedExecutor(300L, TimeUnit.MILLISECONDS));
+                    case BLOCKING_ENTRY -> {
+                        try {
+                            Thread.sleep(75L);
+                        } catch (InterruptedException exception) {
+                            Thread.currentThread().interrupt();
+                        }
+                        yield CompletableFuture.completedFuture(result(this.descriptor, 1L));
+                    }
+                    case OVERSIZED -> {
+                        JsonObject oversized = result(this.descriptor, 1L);
+                        oversized
+                                .getAsJsonObject("data")
+                                .addProperty("payload", "x".repeat(context.byteBudget() + 1));
+                        yield CompletableFuture.completedFuture(oversized);
+                    }
+                    case VERSION -> {
+                        JsonObject invalid = result(this.descriptor, 1L);
+                        invalid.addProperty("schemaVersion", "wrong");
+                        yield CompletableFuture.completedFuture(invalid);
+                    }
+                    case MISSING_FIELD -> {
+                        JsonObject invalid = result(this.descriptor, 1L);
+                        invalid.getAsJsonObject("data").remove("temperature");
+                        yield CompletableFuture.completedFuture(invalid);
+                    }
+                    case WRONG_TYPE -> {
+                        JsonObject invalid = result(this.descriptor, 1L);
+                        invalid.getAsJsonObject("data").addProperty("temperature", "hello");
+                        yield CompletableFuture.completedFuture(invalid);
+                    }
+                    case INVALID_NESTED -> {
+                        JsonObject invalid = result(this.descriptor, 1L);
+                        invalid.getAsJsonObject("data")
+                                .getAsJsonObject("meta")
+                                .addProperty("details", "not-an-object");
+                        yield CompletableFuture.completedFuture(invalid);
+                    }
+                };
+            }
+        }
+    }
+}

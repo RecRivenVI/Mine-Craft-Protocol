@@ -1,0 +1,44 @@
+{
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "persistentWriteCalls": 0,
+  "date": "2026-10-12T10:26:26.6250600Z",
+  "coordinateFallbacks": 0,
+  "checks": [
+    "world_row_selection",
+    "unicode_text",
+    "native_tabs",
+    "native_slider",
+    "bounded_scroll_into_view",
+    "nested_options"
+  ],
+  "target": "1.20.1-forge",
+  "result": "PASS",
+  "scope": "native_widgets_lists_text_sliders_tabs",
+  "sourceHashes": [
+    {
+      "sha256": "bd816fa32e533a28ad306cb311084920353e18baf71f3bf9390692c72c418d88",
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java"
+    },
+    {
+      "sha256": "42f71aa335272e865a6d074597fb8468194e270738125ca765223d632df68359",
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java"
+    },
+    {
+      "sha256": "aea05e924b3e990bc428ca613748c0e9a6a1355723a913d15dde87c6a10564a3",
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ForgeProbeRuntime.java"
+    },
+    {
+      "sha256": "739be953886f26a06e7b5f5818a1b53c2581ef9a3732c4a33d68fd4b46d42212",
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java"
+    },
+    {
+      "sha256": "9bbba286bbed4050bacd4972ba2ca4ce98842538f7166de23b8ea273d0dbe41f",
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java"
+    }
+  ],
+  "fullVanillaUiAcceptance": false,
+  "heldButtons": 0,
+  "runtime": "development_native",
+  "heldKeys": 0,
+  "dirty": true
+}

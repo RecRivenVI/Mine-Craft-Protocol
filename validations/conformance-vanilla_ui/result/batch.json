@@ -1,0 +1,70 @@
+{
+  "persistentWriteCalls": 0,
+  "workers": [
+    {
+      "target": "1.20.1-forge",
+      "state": "Completed"
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "state": "Completed"
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "state": "Completed"
+    },
+    {
+      "target": "26.3-neoforge",
+      "state": "Completed"
+    },
+    {
+      "target": "26.3-fabric",
+      "state": "Completed"
+    }
+  ],
+  "testedAt": "2026-10-14T14:15:14.6843052Z",
+  "status": "PASS",
+  "clients": [
+    {
+      "titleReadyAt": "2026-10-14T14:08:31.4635996Z",
+      "processId": 87116,
+      "batchId": "6d932972f03246ca9a2d8359d39f1aa1",
+      "target": "1.20.1-forge",
+      "maximumHeapBytes": 4294967296,
+      "port": 28591
+    },
+    {
+      "titleReadyAt": "2026-10-14T14:08:43.46253Z",
+      "maximumHeapBytes": 4294967296,
+      "processId": 42276,
+      "target": "1.21.1-neoforge",
+      "batchId": "6d932972f03246ca9a2d8359d39f1aa1",
+      "port": 28592
+    },
+    {
+      "batchId": "6d932972f03246ca9a2d8359d39f1aa1",
+      "processId": 49316,
+      "maximumHeapBytes": 4294967296,
+      "port": 28593,
+      "titleReadyAt": "2026-10-14T14:08:44.9313976Z",
+      "target": "26.1.2-neoforge"
+    },
+    {
+      "batchId": "6d932972f03246ca9a2d8359d39f1aa1",
+      "maximumHeapBytes": 4294967296,
+      "target": "26.3-neoforge",
+      "port": 28594,
+      "titleReadyAt": "2026-10-14T14:08:53.4976699Z",
+      "processId": 37352
+    },
+    {
+      "titleReadyAt": "2026-10-14T14:08:58.0644962Z",
+      "port": 28595,
+      "target": "26.3-fabric",
+      "batchId": "6d932972f03246ca9a2d8359d39f1aa1",
+      "maximumHeapBytes": 4294967296,
+      "processId": 50624
+    }
+  ],
+  "batchId": "6d932972f03246ca9a2d8359d39f1aa1"
+}

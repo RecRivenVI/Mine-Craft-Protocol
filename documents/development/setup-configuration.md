@@ -1,6 +1,6 @@
 # 本项目运行配置
 
-当前构建只消费 [仓库配置](../reference/configuration-repository.md)规定的文件，
+当前构建只消费 [仓库配置](../../gradle/conventions/specification/reference/configuration-repository.md)规定的文件，
 不再消费旧 `instance.properties` / `local.properties`。
 
 ## 配置归属

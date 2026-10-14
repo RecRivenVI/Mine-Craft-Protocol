@@ -1,12 +1,13 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function Assert-True([bool]$Condition,[string]$Message) {
     if(-not $Condition) { throw "Phase 9B.2 static gate failed: $Message" }
 }
 $schema=Get-Content (
     Join-Path $root 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'OpenAPI version after explicit Control Round 1 evolution'
+Assert-True ($schema.info.version -eq '0.0.1-ui-m1') 'OpenAPI version after explicit Control Round 1 evolution'
 foreach($name in @('ResourceRevisionRef','ResourceVersionToken','ResourceVersionPrecondition')) {
     Assert-True ($null-ne$schema.components.schemas.$name) "schema $name"
 }
@@ -18,12 +19,12 @@ $targets=@(
     @{Id='26.3-fabric';Src='src\client\java'})
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
-    $tracker=Get-Content (Join-Path $base 'runtime\ObservationRevisionTracker.java') -Raw
-    $provider=Get-Content (Join-Path $base 'runtime\ProviderExecutionEngine.java') -Raw
+    $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
+    $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
     $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
-    $api=Get-Content (Join-Path $base 'api\AgentDataProviderV2.java') -Raw
-    $bounded=Get-Content (Join-Path $base 'runtime\BoundedTaskExecutor.java') -Raw
-    $verifier=Get-Content (Join-Path $base 'runtime\ResourceVersionVerifier.java') -Raw
+    $api=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw
+    $bounded=Get-Content (Join-Path $runtimeCore 'BoundedTaskExecutor.java') -Raw
+    $verifier=Get-Content (Join-Path $runtimeCore 'ResourceVersionVerifier.java') -Raw
     $orderedArrays=$tracker.Contains('arraySemantics", "ordered_by_default')
     $genericArraySort=$tracker.Contains('values.sort(Comparator')
     Assert-True ($orderedArrays -and -not $genericArraySort) "$($target.Id) ordered canonical arrays"

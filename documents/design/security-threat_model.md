@@ -30,7 +30,7 @@ Runtime session、stable Storage Identity、file snapshot/revision 三层独立�
 | 存储竞争与崩溃 | lifecycle/ownership/session.lock、stable identity/file hash、commit/recovery 明确；不承诺断电事务 |
 | 凭据/文件泄漏 | 不提交 token/world/cache/log；Artifact 路径受控，审计不记录无关人类输入 |
 
-READ/OPERATE/TAKEOVER 只是意图。Debug Arm 不由 Lease release 伪装撤销；
+READ/TAKEOVER/OPERATE 分层表达意图，不自动继承权限。Debug Arm 不由 Lease release 伪装撤销；
 Fixture/Debug 不建立玩家 Lease。真人撤销后读取继续，OPERATE 仍受自身权限约束。
 重新接管的对话同意是 Agent policy，不是假装 Runtime 能验证的硬边界。
 

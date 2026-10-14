@@ -10,6 +10,7 @@ function Copy-FixtureFile([string]$Relative){
  Copy-Item -LiteralPath (Join-Path $root $Relative) -Destination $dest
 }
 foreach($p in @('gradle.properties','components/protocol_schema/src/main/openapi/minecraft-control-v0.json')+$gatePaths+@('components/validation_tools/integration-server_peer/task/Assert-ProductArtifact.ps1','components/validation_tools/compatibility-standard_gui/task/Invoke-Phase7HookCompatibilityGate.ps1','components/validation_tools/integration-server_peer/task/Invoke-Phase6PeerConformance.ps1','components/validation_tools/integration-server_peer/task/Invoke-Phase6DedicatedPeerConformance.ps1')){Copy-FixtureFile $p}
+foreach($f in Get-ChildItem (Join-Path $root 'components/runtime_core/src/main') -Recurse -File){Copy-FixtureFile ([IO.Path]::GetRelativePath($root,$f.FullName))}
 $facts=Get-Content (Join-Path $root 'gradle.properties') -Raw|ConvertFrom-StringData
 function Get-JarName([string]$Target){return $facts.mod_id+'-'+$Target+'-'+$facts.mod_version+'.jar'}
 foreach($target in $targets){
@@ -27,7 +28,7 @@ function Run-Gate([string]$Relative,[bool]$Pass,[string]$Case,[string]$ExpectedE
  try{$value=& (Join-Path $fixture $Relative) -SkipBuild}catch{$failure=$_.Exception.Message}
  if($Pass){
   if($failure){throw "$Case unexpected failure: $failure"}
-  if($value.Result-ne'PASS'-or$value.Protocol-ne'0.0.1-control-r24'-or@($value.Targets).Count-ne5-or(($value.Targets.Target|Sort-Object)-join',')-ne(($targets|Sort-Object)-join',')-or$value.JavaModels-le0-or$value.TypeScriptFiles-le0){throw "$Case vacuous/incomplete PASS"}
+  if($value.Result-ne'PASS'-or$value.Protocol-ne'0.0.1-ui-m1'-or@($value.Targets).Count-ne5-or(($value.Targets.Target|Sort-Object)-join',')-ne(($targets|Sort-Object)-join',')-or$value.JavaModels-le0-or$value.TypeScriptFiles-le0){throw "$Case vacuous/incomplete PASS"}
   if(@($value.Targets|Where-Object {$_.Artifact-ne(Get-JarName $_.Target)-or$_.Bytes-le0}).Count){throw "$Case wrong artifact"}
  }else{if(-not$failure-or($ExpectedError-and$failure-notlike('*'+$ExpectedError+'*'))){throw "$Case did not fail for expected reason: $failure"}}
  $results.Add([pscustomobject]@{Gate=(Split-Path $Relative -Leaf);Case=$Case;Expected=if($Pass){'PASS'}else{'FAIL'};Outcome=if($failure){'FAIL'}else{'PASS'};Check='PASS';Error=$failure})
@@ -49,7 +50,7 @@ foreach($gate in $gatePaths){
   With-Missing $file {Run-Gate $gate $false "missing-source-$target" $target}
  }
  $schema='components/protocol_schema/src/main/openapi/minecraft-control-v0.json'
- With-Text $schema {param($s)$s.Replace('0.0.1-control-r24','0.0.1-invalid')} {Run-Gate $gate $false 'wrong-contract-version' 'Schema must identify'}
+ With-Text $schema {param($s)$s.Replace('0.0.1-ui-m1','0.0.1-invalid')} {Run-Gate $gate $false 'wrong-contract-version' 'Schema must identify'}
  $route=if($gate.Contains('ServerPeer')){'/v0/server/peer'}else{'/v0/diagnostics/hooks'}
  With-Text $schema {param($s)$j=$s|ConvertFrom-Json -AsHashtable;$j.paths.Remove($route);$j|ConvertTo-Json -Depth 100} {Run-Gate $gate $false 'missing-contract-route' 'path must exist'}
  if($gate.Contains('ServerPeer')){
@@ -84,5 +85,5 @@ foreach($gate in $gatePaths){
 $report=[pscustomobject]@{Result='PASS';Checks=$results.Count;Cases=$results;Fixture=$fixture;SampleKind='COPIES_OF_CURRENT_SOURCE_AND_JARS';ActualRepositoryFilesMutated=$false;GameStarted=$false}
 $output=Join-Path $root 'validations/integration-server_peer/result'
 [void][IO.Directory]::CreateDirectory($output)
-$report|ConvertTo-Json -Depth 8|Set-Content (Join-Path $output 'local-gates.json') -Encoding utf8
+[IO.File]::WriteAllText((Join-Path $output 'local-gates.json'),($report|ConvertTo-Json -Depth 8).Replace("`r`n","`n")+"`n",[Text.UTF8Encoding]::new($false))
 $report

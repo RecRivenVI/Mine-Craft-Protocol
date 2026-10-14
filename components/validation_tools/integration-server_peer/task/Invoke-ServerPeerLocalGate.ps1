@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 $gradle = Join-Path $repositoryRoot 'gradlew.bat'
 . (Join-Path $PSScriptRoot 'Assert-ProductArtifact.ps1')
 
@@ -36,7 +37,7 @@ try {
 
     $schemaPath = Join-Path $repositoryRoot 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json'
     $schema = Get-Content -LiteralPath $schemaPath -Raw | ConvertFrom-Json
-    Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'Schema must identify the current reviewed Native contract'
+    Assert-True ($schema.info.version -eq '0.0.1-ui-m1') 'Schema must identify the current reviewed Native contract'
     Assert-True ($null -ne $schema.paths.'/v0/server/peer') 'Peer status path must exist'
     Assert-True ($null -ne $schema.paths.'/v0/server/peer/probe') 'Peer round-trip probe path must exist'
     Assert-True ($null -ne $schema.components.schemas.ServerPeerStatusResponse) 'Peer status schema must exist'
@@ -50,10 +51,10 @@ try {
         $runtime = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.RuntimeSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
         $peerClient = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.PeerClientSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime\DedicatedPeerClient.java"
         $peerServer = Join-Path $repositoryRoot "versions\$($target.Name)\src\main\java\io\github\recrivenvi\minecraftprotocol\probe\peer\DedicatedPeerServer.java"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'ProtocolState.java')) "$($target.Name) must have full ProtocolState"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'AutomationEngine.java')) "$($target.Name) must have full AutomationEngine"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'ObservationEngine.java')) "$($target.Name) must have full ObservationEngine"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'RecordingEngine.java')) "$($target.Name) must have full RecordingEngine"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java')) "$($target.Name) must have full ProtocolState"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'AutomationEngine.java')) "$($target.Name) must have full AutomationEngine"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ObservationEngine.java')) "$($target.Name) must have full ObservationEngine"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'RecordingEngine.java')) "$($target.Name) must have full RecordingEngine"
         Assert-True (Test-Path -LiteralPath $peerClient) "$($target.Name) must have a Peer client"
         Assert-True (Test-Path -LiteralPath $peerServer) "$($target.Name) must have a Peer server"
         $targetBuild = Get-Content -LiteralPath (Join-Path $repositoryRoot "versions\$($target.Name)\build.gradle.kts") -Raw

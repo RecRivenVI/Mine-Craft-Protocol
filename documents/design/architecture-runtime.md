@@ -10,13 +10,14 @@ Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的�
 | --- | --- |
 | versions/<target> | Minecraft/Loader adapter、Mixin/Accessor/Invoker、owner-thread capture 与 typed mutation |
 | runtime_safety（product） | 已证明可共享的纯 Java 控制、指针、取消、Capture queue 与存储安全基础 |
+| runtime_core（product） | [共享协议执行与策略](architecture-runtime_core.md)、Provider SPI/注册、资源版本、录制与通用服务接口 |
 | protocol_schema（tool） | 未冻结 V0 OpenAPI 与生成 Java/TypeScript models，生成输出不冒充已接入 Runtime 依赖 |
-| companion（tool） | 独立 MCP stdio surface、协议客户端、有界流读取、static descriptions 与注入隔离 |
+| companion（tool） | 独立 MCP stdio surface、协议客户端、有界流读取、static descriptions 与注入隔离；可选本机网页界面工作台复用认证 Native 客户端 |
 | validation_tools（tool） | 现有验证驱动、Showcase、报告与迁移 JAR 对照，不合并进产品 |
 
-安全库在当前构建中按模板 product 机制直接合并进每个最终 JAR，开发运行由正规 Loader classpath 接入；
+两个产品组件按模板 product 机制直接合并进每个最终 JAR，开发运行由正规 Loader classpath 接入；
 不再声明旧 Jar-in-Jar/include 为当前打包事实。旧 packaged attestation 仅证明原制品。
-目录/构建架构见[构建机制](architecture-build.md)。
+目录/构建架构见[构建机制](../../gradle/conventions/specification/design/architecture-build.md)。
 
 ## Runtime 与线程
 
@@ -24,7 +25,16 @@ Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的�
 render resource 在 Render Thread，server state 在 Server Thread，存储 IO 在有界 worker。
 Pipeline / Operation 支持取消、deadline、终态与输入清理；任务离开 owner thread 不意味着队列可以无界。
 
-Interaction Tree 从 Screen children 与 Menu slots 形成结构化语义目标，Widget 与 Slot 不能混为内部 Reflection。
+Interaction Tree 递归读取原生 Screen/container/list children，结合 Menu slots 与具名创造标签/配方书
+适配形成结构化语义目标；资源包图标、特殊菜单和书本/告示牌用 Target-specific 原生适配。
+没有鼠标文本框的编辑器用 keyboard-only 路由，不虚构几何；页码/选项身份进入 stale guard。
+Widget 与 Slot 不能混为内部 Reflection。私有 Vanilla 嵌套按钮只能用精确具名只读 Accessor/marker，
+Hook 门禁保留封闭的文件/目标白名单，不允许任意字符串或第三方目标。
+节点有界、列表边界裁剪、选择器递归；输入前重验实际对象与几何，自绘未知区域报告限制。
+通用交互区域补足滚动条、富文本、建议、进度画布与配方展开层，显式记录原生输入优先级和遮挡。
+文字区域身份绑定页面/文字/样式/几何的摘要，不让同一个 Screen 中的旧链接编号别名到新内容。
+GUI bounds 保留 double；原生字体 active area 与只读 hit test 是几何依据，不由截图猜测。
+本机网页只桥接标准 GUI 输入：有界序号流、焦点文字、held state 清理，不引入宿主输入或新的权限系统。
 GAME_ROUTED 经正常 keyboard/mouse/Screen/Menu/packet/server validation，正常操作不得 direct mutation 冒充。
 [控制模型](concept-agent_control.md)定义意图、Lease、Human Override、logical pointer 与 Operator pass。
 

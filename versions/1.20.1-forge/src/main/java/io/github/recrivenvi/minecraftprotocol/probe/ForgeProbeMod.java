@@ -1,6 +1,8 @@
 package io.github.recrivenvi.minecraftprotocol.probe;
 
 import com.mojang.logging.LogUtils;
+import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeEchoReadProvider;
+import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeV2Providers;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProviders;
 import io.github.recrivenvi.minecraftprotocol.probe.peer.PeerNetworking;
 import net.minecraftforge.fml.common.Mod;
@@ -13,8 +15,8 @@ public final class ForgeProbeMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public ForgeProbeMod() {
-        MinecraftProtocolProviders.register(new ProbeEchoReadProvider());
-        ProbeV2Providers.registerAll();
+        MinecraftProtocolProviders.register(new ProbeEchoReadProvider(MOD_ID));
+        ProbeV2Providers.registerAll(MOD_ID);
         PeerNetworking.initialize();
         LOGGER.info("Mine-Craft-Protocol Phase 8 Forge 1.20.1 V1 Runtime loaded");
     }

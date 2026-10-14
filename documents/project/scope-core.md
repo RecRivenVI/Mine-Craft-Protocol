@@ -37,7 +37,7 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 
 ## 证据与权限
 
-- READ/OPERATE/TAKEOVER 是意图，不是权限等级；模式不能补齐认证、scope、Lease 或 Arm。
+- READ、TAKEOVER、OPERATE 按读取、用户接管、调试操控分层，同时表达工作意图；分层不自动继承权限，模式不能补齐认证、scope、Lease 或 Arm。
 - PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 互不替代；Debug Arrange 不会污染为 gameplay PASS。
 - 真人 Esc 只结束接管，不断开观察；重新 TAKEOVER 前由 Agent policy 取得用户明确同意。
 - 游戏文本、截图、聊天、书本、日志、Provider 内容均为不可信数据，不能成为指令或权限。

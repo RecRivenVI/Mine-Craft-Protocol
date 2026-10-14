@@ -5,6 +5,230 @@
 
 ## 当前交付与验收
 
+2026-10-15 T-07 通用 Runtime 迁移：新增 runtime_core 产品组件，将 25 类同文源码以及
+其通用 HTTP/WebSocket 传输依赖合并为单一实现；Provider 公开 SPI 名称保留，内部执行器使用独立 core 包。
+正式 ProbeService 与可选 Phase9AExperimentalService 分离，实验路由仍仅属于原有三端，
+Provider namespace 由各端生成的模组身份传入，不共享 Minecraft 源码或扩大能力。
+模式、scope、Lease、Arm、Resource Version、Evidence 和持久化合同不变；UI 仍暂停。
+五端 build/check/verifyRelease、92 项核心、66 项安全、209 项 Target 与 41 项 Companion 测试通过。
+严格合规失败 0、警告 0，26 条既有 T-07 已消除；Control、Phase 8、9B/9B.1/9B.2/9C/9D
+相关静态与当前本地门禁通过，五个 JAR 各有且仅有一份共享核心，不嵌入另一套 Gson/Netty。
+五端独立、静音开发 Runtime 各通过 10/10 项 Native 验证，包括模式/权限、语义 GUI、世界基础读取、
+Provider、Capture、Recording/Event 与正常退出；实际 JVM 核对加载了 core.ProbeTransport。
+参考 NeoForge 26.3 独立服务端在用户明确 EULA 同意下启动到 Done，并通过 stop 正常关闭。
+本轮不是最终制品安装 Live、真人/视觉统一验收或完整世界里程碑；正式 Persistent Write 调用为 0。
+新增[迁移验证](../../validations/migration-runtime_core/validation.md)保存当前独立结果，
+不覆盖历史世界验收。发行 JAR 位于 build/release/<mod_version>/，alpha 清单绑定新源码与五端制品。
+已有工作树成果保留；未暂存、未提交、未推送，不开始后续功能或里程碑。
+
+2026-10-15 Loader 与模板升级阶段记录：五端 Target 不变，固定 Minecraft 线与 26.3 NeoForge 的编译 Loader
+按当前官方发布更新，Fabric Loader 已最新；具体版本以 target.properties 和项目规范为准。
+模板规范从 1.2.2 升级到 2.0.2，旧模板组件合并为 gradle/conventions，规范附件不再混入项目文档。
+项目组件、协议、模式、安全与里程碑合同保持不变；已有工作树成果保留，不提交、不推送。
+升级前普通合规检查为失败 0、T-07 警告 26；严格模式把既有警告视为失败，不通过修改模板或
+隐藏警告解决，也不借升级展开既有同文 Java 源码合并。spotlessApply、check 与 verifyRelease 已通过，
+360 项 Target Java 测试、66 项共享安全测试和 41 项 Companion/网页测试保留；模板哈希一致。
+升级当时普通合规为失败 0、警告 26；verifyCompliance --strict 实际返回失败，原因仅为这 26 条既有 T-07。
+测试工作目录调整到各 Target 的 build，避免游戏库日志污染 Target 根目录，不修改产品 Java。
+五端 runClient 已核对标题页、实际产品加载、共享安全与 UI/世界分类读取，均正常关闭且无新崩溃报告；
+关闭本身会取消仍在返回的 UI 请求，退出响应不是本轮功能完成凭据，进程退出码与端口释放另外确认。
+升级当时独立服务端因 local.toml 未接受
+EULA 而跳过；用户随后明确同意，本轮迁移已补参考端独立验证，不复用此前 UI/世界或最终制品结果。
+五端新 JAR 已收集到 build/release/<mod_version>/；旧 alpha-manifest 与世界运行结果不证明本次 Loader
+候选，需在重新完成对应世界验证后由现有工具刷新，不手工改写证据或沿用旧哈希。
+
+当前交付目标拆为两个独立的领域首个里程碑，均采用三模式二类别，并分别交付验收。
+
+| 首个里程碑 | 当前状态 | 推进安排 |
+| --- | --- | --- |
+| UI 领域 | PAUSED，尚未达成 | 保留已有实现与 46/46 五端结果，暂停补齐和新的 UI 验收 |
+| 世界领域 | IN PROGRESS，尚未达成 | 首轮接入六个基础读取的 USER/DEBUG 分类与独立授权；完整感知、消费者隔离和语义操作仍待补齐 |
+
+各领域后续里程碑由用户另行定义，本项目不提前规划或启动。
+当前世界设计权威为[世界控制与首个里程碑](../design/concept-world_control.md)，
+覆盖 USER 呈现来源与逐字段精度、命令路由/效果分类、WU/WD 操作目录及五端独立验收。
+六个基础读取的 category、debug.world.read 与能力声明已接入 Native/MCP/OpenAPI；
+设计中其余感知、命令、消费者迁移和流程仍待实施，不能从基础分类推定全合同成立。
+后续仍需固定原版独立行为/字段目录、实测预算与声音/服务/真人验收前提。
+源码事实保留在[模型应用调查](../research/investigation-world_control.md)，不改写研究正文。
+只在独立验证实例通过接口检查本轮世界基础行为；下方保留的 UI 待办不表示恢复 UI 推进。
+已有世界 Observation/Debug 不因拆分失效，但它们尚未完成新 USER/DEBUG 合同的全链分类。
+UI 与世界共享会话模式、Lease 与安全基础；暂停 UI 推进不禁止研究或未来世界测试调用既有 UI。
+
+2026-10-15 世界分类基础：/v0/player、/v0/server/player 与两侧 block/entities 共六个入口默认 USER。
+客户端玩家 USER 仅复用已有可见热栏/副手/效果呈现，保留 GUI 小数边界，不返回原始 XYZ/生命/UUID；
+没有有效视口/支持的 HUD 时报告不可用，不据此断言玩家不存在。USER 场景/服务器查询在内部读取前拒绝。
+DEBUG 要求 read/debug/debug.world.read、READ 或 OPERATE，不要求 write、Arm 或输入 Lease；
+异步发布复验 mode generation，取消向底层传播，关闭后不发布旧结果。默认令牌不自动新增 Debug scope。
+Provider/Deep/State Frame、Wait/Assert、Event/resync、Recording/Artifact 与玩家命令效果尚未完成分类；
+capabilities.worldContract 明确 consumerIsolationComplete=false，当前候选不适合证明 USER 全链信息隔离。
+UI 实现/网页和控制 UX 不扩展；本轮复用既有语义输入准备专用创造世界，夹具不靠固定第一页物品假设。
+实际构建/测试/Native Runtime 结果由[世界读取验证](../../validations/conformance-world_read/validation.md)负责，
+不是 UI 统一验收、最终制品 Live 或完整世界里程碑 PASS。
+每轮内部试用 JAR 继续由 verifyRelease 收集到 build/release/<mod_version>/；
+工具额外生成 build/alpha-manifest.json，绑定 dirty 源码指纹与五个 JAR 哈希，不把 HEAD 当成整个候选。
+保持原有 mod_version，不擅自宣布正式发布；不提交、不推送，正式 Persistent Write 调用仍为 0。
+本轮最终五端各通过 9 项真实 Native 基础用例，源码运行中未变化；实际最大堆均为 4 GiB，
+held input=0、正常退出并释放自有端口。验证用可重复独立世界，不冒充完整固定副本世界矩阵。
+五端实际 HTTP 路由/权限与发布复验测试包含在 360 项 Target Java 测试中；66 项共享安全、
+41 项 Companion/网页测试、协议生成/类别解码保留、check/verifyRelease 与现有 Native/Automation/
+Observation Local Gate、Phase 8 hardening static gate 通过。不是新真人、Peer 或最终 JAR 安装验收。
+世界分类基础阶段合规保留了 T-07 提示；现已由上文 runtime_core 迁移解决，不改变该阶段的功能边界。
+
+| 模式 | USER 类别 | DEBUG 类别 |
+| --- | --- | --- |
+| READ | 读取用户可见、可通过正常 UI 获取的内容 | 独立授权读取已捕获的内部 UI 数据 |
+| TAKEOVER | 经真实玩家输入复现 UI 操作 | 禁止自动借用调试路径 |
+| OPERATE | 不模拟玩家输入 | 经专用授权执行明确支持的 typed UI 调试操作 |
+
+UI 领域保留的推进顺序及退出条件（当前暂停）：
+
+1. 接入正式 USER/DEBUG 读取与操作分类，Runtime 先隔离数据，Native/MCP/网页同步；
+   默认 USER，不让隐藏列表、遮挡节点和内部字段通过旁路解析或操作结果泄露。
+2. 按五个 Target 的实际原版界面建立完整目录，区分界面、控件、交互区域与业务流程；
+   每项记录 USER 读取/操作、DEBUG 读取/操作及实际运行证据，不从某端推定其他端。
+3. 补齐 USER 语义发现与真实输入，DEBUG 使用独立强类型入口和前置条件；
+   没有实现的 Debug 能力明确不支持，不调用任意内部方法来假装覆盖。
+4. 固定副本自动测试通过后，由用户从网页验收所有目标 UI，人工撤销等仍由用户执行。
+   五端完整功能、消费者与交付检查全部成立才允许宣布里程碑完成。
+
+当前已接入读取类别、USER 输入边界，以及五种有界 UI DEBUG 操作：控件启用、显隐、
+EditBox 文本、原生列表滚动和滑块设值。UI 调试要求 OPERATE、独立 scope、客户端 session Arm、
+节点 Resource Version 和可选值前置条件，不取得玩家 Lease，不执行任意回调。
+DEBUG 图与操作均不是“游戏全部数据/所有内部操作”的承诺，完整里程碑验收尚未完成。
+已从五端实际 Minecraft 构件建立 Screen 静态目录，数量依次为 95、103、118、119、119；
+该目录全部标记未验收，不能把类数量或继承关系当作可操作覆盖率。
+非 Screen 的 presentation 现提供 HUD 标题/副标题/动作栏与四类 Toast 的有界文字；
+USER 不发布排队/隐藏内容。多行进度 Toast 按实际原生渲染回调区分标题与名称阶段，
+热栏/副手、Boss 栏、侧边计分板、状态效果图标与玩家列表已接入有界只读适配；其余 HUD/Toast 仍需补齐，
+不把显示内容虚构为可操作节点。隐藏 HUD 不进入 USER，计分板按实际显示格式读取。
+效果图标不泄露未显示的等级/时长；普通读取使用最近完成的原生绘制透明度，
+透明、过期及玩家/页面/尺寸不匹配样本保守隐藏。第三方替换绘制与完整视觉遮挡仍需补齐。
+五端旁观者菜单现有独立语义快捷键适配：无 Screen 时打开、选中、明确执行和过期，
+图标位置不冒充鼠标命中区域；重复点击已选中项为零输入，不隐式传送。
+普通读取只含选中名称/原生提示，未选中内部名称保留在 DEBUG。专用旁观 DEBUG mutation、
+多人分类分页/实际传送和非标准热栏绑定仍未支持或独立验收，不作为已完成里程碑项。
+滑块 Debug 使用原生 setter 和设置回调，可能保存客户端设置；不借用输入 Lease，不是无副作用预览。
+当前受限 DEBUG 图是 bounded captured UI graph，不声称已收集游戏的全部数据。
+既有 20 项流程/五端历史 PASS 不证明本次新合同；改变源码后必须生成新结果。
+保留此前工作树成果，不提交、不推送，不开始游戏世界能力、Persistent Write 或其他 Phase/Extension。
+
+2026-10-13 分类基础阶段已接入五端 tree/resolve、USER action 结果、Native V0、MCP 与网页。
+五端逐个恢复固定副本，各通过 21 项 Native 流程、实际到达 37 类 Screen；结果绑定当前源码，
+sourceChangedDuringRun=false，收尾输入归零、Lease 释放。Fabric 另通过 4 项真实 MCP 类别检查和
+6 项网页链检查（点击、原生文字光标、Shift 获取、九格拖拽、滚动条、PNG 传输），不作图片判定。
+USER/DEBUG 在当前图中隔离，不宣称 DEBUG 收集了全部游戏数据；网页拒绝缺少类别标记的旧 Runtime。
+五端 build/test、240 项 Target Java 测试、共享投影测试、33 项 Companion/网页测试、协议生成、
+verifyRelease、Control/Showcase 工具检查、Native/自动化/Observation/Recording 本地检查和文档/合规检查通过。
+该阶段的全仓格式枚举阻塞现已解决：项目根构建脚本保持模板的原文件覆盖范围，
+改用单次带目录剪枝的文件树，不再逐 glob 重复扫描 Windows 测试实例；模板文件未改。
+该阶段通过全仓 spotlessApply、check、verifyRelease 和五端 build，当时合规保留 T-07 提示。
+Fabric 开发启动仍有系统性能计数器和无登录 Realms 警告，未因此中断上述流程；账号/外部服务未验收。
+正式 Persistent Write 调用为 0。本次是首个里程碑的分类基础交付，不是完整 UI 或人工验收 PASS。
+
+当前增量：UI 专用 DEBUG 和 HUD/Toast 已覆盖五端产品实现，Native 与 MCP 同步。
+UI 节点版本按语义节点隔离，原生列表与其绘制的滚动条不共用状态指纹；
+UI 调试批次在真正进入客户端修改前再次检查 deadline，超时排队项不能晚到执行。
+五端共 315 项 Target Java 测试、60 项共享安全组件测试、37 项 Companion/网页测试与完整发行检查通过。
+固定副本矩阵新增控件调试/恢复、文本调试/Cancel、HUD 文字/进度 Toast，
+容器扩为 17 种。热栏/副手、Boss 栏、侧栏计分板、统计页和死亡/重生已纳入；
+本轮再补滑块 DEBUG 的范围/值/版本拒绝、恢复、零输入，以及状态效果显隐和 F1 检查。
+玩家列表按真实展开状态与原版显示名读取，验证 Tab/F1/背包遮挡和 READ 释放输入；
+创建世界通过语义页签进入超平坦预设、游戏规则和数据包页，最后取消草稿，不新增测试存档。
+2026-10-14 窗口标题/图标改为原生最终输出装饰，标题文案不变，图标使用游戏原图加右下角圆球。
+按用户设计将角标限定到完整图标的右下四分之一，24×24 像素圆球以最近邻缩放，不改变游戏内圆球。
+五端保留各尺寸原图、恢复与 close guard；旧占位 PNG 移入回收站。窗口诊断字段与 Hook manifest 同步。
+此前窗口/卷轴增量五端分别恢复固定副本后并行批测，各通过 41 项 Native 流程，实际到达 53 类 Screen
+及无 Screen 的游戏状态；包含加载页，不代表这些页面的全部业务组合已通过。
+sourceChangedDuringRun=false，结果哈希与当前源码一致；检查收尾输入归零和 Lease 释放。
+新增窗口检查经正式接口验证三模式标题、角标/原图恢复、反复接管、进入世界后的标题以及 Hook 声明；
+五端均通过，但不代替 OS 图标外观的人工评价。
+本次再补多人服务器列表语义行与悬停连接/排序图标；首尾不可用排序不进入 USER，
+排序后旧子目标身份失效，不受异步 ping 文案变化影响，也不把 narration 隐藏信息当作可见名称。
+五端分别通过添加、悬停、上下排序、旧目标拒绝、编辑、取消删除、确认清理与直连页取消。
+只使用空白固定副本中的 loopback 记录；连接图标已适配但没有实际执行服务器加入，
+不推定联机/认证成功。服务器完整状态文案/tooltip、LAN 和服务相关流程仍需补齐。
+Companion/网页新增自动测试确认可见子目标经既有 Lease 转发、隐藏及排序前目标被拒绝；
+本次没有新增真实 MCP/网页服务器列表 Live 结果，不把 Native 成功推定为全消费者验收。
+本次继续补齐创造物品栏、织布机、切石机、交易界面的自绘卷轴：轨道与滑块通过语义节点拖动，
+动作走原生输入，滚动后重新读取内容，旧图案/配方/交易目标不能误点。绘制和按下范围不同的菜单
+使用真实可拖动交集；自身拖动允许滑块裁剪高度变化，Screen、GUI 尺寸及语义上下文仍受保护。
+五端实际通过创造卷轴上下拖动/内容刷新/搜索禁用/标签隐藏、织布机图案和 12 条固定交易流程；
+切石机在 1.21.1/26.x 用凝灰岩验证启用拖动，1.20.1 石头夹具只验证禁用状态，不冒充启用拖动 PASS。
+新增 20 项 Target 单元测试覆盖卷轴实际生产数据与拖动守卫；网页增加透传/禁用拒绝测试。
+未重跑本增量的真实 MCP/网页卷轴 Live，不用消费者单元测试代替它；首个里程碑仍未完成。
+Toast 增量按各 Target 的实际渲染回调提取文字：多行进度分离标题/名称阶段，
+配方解锁提供原生两行本地化文案；USER 不透出待显示名称、排队内容或过期/尺寸不符样本。
+1.x 的边界低透明度与 26.x 的完全透明边界分别处理，不把不同版本的绘制条件统一猜测。
+未知提示类型不虚构文字或动作；System/Tutorial 已接入，但没有独立文字场景 PASS。
+本轮初次批测的 1.21.1 创造背包曾出现节点找不到；旧结果未捕获足够现场信息，不能独断单次失败因果。
+复核确认 UI 身份表存在达到 2048 项即整表清空的缺陷，已五端替换为有界逐项回收，
+当前访问节点保持稳定、旧编号不复用；新增跨边界实际页面导航与满表单元测试，不靠坐标或重试掩盖失效。
+另修复 deadline 先发布超时、后向底层取消的时序窗口；五端测试阻住取消步骤，确认结果不会提前发布。
+这保证取消调用的先后，不宣称任意第三方异步工作都已物理终止。
+修复后重新恢复五端基线，批次 5d04d93096d84ae38e63a0a3eedc2660 全部通过；
+每端实际跨越 2253–2344 个已分配身份，包含 1.21.1 创造卷轴失败位置的完整复测。
+多行进度/配方提示均五端实测通过，Fabric 的两条只读消费者链也通过；源码未在运行中变化。
+该结果不覆盖 System/Tutorial 独立场景、好友/音乐提示、旁观者菜单或完整网页人工验收。
+编辑器增量把书本多行/追加/签名后重读、普通和悬挂告示牌四行乱序编辑/保存重开、
+生存背包 2×2 合成纳入固定副本矩阵；这些是既有产品路径的更完整验收，不新增输入旁路。
+悬挂告示牌夹具先修正重开站位：放置时的朝上命中方向不能代替牌面正面，
+测试需避开已有工作台支撑并等待客户端姿态稳定，不放宽 Runtime 的目标或输入守卫。
+参考端和 Fabric 的定向七项流程通过；Fabric 另通过书本、两种告示牌各一条真实 MCP 和网页输入链，
+包含中文、多行、原生焦点追加、内容恢复和旧书页拒绝。此项不等于完整浏览器或人工验收。
+本增量第一轮完整批次 c27d8edc9bf5478e895265278b23fe3e 受用户最小化窗口干扰：
+三个旧版窗口报告 0×0 并进入暂停页，目标尺寸/页面守卫拒绝输入，整批记 FAIL。
+用户确认并恢复窗口后，经正式接口关闭自有客户端；不得把其余两端通过拼成五端 PASS，需从固定副本整批重跑。
+随后完整重跑批次 41e20e259a0141fdb9659540f9bc3241 五端均为 45/45，
+1.x 两端实际到达 57 类 Screen、26.x 三端为 58 类；多一类来自新版独立书本签名页面。
+各端源码运行中未变化，收尾 held input 为零、Lease 释放，五个自有客户端和 Runtime 端口全部退出。
+Fabric 完整批次的六条编辑器 MCP/网页结果也通过；原用户网站未被重启或占用。
+编辑器增量仅新增验证与说明，不修改产品输入、UI 外观、模式/权限或截图隔离合同；
+正式 Persistent Write 调用仍为 0，首个里程碑仍为 IN PROGRESS，不提交、不推送。
+2026-10-14 状态效果读取增量接入五端实际原生图标绘制参数，补齐临近结束时的闪烁读取。
+1.x 观察真正绘制的 float alpha；26.x 观察绘制点的原生 alpha 并使用相同 ARGB 转换，不按剩余时长预测。
+共享缓存最多 64 项，只有完成帧可读，绑定玩家、Screen 与 GUI 尺寸，250 ms 后失效；
+USER 仅返回非透明有效图标，保持等级/时长和隐藏效果隔离，第三方替换绘制及所有视觉遮挡仍不保证。
+初选的改参 Hook 被既有门禁拒绝后，改为纯观察 Inject；未放宽门禁、修改绘制参数或改变原版效果。
+最终批次 e029beb26f49478f902a9697bcf4f406 五端全部 45/45，源码运行中未变化且与最终文件哈希一致。
+每端采到 31 个短时效果样本，均含可见和全透明帧并验证过期；Fabric 另有两条真实 MCP/网页只读结果，
+不申请输入 Lease、不改用户网站。五端构建、315 项产品 Java、62 项共享安全、38 项 Companion/网页测试、
+协议生成、Control/结构/文档检查和 verifyRelease 通过；所有自有客户端与端口干净关闭。
+该效果图标增量不证明其他 Toast、完整多人 HUD 或所有网页流程；统一人工验收仍未执行。
+保留工作树，不提交、不推送；正式 Persistent Write 调用仍为 0，首个里程碑继续 IN PROGRESS。
+旁观菜单增量随后完成五端原生适配及完整批次 6d932972f03246ca9a2d8359d39f1aa1，各 46/46。
+五端在固定副本通过打开、选中/执行分离、重复点击零输入、旧节点拒绝、F1/DEBUG 隔离、READ 拒绝、
+原生 Close 和五秒过期；恢复创造模式后继续完成原有全部流程，源码运行中未变化、输入收尾归零。
+Fabric 另经真实 MCP stdio 和随机端口网页 HTTP 服务验证打开/选中/执行 Close，旧网页上下文被拒绝；
+网页前端通过显示边界映射到语义快捷键，不开放第一人称坐标输入，旧截图不能作为新菜单点击依据。
+本次 325 项 Target Java、63 项共享安全、40 项 Companion/网页测试及五端 build/check/verifyRelease 通过。
+这不是多人传送/所有分类分页、所有键位类型、旁观专用 DEBUG mutation 或网页人类操作验收 PASS。
+仍需补其他 HUD/Toast、剩余原版业务流程与独立夹具，最终网页统一验收尚未进行；不启动第二个里程碑。
+此次并行由用户明确授权：五个独立 Runtime 端口、各自认证和副本；启动后 jcmd 实测最大堆均为 4 GiB，
+五端同时就绪后才放行。批次正常退出、端口全部释放；不把 Java 堆上限当成堆外/GPU 总内存上限。
+计分板分别遵循 1.20.1 的可见行裁剪/空标题行为与新版数字格式、队伍侧栏规则。
+首轮并行的 Fabric 书本流程曾因未等待客户端所持物品就绪而超时；
+测试补充接口条件等待后，重新恢复五端副本并全部通过，不改产品输入路径或固定 sleep 掩盖失败。
+此前 UI DEBUG 增量的 Fabric 另通过 6 项真实 MCP 检查（含 UI Arm、隐藏/恢复、旧 revision 拒绝），
+以及 6 项独立网页服务链检查（真实点击、文字光标、Shift/九格拖拽、滚动条、PNG 传输）；
+临时网页端口独立，不占用原站点，截图内容不参与自动判断；本轮 HUD/窗口增量未重跑这两项消费者 Live，
+它们不能作为本轮新增字段的消费者实测证据。Toast 增量另在 Fabric 用真实 MCP stdio 与随机端口网页服务
+读取当前 RecipeToast，检查只读数据、阶段、无 DEBUG 字段且未取得 Lease，记录在 toastSamples；
+此项不覆盖完整网页操作或浏览器视觉。Companion 本轮已通过新滑块 discriminator 的
+成功与非法类型/范围自动检查及玩家列表只读传递测试，Native 五端分别实测，不混写成新的 MCP/网页真人验收。
+逐端结果见[验证记录](../../validations/conformance-vanilla_ui/validation.md)。
+网页仍是 USER 输入消费者，不因新的 UI Debug 能力自动获取调试权限；
+尚未把全部原版内部操作、所有 HUD 或人工体验宣称完成。
+
+2026-10-13 通用原版 UI 基础、固定副本自动化项目与简化网页游戏窗口已实现。基于现有工作树继续实施，
+不提交、不推送，不修改控制模式、权限、Lease、真人 Esc 或 Operator 截图隔离。
+新增原生交互区域和固定副本 conformance-vanilla_ui；结果按实际界面和 Target 记录，
+不把标准输入路径视作所有原版业务流程均已验收，暂不承诺自动适配第三方自绘内容。
+网页改为直接 GUI 输入与截图管理，第一人称游玩不进入网页输入 surface。
+此前五端各自实际通过 20 项 Native 流程，绑定当次生产源码与固定副本哈希，不代表新增二类别合同；
+网页输入链独立验证点击、原生文本光标、Shift 获取、九格拖拽、滚动条与 PNG 传输。
+这些结果不等于全部原版界面、所有业务组合或统一人工 UX 验收。
+
 | 能力 | 已有状态 | 当前边界 |
 |---|---|---|
 | V1 核心自动测试闭环 | 已有绑定源码的发布验收 | [V1 attestation](../../validations/regression-v1_release/result/final-attestation-2dda8448d00852d42fb3e07525ee05daaaddd66f.json)只证明对应提交 |
@@ -21,6 +245,44 @@
 
 ## 当前风险与下一步
 
+- 通用 UI/网页基础 READY；完整原版 UI 流程覆盖仍为 PARTIAL。
+  [固定副本验证](../../validations/conformance-vanilla_ui/validation.md)列出 16 个界面家族，
+  每端 result 明确记录实际到达与未到达的界面，不能用某端结果推定其他端。
+  该轮五端构建、225 项产品 Java 测试、32 项 Companion/网页测试、协议生成、控制/结构/文档检查及 verifyRelease 通过。
+  新增滚动条、富文本链接、建议和进度区域，原生菜单 carried state 与 slot 分开；
+  新实例首轮资源重载的提前 Operator 文字渲染崩溃已加保护，不改变正常外观、权限或截图隔离。
+  网页只保留游戏窗口与轻量截图/接管管理，直接鼠标、键盘与最终 IME 文字走标准接口；
+  不提供第一人称游玩，不使用 Computer Use，不把 PNG 传输检查当作视觉判定。
+  下一步由用户通过网页体验反馈；账号/外部服务、存档导入修复和全部配方/设置组合仍需专用场景。
+  第三方自绘内容不承诺自动适配；统一人工控制 UX 验收仍未执行，其他 Phase/Extension 未开始。
+  正式 Persistent Write 调用为 0；保留既有工作树，不提交、不推送。
+- 2026-10-12 补齐优先原版自绘 UI：五端实际通过资源包选择/排序、切石机、织布机、
+  附魔、交易、信标、书本编辑/签名/翻页及普通/悬挂告示牌，共 12 项新增场景；
+  五端原有 6 项 UI 回归同时通过。[新增结果](../../validations/compatibility-standard_gui/result/rendered-ui-26.3-fabric.json)
+  与各端对应文件绑定当前 dirty 源码哈希。旧版书本页面身份现包含页码，旧页面请求被拒绝。
+  Native/OpenAPI/MCP 与网页同步语义 controlKey/packId/translationKey 和 keyboard-only 编辑；
+  Fabric 的真实 MCP 包排序、网页多行书本/旧页面拒绝及告示牌行输入通过
+  [消费者结果](../../validations/compatibility-standard_gui/result/ui-consumers-26.3-fabric.json)。
+  五端 build / check / verifyRelease、205 项产品 Java 测试、25 项 Companion/网页测试通过。
+  权限、TAKEOVER、Lease、输入取消与截图隔离不变，Persistent Write 调用为 0。
+  该次记录结束时，书本独立文字链接、聊天建议弹层、进度图节点尚未适配；当前状态以上方新记录为准。
+  人工统一验收仍未执行；保留工作树，不提交、不推送，下一步由用户体验反馈决定。
+- 2026-10-12 扩展原版 UI 语义覆盖：修复列表仅暴露父容器和选择器只搜索第一层的问题，
+  五端接入递归容器、原生行边界、文字/滑块/滚动和创造标签/配方书适配。
+  网页按节点 actions 提供操作，不再将列表中心点击冒充世界选择。
+  [覆盖清单](../development/testing-vanilla_ui.md)明确自绘区域和未验收项；不宣称全部原版 UI PASS。
+  五端构建 / check / verifyRelease、195 项产品 Java 测试、23 项 Companion/网页测试通过。
+  五端均实际完成世界行选择、中文输入、标签、滑块、隐藏列表滚动与嵌套选项，
+  [当次结果](../../validations/compatibility-standard_gui/result/vanilla-ui-26.3-fabric.json)绑定 dirty 候选源码哈希，收尾 held input 为 0。
+  Fabric 26.3 的真实 MCP stdio 与网页到 Native 的世界选择、中文输入及网页 PNG Capture 通过；
+  单个 Showcase READ 场景通过正常 GUI 进入/退出世界，非人工视觉结论。
+  自绘交互区域仍未全部覆盖，完整原版 UI 目标为 PARTIAL；人工统一验收仍暂缓。
+  保留既有工作树，不提交、不推送；不扩展世界操作或 Persistent Write。
+- 2026-10-12 新增 Companion 本机网页界面工作台：只消费标准 Native V0，不修改 Runtime。
+  READ 浏览与 TAKEOVER 点击独立，复用现有认证、任务、Lease 和人工撤销合同；
+  实际界面与槽位按语义 nodeId 交互，按需 Capture 提供底图。
+  构建、自动测试和 26.3 Fabric 接口验证单独报告，用户网页观感不冒充统一真人验收。
+  本轮不提交、不推送，不开始其他 Phase 或 Extension。
 - 2026-10-11 系统修复创造背包的语义槽位身份：以当前 Screen 菜单的有序位置作为唯一编号，
   不再把可重复的原生包装槽位编号当作选择器；节点绑定菜单/槽位对象，隐藏槽标记不可见。
   五端同步实现与测试，现有圆球落点、动效、安全和证据隔离不变；
@@ -71,10 +333,10 @@
   客户端识别不再把 Fabric 服务端当作客户端；这不代替统一人工验收。
 - 恢复新功能开发前，先完成下面的 Target / 依赖更新与回归。
   当前已升级构建事实并适配 26.3 API；五端实际启动与 Native/MCP 回归通过，人工验收仍待用户进行。
-  T-07 继续暂缓。
+  T-07 通用代码迁移已完成，当前严格合规无警告；不因此恢复 UI 里程碑或启动后续功能。
 - 深层能力后续范围见[Deep State 计划](plan-deep_state.md)。Persistent Write、
   Recording V2 / Reconstruction / stress 和 Phase 10 均须独立授权。
-- 当前构建采用远程模板 1.2.2 的配置、约定与合规组件；`check` / `verifyRelease` 校验布局、
+- 当前构建采用远程模板 2.0.2 的统一 conventions 插件；`check` / `verifyRelease` 校验布局、
   文档链接、配置和发行制品。以下历史布局说明不覆盖当前模板规范。
   产品合同、源码测试和验证项目的现有检查仍保留。
 - 本地实例与构建输出按需生成，不是源码交付内容；当前源码工作树不附带历史存档或运行缓存。
@@ -83,7 +345,7 @@
 
 ### 维护策略与本次目标
 
-2026-10-10 核对上游发布信息并实施升级；以下为当前构建事实，自动/运行验收状态单独记录。
+2026-10-10 完成 Target/依赖升级，2026-10-15 继续更新 Loader 与模板；以下为当前构建事实，自动/运行验收状态单独记录。
 实际版本以 `target.properties`、`gradle/libs.versions.toml` 和 Companion 包配置为准。
 
 - `1.20.1-forge`、`1.21.1-neoforge`、`26.1.2-neoforge` 固定 Minecraft 版本，持续更新对应 Loader。
@@ -95,10 +357,10 @@
 
 | Target | Minecraft 策略 | Loader | Java | 处理 |
 | --- | --- | --- | --- | --- |
-| `1.20.1-forge` | 保持 | 47.4.26 | 17 | 已是该 Minecraft 版本最新 Forge |
-| `1.21.1-neoforge` | 保持 | 21.1.257 | 21 | 更新 Loader，不升级 Minecraft |
-| `26.1.2-neoforge` | 保持 | 26.1.2.115 | 25 | 更新 Loader，不升级 Minecraft |
-| `26.3-neoforge` | 最新正式版滚动线 | 26.3.0.64-beta | 25 | 已适配 SDL / Renderpearl；当前参考 Target |
+| `1.20.1-forge` | 保持 | 47.4.28 | 17 | 更新 Loader，不升级 Minecraft |
+| `1.21.1-neoforge` | 保持 | 21.1.259 | 21 | 更新 Loader，不升级 Minecraft |
+| `26.1.2-neoforge` | 保持 | 26.1.2.117 | 25 | 更新 Loader，不升级 Minecraft |
+| `26.3-neoforge` | 最新正式版滚动线 | 26.3.0.77 | 25 | 当前参考 Target；更新到已发布的非 Beta Loader |
 | `26.3-fabric` | 最新正式版滚动线 | 0.19.5 | 25 | 已适配 SDL / Renderpearl；Fabric API 为 0.162.0+26.3 |
 
 来源：[Minecraft 发布清单](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json)、
@@ -115,12 +377,12 @@
 
 | 范围 | 本次目标 | 约束 |
 | --- | --- | --- |
-| 仓库模板 | 1.2.1 → 1.2.2 | 仅按[模板升级规程](../development/procedure-upgrade_template.md)整体升级受保护文件 |
+| 仓库模板 | 2.0.2 | 仅按[模板升级规程](../../gradle/conventions/specification/development/procedure-upgrade_template.md)整体升级受保护文件 |
 | Gradle Wrapper | 保持 9.8.1 | 当前最新正式版；Wrapper 整体与校验和保持一致 |
-| ModDev / Loom | 保持 2.0.148 / 1.18.3 | 当前最新正式版；26.3 构建和真实运行已通过 |
+| ModDev / Loom | 保持 2.0.148 / 1.18.3 | 项目选定版本保留，本轮不扩展为 Minecraft 构建插件升级 |
 | Foojay / Spotless / ktfmt / TOML 解析 | 保持 1.0.0 / 8.10.4 / 0.65 / 2.2.0 | 不独立改写模板组件源码 |
 | Java 格式器 | 保持 1.36.1 | 1.37.0 将 Style enum 改为其他类型，实测与 Spotless 8.10.4 不兼容；不改模板来绕过 |
-| Markdown 检查器 | 0.2.78 → 0.2.79 | 与模板 1.2.2 配套 |
+| Markdown 检查器 | 保持 0.2.79 | 与模板 2.0.2 配套，规则来自规范插件 |
 | OpenAPI Generator | 7.25.0 → 7.26.0 | 重新生成 Java / TypeScript 模型，不手工编辑生成文件 |
 | 产品单元测试 JUnit | 5.14.4 / Platform 1.14.4 → 6.1.3 / 6.1.3 | 迁移到最新正式代际须验证 Java 17 下限；模板测试已为 6.1.3 |
 | Mixin annotation processor | 0.8.5 → 0.8.7 | 不覆盖 Loader 运行时 Mixin |
@@ -133,7 +395,7 @@
 | CI Actions | 保持现有发布主线 | 不修改受保护模板工作流；模板新增变化按升级规程同步 |
 
 上述候选来自对应上游发布或注册表；模板以
-[1.2.2 发布](https://github.com/RecRivenVI/Ravens-Mod-Template/releases/tag/1.2.2)为准。
+[2.0.2 发布](https://github.com/RecRivenVI/Ravens-Mod-Template/releases/tag/2.0.2)为准。
 其他来源：[Gradle](https://services.gradle.org/versions/current)、
 [构建插件](https://plugins.gradle.org/)、[Maven Central](https://repo.maven.apache.org/maven2/)、
 [OpenAPI 发布](https://github.com/OpenAPITools/openapi-generator/releases/tag/v7.26.0)、

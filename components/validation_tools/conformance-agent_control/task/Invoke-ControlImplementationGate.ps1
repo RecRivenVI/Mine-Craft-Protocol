@@ -20,4 +20,4 @@ foreach($file in $SmokeEvidence){
 Check (@($targets|Sort-Object -Unique).Count-eq5) 'five concrete development runtimes required for this evidence set'
 git diff --check
 if($LASTEXITCODE-ne0){throw 'git diff --check failed'}
-[pscustomobject]@{Implementation='COMPLETE';UnifiedAcceptance='READY';HumanVisualAcceptance='NOT_RUN';AutomatedTargetCount=5;JavaTests=$local.JavaTests;Companion='PASS';NativeContract='0.0.1-control-r24';PersistentWriteInvocations=0;NextAction='STOP_FOR_UNIFIED_ACCEPTANCE'}
+[pscustomobject]@{Implementation='COMPLETE';UnifiedAcceptance='READY';HumanVisualAcceptance='NOT_RUN';AutomatedTargetCount=5;JavaTests=$local.JavaTests;Companion='PASS';NativeContract='0.0.1-ui-m1';PersistentWriteInvocations=0;NextAction='STOP_FOR_UNIFIED_ACCEPTANCE'}

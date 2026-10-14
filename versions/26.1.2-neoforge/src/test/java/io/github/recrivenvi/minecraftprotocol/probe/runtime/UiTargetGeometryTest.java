@@ -3,6 +3,9 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.*;
+import io.github.recrivenvi.minecraftprotocol.core.AutomationEngine;
+import io.github.recrivenvi.minecraftprotocol.core.ProbeService;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.*;

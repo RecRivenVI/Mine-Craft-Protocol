@@ -1,10 +1,11 @@
 [CmdletBinding()] param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function A([bool]$c,[string]$m){if(-not$c){throw "Phase 9B static gate failed: $m"}}
 $schema=Get-Content (Join-Path $root 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
 A ($schema.info.'x-stability' -eq 'unstable') 'Native contract stability must remain explicit; documentary completion is not test evidence'
-A ($schema.info.version -eq '0.0.1-control-r24') 'OpenAPI version after explicit Control Round 1 evolution'
+A ($schema.info.version -eq '0.0.1-ui-m1') 'OpenAPI version after explicit Control Round 1 evolution'
 foreach($p in @('/v0/observe/deep','/v0/observe/deep/capabilities')){A($null-ne$schema.paths.$p) "missing $p"}
 foreach($s in @('DeepObservationRequest','DeepObservationResponse','ObservationMetadata','ResourceRevisionRef','PlayerSnapshot','MenuSnapshot','EntitySnapshot','BlockSnapshot','BlockEntitySnapshot','ChunkSnapshot','ChunkLoadingSummary','ScheduledTickSnapshot','ProviderV2Result')){A($null-ne$schema.components.schemas.$s) "missing schema $s"}
 $targets=@(
@@ -16,9 +17,9 @@ $targets=@(
 foreach($t in $targets){
  $base=Join-Path $root "versions\$($t.Id)\$($t.Src)\io\github\recrivenvi\minecraftprotocol\probe"
  $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
- $revisions=Get-Content (Join-Path $base 'runtime\ObservationRevisionTracker.java') -Raw
- $transport=Get-Content (Join-Path $base 'runtime\ProbeTransport.java') -Raw
- $provider=Get-Content (Join-Path $base 'api\AgentDataProviderV2.java') -Raw
+ $revisions=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
+ $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+ $provider=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw
  $mixin=Get-Content (Join-Path $root "versions\$($t.Id)\$($t.Mixin)") -Raw
  foreach($m in @('formalCapabilities','captureFormal','formalize','maxResponseBytes','projectionApplied','includeSerializedState','serialization_hooks_invoked','loadingSummary','scheduledBlockTicks','scheduledFluidTicks','ticketHookVerified','scheduledTickHookVerified')){A($engine.Contains($m)) "$($t.Id) missing $m"}
  A($revisions.Contains('snapshot_change_sequence')-and$revisions.Contains('sessionEpoch')) "$($t.Id) revision tracker"

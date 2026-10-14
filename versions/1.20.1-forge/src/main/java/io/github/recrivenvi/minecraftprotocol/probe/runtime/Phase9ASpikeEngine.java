@@ -7,6 +7,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
+import io.github.recrivenvi.minecraftprotocol.core.BoundedTaskExecutor;
+import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
+import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
+import io.github.recrivenvi.minecraftprotocol.core.ObservationLifecycleTracker;
+import io.github.recrivenvi.minecraftprotocol.core.ObservationRevisionTracker;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
+import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
+import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.BaseContainerBlockEntityAccessor;
@@ -106,6 +114,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     String sessionEpoch() {
         return this.revisions.sessionEpoch();
+    }
+
+    JsonObject uiRevision(String key, JsonObject state) {
+        return this.revisions.revision("ui_node", key, state);
     }
 
     void observeWorldLifecycle(Object world) {

@@ -1,9 +1,10 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function Require([bool]$ok,[string]$reason){if(-not$ok){throw "Control Round 1: $reason"}}
 $schema=Get-Content (Join-Path $root 'components/protocol_schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Require ($schema.info.version-eq'0.0.1-control-r24') 'wrong V0 schema version'
+Require ($schema.info.version-eq'0.0.1-ui-m1') 'wrong V0 schema version'
 $policies=@('READ_COMPATIBLE','OPERATE_REQUIRED','TAKEOVER_REQUIRED','MODE_INDEPENDENT')
 $count=0
 foreach($path in $schema.paths.PSObject.Properties){foreach($operation in $path.Value.PSObject.Properties){
@@ -17,13 +18,19 @@ Require ($schema.components.schemas.ControlModeRequest.properties.PSObject.Prope
 $shared=Get-Content (Join-Path $root 'components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java') -Raw
 Require ($shared-match'READ,\s*OPERATE,\s*TAKEOVER'-and$shared-match'withTakeover'-and$shared-match'beginOperate') 'shared intent/owner guards missing'
 $targets=@('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')
+$settings=Get-Content (Join-Path $root 'settings.gradle.kts') -Raw
+Require ($settings-match'product\("runtime_core"\)') 'shared protocol component must be a product'
 foreach($target in $targets){
     $source=if($target-eq'26.3-fabric'){'client'}else{'main'}
     $runtime=if($target-eq'1.20.1-forge'){'ForgeProbeRuntime'}elseif($target-eq'26.3-fabric'){'FabricProbeRuntime'}else{'NeoForgeProbeRuntime'}
     $directory=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe/runtime"
-    $transport=Get-Content (Join-Path $directory 'ProbeTransport.java') -Raw
-    $state=Get-Content (Join-Path $directory 'ProtocolState.java') -Raw
+    $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
     $adapter=Get-Content (Join-Path $directory "$runtime.java") -Raw
+    Require (-not(Test-Path (Join-Path $directory 'ProbeTransport.java'))-and-not(Test-Path (Join-Path $directory 'ProtocolState.java'))) "$target must not retain duplicate protocol implementations"
+    Require ($adapter.Contains('new ProbeTransport(this, token, port, "'+$target+'")')-and$adapter.Contains('import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;')) "$target shared transport identity/adapter binding missing"
+    $experimental=$target-in@('1.20.1-forge','26.3-neoforge','26.3-fabric')
+    Require (($adapter-match'implements Phase9AExperimentalService')-eq$experimental) "$target experimental route surface changed"
     Require ($transport-match'attachControlSession'-and$transport-match'/v0/control/mode') "$target mode session is not connected"
     Require ($transport-match'protocolState.requireTakeover'-and$transport-match'protocolState.admitInput') "$target input admission missing"
     Require ($transport-match'protocolState.operate\(service::openAutomationProbeScreen\)') "$target GUI Fixture must use OPERATE, not a Lease"

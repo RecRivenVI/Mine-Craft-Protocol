@@ -3,8 +3,8 @@ Mine-Craft-Protocol 产品由 RecRivenVI 创作，采用 All Rights Reserved（�
 以下模板来源文件与 Gradle Wrapper 分别适用对应的第三方许可，不改变本项目产品源码及资源的许可边界。
 
 Raven's Mod Template
-文件：AGENTS.md、CLAUDE.md、.rumdl.toml、.github/workflows/specification.yml、components/configuration、components/conventions、components/compliance，以及复制的构建规范文档
-来源：1.2.2，https://github.com/RecRivenVI/Ravens-Mod-Template
+文件：AGENTS.md、gradlew、gradlew.bat、gradle/wrapper/、gradle/gradle-daemon-jvm.properties、gradle/conventions/（含规范附件）、.github/workflows/specification.yml，以及来自模板的构建配置
+来源：2.0.2，https://github.com/RecRivenVI/Ravens-Mod-Template
 版权声明：Copyright (c) 2026 RavenYin
 许可：MIT，licenses/ravens_mod_template-mit.txt
 SPDX-License-Identifier: MIT

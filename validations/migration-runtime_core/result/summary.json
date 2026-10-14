@@ -1,0 +1,97 @@
+{
+  "status": "PASS",
+  "testedAt": "2026-10-14T20:05:29.4800250Z",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "dirty": true,
+  "specification": "2.0.2",
+  "strictCompliance": "PASS",
+  "warnings": 0,
+  "javaTests": [
+    {
+      "suite": "components/runtime_core",
+      "tests": 92.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "components/runtime_safety",
+      "tests": 66.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "versions/1.20.1-forge",
+      "tests": 34.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "versions/1.21.1-neoforge",
+      "tests": 34.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "versions/26.1.2-neoforge",
+      "tests": 34.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "versions/26.3-neoforge",
+      "tests": 73.0,
+      "failures": 0.0
+    },
+    {
+      "suite": "versions/26.3-fabric",
+      "tests": 34.0,
+      "failures": 0.0
+    }
+  ],
+  "targets": [
+    {
+      "target": "1.20.1-forge",
+      "checks": 10,
+      "nativeRuntime": "PASS",
+      "sharedTransportLoaded": true,
+      "currentSourceVerified": true,
+      "cleanShutdown": true,
+      "artifactSha256": "dcc8035df3f32cc1128674f742f82050e18ff325b1ecb3085813f2d746a5001e"
+    },
+    {
+      "target": "1.21.1-neoforge",
+      "checks": 10,
+      "nativeRuntime": "PASS",
+      "sharedTransportLoaded": true,
+      "currentSourceVerified": true,
+      "cleanShutdown": true,
+      "artifactSha256": "9ee9302358c947b7ce06a17fec49744406c5ead503a82efffb92483a780e15e8"
+    },
+    {
+      "target": "26.1.2-neoforge",
+      "checks": 10,
+      "nativeRuntime": "PASS",
+      "sharedTransportLoaded": true,
+      "currentSourceVerified": true,
+      "cleanShutdown": true,
+      "artifactSha256": "0b33741766b38ecd6b47e76706d9bfb68c422005c1c456a864d6e23075afc01d"
+    },
+    {
+      "target": "26.3-neoforge",
+      "checks": 10,
+      "nativeRuntime": "PASS",
+      "sharedTransportLoaded": true,
+      "currentSourceVerified": true,
+      "cleanShutdown": true,
+      "artifactSha256": "40fde850527a784b60626cc9b5711f6a68a7e190c4ac793ce8b944d501fc51e5"
+    },
+    {
+      "target": "26.3-fabric",
+      "checks": 10,
+      "nativeRuntime": "PASS",
+      "sharedTransportLoaded": true,
+      "currentSourceVerified": true,
+      "cleanShutdown": true,
+      "artifactSha256": "751253023cf7e14b0f85054304164bd7f9a0dade0136dd04793e13f0ed06a99d"
+    }
+  ],
+  "referenceDedicatedServer": "PASS",
+  "runtimeEvidence": "development_runtime_native_not_final_jar_install_attestation",
+  "humanAcceptance": "NOT_RUN",
+  "persistentWriteCalls": 0
+}

@@ -33,7 +33,7 @@ try {
     }
 
     $schema = Get-Content -LiteralPath 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json' -Raw | ConvertFrom-Json
-    Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'Schema must identify the current reviewed Native contract'
+    Assert-True ($schema.info.version -eq '0.0.1-ui-m1') 'Schema must identify the current reviewed Native contract'
     Assert-True ($null -ne $schema.paths.'/v0/diagnostics/hooks') 'Hook manifest path must exist'
     Assert-True ($null -ne $schema.components.schemas.HookManifestResponse) 'Hook manifest schema must exist'
     Assert-True ($null -ne $schema.components.schemas.HookDescriptor) 'Hook descriptor schema must exist'

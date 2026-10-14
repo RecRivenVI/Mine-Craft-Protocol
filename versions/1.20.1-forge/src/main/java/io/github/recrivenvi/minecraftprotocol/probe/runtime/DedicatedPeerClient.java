@@ -3,6 +3,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.probe.peer.PeerMessage;
 import io.github.recrivenvi.minecraftprotocol.probe.peer.PeerNetworking;
 import java.util.Map;

@@ -1,20 +1,24 @@
 package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
-import static io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
+import io.github.recrivenvi.minecraftprotocol.core.AutomationEngine;
+import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
+import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
+import io.github.recrivenvi.minecraftprotocol.core.Phase9AExperimentalService;
+import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
+import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
+import io.github.recrivenvi.minecraftprotocol.core.RuntimeToken;
 import io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyboardHandlerInvoker;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerInvoker;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentInputContext;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -36,12 +40,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import javax.imageio.ImageIO;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -69,7 +70,7 @@ import org.lwjgl.sdl.SDLVideo;
 import org.lwjgl.sdl.SDL_Surface;
 import org.lwjgl.system.MemoryUtil;
 
-public final class NeoForgeProbeRuntime implements ProbeService {
+public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     private static final NeoForgeProbeRuntime INSTANCE = new NeoForgeProbeRuntime();
     private static final ScheduledExecutorService WAITS =
             Executors.newSingleThreadScheduledExecutor(
@@ -121,9 +122,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private boolean lastTakeover;
     private long pointerScreenRevision;
     private String pointerViewport = "";
-    private final java.util.IdentityHashMap<Object, Long> interactionIdentities =
-            new java.util.IdentityHashMap<>();
-    private long interactionIdentitySequence;
+    private final io.github.recrivenvi.minecraftprotocol.safety.UiInteractionIdentities
+            interactionIdentities =
+                    new io.github.recrivenvi.minecraftprotocol.safety.UiInteractionIdentities();
     private final AtomicLong nativeRevocations = new AtomicLong();
     private final AtomicLong rejectedHostGrabs = new AtomicLong();
     private final io.github.recrivenvi.minecraftprotocol.safety.ControlChrome operatorChrome =
@@ -134,11 +135,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private boolean contentFrameReady;
     private final AtomicBoolean windowClosing = new AtomicBoolean();
     private java.util.List<WindowIcon> originalWindowIcons = java.util.List.of();
+    private java.util.List<WindowIcon> decoratedWindowIcons = java.util.List.of();
+    private boolean iconBadgeApplied;
+    private String windowDecorationError = "";
     private boolean agentPointerInitialized;
     private Boolean originalPauseOnLostFocus;
     private double agentPointerX, agentPointerY;
     private volatile boolean controlChromeApplied;
-    private volatile String originalWindowTitle;
     private volatile String vanillaWindowTitle = "Minecraft";
     private String appliedWindowTitle;
     private final AtomicLong controlChromeRenderSequence = new AtomicLong();
@@ -257,8 +260,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         }
     }
 
-    public static void onVanillaWindowTitle(String title) {
-        INSTANCE.observeVanillaWindowTitle(title);
+    public static boolean onVanillaWindowTitle(long window, CharSequence title) {
+        INSTANCE.vanillaWindowTitle = title.toString();
+        return INSTANCE.publishWindowTitle(window, true);
     }
 
     public static boolean isAgentControlActive() {
@@ -271,12 +275,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     public static boolean onVanillaWindowIcon(long window, SDL_Surface icon) {
-        INSTANCE.cacheVanillaIcons(icon);
-        if (INSTANCE.controlPresence.agentControlled()) {
-            INSTANCE.applyAgentIcon(window);
-            return true;
-        }
-        return SDLVideo.SDL_SetWindowIcon(window, icon);
+        if (INSTANCE.cacheVanillaIcons(icon)
+                && INSTANCE.controlPresence.agentControlled()
+                && !INSTANCE.windowClosing.get()
+                && INSTANCE.publishWindowIcons(window, true)) return true;
+        boolean applied = SDLVideo.SDL_SetWindowIcon(window, icon);
+        if (applied) INSTANCE.iconBadgeApplied = false;
+        return applied;
     }
 
     /** Drain while Minecraft resources and the Loader class loader still exist. */
@@ -498,109 +503,143 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         long window = client.getWindow().handle();
         if (this.controlPresence.agentControlled()) {
             if (!this.controlChromeApplied) {
-                this.originalWindowTitle = this.vanillaWindowTitle;
                 this.originalPauseOnLostFocus = client.options.pauseOnLostFocus;
                 client.options.pauseOnLostFocus = false;
-                this.applyAgentIcon(window);
+                this.publishWindowIcons(window, true);
                 this.controlChromeApplied = true;
             }
         } else if (this.controlChromeApplied) {
             restoreControlPresentation(client);
         }
-        String suffix =
-                !agentPresent()
-                        ? ""
-                        : switch (this.controlPresence.mode()) {
-                            case READ -> " - 智能体读取中";
-                            case OPERATE -> " - 智能体操控中";
-                            case TAKEOVER -> " - 由智能体接管";
-                        };
-        String desired = this.vanillaWindowTitle + suffix;
-        if (!desired.equals(this.appliedWindowTitle)) {
-            SDLVideo.SDL_SetWindowTitle(window, desired);
-            this.appliedWindowTitle = desired;
-        }
+        this.publishWindowTitle(window, true);
     }
 
     private void restoreControlPresentation(Minecraft client) {
         long window = client.getWindow().handle();
-        SDLVideo.SDL_SetWindowTitle(window, this.vanillaWindowTitle);
-        this.appliedWindowTitle = this.vanillaWindowTitle;
-        if (this.controlChromeApplied && !this.originalWindowIcons.isEmpty())
-            this.setIcons(window, this.originalWindowIcons);
+        this.publishWindowTitle(window, false);
+        if (this.iconBadgeApplied) this.publishWindowIcons(window, false);
         this.controlChromeApplied = false;
         if (this.originalPauseOnLostFocus != null)
             client.options.pauseOnLostFocus = this.originalPauseOnLostFocus;
         this.originalPauseOnLostFocus = null;
-        this.originalWindowTitle = null;
     }
 
-    private void observeVanillaWindowTitle(String title) {
-        if (title != null && !title.isBlank())
-            this.vanillaWindowTitle =
-                    title.replace(" - 由智能体控制", "")
-                            .replace(" - 由智能体接管", "")
-                            .replace(" - 智能体读取中", "")
-                            .replace(" - 智能体操控中", "");
-    }
-
-    private record WindowIcon(int width, int height, int format, int pitch, byte[] rgba) {
-        WindowIcon(int width, int height, byte[] rgba) {
-            this(width, height, SDLPixels.SDL_PIXELFORMAT_ABGR8888, width * 4, rgba);
+    private boolean publishWindowTitle(long window, boolean decorate) {
+        String desired =
+                io.github.recrivenvi.minecraftprotocol.safety.WindowDecoration.title(
+                        this.vanillaWindowTitle,
+                        this.controlPresence.mode(),
+                        decorate && this.agentPresent());
+        if (desired.equals(this.appliedWindowTitle)) return true;
+        if (!SDLVideo.SDL_SetWindowTitle(window, desired)) {
+            this.windowDecorationError = "title_application_failed";
+            return false;
         }
+        this.appliedWindowTitle = desired;
+        return true;
     }
 
-    private void cacheVanillaIcons(SDL_Surface icon) {
-        if (icon == null
-                || icon.w() < 1
-                || icon.h() < 1
-                || icon.w() > 512
-                || icon.h() > 512
-                || icon.pitch() < 1
-                || icon.pitch() > 4096) return;
-        byte[] pixels = new byte[icon.pitch() * icon.h()];
-        icon.pixels().get(pixels);
-        this.originalWindowIcons =
-                java.util.List.of(
-                        new WindowIcon(icon.w(), icon.h(), icon.format(), icon.pitch(), pixels));
-    }
+    private record WindowIcon(int width, int height, int format, int pitch, byte[] rgba) {}
 
-    private void setIcons(long window, java.util.List<WindowIcon> images) {
-        if (images.isEmpty()) return;
-        WindowIcon image = images.getFirst();
-        ByteBuffer pixels = MemoryUtil.memAlloc(image.rgba().length);
-        SDL_Surface surface = null;
+    private boolean cacheVanillaIcons(SDL_Surface icon) {
+        this.originalWindowIcons = java.util.List.of();
+        this.decoratedWindowIcons = java.util.List.of();
+        if (icon == null) return false;
+        org.lwjgl.PointerBuffer images = SDLSurface.SDL_GetSurfaceImages(icon);
+        if (images == null) return false;
         try {
-            pixels.put(image.rgba()).flip();
-            surface =
-                    SDLSurface.SDL_CreateSurfaceFrom(
-                            image.width(), image.height(), image.format(), pixels, image.pitch());
-            if (surface == null || !SDLVideo.SDL_SetWindowIcon(window, surface))
-                throw new IllegalStateException("SDL window icon application failed");
+            if (images.remaining() < 1 || images.remaining() > 16) return false;
+            java.util.List<WindowIcon> originals = new java.util.ArrayList<>();
+            java.util.List<WindowIcon> decorated = new java.util.ArrayList<>();
+            for (int index = images.position(); index < images.limit(); index++) {
+                SDL_Surface source = SDL_Surface.create(images.get(index));
+                int width = source.w(), height = source.h(), pitch = source.pitch();
+                if (width < 1
+                        || height < 1
+                        || width > 512
+                        || height > 512
+                        || pitch < 1
+                        || pitch > 4096) return false;
+                if (!SDLSurface.SDL_LockSurface(source)) return false;
+                try {
+                    byte[] pixels = new byte[pitch * height];
+                    source.pixels().get(pixels);
+                    originals.add(new WindowIcon(width, height, source.format(), pitch, pixels));
+                } finally {
+                    SDLSurface.SDL_UnlockSurface(source);
+                }
+                SDL_Surface converted =
+                        SDLSurface.SDL_ConvertSurface(source, SDLPixels.SDL_PIXELFORMAT_RGBA32);
+                if (converted == null) return false;
+                try {
+                    if (!SDLSurface.SDL_LockSurface(converted)) return false;
+                    try {
+                        byte[] rgba = new byte[width * height * 4];
+                        ByteBuffer pixels = converted.pixels();
+                        for (int y = 0; y < height; y++)
+                            pixels.get(y * converted.pitch(), rgba, y * width * 4, width * 4);
+                        byte[] badged =
+                                io.github.recrivenvi.minecraftprotocol.safety.WindowDecoration.icon(
+                                        width, height, rgba);
+                        decorated.add(
+                                new WindowIcon(
+                                        width,
+                                        height,
+                                        SDLPixels.SDL_PIXELFORMAT_RGBA32,
+                                        width * 4,
+                                        badged));
+                    } finally {
+                        SDLSurface.SDL_UnlockSurface(converted);
+                    }
+                } finally {
+                    SDLSurface.SDL_DestroySurface(converted);
+                }
+            }
+            this.originalWindowIcons = java.util.List.copyOf(originals);
+            this.decoratedWindowIcons = java.util.List.copyOf(decorated);
+            this.windowDecorationError = "";
+            return true;
         } finally {
-            if (surface != null) SDLSurface.SDL_DestroySurface(surface);
-            MemoryUtil.memFree(pixels);
+            org.lwjgl.sdl.SDLStdinc.SDL_free(images);
         }
     }
 
-    private void applyAgentIcon(long window) {
-        try (InputStream stream =
-                NeoForgeProbeRuntime.class.getResourceAsStream("/" + MOD_ID + "_control.png")) {
-            if (stream == null) return;
-            BufferedImage image = ImageIO.read(stream);
-            if (image == null || image.getWidth() > 512 || image.getHeight() > 512) return;
-            int width = image.getWidth(), height = image.getHeight();
-            byte[] rgba = new byte[width * height * 4];
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++) {
-                    int color = image.getRGB(x, y), offset = (y * width + x) * 4;
-                    rgba[offset] = (byte) (color >> 16);
-                    rgba[offset + 1] = (byte) (color >> 8);
-                    rgba[offset + 2] = (byte) color;
-                    rgba[offset + 3] = (byte) (color >>> 24);
-                }
-            setIcons(window, java.util.List.of(new WindowIcon(width, height, rgba)));
-        } catch (IOException ignored) {
+    private boolean publishWindowIcons(long window, boolean decorate) {
+        java.util.List<WindowIcon> images =
+                decorate ? this.decoratedWindowIcons : this.originalWindowIcons;
+        if (images.isEmpty()) return false;
+        java.util.List<ByteBuffer> allocated = new java.util.ArrayList<>();
+        java.util.List<SDL_Surface> surfaces = new java.util.ArrayList<>();
+        try {
+            for (WindowIcon image : images) {
+                ByteBuffer pixels = MemoryUtil.memAlloc(image.rgba().length);
+                allocated.add(pixels);
+                pixels.put(image.rgba()).flip();
+                SDL_Surface surface =
+                        SDLSurface.SDL_CreateSurfaceFrom(
+                                image.width(),
+                                image.height(),
+                                image.format(),
+                                pixels,
+                                image.pitch());
+                if (surface == null) throw new IllegalStateException("surface_allocation_failed");
+                surfaces.add(surface);
+                if (surfaces.size() > 1
+                        && !SDLSurface.SDL_AddSurfaceAlternateImage(surfaces.getFirst(), surface))
+                    throw new IllegalStateException("alternate_icon_failed");
+            }
+            if (!SDLVideo.SDL_SetWindowIcon(window, surfaces.getFirst()))
+                throw new IllegalStateException("icon_application_failed");
+            this.iconBadgeApplied = decorate;
+            this.windowDecorationError = "";
+            return true;
+        } catch (RuntimeException failure) {
+            this.windowDecorationError = failure.getMessage();
+            return false;
+        } finally {
+            for (int i = surfaces.size() - 1; i >= 0; i--)
+                SDLSurface.SDL_DestroySurface(surfaces.get(i));
+            allocated.forEach(MemoryUtil::memFree);
         }
     }
 
@@ -609,6 +648,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         if (client == null || this.windowClosing.get() || !this.contentFrameReady) return;
         this.contentFrameReady = false;
         this.evidenceCaptures.beforeOperatorChrome(this::captureContentAtBoundary);
+        // Initial reload has not installed text shader sources yet; compiling here can crash.
+        if (client.gui.overlay() instanceof net.minecraft.client.gui.screens.LoadingOverlay) return;
         float alpha =
                 this.operatorChrome.update(
                         this.controlPresence.mode(),
@@ -758,8 +799,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     SDLMouse.SDL_GetWindowRelativeMouseMode(client.getWindow().handle()));
         json.addProperty(
                 "windowIconState",
-                this.controlChromeApplied ? "agent_placeholder" : "original_minecraft");
+                this.iconBadgeApplied ? "original_with_agent_pointer" : "original_minecraft");
         json.addProperty("originalWindowIconCount", this.originalWindowIcons.size());
+        json.addProperty("windowBaseTitle", this.vanillaWindowTitle);
+        json.addProperty("windowTitle", this.appliedWindowTitle);
+        json.addProperty("windowDecorationError", this.windowDecorationError);
         if (snapshot.manuallyRevoked()) {
             json.addProperty("controlMessage", snapshot.message());
             json.addProperty("manualRevocationReason", "human_manual_revocation");
@@ -814,7 +858,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         if (this.initialized.compareAndSet(false, true)) {
             String token = RuntimeToken.resolve(minecraft.gameDirectory.toPath());
             int port = Integer.getInteger("minecraft.protocol.probe.port", 25582);
-            this.transport = new ProbeTransport(this, token, port);
+            this.transport = new ProbeTransport(this, token, port, "26.3-neoforge");
             this.transport.startAsync();
             if (this.shutdownRegistered.compareAndSet(false, true)) {
                 Runtime.getRuntime()
@@ -881,8 +925,19 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         return this.onClient(
                 () -> {
                     JsonObject json = base("capabilities");
+                    json.add(
+                            "uiContract",
+                            io.github.recrivenvi.minecraftprotocol.safety.UiDataView.contract());
                     JsonObject capabilities = new JsonObject();
+                    json.add(
+                            "worldContract",
+                            io.github.recrivenvi.minecraftprotocol.safety.WorldDataView.contract());
                     capabilities.addProperty("ui.interaction_tree", "runtime_verified");
+                    capabilities.addProperty("ui.native_containers", "recursive_bounded");
+                    capabilities.addProperty("ui.list_items", "native_clipped_bounds");
+                    capabilities.addProperty("ui.text_input", "game_routed_unicode");
+                    capabilities.addProperty("ui.slider_value", "game_routed_normalized");
+                    capabilities.addProperty("ui.render_only_controls", "partial_typed_adapters");
                     capabilities.addProperty("ui.selector", "runtime_verified");
                     capabilities.addProperty("ui.coordinate_generation", "runtime_verified");
                     capabilities.addProperty("ui.vision_fallback", "runtime_verified");
@@ -1149,8 +1204,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                             operatorHook(
                                     "control_window_title",
                                     "Window.setTitle",
-                                    true,
                                     false,
+                                    true,
                                     status(tick)));
                     hooks.add(
                             operatorHook(
@@ -1227,8 +1282,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                     true,
                                     false,
                                     "configured_pending_unified_acceptance"));
-                    json.addProperty("cancellableInjectionCount", 18);
-                    json.addProperty("replacementInjectionCount", 3);
+                    json.addProperty("cancellableInjectionCount", 17);
+                    json.addProperty("replacementInjectionCount", 4);
                     json.addProperty("controlFlowPolicy", "operator_control_hooks_only");
                     json.addProperty("thirdPartyTargetCount", 0);
                     json.addProperty("runtimeSelfTest", true);
@@ -1294,7 +1349,22 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> uiTree() {
-        return this.onClient(this::snapshotUiTree);
+        return this.onClient(
+                () ->
+                        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.tree(
+                                this.snapshotUiTree(),
+                                io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category
+                                        .USER));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> debugUiTree() {
+        return this.onClient(
+                () ->
+                        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.tree(
+                                this.snapshotUiTree(),
+                                io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category
+                                        .DEBUG));
     }
 
     private JsonObject snapshotUiTree() {
@@ -1317,7 +1387,10 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         JsonArray children = new JsonArray();
         if (screen == null) {
             root.addProperty("screenClass", "");
+            children = SpectatorUiTree.capture(client, root, this::interactionIdentity);
             root.add("children", children);
+            root.add("presentation", UiPresentationSnapshot.capture(client));
+            UiDebugEngine.describe(root, this.phase9a);
             return root;
         }
 
@@ -1330,29 +1403,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         fallbacks.add("render_primitives");
         fallbacks.add("screenshot_vision");
         root.add("fallbacks", fallbacks);
-        int index = 0;
-        for (GuiEventListener child : screen.children()) {
-            JsonObject node = new JsonObject();
-            node.addProperty("nodeId", "widget:" + this.screenRevision + ":" + index++);
-            node.addProperty("class", child.getClass().getName());
-            node.addProperty("elementIdentity", this.interactionIdentity(child));
-            String role = semanticRole(child);
-            node.addProperty("role", role);
-            node.addProperty("nodeRevision", this.screenRevision);
-            node.addProperty("coverage", "semantic_native");
-            if (child instanceof AbstractWidget widget) {
-                node.addProperty("label", widget.getMessage().getString());
-                node.addProperty("x", widget.getX());
-                node.addProperty("y", widget.getY());
-                node.addProperty("width", widget.getWidth());
-                node.addProperty("height", widget.getHeight());
-                node.addProperty("active", widget.active);
-                node.addProperty("visible", widget.visible);
-                node.addProperty("hovered", widget.isHovered());
-                addInteractionMetadata(node, role, widget.active && widget.visible);
-            }
-            children.add(node);
-        }
+        children =
+                new VanillaUiTree(this.screenRevision, this::interactionIdentity)
+                        .capture(screen, root);
 
         if (screen instanceof AbstractContainerScreen<?> container) {
             int left = container.getLeftPos();
@@ -1360,7 +1413,17 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             AbstractContainerMenu menu = container.getMenu();
             long menuIdentity = this.interactionIdentity(menu);
             root.addProperty("menuIdentity", menuIdentity);
-            for (int viewIndex = 0; viewIndex < menu.slots.size(); viewIndex++) {
+            ItemStack carried = menu.getCarried();
+            JsonObject carriedSnapshot = new JsonObject();
+            carriedSnapshot.addProperty("empty", carried.isEmpty());
+            carriedSnapshot.addProperty(
+                    "id", BuiltInRegistries.ITEM.getKey(carried.getItem()).toString());
+            carriedSnapshot.addProperty("count", carried.getCount());
+            root.add("carriedStack", carriedSnapshot);
+            int slotBudget = Math.max(0, 2048 - root.get("treeNodeCount").getAsInt());
+            int capturedSlots = Math.min(menu.slots.size(), slotBudget);
+            if (capturedSlots < menu.slots.size()) root.addProperty("treeTruncated", true);
+            for (int viewIndex = 0; viewIndex < capturedSlots; viewIndex++) {
                 Slot slot = menu.slots.get(viewIndex);
                 JsonObject node = new JsonObject();
                 addSlotIdentity(
@@ -1383,9 +1446,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 addInteractionMetadata(node, "slot", slot.isActive() && visible);
                 children.add(node);
             }
+            root.addProperty("treeNodeCount", root.get("treeNodeCount").getAsInt() + capturedSlots);
             root.addProperty("menuId", menu.containerId);
         }
+        VanillaUiTree.markOccluded(children);
         root.add("children", children);
+        root.add("presentation", UiPresentationSnapshot.capture(client));
+        UiDebugEngine.describe(root, this.phase9a);
         return root;
     }
 
@@ -1495,9 +1562,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private long interactionIdentity(Object object) {
-        if (this.interactionIdentities.size() >= 2048) this.interactionIdentities.clear();
-        return this.interactionIdentities.computeIfAbsent(
-                object, ignored -> ++this.interactionIdentitySequence);
+        return this.interactionIdentities.id(object);
     }
 
     private void checkPointerGuard(JsonObject guard) {
@@ -1688,8 +1753,15 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> key(int key, int scanCode, int action, int modifiers) {
+        return this.keyGuarded(key, scanCode, action, modifiers, null);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> keyGuarded(
+            int key, int scanCode, int action, int modifiers, JsonObject guard) {
         return this.onControlledClient(
                 () -> {
+                    if (action != 0) this.checkPointerGuard(guard);
                     Minecraft client = requireClient();
                     KeyEvent nativeEvent = NativeInputMapping.event(key, modifiers);
                     AgentInputContext.dispatch(
@@ -1722,7 +1794,44 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
+    public CompletableFuture<JsonObject> character(int codePoint, JsonObject guard) {
+        return this.onControlledClient(
+                () -> {
+                    this.checkPointerGuard(guard);
+                    Minecraft client = requireClient();
+                    if (client.gui.screen() == null
+                            || !Character.isValidCodePoint(codePoint)
+                            || (codePoint >= 0xD800 && codePoint <= 0xDFFF)
+                            || Character.isISOControl(codePoint)) {
+                        throw new ProtocolState.ProtocolException(
+                                "INVALID_UI_TEXT", 400, "Only valid GUI characters are accepted");
+                    }
+                    if (guard != null && guard.has("selector")) {
+                        JsonObject node =
+                                AutomationEngine.resolveTree(
+                                                this.snapshotUiTree(),
+                                                guard.getAsJsonObject("selector"))
+                                        .getAsJsonObject("node");
+                        if (!node.has("focused") || !node.get("focused").getAsBoolean())
+                            throw new ProtocolState.ProtocolException(
+                                    "UI_FOCUS_CHANGED", 409, "Text target is no longer focused");
+                    }
+                    long window = client.getWindow().handle();
+                    AgentInputContext.dispatch(
+                            new AgentInputContext.Event(
+                                    AgentInputContext.Kind.CHARACTER, window, codePoint, 0, 0, 0),
+                            () ->
+                                    client.keyboardHandler.charTyped(
+                                            window,
+                                            new net.minecraft.client.input.CharacterEvent(
+                                                    codePoint)));
+                    return inputEvidence("GAME_ROUTED_RAW", true, false);
+                });
+    }
+
+    @Override
     public CompletableFuture<JsonObject> playerState() {
+
         return this.onClient(
                 () -> {
                     Minecraft client = requireClient();
@@ -2265,12 +2374,62 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> phase9cDebugCapabilities() {
-        return CompletableFuture.completedFuture(this.phase9a.formalDebugCapabilities());
+        JsonObject result = this.phase9a.formalDebugCapabilities();
+        for (String operation : UiDebugEngine.OPERATIONS) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("operation", operation);
+            entry.addProperty("status", "available");
+            entry.addProperty("authority", "CLIENT_UI");
+            entry.addProperty("requiredScope", "debug.ui");
+            entry.addProperty("requiresArm", true);
+            entry.addProperty("resourceVersionPrecondition", true);
+            entry.addProperty("batch", true);
+            result.getAsJsonArray("operations").add(entry);
+        }
+        result.addProperty("uiRequiresWorldFingerprint", false);
+        result.addProperty("uiRequiresSessionContext", true);
+        return CompletableFuture.completedFuture(result);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> uiDebugContext() {
+        return this.onClient(
+                () -> {
+                    JsonObject result = new JsonObject();
+                    result.addProperty("uiContextId", "ui-session:" + this.phase9a.sessionEpoch());
+                    result.addProperty("sessionEpoch", this.phase9a.sessionEpoch());
+                    return result;
+                });
     }
 
     @Override
     public CompletableFuture<JsonObject> phase9cDebugMutation(
             JsonObject request, DebugMutationAuthorization authorization) {
+        if (request.has("operation") && request.get("operation").getAsString().startsWith("ui.")) {
+            return this.onClient(
+                    () -> {
+                        JsonObject result =
+                                UiDebugEngine.mutate(
+                                        requireClient().gui.screen(),
+                                        this.snapshotUiTree(),
+                                        request,
+                                        this::interactionIdentity,
+                                        authorization);
+                        JsonObject after =
+                                UiDebugEngine.find(
+                                        this.snapshotUiTree().getAsJsonArray("children"),
+                                        result.get("nodeId").getAsString());
+                        if (after != null) {
+                            result.add("after", after);
+                            result.add("afterResourceVersion", after.get("resourceVersion"));
+                        } else {
+                            result.addProperty("postMutationContextChanged", true);
+                            result.add("after", com.google.gson.JsonNull.INSTANCE);
+                            result.add("afterResourceVersion", com.google.gson.JsonNull.INSTANCE);
+                        }
+                        return result;
+                    });
+        }
         if (this.shouldUsePeer()) {
             return CompletableFuture.failedFuture(
                     new ProtocolState.ProtocolException(
@@ -2874,17 +3033,6 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         json.addProperty("menuRevision", this.menuRevision);
         json.addProperty("inputDispatchSequence", inputSequence);
         return json;
-    }
-
-    private static String semanticRole(GuiEventListener child) {
-        String name = child.getClass().getName().toLowerCase(java.util.Locale.ROOT);
-        if (name.contains("button")) return "button";
-        if (name.contains("editbox") || name.contains("textfield")) return "text_field";
-        if (name.contains("checkbox")) return "checkbox";
-        if (name.contains("slider")) return "slider";
-        if (name.contains("list")) return "list";
-        if (name.contains("stringwidget") || name.contains("textwidget")) return "text";
-        return child instanceof AbstractWidget ? "widget" : "listener";
     }
 
     static void addSlotIdentity(

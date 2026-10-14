@@ -55,7 +55,7 @@ try {
     Assert-True ((& git -C $worktreePath rev-parse HEAD).Trim() -eq $sourceCommit) `
         'REMOTE_VERIFY HEAD differs from fetched origin commit'
 
-    $runtimeRoot = 'versions\26.3-neoforge\src\main\java\io\github\recrivenvi\minecraftprotocol\probe\runtime'
+    $runtimeRoot = 'components\runtime_core\src\main\java\io\github\recrivenvi\minecraftprotocol\core'
     $automation = Read-RemoteFile "$runtimeRoot\AutomationEngine.java"
     $transport = Read-RemoteFile "$runtimeRoot\ProbeTransport.java"
     $protocol = Read-RemoteFile "$runtimeRoot\ProtocolState.java"
@@ -70,7 +70,7 @@ try {
     $dependencyAuditTests = Read-RemoteFile 'components\validation_tools\regression-v1_release\task\Invoke-Phase8DependencyAuditClassifierTests.ps1'
     $localGateSource = Read-RemoteFile 'components\validation_tools\regression-v1_release\task\Invoke-Phase8LocalGate.ps1'
     $recordingShutdownTest = Read-RemoteFile `
-        'versions\26.3-neoforge\src\test\java\io\github\recrivenvi\minecraftprotocol\probe\runtime\RecordingEngineTest.java'
+        'components\runtime_core\src\test\java\io\github\recrivenvi\minecraftprotocol\core\RecordingEngineTest.java'
     $evidence = Read-RemoteFile 'validations/regression-v1_release/validation.md'
 
     foreach ($status in @('PASS_NO_THRESHOLD_VULNERABILITIES','FAIL_VULNERABILITIES_FOUND',
@@ -175,7 +175,7 @@ try {
         'components/validation_tools/regression-v1_release/task/Invoke-Phase8DependencyAuditClassifierTests.ps1',
         'components/validation_tools/regression-v1_release/task/Invoke-Phase8LocalGate.ps1',
         'components/validation_tools/regression-v1_release/task/Invoke-Phase8HardeningStaticGate.ps1',
-        'versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngineTest.java',
+        'components/runtime_core/src/test/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngineTest.java',
         "$($runtimeRoot.Replace('\','/'))/AutomationEngine.java",
         "$($runtimeRoot.Replace('\','/'))/ProbeTransport.java",
         "$($runtimeRoot.Replace('\','/'))/ProtocolState.java",

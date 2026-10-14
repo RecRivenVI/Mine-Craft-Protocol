@@ -1,5 +1,5 @@
-pluginManagement { includeBuild("../conventions") }
+pluginManagement { includeBuild("../../gradle/conventions") }
 
-plugins { id("io.github.recrivenvi.component") }
+plugins { id("io.github.recrivenvi.conventions.component") }
 
 rootProject.name = "protocol_schema"

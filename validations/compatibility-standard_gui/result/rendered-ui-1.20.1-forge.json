@@ -1,0 +1,48 @@
+{
+  "uiAct": "GAME_ROUTED",
+  "result": "PASS",
+  "date": "2026-10-12T10:25:59.7491055Z",
+  "arrange": "diagnostic_player_commands_in_owned_creative_world",
+  "checks": [
+    "pack_select",
+    "pack_reorder_up_down",
+    "pack_unselect_restore",
+    "stonecutter_native_recipe",
+    "loom_native_pattern",
+    "enchantment_native_option",
+    "merchant_native_offer",
+    "beacon_native_power_confirm",
+    "book_multiline_page_switch_stale_rejection",
+    "book_sign_read_and_page",
+    "sign_four_native_keyboard_lines",
+    "hanging_sign_native_keyboard_line"
+  ],
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "toolSha256": "05009ce476de69e362ce37289b7bc86c704330650241579f274b830a5f1da9c9",
+  "coordinateFallbacks": 0,
+  "fullVanillaUiAcceptance": false,
+  "runtime": "development_native",
+  "persistentWriteCalls": 0,
+  "target": "1.20.1-forge",
+  "sourceHashes": [
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java",
+      "sha256": "bd816fa32e533a28ad306cb311084920353e18baf71f3bf9390692c72c418d88"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java",
+      "sha256": "42f71aa335272e865a6d074597fb8468194e270738125ca765223d632df68359"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java",
+      "sha256": "689b07e182310544539b175783482f6917c444c9a3b3e07728d895c2998a2865"
+    },
+    {
+      "path": "versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java",
+      "sha256": "9bbba286bbed4050bacd4972ba2ca4ce98842538f7166de23b8ea273d0dbe41f"
+    }
+  ],
+  "heldButtons": 0,
+  "heldKeys": 0,
+  "dirty": true
+}

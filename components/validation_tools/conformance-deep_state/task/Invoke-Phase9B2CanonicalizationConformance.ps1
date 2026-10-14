@@ -1,6 +1,7 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function Assert-True([bool]$Condition,[string]$Message) {
     if(-not $Condition) { throw "Phase 9B.2 canonicalization failed: $Message" }
 }
@@ -12,7 +13,7 @@ $targets=@(
     @{Id='26.3-fabric';Src='src\client\java'})
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
-    $tracker=Get-Content (Join-Path $base 'runtime\ObservationRevisionTracker.java') -Raw
+    $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
     $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
     Assert-True ($tracker.Contains(
         'value.getAsJsonArray().forEach(element -> result.add(canonicalize(element)))')) "$($target.Id) ordered arrays"

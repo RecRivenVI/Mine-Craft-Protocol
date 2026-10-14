@@ -19,4 +19,24 @@ val verifyShowcase by
         )
     }
 
-tasks.check { dependsOn(verifyControl, verifyShowcase) }
+val verifyVanillaUiTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/conformance-vanilla_ui/task/Test-VanillaUiSuite.ps1",
+        )
+    }
+
+val verifyWorldReadTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "components/validation_tools/conformance-world_read/task/test-world-read.mjs",
+        )
+    }
+
+tasks.check { dependsOn(verifyControl, verifyShowcase, verifyVanillaUiTools, verifyWorldReadTools) }

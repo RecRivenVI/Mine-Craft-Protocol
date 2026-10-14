@@ -3,6 +3,10 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.*;
+import io.github.recrivenvi.minecraftprotocol.core.AutomationEngine;
+import io.github.recrivenvi.minecraftprotocol.core.ConditionEngine;
+import io.github.recrivenvi.minecraftprotocol.core.ProbeService;
+import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.*;
@@ -120,7 +124,7 @@ final class CreativeSlotIdentityTest {
                                     if (method.getReturnType() == void.class) return null;
                                     JsonObject result = new JsonObject();
                                     switch (method.getName()) {
-                                        case "uiTree", "pointerState" -> {
+                                        case "uiTree", "debugUiTree", "pointerState" -> {
                                             result = tree.deepCopy();
                                             result.addProperty("x", position[0]);
                                             result.addProperty("y", position[1]);

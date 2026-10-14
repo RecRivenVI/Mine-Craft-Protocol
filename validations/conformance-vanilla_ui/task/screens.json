@@ -1,0 +1,22 @@
+{
+  "families": [
+    {"name":"title","screens":["TitleScreen"],"actions":["click","hover"]},
+    {"name":"world_selection","screens":["SelectWorldScreen"],"actions":["select","double_click","scroll","drag_scrollbar","search"]},
+    {"name":"world_creation","screens":["CreateWorldScreen","CreateFlatWorldScreen","PresetFlatWorldScreen","EditGameRulesScreen","WorldCreationGameRulesScreen"],"actions":["tabs","text","cycle","select","scroll"],"limitation":"Creation draft, flat preset selection and rules/data-pack navigation do not prove every generator or rule combination."},
+    {"name":"world_management","screens":["EditWorldScreen","WorldBackupConfirmScreen","ConfirmScreen","DatapackLoadFailureScreen","RecoverWorldDataScreen"],"actions":["confirmation","text"],"limitation":"Conversion and recovery are destructive flows and need dedicated disposable fixtures."},
+    {"name":"options","screens":["OptionsScreen","SoundOptionsScreen","VideoSettingsScreen","ControlsScreen","KeyBindsScreen","MouseSettingsScreen","AccessibilityOptionsScreen","ChatOptionsScreen","SkinCustomizationScreen","LanguageSelectScreen","OnlineOptionsScreen","TelemetryInfoScreen","FontOptionsScreen"],"actions":["click","slider","drag_scrollbar","key_binding","scroll"]},
+    {"name":"packs","screens":["PackSelectionScreen"],"actions":["select","remove","move_up","move_down","scroll"]},
+    {"name":"multiplayer","screens":["JoinMultiplayerScreen","DirectJoinServerScreen","EditServerScreen","ManageServerScreen","ConnectScreen","DisconnectedScreen","SafetyScreen"],"actions":["list","hover","move_up","move_down","text","confirm"],"limitation":"Saved-list management uses disposable loopback entries; server join, authentication and third-party services are not validated."},
+    {"name":"pause_and_stats","screens":["PauseScreen","StatsScreen","SocialInteractionsScreen"],"actions":["tabs","scroll","resume","quit"]},
+    {"name":"inventory_and_recipe","screens":["InventoryScreen","CreativeModeInventoryScreen","CraftingScreen"],"actions":["slots","shift_click","drag","search","tabs","recipe_book"]},
+    {"name":"containers","screens":["ContainerScreen","FurnaceScreen","BlastFurnaceScreen","SmokerScreen","AnvilScreen","BrewingStandScreen","HopperScreen","DispenserScreen","ShulkerBoxScreen","GrindstoneScreen","SmithingScreen","CartographyTableScreen"],"actions":["slots","drag","text"]},
+    {"name":"rendered_menus","screens":["StonecutterScreen","LoomScreen","EnchantmentScreen","MerchantScreen","BeaconScreen"],"actions":["semantic_choice","scroll","confirm","slots"]},
+    {"name":"books_and_signs","screens":["BookEditScreen","BookSignScreen","BookViewScreen","SignEditScreen","HangingSignEditScreen"],"actions":["text","newlines","page","sign","rich_text_link"],"limitation":"BookSignScreen is separate only on newer Targets; the older editor signs in place. Front-side sign editing does not prove every side, waxed state or material."},
+    {"name":"commands","screens":["ChatScreen","CommandBlockEditScreen","MinecartCommandBlockEditScreen","StructureBlockEditScreen","JigsawBlockEditScreen"],"actions":["text","suggestions","select","scroll","rich_text_link"]},
+    {"name":"advancements","screens":["AdvancementsScreen"],"actions":["tabs","node_hover","pan","scroll"]},
+    {"name":"death_and_credits","screens":["DeathScreen","WinScreen","CreditsAndAttributionScreen","ConfirmLinkScreen"],"actions":["confirm","return","hover"],"limitation":"External URL opening is not tested; native confirmation is preserved."},
+    {"name":"account_gated","screens":["RealmsMainScreen","FriendsScreen","ReportingScreen","DialogScreen"],"actions":["native_widgets"],"limitation":"Account, service and server-authored state cannot be inferred from an offline fixture."}
+  ],
+  "thirdPartyAutoAdaptation": false,
+  "screenshotAssertions": false
+}

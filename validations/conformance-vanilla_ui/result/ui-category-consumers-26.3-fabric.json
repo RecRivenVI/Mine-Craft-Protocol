@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "target": "26.3-fabric",
+  "transport": "mcp_stdio",
+  "testedAt": "2026-10-13T11:17:30.822Z",
+  "checks": [
+    "MCP USER preserves explicit Native category",
+    "MCP DEBUG returns bounded data with independent read authorization",
+    "MCP input schema rejects DEBUG without a player side effect",
+    "Read operations do not acquire TAKEOVER or change the Screen",
+    "MCP typed UI Debug preserves session Arm, UI token, stale rejection and diagnostic evidence",
+    "UI Debug cleanup restores control without acquiring player Lease"
+  ],
+  "sourceHashes": {
+    "components/companion/src/server.ts": "3729e5fc3fda5f745b3576fe8d53f5f6b5deedf3390bbec26f67cf1baa1b2337",
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "4af3b9b4b7a5bc7dbb8f9e5911c9ee7a20ad7eb06230d1e4f04849c80ea2592b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiDataView.java": "e2bdf4293175557f9f009cacb108ca1b3f0960f270d8565f9a8831fe32450116",
+    "components/validation_tools/conformance-vanilla_ui/task/run-ui-category-consumers.mjs": "cb6bfc4abed8ac6ba3bd7c89b0eebef27412713d617128a75a96175d0b04c99f"
+  },
+  "noMultimodal": true,
+  "persistentWriteCalls": 0
+}

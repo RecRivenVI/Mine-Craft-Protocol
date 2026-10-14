@@ -1,10 +1,10 @@
 # 开发、构建与验证
 
 从仓库根目录执行命令。Target 为 `:version:<target>`；
-组件是独立 included builds，任务路径为 `:runtime_safety:<task>`、
+组件是独立 included builds，任务路径为 `:runtime_core:<task>`、`:runtime_safety:<task>`、
 `:protocol_schema:<task>`、`:companion:<task>`、`:validation_tools:<task>`。
 
-`runtime_safety` 是随模组发布的产品组件；`protocol_schema`、`companion` 与
+`runtime_core` 与 `runtime_safety` 是随模组发布的产品组件；`protocol_schema`、`companion` 与
 `validation_tools` 是工具组件，分别负责协议模型生成、MCP Companion 和验证编排。
 
 ## 构建与原生测试
@@ -13,12 +13,22 @@
 npm --prefix components/companion ci --include=dev
 ./gradlew.bat projects verifyConfiguration verifyCompliance
 ./gradlew.bat spotlessApply check verifyRelease
-./gradlew.bat :runtime_safety:test :protocol_schema:test :companion:check :validation_tools:check
+./gradlew.bat :runtime_core:test :runtime_safety:test :protocol_schema:test :companion:check :validation_tools:check
 ```
 
 首次构建允许依赖下载；Java 工具链由 Target Facts 与 Gradle 管理。
 `check` 包含五个 Target、工具/产品组件、格式、Markdown 与仓库规范检查。
+根格式配置保留模板相同的文件范围，但使用一次剪枝文件树遍历，避免 Windows 对每个 glob 重复扫描大型验证实例。
+实例、结果和 local.toml 在遍历阶段排除；不会以禁用格式检查或改模板文件绕过。文本继续为 LF，bat/cmd 由原任务保持 CRLF。
 产品与工具的依赖版本见 `gradle/libs.versions.toml`，不在文档维护第二份权威。
+内部试用 JAR 由 `verifyRelease` 收集到 `build/release/<mod_version>/`。
+完成当前源码的五端 Runtime 核心迁移验证后，可刷新绑定新源码与制品的 alpha 清单：
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --validation=migration-runtime_core
+```
+
+配置缓存设置及当前任务不兼容原因以 [gradle.properties](../../gradle.properties) 为准。
 
 Companion 的 Node 版本要求与 npm 依赖分别以其 `package.json`、`package-lock.json` 为准。
 GitHub Actions 先按该版本要求准备 Node，再执行 `npm ci --include=dev`，
@@ -32,7 +42,7 @@ GitHub Actions 先按该版本要求准备 Node，再执行 `npm ci --include=de
 ```
 
 日常实例为 `instances/<target>/{client,client-multiplayer,server}`。
-[配置格式](../reference/configuration-repository.md)定义 TOML、覆盖规则与 EULA；
+[配置格式](../../gradle/conventions/specification/reference/configuration-repository.md)定义 TOML、覆盖规则与 EULA；
 模板内置客户端玩家名 DevPlayer/DevGuest。服务端仅在用户于 local.toml 接受 EULA 后启动。
 旧 properties 个人配置不再作为构建输入；本地未知内容保留，不自动删除。
 普通验收一次一个客户端，不操作仓库之外的游戏实例。

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mine-Craft-Protocol · 游戏窗口</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <main>
+    <header><strong>Mine-Craft-Protocol</strong><span id="status">正在连接</span><button id="acquire">接管</button><button id="release" disabled>释放</button><button id="escape" disabled>Esc</button><button id="inventory" disabled>背包</button></header>
+    <p id="notice" role="status" hidden></p>
+    <div id="stage" tabindex="0" role="application" aria-label="Minecraft 游戏窗口：点击、拖拽、滚动和键盘输入">
+      <img id="background" alt="Minecraft 当前截图" hidden>
+      <svg id="surface" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+      <textarea id="keyboard" aria-label="向游戏输入文字" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
+    </div>
+    <section id="screenshots" aria-label="截图管理">
+      <button id="capture">更新截图</button><label><input id="auto-capture" type="checkbox" checked>实时画面</label><label><input id="show-structure" type="checkbox">控件结构</label><button id="save-capture" disabled>保存截图</button><button id="clear-capture" disabled>清除</button><span id="capture-status">截图只用于观看；操作通过标准接口</span>
+    </section>
+  </main>
+</body>
+</html>

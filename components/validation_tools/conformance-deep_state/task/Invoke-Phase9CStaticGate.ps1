@@ -1,11 +1,12 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function Assert-True([bool]$Condition,[string]$Message) {
     if(-not $Condition) { throw "Phase 9C static gate failed: $Message" }
 }
 $schema=Get-Content (Join-Path $root 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json') -Raw|ConvertFrom-Json
-Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'OpenAPI version'
+Assert-True ($schema.info.version -eq '0.0.1-ui-m1') 'OpenAPI version'
 foreach($path in @(
     '/v0/debug/capabilities','/v0/debug/mutations','/v0/debug/batches',
     '/v0/debug/evidence','/v0/debug/evidence/act/start','/v0/debug/evidence/act/finish')) {
@@ -25,11 +26,11 @@ $targets=@(
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
     $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
-    $transport=Get-Content (Join-Path $base 'runtime\ProbeTransport.java') -Raw
-    $batch=Get-Content (Join-Path $base 'runtime\DebugBatchEngine.java') -Raw
-    $state=Get-Content (Join-Path $base 'runtime\ProtocolState.java') -Raw
-    $provider=Get-Content (Join-Path $base 'runtime\ProviderExecutionEngine.java') -Raw
-    $providerApi=Get-Content (Join-Path $base 'api\AgentDataProviderV2.java') -Raw
+    $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $batch=Get-Content (Join-Path $runtimeCore 'DebugBatchEngine.java') -Raw
+    $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
+    $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
+    $providerApi=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw
     $mixin=Get-Content (Join-Path $root "versions\$($target.Id)\$($target.Mixin)") -Raw
     foreach($marker in @(
         'player.health.set','player.attribute.set','entity.no_gravity.set','world.block.set',

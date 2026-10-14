@@ -1,0 +1,374 @@
+{
+  "status": "PASS",
+  "target": "26.3-fabric",
+  "runtime": "development_native",
+  "phase": "prepare",
+  "testedAt": "2026-10-12T16:56:59.064Z",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "dirty": true,
+  "screens": [
+    "net.minecraft.client.gui.screens.TitleScreen",
+    "net.minecraft.client.gui.screens.options.LanguageSelectScreen",
+    "net.minecraft.client.gui.screens.options.OptionsScreen",
+    "net.minecraft.client.gui.screens.options.SoundOptionsScreen",
+    "net.minecraft.client.gui.screens.options.VideoSettingsScreen",
+    "net.minecraft.client.gui.screens.options.controls.ControlsScreen",
+    "net.minecraft.client.gui.screens.options.AccessibilityOptionsScreen",
+    "net.minecraft.client.gui.screens.options.ChatOptionsScreen",
+    "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
+    "net.minecraft.client.gui.screens.packs.PackSelectionScreen",
+    "net.minecraft.client.gui.screens.options.controls.KeyBindsScreen",
+    "net.minecraft.client.gui.screens.options.MouseSettingsScreen",
+    "net.minecraft.client.gui.screens.worldselection.CreateWorldScreen",
+    "net.minecraft.client.gui.screens.LevelLoadingScreen",
+    "",
+    "net.minecraft.client.gui.screens.PauseScreen"
+  ],
+  "coverage": [
+    {
+      "family": "title",
+      "encountered": [
+        "TitleScreen"
+      ],
+      "notEncountered": []
+    },
+    {
+      "family": "world_selection",
+      "encountered": [],
+      "notEncountered": [
+        "SelectWorldScreen"
+      ]
+    },
+    {
+      "family": "world_creation",
+      "encountered": [
+        "CreateWorldScreen"
+      ],
+      "notEncountered": [
+        "WorldOptionsScreen",
+        "FlatLevelGeneratorSettingsScreen",
+        "PresetFlatWorldScreen",
+        "WorldGenSettingsComponent",
+        "GameRulesScreen"
+      ]
+    },
+    {
+      "family": "world_management",
+      "encountered": [],
+      "notEncountered": [
+        "EditWorldScreen",
+        "WorldBackupConfirmScreen",
+        "ConfirmScreen",
+        "DatapackLoadFailureScreen",
+        "RecoverWorldDataScreen"
+      ],
+      "limitation": "Conversion and recovery are destructive flows and need dedicated disposable fixtures."
+    },
+    {
+      "family": "options",
+      "encountered": [
+        "OptionsScreen",
+        "SoundOptionsScreen",
+        "VideoSettingsScreen",
+        "ControlsScreen",
+        "KeyBindsScreen",
+        "MouseSettingsScreen",
+        "AccessibilityOptionsScreen",
+        "ChatOptionsScreen",
+        "SkinCustomizationScreen",
+        "LanguageSelectScreen"
+      ],
+      "notEncountered": [
+        "OnlineOptionsScreen",
+        "TelemetryInfoScreen",
+        "FontOptionsScreen"
+      ]
+    },
+    {
+      "family": "packs",
+      "encountered": [
+        "PackSelectionScreen"
+      ],
+      "notEncountered": []
+    },
+    {
+      "family": "multiplayer",
+      "encountered": [],
+      "notEncountered": [
+        "JoinMultiplayerScreen",
+        "DirectJoinServerScreen",
+        "EditServerScreen",
+        "ConnectScreen",
+        "DisconnectedScreen",
+        "SafetyScreen"
+      ],
+      "limitation": "No connection to third-party servers is made by the suite."
+    },
+    {
+      "family": "pause_and_stats",
+      "encountered": [
+        "PauseScreen"
+      ],
+      "notEncountered": [
+        "StatsScreen",
+        "SocialInteractionsScreen"
+      ]
+    },
+    {
+      "family": "inventory_and_recipe",
+      "encountered": [],
+      "notEncountered": [
+        "InventoryScreen",
+        "CreativeModeInventoryScreen",
+        "CraftingScreen"
+      ]
+    },
+    {
+      "family": "containers",
+      "encountered": [],
+      "notEncountered": [
+        "ContainerScreen",
+        "FurnaceScreen",
+        "BlastFurnaceScreen",
+        "SmokerScreen",
+        "AnvilScreen",
+        "BrewingStandScreen",
+        "HopperScreen",
+        "DispenserScreen",
+        "ShulkerBoxScreen",
+        "GrindstoneScreen",
+        "SmithingScreen",
+        "CartographyTableScreen"
+      ]
+    },
+    {
+      "family": "rendered_menus",
+      "encountered": [],
+      "notEncountered": [
+        "StonecutterScreen",
+        "LoomScreen",
+        "EnchantmentScreen",
+        "MerchantScreen",
+        "BeaconScreen"
+      ]
+    },
+    {
+      "family": "books_and_signs",
+      "encountered": [],
+      "notEncountered": [
+        "BookEditScreen",
+        "BookViewScreen",
+        "SignEditScreen",
+        "HangingSignEditScreen"
+      ]
+    },
+    {
+      "family": "commands",
+      "encountered": [],
+      "notEncountered": [
+        "ChatScreen",
+        "CommandBlockEditScreen",
+        "MinecartCommandBlockEditScreen",
+        "StructureBlockEditScreen",
+        "JigsawBlockEditScreen"
+      ]
+    },
+    {
+      "family": "advancements",
+      "encountered": [],
+      "notEncountered": [
+        "AdvancementsScreen"
+      ]
+    },
+    {
+      "family": "death_and_credits",
+      "encountered": [],
+      "notEncountered": [
+        "DeathScreen",
+        "WinScreen",
+        "CreditsAndAttributionScreen",
+        "ConfirmLinkScreen"
+      ],
+      "limitation": "External URL opening is not tested; native confirmation is preserved."
+    },
+    {
+      "family": "account_gated",
+      "encountered": [],
+      "notEncountered": [
+        "RealmsMainScreen",
+        "FriendsScreen",
+        "ReportingScreen",
+        "DialogScreen"
+      ],
+      "limitation": "Account, service and server-authored state cannot be inferred from an offline fixture."
+    }
+  ],
+  "checks": [
+    {
+      "name": "title: Native graph and bounded node metadata",
+      "status": "PASS",
+      "milliseconds": 97
+    },
+    {
+      "name": "language: scrollbar thumb drag through native callbacks",
+      "status": "PASS",
+      "milliseconds": 4930
+    },
+    {
+      "name": "options: options.sounds",
+      "status": "PASS",
+      "milliseconds": 5459
+    },
+    {
+      "name": "options: options.video",
+      "status": "PASS",
+      "milliseconds": 4149
+    },
+    {
+      "name": "options: options.controls",
+      "status": "PASS",
+      "milliseconds": 4150
+    },
+    {
+      "name": "options: options.accessibility",
+      "status": "PASS",
+      "milliseconds": 4336
+    },
+    {
+      "name": "options: options.chat.title",
+      "status": "PASS",
+      "milliseconds": 4286
+    },
+    {
+      "name": "options: options.skinCustomisation",
+      "status": "PASS",
+      "milliseconds": 4184
+    },
+    {
+      "name": "options: options.resourcepack",
+      "status": "PASS",
+      "milliseconds": 8907
+    },
+    {
+      "name": "nested controls: key bindings and mouse settings",
+      "status": "PASS",
+      "milliseconds": 12799
+    },
+    {
+      "name": "world fixture: GUI entry and deterministic Arrange",
+      "status": "PASS",
+      "milliseconds": 16165
+    }
+  ],
+  "sourceHashes": {
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "10dd399b1b5e1a3c261143f5fc96e921e81b7de6b8569fae0ec9a2a7a608a790",
+    "components\\validation_tools\\conformance-vanilla_ui\\task\\run-vanilla-ui.mjs": "f56d5a407caec1cac8f2fde08a5acea2797d83490a9863c627bf1aa14122b0f3",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/FabricClientProbeMod.java": "6a80df99f7feeccd96e114cc0a74e78b57960da6509ded66fd14aaa4290eaa90",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/ProbeEchoReadProvider.java": "ea220f2391182a840d12207dbdc358e8d688c70f86a125178b44c83d3c249b49",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/ProbeV2Providers.java": "c4199c3a7216225ec608e5caa092d79515f7bda3733f0360ffbedcffbf003670",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java": "7675847c52c068d787a7bdab2b99c59aeff97f8bf8c663ff3a4a7a75e63bde90",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProviders.java": "3b9bc9c8f314970c187c5d9b71634c0c9d6b41a8221e262ce4f83058a6177ff8",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java": "b9105c25b687da5d33353ec4057d8ebcda6da1f49bcc8a40b276a7e85715e5c4",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java": "e76f8dcef0ba6e8b1b4b3fc4e3274d2667f8e006bd1311c2f592d51651579e20",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/api/ReadProvider.java": "9512ba382990bad409b26e3d9c226831c6a21bbc0e085f86836d57f14beae18c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java": "be6d12c0a7f248435620c337b828b40ceff3b380aedad07c0ff341b5ef6738ff",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenAccessor.java": "6c5b3309e2dd3e9d5d1890725b0b7f6d659508ebacb91024bf84eceb0f30f6fc",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "d9f45c420c2c10ce5aea9447255713730351869b28ad047a955997e7a707ddc0",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTabUiAccessor.java": "9524531141f6c1b1115560074850dadc287f983b23bae89fea7550a58c3cc17a",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementsUiAccessor.java": "0db77de4b291b2f1e82078aa2020bc50549512d7824877021f4f60583658f9fe",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BaseContainerBlockEntityAccessor.java": "3a777701950655b045ff4792f6cae496763bf7f1116c219b4035dfffbcf7519f",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconButtonUiAccessor.java": "092d96abe23b07a020f7de3de200e0bf327dbb4074333a0d07a60a0eb8db8dce",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconCancelUiMarker.java": "baee20efdcef49f4cfb1b686440844b3c673c898956b569d520a957c5d247e3d",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconConfirmUiMarker.java": "f64df6ede2292cda1faeabe6c90faf0e42121d5844db13d84d926374160a9bea",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconPowerUiAccessor.java": "f09cbe5f92c7c34936acdaa64756bce2417b88b3993197ee72d8706584e0bfe6",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookUiAccessor.java": "6d9cc0494f672f8e0e6ebc6896e0c739c20d55373d9df62b335520e668d80f7c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookViewUiAccessor.java": "51d64e3cfd5edeff59d76a63986d052e2a4439f00f496423668e23954a144839",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ChatUiAccessor.java": "332e05c2c6d97a4f4c818633ef1052e1a67198e6a9369aa56f9c3040fe19a9d4",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandSuggestionsUiAccessor.java": "3ebfad1d597a292bd321921e05bf039f54b09a814605ebf6eb4ef5bb056cbaa7",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ConnectionMixin.java": "26c92fad0f338ca928039ec6f9645009059d5ec3e567916c998ecf595b251b6d",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CreativeUiAccessor.java": "a57bb48d4c347f7e501e0abdf7ad58f779b6b56f53afcb2d1dce97cbbd309d58",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DistanceManagerAccessor.java": "d32221250229928bc499d124f9c2a2519b2bfc05def2b8dfe3e7b130ad7bdf3c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java": "ca2ba3fb48ee9180c5c650f19b1f1d690010db308e8e2215230cb34211b4f3d9",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java": "e7206676a25dced6728f26edb5398cc7099336be5a30685f716011921e2d77e5",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiRenderStateMixin.java": "79ec827a63409d041bd485cf7534a7bf3c66202d0eff1de30c59b3a7c634a561",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/InputConstantsMixin.java": "5c0e0fc6e0c3914f17074d289798b3b94d8d4e4a5f98431d3370837bac7743b3",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardCharacterInvoker.java": "b12c9b270034833337d181c88d663f91cb1408340c4a043f2283fa53b0528882",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerInvoker.java": "1f4b167e6342fe18875fdbda1f06b7bc5e50156522965c9281c0156082409566",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java": "25557922cd9e973aa8713433218395313a150e7845cafbf2d42f6fee6a067ad8",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LevelTicksAccessor.java": "1d832bbfb463f8781c365d39223ff63e16720e0c493def2bac36814c2d192455",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LoomUiAccessor.java": "5b51466e2130444dab3d6307a441492c72dfb7a88c9dbebf1f83098912b82cc7",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantTradeUiAccessor.java": "1b1359091b44bd34b99f80418aea3eb7ddc339372728a6e8b7edb79d15b8758a",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantUiAccessor.java": "a5a31558af06d05aeda05933b023a98b60bf00d3264775ed379f7e5b3b0bf633",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "17c9a11d882004749c7516b6742f20de7637d5ca4d92a1492ab4c578dc2a93a3",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java": "ddcc6231d6494f086577fc5e957e0d765782aa517fc79a8023a468b09ad1658c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerInvoker.java": "fd2a6cdbfd196bb47e9409d9273f36ea0ba3febecbc7049ef44767681f20492c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java": "e975b94818cf4a1286b31836086702c3ad19f1c0f94cfd38d7deca489daec9f5",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MultiPlayerGameModeMixin.java": "107b5efb35a71285ef909712c5eea76175b9d8167ae9a85f33b214bfe09513d0",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PackEntryUiAccessor.java": "b2afef9377fe0302918d254729b4154a76af514c7193b503de319c6cd4afae3a",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeOverlayUiAccessor.java": "adaef34bcd43eda7511c6168db9b8af5568a9b1f30e29d31e291871cc59ccb78",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipePageAccessor.java": "3d769a4710ad409525f33e2e57a83bc43472801d247cd1def02a6119537bfc12",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeUiAccessor.java": "d594603973815e8ab8be0026c635763cc31e709b48d36a25d3e4be304218b346",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SDLEventHandlerMixin.java": "70c594e19cf8d83dbd8b1e0c9a94876d99a109165e86ea3597d859528b07a6af",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScrollAreaUiAccessor.java": "1883ecb700bae4d6082d430d54f167a791bab31d94d57a16cb0485af2607f898",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ServerGamePacketListenerImplMixin.java": "5c9774ad521a3954c781ee72d6458a6554a9e08a3c7899b5f828ee3580a36e0d",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SignUiAccessor.java": "8a6653e42b19ef23aa55808ca23329821f87d9138ea20d9a64032e1fdb616740",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SliderValueAccessor.java": "d47e1b65370738ef705e03a9c5bfd86a5125119175e1eb9c3c1df5229aa078f5",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/StonecutterUiAccessor.java": "b98e5079fa4b8cc880ccbb870af8717d2b74ea4e332642852f0b65c4fd415a3b",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SuggestionListUiAccessor.java": "0c286868945fbb277a8ded6e0b9d959e02cb15e34f3c8858cb311878dce62704",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TooltipUiAccessor.java": "f979c1da37686af3d1abf11a0393d2cd0fdb7338fdc5f764e08ad39393cb2050",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WidgetTooltipUiAccessor.java": "0d3796838b4617d612d4fe31fd32c48674e902f8f3059777241fd9b865d75103",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java": "7f4f74433d9ca2ddc02df0e302fd64381c0aa53a3874d2a5e4e561f3ab0d63d8",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerClientNetworking.java": "bacc36978719f6c58fc9a7829e960f9d24c9b9d55a671171dc0593b2df7bb12b",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java": "e0767c663bbd8b7d5aab19e9f8d79aa5572cccf7f799bafade382bee799404a2",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/BoundedTaskExecutor.java": "e6ec1ac552b59c8085bcd104ad51c17d66c6c37d90cc88d184c8cef2ac5ef01d",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java": "42f71aa335272e865a6d074597fb8468194e270738125ca765223d632df68359",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugBatchEngine.java": "7173cb0bb935c31b8bf01db2d736a1668566f3c60ac4c92c978302f904c58a72",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DebugMutationAuthorization.java": "e2393947b2dfc521b2bbdde83392c2af79756d0f2bf2b6585d6242f66e3d191a",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "c78e170243316cd15de6be3841338eeaebe8e7769ff7d18d935f5afb6f55ad88",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DeepObservationRequestContext.java": "373f43f40f328916b59736aaf96a7e8c54ca8178911320a959e9ed6ebaf26c7c",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/EventHub.java": "c8138f33fdd506c48450900153285a9148e86353e92c4a2e407602211e8c6306",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.java": "405cf4851c5c951c191745937eb7b34ac81f19cc8ad0e25d4a8973b8ffa40f6b",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeInputMapping.java": "f9c48aed0e3a7aceaebab3786b0cfd5016cd150e2e9ca3aa03fad58ccebabc8e",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationEngine.java": "2a9937a6945b3d187734bef25c3092609fb0c32ae019bf32faf72d4fa09660e9",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationLifecycleTracker.java": "c5cdad4e80118d70fc0479fa45ce5f36d0f82078bc8af1b548753b8468d3ceb5",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ObservationRevisionTracker.java": "7cd022a83c7212c77c33032ca309b5376ca7b82fc90952d65cf3ec8b6b5d8a52",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "023d28f220c003e8dcb35ae10d1941fb615140c33c94a17a7721089c3fecd5b7",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "b232a45091bde39925d4023411eaf3d01c01628223a3e2083262d31c6ea67572",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeService.java": "739be953886f26a06e7b5f5818a1b53c2581ef9a3732c4a33d68fd4b46d42212",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProbeTransport.java": "b8c22229d24c853c6f120e8b6a0a01031c1a5fc18f0b4daf87173f4d87aca772",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProtocolState.java": "51ad34bb86e57faa2299889ca8cc6dbdec875b1ff82b924bdfcd6a794d316eef",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ProviderExecutionEngine.java": "1b67aff09ca9b9c75f2064ecdaa8abd46aaba0ba0db83ecf62cd8c6bf65b9786",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecordingEngine.java": "09470da0223efd855da8ab64190ef1d0cf6f0300909d5933f37b795d4b3bb3ac",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "07699cdc69863b57c43ada9b3ddf4f3249743eaedb16e64893714e0635e7e3fa",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ResourceVersionVerifier.java": "2e2451cbe8decf5fb5a431bbd989d12c85d87e0c4b266b12943378bdb4a85873",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RichTextUiRegions.java": "5cc10ad5c2cb191a5f60d502d8e3d8254320c44b75c6f00d1a1a9d27bca024ca",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RuntimeToken.java": "03acbf6e8831763592766fa276045b2c6a645fd0146662a10a4e59352b0820d0",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SecurityGate.java": "e248a71ce8d7e9fb7885b38feb2867902abd78e34cf702169f09c225daba62a9",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaInteractionRegions.java": "a5c4a22bde0297cc6e4806ff36410b61276cb8cfe44cd060b9d4cbd2b75cd45b",
+    "versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java": "5df653f3fb4c69503413e6990337c988edd2ac7ca33c889e10df31625f74af5d",
+    "versions/26.3-fabric/src/client/resources/minecraft_protocol_probe.client.mixins.json": "5fbd22ba00f0fa0150dd6c29b04fd55552305673644d7001ee86d11f9839e706",
+    "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/FabricProbeMod.java": "77d4c0373a7d82015c42542f1b2e3a3692e58fcdc6b9f81439730c96a1da85ea",
+    "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "d8c8864302b681e7209e550196679ccd8dc0551b62192be20fc1923fb8d96b0b",
+    "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "65a68930a87e9bbc44a1d930de71e6c9e915125f008b21b6fd96b9640c0b7882",
+    "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "c89afa39e0b959f1183fcb742e6fea937d057e94f61b4a22a7906b21354b66b6",
+    "versions/26.3-fabric/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
+    "versions/26.3-fabric/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AgentTaskContractTest.java": "e1f00a327579f3f0040b93e6c1f2a3d208fd9d2a5d4e0f8fe24b73e362539a34",
+    "versions/26.3-fabric/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/CreativeSlotIdentityTest.java": "950b1c1e07ceafbec721e013e278d1841aa1e9db2f9a7fc3ede2030cd9237150",
+    "versions/26.3-fabric/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/GameCursorGuardTest.java": "60a7bb7d38b614205058a7891c7a99a89e05de8466d697b65794fc0a08c038cd",
+    "versions/26.3-fabric/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiTargetGeometryTest.java": "690f690cd091af9860cc12f6b1c3d58dc5c86a32a7c58b022497e335a4804a98",
+    "versions/26.3-fabric/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiContractTest.java": "3cb917d7f4e220cc478c97dc115a775df98afa1e58ac28a1e308ca518c038872"
+  },
+  "sourceChangedDuringRun": false,
+  "fixtureSha256": null,
+  "noMultimodal": true,
+  "screenshotAssertions": 0,
+  "persistentWriteCalls": 0,
+  "notExecuted": [
+    "external server authentication",
+    "Realms/account-gated UI",
+    "world conversion/repair",
+    "all settings combinations",
+    "all recipe combinations",
+    "third-party UI"
+  ]
+}

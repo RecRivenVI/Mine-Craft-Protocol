@@ -14,6 +14,7 @@ mcp-junit-launcher = "6.1.3"
 gson = "2.14.0"
 mixin = "0.8.7"
 openapi = "7.26.0"
+mcp-netty = "4.1.82.Final"
 
 [libraries]
 foojay-plugin = { module = "org.gradle.toolchains:foojay-resolver", version.ref = "foojay" }
@@ -28,6 +29,8 @@ mcp-junit = { module = "org.junit.jupiter:junit-jupiter", version.ref = "mcp-jun
 mcp-junit-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "mcp-junit-launcher" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 mixin-processor = { module = "org.spongepowered:mixin", version.ref = "mixin" }
+mcp-netty-http = { module = "io.netty:netty-codec-http", version.ref = "mcp-netty" }
+mcp-netty-handler = { module = "io.netty:netty-handler", version.ref = "mcp-netty" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

@@ -33,11 +33,8 @@ jobs:
       - name: Compare template files
         run: |
           status=0
-          for path in AGENTS.md CLAUDE.md .rumdl.toml .github/workflows/specification.yml \
-              components/configuration components/conventions components/compliance; do
-            if [ "$path" = CLAUDE.md ] && [ ! -e CLAUDE.md ]; then
-              continue
-            fi
+          for path in AGENTS.md gradlew gradlew.bat gradle/wrapper \
+              gradle/gradle-daemon-jvm.properties gradle/conventions .github/workflows/specification.yml; do
             if ! diff -r ".template/$path" "$path"; then
               echo "::error file=$path::Differs from template ${{ steps.specification.outputs.version }}; template files change only with template versions (G-08)."
               status=1

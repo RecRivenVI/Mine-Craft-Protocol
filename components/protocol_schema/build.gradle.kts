@@ -76,11 +76,32 @@ val test by tasks.registering {
                 "ErrorResponse",
                 "UiNode",
                 "UiSelector",
+                "UiDataCategory",
+                "UiReadSelector",
+                "UiContract",
+                "WorldDataCategory",
+                "WorldReadContract",
+                "WorldUserPlayerResponse",
             )) {
             check(javaRoot.resolve("$model.java").isFile) { "Missing Java model: $model" }
             check(tsRoot.resolve("$model.ts").isFile) { "Missing TypeScript model: $model" }
         }
-        logger.lifecycle("PROTOCOL_COMPONENT_TEST: PASS (schema + Java/TypeScript generation)")
+        for (model in listOf("PlayerStateResponse", "BlockStateResponse", "EntityQueryResponse")) {
+            check(javaRoot.resolve("$model.java").readText().contains("getDataCategory()")) {
+                "Java model drops basic world category: $model"
+            }
+            check(
+                tsRoot
+                    .resolve("$model.ts")
+                    .readText()
+                    .contains("'dataCategory': json['dataCategory']"),
+            ) {
+                "TypeScript decoder drops basic world category: $model"
+            }
+        }
+        logger.lifecycle(
+            "PROTOCOL_COMPONENT_TEST: PASS (schema + Java/TypeScript generation + world category preservation)",
+        )
     }
 }
 

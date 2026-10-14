@@ -1,11 +1,12 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function Require([bool]$ok,[string]$reason){if(-not$ok){throw "Control implementation: $reason"}}
 $schema=Get-Content (Join-Path $root 'components/protocol_schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
 $surface=& (Join-Path $PSScriptRoot '../../conformance-native_protocol/task/Invoke-NativeSurfaceConformance.ps1')
 Require ($surface.Result-eq'PASS') 'current Native/MCP/documented surface mismatch'
-Require ($schema.info.version-eq'0.0.1-control-r24') 'wrong Native contract version'
+Require ($schema.info.version-eq'0.0.1-ui-m1') 'wrong Native contract version'
 Require ($null-ne$schema.paths.'/v0/input/mouse/delta') 'relative input route missing'
 $cursorContract=& (Join-Path $PSScriptRoot 'Test-ControlCursorContract.ps1')
 Require ($cursorContract.Result-eq'PASS') 'cursor contract response classifier failed'
@@ -21,9 +22,9 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  $keyboard=Get-Content (Join-Path $directory 'mixin/KeyboardHandlerMixin.java') -Raw
  $mouse=Get-Content (Join-Path $directory 'mixin/MouseHandlerMixin.java') -Raw
  $constants=Get-Content (Join-Path $directory 'mixin/InputConstantsMixin.java') -Raw
- $engine=Get-Content (Join-Path $directory 'runtime/AutomationEngine.java') -Raw
- $state=Get-Content (Join-Path $directory 'runtime/ProtocolState.java') -Raw
- $transport=Get-Content (Join-Path $directory 'runtime/ProbeTransport.java') -Raw
+ $engine=Get-Content (Join-Path $runtimeCore 'AutomationEngine.java') -Raw
+ $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
+ $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
  Require ($state-match'AgentTaskLifecycle'-and$state-match'this::expireTaskIfNeeded'-and$state-match'leaseTaskId'-and$state-match'inputCleanupBarrier.thenApply') "$target bounded task/attached input cleanup missing"
  Require ($transport-match'path.equals\("/v0/control/task"\)'-and$transport-match'protocolState.agentActivity\(\)'-and-not$transport.Contains('presenceChannels')) "$target presence is still bound to TCP channel lifetime"
  Require ($runtime-match'logicalPointer.viewport\('-and$runtime-match'gui\s*\? this.logicalPointer.x\(\)') "$target page/viewport pointer continuity missing"
@@ -51,12 +52,14 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  Require ($engine-match'AgentPointer.interpolate'-and$engine-match'UI_TARGET_INVALIDATED'-and$engine-match'mouseButtonGuarded') "$target deterministic target-checked input missing"
  Require ($engine-match'AgentPointer.approach'-and$engine-match'InteractionPacing.movementSteps'-and$engine-match'pacedStep\(step, this\)'-and$engine-match'if \(release\) ready') "$target cancellable spectator pacing/release bypass missing"
  Require ($runtime-match'addSlotBounds\(node, left \+ slot.x, top \+ slot.y\)'-and$runtime-match'"x", itemX - 1'-and$runtime-match'"y", itemY - 1') "$target native slot hit box origin mismatch"
- Require ($runtime-match'viewIndex < menu.slots.size\(\)'-and$runtime-match'addSlotIdentity\(\s*node,\s*slot,\s*viewIndex'-and$runtime-match'"slot", viewIndex'-and$runtime-match'"nativeSlotIndex", slot.index'-and$runtime-notmatch'"slot", slot.index|"nodeId", "slot:" \+ this.screenRevision \+ ":" \+ slot.index') "$target creative wrappers still alias semantic slot identities"
+ Require ($runtime-match'viewIndex < capturedSlots'-and$runtime-match'capturedSlots = Math.min\(menu.slots.size\(\), slotBudget\)'-and$runtime-match'addSlotIdentity\(\s*node,\s*slot,\s*viewIndex'-and$runtime-match'"slot", viewIndex'-and$runtime-match'"nativeSlotIndex", slot.index'-and$runtime-notmatch'"slot", slot.index|"nodeId", "slot:" \+ this.screenRevision \+ ":" \+ slot.index') "$target creative wrappers still alias semantic slot identities"
  Require ($runtime-match'addSlotVisibility\(node, screen.width, screen.height\)'-and$runtime-match'menuHash\(AbstractContainerMenu menu\)'-and$engine-match'"menuIdentity"') "$target current screen menu/hidden slot guard missing"
- Require ($runtime-match'AutomationEngine.interactionPoint\(node\)'-and$engine-match'AgentPointer.center'-and$engine-match'fromPoint = interactionPoint\(from\)'-and$engine-match'toPoint = interactionPoint\(to\)') "$target target geometry is not shared by metadata/resolve/action/drag"
+ Require ($runtime-match'AutomationEngine.interactionPoint\(node\)'-and$engine-match'AgentPointer.center'-and$engine-match'fromPoint = offsetPoint\(from, step, "fromOffset"\)'-and$engine-match'toPoint = offsetPoint\(to, step, "toOffset"\)'-and$engine-match'if \(!step.has\(key\)\) return interactionPoint\(node\)'-and$engine-match'INVALID_UI_OFFSET') "$target target geometry/default center/normalized drag contract mismatch"
  Require ($engine-match'request.has\("selector"\) == request.has\("coordinates"\)') "$target ambiguous UI targeting is not rejected"
  Require ($runtime.IndexOf('this.evidenceCaptures.beforeOperatorChrome')-lt$runtime.IndexOf('renderChrome(graphics, alpha)')) "$target Operator pass precedes evidence copy"
+ Require ($runtime-match'instanceof net.minecraft.client.gui.screens.LoadingOverlay\) return') "$target Operator text can compile before initial resource reload is ready"
  Require ($runtime-match'ControlChrome.pointer'-and$runtime-match'ControlChrome.panel'-and$runtime-match'top = 8') "$target pixel Operator UI missing"
+ Require ($runtime-match'WindowDecoration.title'-and$runtime-match'WindowDecoration.icon'-and$runtime-match'original_with_agent_pointer'-and$runtime-match'publishWindowIcons\(window, false\)'-and$runtime-notmatch'applyAgentIcon|agent_placeholder|ImageIO.read') "$target final-output decoration/original icon restoration missing"
  Require ($runtime-match'ControlChrome\s*\.PointerTransform'-and$runtime-match'graphics.pose\(\).translate\('-and$runtime-match'this.logicalPointer.x\(\),\s*this.logicalPointer.y\(\),\s*width,\s*height,'-and$runtime-notmatch'Math.round\(this.logicalPointer.[xy]\(\)\)') "$target fractional orb hotspot is quantized or native pose adapter missing"
  if($target.StartsWith('26.')){Require ($runtime-match'windowState.width / \(float\) windowState.guiScale'-and$runtime-match'windowState.height / \(float\) windowState.guiScale') "$target orb origin ignores native float projection"}
  Require ($runtime-match'logicalPointer.button\('-and$runtime-match'logicalPointer.pressScale\(System.nanoTime\(\)\)'-and$runtime-match'logicalPointer.releaseButtons\(\)') "$target delivered-button visual feedback/cleanup missing"

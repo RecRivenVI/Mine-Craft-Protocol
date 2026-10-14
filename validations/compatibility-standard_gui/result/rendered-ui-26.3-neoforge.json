@@ -1,0 +1,48 @@
+{
+  "toolSha256": "a9af5fba4970b0153b451c2cee93be005cd21984039d379473ed86cf96e11c52",
+  "fullVanillaUiAcceptance": false,
+  "result": "PASS",
+  "heldButtons": 0,
+  "dirty": true,
+  "persistentWriteCalls": 0,
+  "uiAct": "GAME_ROUTED",
+  "coordinateFallbacks": 0,
+  "sourceHashes": [
+    {
+      "sha256": "bd816fa32e533a28ad306cb311084920353e18baf71f3bf9390692c72c418d88",
+      "path": "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/AutomationEngine.java"
+    },
+    {
+      "sha256": "42f71aa335272e865a6d074597fb8468194e270738125ca765223d632df68359",
+      "path": "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ConditionEngine.java"
+    },
+    {
+      "sha256": "6a21cb39f38b3cf7dc11423144c48f624523ae86f99cf8c1fbddbaf57ef9d3c3",
+      "path": "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java"
+    },
+    {
+      "sha256": "6bdc2cc51e80e516f6ebb779e1bc26361561bf9f5f80dbb8b2ea799a64443717",
+      "path": "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java"
+    }
+  ],
+  "heldKeys": 0,
+  "date": "2026-10-12T10:35:48.6970516Z",
+  "arrange": "diagnostic_player_commands_in_owned_creative_world",
+  "checks": [
+    "pack_select",
+    "pack_reorder_up_down",
+    "pack_unselect_restore",
+    "stonecutter_native_recipe",
+    "loom_native_pattern",
+    "enchantment_native_option",
+    "merchant_native_offer",
+    "beacon_native_power_confirm",
+    "book_multiline_page_switch_stale_rejection",
+    "book_sign_read_and_page",
+    "sign_four_native_keyboard_lines",
+    "hanging_sign_native_keyboard_line"
+  ],
+  "target": "26.3-neoforge",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "runtime": "development_native"
+}

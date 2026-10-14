@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 $gradle = Join-Path $repositoryRoot 'gradlew.bat'
 
 function Assert-True {
@@ -40,7 +41,7 @@ try {
 
     $schemaPath = Join-Path $repositoryRoot 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json'
     $schema = Get-Content -LiteralPath $schemaPath -Raw | ConvertFrom-Json
-    Assert-True ($schema.info.version -eq '0.0.1-control-r24') 'Schema must identify the current reviewed Native contract'
+    Assert-True ($schema.info.version -eq '0.0.1-ui-m1') 'Schema must identify the current reviewed Native contract'
     Assert-True ($null -ne $schema.paths.'/v0/control/acquire') 'Control Lease path must remain available'
     Assert-True ($null -ne $schema.paths.'/v0/operations/{operationId}') 'operation handle path must exist'
     Assert-True ($null -ne $schema.paths.'/v0/diagnostics/thread') 'thread-affinity diagnostic path must remain available'
@@ -59,10 +60,10 @@ try {
         'versions\26.3-fabric\src\client\java\io\github\recrivenvi\minecraftprotocol\probe\runtime'
     )) {
         $runtime = Join-Path $repositoryRoot $targetPath
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'ProtocolState.java')) "$targetPath must contain ProtocolState"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'RuntimeToken.java')) "$targetPath must contain RuntimeToken"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'AutomationEngine.java')) "$targetPath must contain AutomationEngine"
-        Assert-True (Test-Path -LiteralPath (Join-Path $runtime 'ObservationEngine.java')) "$targetPath must contain ObservationEngine"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java')) "$targetPath must contain ProtocolState"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'RuntimeToken.java')) "$targetPath must contain RuntimeToken"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'AutomationEngine.java')) "$targetPath must contain AutomationEngine"
+        Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ObservationEngine.java')) "$targetPath must contain ObservationEngine"
     }
 
     $facts = Get-Content (Join-Path $repositoryRoot 'gradle.properties') -Raw | ConvertFrom-StringData

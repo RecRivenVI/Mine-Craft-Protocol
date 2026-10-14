@@ -1,6 +1,8 @@
 package io.github.recrivenvi.minecraftprotocol.probe;
 
 import com.mojang.logging.LogUtils;
+import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeEchoReadProvider;
+import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeV2Providers;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProviders;
 import io.github.recrivenvi.minecraftprotocol.probe.peer.PeerNetworking;
 import net.neoforged.bus.api.IEventBus;
@@ -14,8 +16,8 @@ public final class NeoForgeProbeMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public NeoForgeProbeMod(IEventBus modBus) {
-        MinecraftProtocolProviders.register(new ProbeEchoReadProvider());
-        ProbeV2Providers.registerAll();
+        MinecraftProtocolProviders.register(new ProbeEchoReadProvider(MOD_ID));
+        ProbeV2Providers.registerAll(MOD_ID);
         modBus.addListener(PeerNetworking::register);
         LOGGER.info("Mine-Craft-Protocol Phase 8 NeoForge 26.1.2 V1 Runtime loaded");
     }

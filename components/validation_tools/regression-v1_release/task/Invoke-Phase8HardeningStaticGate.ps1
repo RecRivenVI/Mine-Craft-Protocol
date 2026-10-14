@@ -3,6 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "Phase 8 hardening static gate failed: $Message" }
@@ -19,13 +20,13 @@ $targets = @(
 $normalizedHashes = @{}
 foreach ($target in $targets) {
     $runtimeDirectory = Join-Path $root "versions\$($target.Name)\$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
-    $automation = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'AutomationEngine.java') -Raw
-    $protocol = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'ProtocolState.java') -Raw
-    $events = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'EventHub.java') -Raw
-    $recording = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'RecordingEngine.java') -Raw
-    $transport = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'ProbeTransport.java') -Raw
-    $conditions = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'ConditionEngine.java') -Raw
-    $security = Get-Content -LiteralPath (Join-Path $runtimeDirectory 'SecurityGate.java') -Raw
+    $automation = Get-Content -LiteralPath (Join-Path $runtimeCore 'AutomationEngine.java') -Raw
+    $protocol = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java') -Raw
+    $events = Get-Content -LiteralPath (Join-Path $runtimeCore 'EventHub.java') -Raw
+    $recording = Get-Content -LiteralPath (Join-Path $runtimeCore 'RecordingEngine.java') -Raw
+    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $conditions = Get-Content -LiteralPath (Join-Path $runtimeCore 'ConditionEngine.java') -Raw
+    $security = Get-Content -LiteralPath (Join-Path $runtimeCore 'SecurityGate.java') -Raw
     $runtime = Get-Content -LiteralPath (Join-Path $runtimeDirectory $target.Runtime) -Raw
 
     Assert-True ($automation -match 'cancellationRequested' -and $automation -match 'pending scheduled handles|Set<ScheduledFuture') "$($target.Name) must track pipeline cancellation and schedules"
@@ -69,7 +70,7 @@ foreach ($target in $targets) {
     Assert-True ($runtime -match 'command\.player\.execute' -and $runtime -match 'NORMAL_NETWORK') "$($target.Name) current-player command capability missing"
 
     foreach ($name in @('AutomationEngine.java','ProtocolState.java','EventHub.java','ConditionEngine.java','SecurityGate.java','RecordingEngine.java')) {
-        $text = (Get-Content -LiteralPath (Join-Path $runtimeDirectory $name) -Raw).TrimEnd() -replace "`r`n", "`n"
+        $text = (Get-Content -LiteralPath (Join-Path $runtimeCore $name) -Raw).TrimEnd() -replace "`r`n", "`n"
         $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($text)))
         if (-not $normalizedHashes.ContainsKey($name)) { $normalizedHashes[$name] = $hash }
         else { Assert-True ($normalizedHashes[$name] -eq $hash) "$name common hardening logic drifted across Targets" }

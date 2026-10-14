@@ -9,10 +9,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Window.class)
 abstract class WindowMixin {
-    @Inject(method = "setTitle", at = @At("HEAD"), cancellable = true)
-    private void minecraftProtocolProbe$title(String title, CallbackInfo ci) {
-        FabricProbeRuntime.onVanillaWindowTitle(title);
-        if (FabricProbeRuntime.isAgentControlActive()) ci.cancel();
+    @Redirect(
+            method = "setTitle",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lorg/lwjgl/sdl/SDLVideo;SDL_SetWindowTitle(JLjava/lang/CharSequence;)Z",
+                            remap = false))
+    private boolean minecraftProtocolProbe$title(long window, CharSequence title) {
+        return FabricProbeRuntime.onVanillaWindowTitle(window, title);
     }
 
     @Redirect(

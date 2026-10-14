@@ -52,6 +52,17 @@ export interface CompanionEnvelope {
 }
 
 export type AgentMode = 'READ' | 'OPERATE' | 'TAKEOVER';
+export type UiDataCategory = 'USER' | 'DEBUG';
+export interface UiContract {
+  domain: 'UI';
+  readCategories: UiDataCategory[];
+  defaultReadCategory: 'USER';
+  takeoverCategory: 'USER';
+  operateCategory: 'DEBUG';
+  debugReadScope: 'debug.ui.read';
+  debugReadRequiresArm: false;
+  milestoneComplete: boolean;
+}
 export interface ModeVersion { controlSessionId: string; generation: number }
 export interface ControlModeState {
   agentTask?: AgentTaskState;

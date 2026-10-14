@@ -1,0 +1,14 @@
+tool = "validation_tools"
+targets = ["1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric"]
+
+[instances.client]
+memory-min = "1G"
+memory-max = "4G"
+player-name = "CoreMoveTest"
+width = 1280
+height = 720
+jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.probe.port=28598"]
+
+[instances.server]
+memory-min = "1G"
+memory-max = "4G"

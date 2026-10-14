@@ -1,6 +1,7 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 function A([bool]$condition,[string]$message) {
     if(-not $condition) { throw "Phase 9B.1 static gate failed: $message" }
 }
@@ -16,10 +17,10 @@ A ($companion.Contains("minecraft_deep_observe") -and
         $companion.Contains("signal?.addEventListener('abort', cancelNative")) 'MCP Deep Observation cancellation propagation'
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
-    $tracker=Get-Content (Join-Path $base 'runtime\ObservationRevisionTracker.java') -Raw
-    $provider=Get-Content (Join-Path $base 'runtime\ProviderExecutionEngine.java') -Raw
-    $registry=Get-Content (Join-Path $base 'api\MinecraftProtocolProvidersV2.java') -Raw
-    $schema=Get-Content (Join-Path $base 'api\ProviderSchemaRegistry.java') -Raw
+    $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
+    $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
+    $registry=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java') -Raw
+    $schema=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java') -Raw
     $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
     foreach($marker in @('DEFAULT_MAX_ENTRIES','LinkedHashMap','nextGeneration','canonicalize','evictedResourceReobservation')) {
         A ($tracker.Contains($marker)) "$($target.Id) tracker $marker"

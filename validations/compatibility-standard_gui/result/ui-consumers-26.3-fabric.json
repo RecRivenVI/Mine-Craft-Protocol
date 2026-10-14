@@ -1,0 +1,38 @@
+{
+  "result": "PASS",
+  "checks": [
+    "mcp_typed_pack_select_reorder_restore",
+    "web_book_multiline_and_stale_page_rejection",
+    "web_sign_keyboard_route_without_coordinates"
+  ],
+  "target": "26.3-fabric",
+  "sourceHashes": [
+    {
+      "path": "components/companion/src/server.ts",
+      "sha256": "aa1ba585809c339e65d69110e5c1af5af6204ee696c427ca2d11d25e10aed358"
+    },
+    {
+      "path": "components/companion/src/ui-console.ts",
+      "sha256": "67f1211d3d52d1c5f0a196babad7e94d00d7c41ef083433756c204d8dce89c8a"
+    },
+    {
+      "path": "components/companion/web/app.mjs",
+      "sha256": "421a7106660900a704bb329fe120c08ade651225a86ae1b9b60385c8efc1de3e"
+    },
+    {
+      "path": "components/companion/scripts/live-vanilla-ui.mjs",
+      "sha256": "1dcb1f755131bfec5f66a39f03d0bed0e2c216010816cb1b660bdb374c996f07"
+    }
+  ],
+  "date": "2026-10-12T10:42:28.309Z",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "dirty": true,
+  "transports": [
+    "mcp_stdio",
+    "web_http"
+  ],
+  "arrange": "diagnostic_commands_in_owned_fixture_world",
+  "coordinateFallbacks": 0,
+  "persistentWriteCalls": 0,
+  "fullVanillaUiAcceptance": false
+}

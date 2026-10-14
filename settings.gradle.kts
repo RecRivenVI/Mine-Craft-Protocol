@@ -1,7 +1,5 @@
 pluginManagement {
-    includeBuild("components/configuration")
-    includeBuild("components/conventions")
-    includeBuild("components/compliance")
+    includeBuild("gradle/conventions")
     repositories {
         gradlePluginPortal()
         maven("https://maven.neoforged.net/releases")
@@ -9,11 +7,7 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("io.github.recrivenvi.configuration")
-    id("io.github.recrivenvi.conventions")
-    id("io.github.recrivenvi.compliance")
-}
+plugins { id("io.github.recrivenvi.conventions") }
 
 rootProject.name = "Mine-Craft-Protocol"
 
@@ -27,6 +21,7 @@ targets {
 
 components {
     product("runtime_safety")
+    product("runtime_core")
     tool("protocol_schema")
     tool("companion")
     tool("validation_tools")

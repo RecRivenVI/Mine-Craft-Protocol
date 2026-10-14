@@ -3,6 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+$runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core'
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "Phase 9D-0 static gate failed: $Message" }
@@ -28,7 +29,7 @@ foreach ($target in $targets) {
     $runtimeRoot = Join-Path $targetRoot "$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
     $engine = Get-Content -LiteralPath (Join-Path $runtimeRoot 'Phase9ASpikeEngine.java') -Raw
     $adapter = Get-Content -LiteralPath (Join-Path $runtimeRoot 'PersistentStorageAdapter.java') -Raw
-    $transport = Get-Content -LiteralPath (Join-Path $runtimeRoot 'ProbeTransport.java') -Raw
+    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
     $runtime = Get-Content -LiteralPath (Join-Path $runtimeRoot $target.Runtime) -Raw
 
     foreach ($marker in @(

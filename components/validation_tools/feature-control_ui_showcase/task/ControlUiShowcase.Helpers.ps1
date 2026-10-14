@@ -165,9 +165,10 @@ function Enter-ShowcaseWorld {
         $worlds=@(Get-ChildItem -LiteralPath (Join-Path $script:instance 'saves') -Directory -ErrorAction SilentlyContinue)
         Assert-Showcase ($worlds.Count-eq1) '专用实例必须仅有一个 Showcase 世界；不会选择未知存档。'
         $tree=Get-ShowcaseTree
-        # Vanilla world-list rows have no semantic children in the current Interaction Tree.
-        # Explicit, documented first-row coordinate fallback is confined to this one-world instance.
-        Invoke-ShowcaseApi POST '/v0/ui/action' @{action='click';coordinates=@{x=([int]$tree.width/2);y=75};source='explicit_coordinate'} (Get-ShowcaseControlHeaders)|Out-Null
+        $row=@(Get-ShowcaseNodes $tree|Where-Object {$_.worldId-eq$worlds[0].Name})
+        Assert-Showcase ($row.Count-eq1) '专用世界必须有唯一语义行；不退回坐标。'
+        if(-not$row[0].visible){Invoke-ShowcaseUi @{worldId=$worlds[0].Name;visibleOnly=$false} scroll_into_view|Out-Null}
+        Invoke-ShowcaseUi @{worldId=$worlds[0].Name}|Out-Null
         Click-ShowcaseLabel 'Play Selected World'
     } elseif($session.screenClass-match'CreateWorldScreen') {
         Write-Host '  首次创建独立 Survival / Peaceful 演示世界（仅 Vanilla 正常保存，无 Persistent Write）。'

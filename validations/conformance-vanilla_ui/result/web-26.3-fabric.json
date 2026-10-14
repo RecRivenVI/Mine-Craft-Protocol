@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "target": "26.3-fabric",
+  "testedAt": "2026-10-13T11:18:06.345Z",
+  "testedCommit": "c6a86904a2a465b63b58b42b1e25cef774351f5b",
+  "dirty": true,
+  "checks": [
+    "READ never injects player input",
+    "screen-changing click and release stay in their original gesture",
+    "keyboard text preserves native caret position",
+    "Shift-click and nine-slot native drag distribution",
+    "native scrollbar press, move and release",
+    "PNG remains standard Capture; no image assertions"
+  ],
+  "sourceHashes": {
+    "components/companion/src/ui-console.ts": "eed6e20196dff7630b45f89a1080af88523a5f535485abab645dd994cc22763c",
+    "components/companion/src/ui-console-http.ts": "b5c08459dc8f6b18c6580ddf07c6b1e8e0243588736fda856f9465a34a6d8e02",
+    "components/companion/web/app.mjs": "783f37d210766e0a607f707bcc083ee9dfa9378393f06b2b21e8bc7257b90319",
+    "components/validation_tools/conformance-vanilla_ui/task/run-web-input.mjs": "c361981832875523aa81fe91ac0355714699ba3befd945924f2cac4f5b525adf"
+  },
+  "noMultimodal": true,
+  "screenshotAssertions": 0,
+  "captureTransportChecks": 1,
+  "persistentWriteCalls": 0
+}
