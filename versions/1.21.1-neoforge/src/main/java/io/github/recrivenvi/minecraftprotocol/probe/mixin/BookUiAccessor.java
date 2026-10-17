@@ -1,12 +1,19 @@
 package io.github.recrivenvi.minecraftprotocol.probe.mixin;
 
 import java.util.List;
+import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(BookEditScreen.class)
 public interface BookUiAccessor {
+    @Accessor("pageEdit")
+    TextFieldHelper minecraftProtocolProbe$pageField();
+
+    @Accessor("titleEdit")
+    TextFieldHelper minecraftProtocolProbe$titleField();
+
     @Accessor("currentPage")
     int minecraftProtocolProbe$pageIndex();
 

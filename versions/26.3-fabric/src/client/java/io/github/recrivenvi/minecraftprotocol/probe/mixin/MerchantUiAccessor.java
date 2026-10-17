@@ -11,4 +11,7 @@ public interface MerchantUiAccessor {
 
     @Accessor("scrollOff")
     int minecraftProtocolProbe$scrollOff();
+
+    @Accessor("scrollOff")
+    void minecraftProtocolProbe$scrollOff(int value);
 }

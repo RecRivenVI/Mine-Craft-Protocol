@@ -1,0 +1,7 @@
+{
+  "1.20.1-forge": ["customskinloader-bootstrap", "zume"],
+  "1.21.1-neoforge": ["customskinloader-bootstrap", "zume"],
+  "26.1.2-neoforge": ["customskinloader-bootstrap"],
+  "26.3-neoforge": ["customskinloader-bootstrap"],
+  "26.3-fabric": ["customskinloader-bootstrap"]
+}

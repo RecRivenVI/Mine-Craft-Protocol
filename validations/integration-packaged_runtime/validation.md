@@ -29,7 +29,9 @@ Get-Help ./components/validation_tools/integration-packaged_runtime/task/Invoke-
 
 ## 目标
 
-保留以下现有合同与验收边界，不以迁移后的构建替代历史或真人验收。
+验证五端最终发行JAR在全新游戏目录，仅安装官方Minecraft/Loader及这一份产品JAR即可启动；不引用Gradle开发类路径、sourceSets或手工补库。
+旧端缺失Netty HTTP须以匹配版本Jar-in-Jar交付；26.1.2/26.3从原版运行库提供，不重复嵌入；Fabric既有必需API通过include交付。
+静态包装与真实安装分别记录；历史提交结果、开发Runtime矩阵和当前JAR结构均不能替代新安装结果。
 
 ## 运行
 
@@ -37,8 +39,28 @@ Get-Help ./components/validation_tools/integration-packaged_runtime/task/Invoke-
 
 ```powershell
 ./gradlew.bat :validation_tools:check
+pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-Phase9D21PackagingGate.ps1 -SkipBuild
+foreach ($target in @('26.3-neoforge','1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-fabric')) {
+    pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1 -Target $target
+    if ($LASTEXITCODE -ne 0) { throw "全新安装失败：$target" }
+}
 ```
+
+构建完成后再启动，默认串行、最大堆4 GiB、静音。工具从官方版本清单/Loader安装器准备运行库，原版缓存复用必须匹配官方SHA-1，
+游戏类路径仅含验证自有安装目录。每次将自己的旧安装移入回收站，未知目录或运行中实例拒绝覆盖；不访问外部Prism/日常实例。
+旧安装先核对owner、Target、父目录、Runtime锁及重解析点，再在同卷仓库旁的短临时路径原子重命名后回收，避免Shell长路径限制。
+若回收仍失败，保留并打印旧副本路径，不永久删除；新实例使用原来的固定位置，旧副本不进入类路径。
+清理阶段异常写为FAIL及具体stage，不遗留可误读的IN_PROGRESS。组件check包含实际长路径回收、锁/身份拒绝和故障保留测试。
+当前结果固定写到result/Target.json，包含源码、实际JAR、工具、Java/Loader、类加载来源和清理结果，不按运行次数新建结果目录。
 
 ## 通过标准
 
-以本说明中的具体结果字段、日志与失败条件为准；未执行的 Live/人工场景必须保持未验收。
+五端各自status=PASS，发行JAR与当前源码匹配，freshGameDirectory=true、externalModCount=1、developmentClasspath=false；
+到达无加载覆盖层的标题屏幕，endpoint身份/握手及USER读取成功，实际HTTP类和产品Transport已加载。
+公开Provider V2接口、注册表和schema注册类须实际从安装布局加载，读取到四个既有owner descriptor；记录类来源，不依赖项目classpath。
+这证明发行SPI装载与目录，不替代世界内Provider mutation实测，后者由对应的当前候选消费者验证记录。
+通过正式语义Quit请求退出，自有进程退出码0、Vanilla Stopping日志、无崩溃报告、端点删除；
+退出HTTP可能以503 RUNTIME_SHUTTING_DOWN及executionOutcome=not_confirmed、retrySafe=false报告请求被关闭取消，或连接先断；
+保留原始结果，不盲重放，不将其称为成功RPC，不能接受内部HTTP500代替明确关闭状态；实际自然退出与响应分别判断。
+打包结构、独立安装结果及源码/JAR绑定均通过后，才可刷新alpha清单与固定分发快照；发布工具再次校验结果哈希。
+这不代表完整UI/世界目录、MCP全部功能、Peer或人工验收完成。

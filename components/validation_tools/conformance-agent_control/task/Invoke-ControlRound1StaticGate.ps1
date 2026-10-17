@@ -8,7 +8,7 @@ Require ($schema.info.version-eq'0.0.1-ui-m1') 'wrong V0 schema version'
 $policies=@('READ_COMPATIBLE','OPERATE_REQUIRED','TAKEOVER_REQUIRED','MODE_INDEPENDENT')
 $count=0
 foreach($path in $schema.paths.PSObject.Properties){foreach($operation in $path.Value.PSObject.Properties){
-    if(-not$operation.Value.operationId){continue}
+    if($operation.Name-notin@('get','post','put','patch','delete','options','head','trace')-or-not$operation.Value.operationId){continue}
     Require ($operation.Value.'x-agent-mode'-in$policies) "unclassified $($operation.Name) $($path.Name)"
     $count++
 }}
@@ -28,7 +28,7 @@ foreach($target in $targets){
     $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
     $adapter=Get-Content (Join-Path $directory "$runtime.java") -Raw
     Require (-not(Test-Path (Join-Path $directory 'ProbeTransport.java'))-and-not(Test-Path (Join-Path $directory 'ProtocolState.java'))) "$target must not retain duplicate protocol implementations"
-    Require ($adapter.Contains('new ProbeTransport(this, token, port, "'+$target+'")')-and$adapter.Contains('import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;')) "$target shared transport identity/adapter binding missing"
+    Require (($adapter-replace'\s','').Contains('ProbeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+$target+'")')-and$adapter.Contains('import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;')) "$target shared transport instance identity/adapter binding missing"
     $experimental=$target-in@('1.20.1-forge','26.3-neoforge','26.3-fabric')
     Require (($adapter-match'implements Phase9AExperimentalService')-eq$experimental) "$target experimental route surface changed"
     Require ($transport-match'attachControlSession'-and$transport-match'/v0/control/mode') "$target mode session is not connected"
@@ -38,7 +38,7 @@ foreach($target in $targets){
     Require ($state-match'inputCleanupBarrier'-and$state-match'STALE_MODE_REVISION'-and$state-match'TAKEOVER_ONLY') "$target transition/latch contract missing"
     $minecraftMixin=Get-Content (Join-Path $directory '../mixin/MinecraftMixin.java') -Raw
     Require ($minecraftMixin-match'method = "close"'-and$minecraftMixin-match'beforeClientClose'-and$adapter-match'runtime_pre_loader_shutdown'-and$adapter-match'shutdownStarted.compareAndSet') "$target must drain before Loader teardown with an idempotent JVM fallback"
-    Require ($adapter-match'controlSession.withTakeover\(accepted, supplier\)'-and$adapter-match'onOperatingServer\(') "$target owner-thread enforcement missing"
+    Require ($adapter-match'controlSession.withTakeover\(\s*accepted,'-and$adapter-match'commandGate.enter\(accepted, permit\)'-and$adapter-match'dispatch.check\(\)'-and$adapter-match'onOperatingServer\(') "$target owner-thread enforcement and guarded native callback missing"
     Require ($transport-notmatch'storage/write|/v0/storage.write') "$target must not implement Persistent Write"
 }
 $server=Get-Content (Join-Path $root 'components/companion/src/server.ts') -Raw

@@ -7,4 +7,5 @@ memory-max = "4G"
 player-name = "UiConformance"
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.toastDebugFixture=true"]
+game-args = ["--mixin", "minecraft_protocol_probe.validation.mixins.json"]

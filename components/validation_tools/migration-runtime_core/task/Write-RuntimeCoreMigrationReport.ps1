@@ -10,7 +10,7 @@ if($packaging.Result-ne'PASS'){throw 'Current product artifacts failed verificat
 $targets=@('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')
 $matrix=foreach($target in $targets){
     $result=Get-Content (Join-Path $validation "result/$target.json") -Raw|ConvertFrom-Json
-    if($result.status-ne'PASS'-or-not$result.cleanShutdown-or$result.sourceChangedDuringRun-or$result.persistentWriteCalls-ne0-or$result.checks.Count-ne10){throw "Incomplete current Native smoke: $target"}
+    if($result.status-ne'PASS'-or-not$result.cleanShutdown-or$result.sourceChangedDuringRun-or$result.persistentWriteCalls-ne0-or$result.checks.Count-lt10){throw "Incomplete current Native smoke: $target"}
     foreach($source in $result.sourceHashes.PSObject.Properties){
         if((Get-FileHash (Join-Path $repo $source.Name) -Algorithm SHA256).Hash.ToLowerInvariant()-ne$source.Value){throw "Native smoke source became stale: $($source.Name)"}
     }
@@ -24,7 +24,7 @@ $matrix=foreach($target in $targets){
 }
 $server=Get-Content (Join-Path $validation 'instance/26.3-neoforge/server/logs/latest.log') -Raw
 if($server-notmatch'Done \('-or$server-notmatch'Runtime loaded'-or$server-notmatch'Stopping server'-or$server-notmatch'Closing FML Loader'-or$server-match'NoClassDefFoundError|LinkageError'){throw 'Reference dedicated server startup/shutdown not confirmed'}
-if(Get-NetTCPConnection -State Listen -LocalPort 28598 -ErrorAction SilentlyContinue){throw 'Owned client port was not released'}
+foreach($target in $targets){if(Test-Path (Join-Path $validation "instance/$target/client/minecraft-protocol/endpoint.json")){throw "Owned discovery record remains: $target"}}
 $games=@(Get-CimInstance Win32_Process -Filter "Name='java.exe'"|Where-Object {$_.CommandLine-like('*'+$repo+'*')-and$_.CommandLine-match'devlaunch.Main|devlaunchinjector.Main'})
 if($games.Count){throw 'Repository game process still running'}
 $suites=foreach($suite in @('components/runtime_core','components/runtime_safety')+@($targets|ForEach-Object {"versions/$_"})){

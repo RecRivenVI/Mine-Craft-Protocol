@@ -163,6 +163,24 @@ final class ControlModeContractTest {
     }
 
     @Test
+    void checkedAcquireCannotClearAnOverrideThatArrivesAfterItsStatusRead() {
+        try (ProtocolState state = state()) {
+            state.acquireLease(60000);
+            JsonObject checked = version(state);
+            state.revokeHumanControl(); // synthetic unit event, not physical Esc evidence
+            assertEquals(
+                    "STALE_MODE_REVISION",
+                    assertThrows(
+                                    AgentControlSession.ModeException.class,
+                                    () -> state.acquireLease(60000, checked))
+                            .code());
+            assertEquals("READ", mode(state));
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
+            assertFalse(state.controlSession().snapshot().agentControlled());
+        }
+    }
+
+    @Test
     void staleQueuedInputDoesNotBecomeValidAfterAnotherTakeover() {
         try (ProtocolState state = state()) {
             String lease = state.acquireLease(60000).get("leaseId").getAsString();

@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import io.github.recrivenvi.minecraftprotocol.core.BoundedTaskExecutor;
+import io.github.recrivenvi.minecraftprotocol.core.DebugBlockStateRequest;
 import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
 import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
 import io.github.recrivenvi.minecraftprotocol.core.ObservationLifecycleTracker;
@@ -66,6 +67,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.material.Fluid;
@@ -889,24 +891,76 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             throw valueMismatch("expectedBlockId", before.get("blockId").getAsString());
         }
         String blockId = requiredDebugString(request, "blockId");
-        if (blockId.equals(before.get("blockId").getAsString())) throw noStateChange();
         ResourceLocation id = ResourceLocation.tryParse(blockId);
         if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
             throw new ProtocolState.ProtocolException(
                     "UNKNOWN_BLOCK", 400, "Unknown block: " + blockId);
         }
         Block block = BuiltInRegistries.BLOCK.get(id);
-        level.setBlockAndUpdate(position, block.defaultBlockState());
+        DebugBlockStateRequest.verifyExpected(request, before.getAsJsonObject("properties"));
+        BlockState current = level.getBlockState(position);
+        BlockState requested = current.is(block) ? current : block.defaultBlockState();
+        for (var entry : DebugBlockStateRequest.properties(request, "properties").entrySet()) {
+            Property<?> property = block.getStateDefinition().getProperty(entry.getKey());
+            if (property == null) {
+                throw new ProtocolState.ProtocolException(
+                        "UNKNOWN_BLOCK_PROPERTY", 400, "Unknown property: " + entry.getKey());
+            }
+            requested = setDebugProperty(requested, property, entry.getValue());
+        }
+        if (requested == current) throw noStateChange();
+        level.setBlockAndUpdate(position, requested);
         JsonObject after = blockSnapshot(level, position);
-        return mutationResult(
-                request,
-                "world",
-                "vanilla_server_level_set_block",
-                "normal_network_sync",
-                before,
-                after,
-                beforeRef,
-                this.blockRevision(level, after));
+        JsonObject result =
+                mutationResult(
+                        request,
+                        "world",
+                        "vanilla_server_level_set_block",
+                        "normal_network_sync",
+                        before,
+                        after,
+                        beforeRef,
+                        this.blockRevision(level, after));
+        result.addProperty(
+                "sideEffects",
+                "native_neighbor_updates_and_block_entity_replacement; secondary_changes_or_drops_possible; no_multi_block_rollback");
+        return result;
+    }
+
+    static <T extends Comparable<T>> T parseDebugProperty(Property<T> property, String value) {
+        return property.getValue(value)
+                .orElseThrow(
+                        () ->
+                                new ProtocolState.ProtocolException(
+                                        "INVALID_BLOCK_PROPERTY_VALUE",
+                                        400,
+                                        "Invalid value for property: " + property.getName()));
+    }
+
+    private static <T extends Comparable<T>> BlockState setDebugProperty(
+            BlockState state, Property<T> property, String value) {
+        return state.setValue(property, parseDebugProperty(property, value));
+    }
+
+    private static <T extends Comparable<T>> String debugPropertyName(
+            BlockState state, Property<T> property) {
+        return serializeDebugProperty(property, state.getValue(property));
+    }
+
+    static <T extends Comparable<T>> String serializeDebugProperty(Property<T> property, T value) {
+        return property.getName(value);
+    }
+
+    private static JsonObject debugBlockProperties(BlockState state) {
+        // Enum.toString() is not the native wire name (for example NoteBlockInstrument).
+        JsonObject properties = new JsonObject();
+        state.getProperties().stream()
+                .sorted(Comparator.comparing(Property::getName))
+                .forEach(
+                        property ->
+                                properties.addProperty(
+                                        property.getName(), debugPropertyName(state, property)));
+        return properties;
     }
 
     private JsonObject debugBlockEntityCustomName(ServerPlayer player, JsonObject request) {
@@ -1128,13 +1182,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             BlockState state = chunk.getBlockState(position);
             value.addProperty(
                     "blockId", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
-            JsonObject properties = new JsonObject();
-            state.getValues()
-                    .forEach(
-                            (property, propertyValue) ->
-                                    properties.addProperty(
-                                            property.getName(), String.valueOf(propertyValue)));
-            value.add("properties", properties);
+            value.add("properties", debugBlockProperties(state));
         }
         return value;
     }
@@ -2138,13 +2186,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 BlockState state = chunk.getBlockState(pos);
                 value.addProperty(
                         "blockId", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
-                JsonObject properties = new JsonObject();
-                state.getValues()
-                        .forEach(
-                                (property, propertyValue) ->
-                                        properties.addProperty(
-                                                property.getName(), String.valueOf(propertyValue)));
-                value.add("properties", properties);
+                value.add("properties", debugBlockProperties(state));
             } else {
                 value.addProperty("reason", "NOT_LOADED");
             }

@@ -218,6 +218,108 @@ final class ProtocolStateTest {
         }
     }
 
+    @Test
+    void terminalObserverSeesCommittedFailureInsteadOfFutureCallbackRegistrationOrder()
+            throws Exception {
+        try (var state = state()) {
+            var input = new CompletableFuture<JsonObject>();
+            String id = state.startOperation(input, true).get("operationId").getAsString();
+            var observed = new CompletableFuture<JsonObject>();
+            state.onOperationTerminal(id, observed::complete);
+            input.completeExceptionally(
+                    new ProtocolState.ProtocolException("TEST_FAILED", 409, "failed"));
+            var terminal = observed.get(1, TimeUnit.SECONDS);
+            assertEquals("failed", terminal.get("state").getAsString());
+            assertEquals("TEST_FAILED", terminal.get("errorCode").getAsString());
+        }
+    }
+
+    @Test
+    void terminalObserverDoesNotKeepTheOperationMonitorWhileWaitingForSessionLocks()
+            throws Exception {
+        for (boolean cancel : new boolean[] {false, true})
+            try (var state = state()) {
+                var input = new CompletableFuture<JsonObject>();
+                String id = state.startOperation(input, true).get("operationId").getAsString();
+                Object sessionLock = new Object();
+                var entered = new CountDownLatch(1);
+                state.onOperationTerminal(
+                        id,
+                        snapshot -> {
+                            entered.countDown();
+                            synchronized (sessionLock) {
+                            }
+                        });
+                var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+                try {
+                    java.util.concurrent.Future<?> completion;
+                    synchronized (sessionLock) {
+                        completion =
+                                executor.submit(
+                                        () -> {
+                                            if (cancel) state.cancelOperation(id);
+                                            else input.complete(new JsonObject());
+                                        });
+                        assertTrue(entered.await(1, TimeUnit.SECONDS));
+                        var read = executor.submit(() -> state.operationStatus(id));
+                        assertEquals(
+                                cancel ? "cancelled" : "completed",
+                                read.get(1, TimeUnit.SECONDS).get("state").getAsString());
+                    }
+                    completion.get(1, TimeUnit.SECONDS);
+                } finally {
+                    executor.shutdownNow();
+                }
+            }
+    }
+
+    @Test
+    void cancellationDoesNotFreezeASubmissionObservationStillBeingPublished() {
+        class EvidenceFuture extends CompletableFuture<JsonObject>
+                implements PlayerCommandEvidence.Source {
+            final java.util.List<JsonObject> receipts =
+                    new java.util.concurrent.CopyOnWriteArrayList<>();
+            boolean complete;
+
+            public java.util.List<JsonObject> commandSubmissions() {
+                return receipts;
+            }
+
+            public boolean commandSubmissionsComplete() {
+                return complete;
+            }
+        }
+        try (var state = state()) {
+            var future = new EvidenceFuture();
+            String id = state.startOperation(future, true).get("operationId").getAsString();
+            var cancelled = state.cancelOperation(id);
+            assertEquals("cancelled", cancelled.get("state").getAsString());
+            assertTrue(!cancelled.has("result"));
+            assertTrue(!cancelled.get("commandSubmissionsComplete").getAsBoolean());
+            // Already-admitted observation before cleanup, not late input.
+            future.receipts.add(
+                    PlayerCommandEvidence.classified(
+                            new JsonObject(),
+                            PlayerCommandPolicy.Effect.STATE_MUTATION,
+                            "GAME_ROUTED_RAW"));
+            for (int repeat = 0; repeat < 3; repeat++) {
+                var current = state.operationStatus(id);
+                assertEquals("cancelled", current.get("state").getAsString());
+                assertEquals(
+                        1,
+                        current.getAsJsonObject("result")
+                                .getAsJsonArray("commandSubmissions")
+                                .size());
+                assertTrue(
+                        current.getAsJsonObject("result")
+                                .get("evidenceContaminated")
+                                .getAsBoolean());
+            }
+            future.complete = true;
+            assertTrue(state.operationStatus(id).get("commandSubmissionsComplete").getAsBoolean());
+        }
+    }
+
     private static ProtocolState state() {
         return new ProtocolState(
                 Set.of("read", "input", "control", "event", "diagnostics", "command"),

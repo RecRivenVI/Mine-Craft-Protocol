@@ -14,6 +14,7 @@ const requiredPaths = [
   '/v0/ui/action',
   '/v0/pipelines',
   '/v0/state/frames',
+  '/v0/world/scene',
   '/v0/capture',
   '/v0/recordings',
   '/v0/diagnostics/hooks',
@@ -25,8 +26,8 @@ const requiredPaths = [
   ,'/v0/debug/batches'
 ];
 const requiredSchemas = [
-  'WorldDataCategory', 'WorldReadContract', 'WorldUserPlayerResponse',
-  'CapabilitiesResponse',
+  'WorldDataCategory', 'WorldReadContract', 'WorldUserPlayerResponse', 'WorldSceneResponse', 'RuntimeConnection',
+  'CapabilitiesResponse', 'PlayerCommandSubmission',
   'AgentMode', 'AgentModeVersion', 'ControlModeRequest', 'ControlModeResponse',
   'UiTreeResponse',
   'PipelineRequest',
@@ -52,12 +53,18 @@ for (const schema of requiredSchemas) {
   if (!specification.components?.schemas?.[schema]) throw new Error(`Companion-required schema is missing: ${schema}`);
 }
 const serialized = JSON.stringify(specification);
+for(const field of ['configurationKind','configuredCommandEffect'])if(!specification.components.schemas.PlayerCommandSubmission.properties[field])throw new Error('Missing typed command configuration provenance: '+field);
+if(!specification.components.schemas.OperationDescriptor.properties.additionalScopesByStep||!specification.components.schemas.AssertResponse.allOf[1].properties.dataCategory)throw new Error('Missing conditional input scopes or categorized assertion response');
+for(const path of ['/v0/ui/action','/v0/pipelines'])for(const parameter of ['ExpectedScreenRevision','ExpectedMenuRevision']){
+  if(!specification.paths[path].post.parameters?.some(value=>value.$ref==='#/components/parameters/'+parameter))throw new Error(`Missing queued input precondition ${parameter} on ${path}`);
+}
 if (serialized.includes('expectedWorldRevision')) {
   throw new Error('Companion protocol must not restore global expectedWorldRevision');
 }
 
 const policies = ['READ_COMPATIBLE', 'OPERATE_REQUIRED', 'TAKEOVER_REQUIRED', 'MODE_INDEPENDENT'];
 for (const [path, methods] of Object.entries(specification.paths)) {
+  if (!methods.parameters?.some(parameter => parameter.$ref === '#/components/parameters/RuntimeInstance')) throw new Error(`Missing instance pin on ${path}`);
   for (const [method, operation] of Object.entries(methods)) {
     if (!operation.operationId) continue;
     if (!policies.includes(operation['x-agent-mode'])) throw new Error(`Unclassified native operation ${method} ${path}`);

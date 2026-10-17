@@ -10,6 +10,7 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"GET","path":"/v0/world/scene","operationId":"getWorldScene","modeRequirement":"READ_COMPATIBLE"},
     {"method":"GET","path":"/v0/control/task","operationId":"getAgentTask","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/control/task","operationId":"manageAgentTask","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/input/mouse/delta","operationId":"mouseDelta","modeRequirement":"TAKEOVER_REQUIRED"},
@@ -463,8 +464,8 @@
       "path": "/v0/debug/player/attribute",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "OPERATE_REQUIRED",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -473,8 +474,8 @@
       "path": "/v0/debug/entity/state",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "OPERATE_REQUIRED",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -485,8 +486,8 @@
         "1.20.1-forge",
         "1.21.1-neoforge",
         "26.1.2-neoforge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "OPERATE_REQUIRED",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -495,10 +496,8 @@
       "path": "/v0/diagnostics/phase9a/inventory",
       "targets": [
         "1.20.1-forge",
-        "1.21.1-neoforge",
-        "26.1.2-neoforge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "READ_COMPATIBLE",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -507,8 +506,8 @@
       "path": "/v0/diagnostics/phase9a/observe",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "READ_COMPATIBLE",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -517,8 +516,8 @@
       "path": "/v0/diagnostics/phase9a/keyframe",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "READ_COMPATIBLE",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -527,8 +526,8 @@
       "path": "/v0/diagnostics/phase9a/delta",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "READ_COMPATIBLE",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -537,8 +536,8 @@
       "path": "/v0/diagnostics/phase9a/reconstruct",
       "targets": [
         "1.20.1-forge",
-        "26.2-neoforge",
-        "26.2-fabric"
+        "26.3-neoforge",
+        "26.3-fabric"
       ],
       "modeRequirement": "READ_COMPATIBLE",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
@@ -582,6 +581,9 @@
       "discriminator": "action",
       "actions": {
         "status": "READ_COMPATIBLE",
+        "begin_task": "READ_COMPATIBLE",
+        "heartbeat_task": "READ_COMPATIBLE",
+        "end_task": "READ_COMPATIBLE",
         "set_mode": "MODE_INDEPENDENT",
         "acquire": "MODE_INDEPENDENT",
         "renew": "MODE_INDEPENDENT",

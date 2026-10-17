@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.CancellableWork;
+import io.github.recrivenvi.minecraftprotocol.safety.WorldDataView;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -61,14 +63,17 @@ final class RecordingEngine implements AutoCloseable {
 
     private final ProbeService service;
     private final ObservationEngine observation;
+    private final ProtocolState protocolState;
     private final Map<String, RecordingSession> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler;
     private final ThreadPoolExecutor writer;
     private final ExecutorService finalizer;
 
-    RecordingEngine(ProbeService service, ObservationEngine observation) {
+    RecordingEngine(
+            ProbeService service, ObservationEngine observation, ProtocolState protocolState) {
         this.service = service;
         this.observation = observation;
+        this.protocolState = protocolState;
         this.scheduler =
                 Executors.newScheduledThreadPool(
                         2,
@@ -103,6 +108,17 @@ final class RecordingEngine implements AutoCloseable {
 
     JsonObject start(JsonObject request) {
         Config config = Config.from(request);
+        this.observation.worldReads().authorize(config.category());
+        for (var read : config.stateReads()) {
+            JsonObject normalized = read.getAsJsonObject().deepCopy();
+            if (normalized.has("category")
+                    && !config.category()
+                            .equals(observation.worldReads().category(normalized).name()))
+                throw new ProtocolState.ProtocolException(
+                        "WORLD_CATEGORY_MIXED", 400, "Recording reads must share its category");
+            normalized.addProperty("category", config.category());
+            observation.validateRead(normalized);
+        }
         String id = UUID.randomUUID().toString();
         Path directory = this.service.artifactRoot().resolve(id);
         try {
@@ -134,28 +150,48 @@ final class RecordingEngine implements AutoCloseable {
     }
 
     JsonObject list() {
+        return list("USER");
+    }
+
+    JsonObject list(String category) {
+        observation.worldReads().authorize(category);
         JsonArray recordings = new JsonArray();
         this.sessions.values().stream()
+                .filter(session -> session.config.category().equals(category))
                 .sorted(Comparator.comparingLong(session -> session.startedAtMillis))
                 .forEach(session -> recordings.add(session.statusJson()));
         JsonObject json = new JsonObject();
         json.addProperty("type", "recording.list");
+        json.addProperty("domain", "WORLD");
+        json.addProperty("dataCategory", category);
         json.add("recordings", recordings);
         return json;
     }
 
     JsonObject status(String id) {
-        return this.require(id).statusJson();
+        return status(id, "USER");
+    }
+
+    JsonObject status(String id, String category) {
+        return this.require(id, category).statusJson();
     }
 
     JsonObject stop(String id, String reason) {
-        RecordingSession session = this.require(id);
+        return stop(id, reason, "USER");
+    }
+
+    JsonObject stop(String id, String reason, String category) {
+        RecordingSession session = this.require(id, category);
         this.finalizeSession(session, reason);
         return session.statusJson();
     }
 
     CompletableFuture<Path> artifact(String id) {
-        RecordingSession session = this.require(id);
+        return artifact(id, "USER");
+    }
+
+    CompletableFuture<Path> artifact(String id, String category) {
+        RecordingSession session = this.require(id, category);
         if (!session.status.equals("completed") || !Files.isRegularFile(session.bundlePath())) {
             return CompletableFuture.failedFuture(
                     new ProtocolState.ProtocolException(
@@ -168,11 +204,48 @@ final class RecordingEngine implements AutoCloseable {
         long timestamp = System.currentTimeMillis();
         for (RecordingSession session : this.sessions.values()) {
             if (!session.status.equals("recording")) continue;
+            Runnable publication;
+            try {
+                publication = observation.worldReads().publicationGuard(session.config.category());
+            } catch (ProtocolState.ProtocolException denied) {
+                finalizeSession(session, "world_read_authority_lost");
+                continue;
+            }
+            Runnable uiPublication;
+            try {
+                uiPublication =
+                        payload.has("operation")
+                                        && ProtocolState.uiDiagnosticOperation(
+                                                payload.get("operation").getAsString())
+                                ? protocolState.uiReadGuard("DEBUG")
+                                : () -> {};
+            } catch (ProtocolState.ProtocolException denied) {
+                continue;
+            }
+            JsonObject projected =
+                    session.config.category().equals("DEBUG")
+                            ? payload.deepCopy()
+                            : WorldDataView.userEvent(payload);
+            if (projected == null) continue;
             JsonObject event = new JsonObject();
             event.addProperty("category", category);
             event.addProperty("timestampMillis", timestamp);
-            event.add("payload", payload.deepCopy());
-            this.enqueue(session, () -> session.writeEvent(event), "event");
+            event.addProperty("dataCategory", session.config.category());
+            event.add("payload", projected);
+            this.enqueue(
+                    session,
+                    () -> {
+                        try {
+                            publication.run();
+                            uiPublication.run();
+                        } catch (ProtocolState.ProtocolException denied) {
+                            session.gapCount.incrementAndGet();
+                            session.lastGapTrack = "event_read_context_changed";
+                            return;
+                        }
+                        session.writeEvent(event);
+                    },
+                    "event");
         }
     }
 
@@ -193,8 +266,39 @@ final class RecordingEngine implements AutoCloseable {
             event.addProperty("timestampMillis", System.currentTimeMillis());
             event.addProperty("mode", mode);
             event.addProperty("operation", operation);
-            event.add("evidence", evidence.deepCopy());
-            this.enqueue(session, () -> session.writeEvent(event), "contamination");
+            event.addProperty("dataCategory", session.config.category());
+            JsonObject details = evidence.deepCopy();
+            Runnable detailsPublication = null;
+            if (session.config.category().equals("DEBUG"))
+                try {
+                    Runnable worldGuard = observation.worldReads().publicationGuard("DEBUG");
+                    Runnable uiGuard =
+                            ProtocolState.uiDiagnosticOperation(operation)
+                                    ? protocolState.uiReadGuard("DEBUG")
+                                    : () -> {};
+                    detailsPublication =
+                            () -> {
+                                worldGuard.run();
+                                uiGuard.run();
+                            };
+                } catch (ProtocolState.ProtocolException denied) {
+                    // Contamination remains recorded even when diagnostic details are unavailable.
+                }
+            Runnable publication = detailsPublication;
+            this.enqueue(
+                    session,
+                    () -> {
+                        if (publication != null)
+                            try {
+                                publication.run();
+                                event.add("evidence", details);
+                            } catch (ProtocolState.ProtocolException denied) {
+                                // A queued writer cannot publish details after read authority
+                                // changes.
+                            }
+                        session.writeEvent(event);
+                    },
+                    "contamination");
         }
     }
 
@@ -235,6 +339,12 @@ final class RecordingEngine implements AutoCloseable {
 
     private void sample(RecordingSession session) {
         if (!session.status.equals("recording") || session.captureStopping.get()) return;
+        try {
+            observation.worldReads().authorize(session.config.category());
+        } catch (ProtocolState.ProtocolException denied) {
+            finalizeSession(session, "world_read_authority_lost");
+            return;
+        }
         long elapsed = System.currentTimeMillis() - session.startedAtMillis;
         if (elapsed >= session.config.durationMillis()
                 || session.sampleSequence.get() >= session.config.maxSamples()) {
@@ -248,42 +358,93 @@ final class RecordingEngine implements AutoCloseable {
         }
         long sequence = session.sampleSequence.incrementAndGet();
         long timestamp = System.currentTimeMillis();
-        CompletableFuture<byte[]> capture =
-                session.config.captureFrames()
-                        ? this.service.capturePng()
-                        : CompletableFuture.completedFuture(null);
-        CompletableFuture<JsonObject> state =
-                session.config.stateReads().isEmpty()
-                        ? CompletableFuture.completedFuture(null)
-                        : this.observation.stateFrame(stateRequest(session.config.stateReads()));
-        CompletableFuture<JsonObject> tree = this.service.uiTree();
-        CompletableFuture<JsonObject> input = this.service.inputState();
-        CompletableFuture<Void> sampleWork = CompletableFuture.allOf(capture, state, tree, input);
-        session.trackCaptureWork(capture);
-        session.trackCaptureWork(state);
-        session.trackCaptureWork(tree);
-        session.trackCaptureWork(input);
-        session.trackCaptureWork(sampleWork);
-        sampleWork.whenComplete(
-                (ignored, error) -> {
-                    if (error != null) {
+        List<CompletableFuture<?>> owned = new java.util.ArrayList<>();
+        try {
+            Runnable publication =
+                    observation.worldReads().publicationGuard(session.config.category());
+            CompletableFuture<byte[]> capture =
+                    session.config.captureFrames()
+                            ? this.service.capturePng()
+                            : CompletableFuture.completedFuture(null);
+            owned.add(capture);
+            CompletableFuture<JsonObject> state =
+                    session.config.stateReads().isEmpty()
+                            ? CompletableFuture.completedFuture(null)
+                            : this.observation.stateFrame(stateRequest(session.config));
+            owned.add(state);
+            CompletableFuture<JsonObject> tree;
+            Runnable uiPublication;
+            try {
+                uiPublication = protocolState.uiReadGuard("USER");
+                tree = this.service.uiTree();
+            } catch (ProtocolState.ProtocolException denied) {
+                JsonObject unavailable = new JsonObject();
+                unavailable.addProperty("available", false);
+                unavailable.addProperty("dataCategory", "USER");
+                unavailable.addProperty("reason", "ui_scope_or_mode_unavailable");
+                tree = CompletableFuture.completedFuture(unavailable);
+                uiPublication = () -> {};
+            }
+            final var uiTree = tree;
+            final var uiGuard = uiPublication;
+            owned.add(tree);
+            CompletableFuture<JsonObject> input = this.service.inputState();
+            owned.add(input);
+            CompletableFuture<Void> sampleWork =
+                    CancellableWork.handle(
+                            CancellableWork.all(List.of(capture, state, tree, input)),
+                            (ignored, failure) -> {
+                                publication.run();
+                                uiGuard.run();
+                                if (failure != null)
+                                    throw new java.util.concurrent.CompletionException(failure);
+                                return null;
+                            });
+            session.trackCaptureWork(capture);
+            session.trackCaptureWork(state);
+            session.trackCaptureWork(tree);
+            session.trackCaptureWork(input);
+            session.trackCaptureWork(sampleWork);
+            sampleWork.whenComplete(
+                    (ignored, error) -> {
+                        if (error != null) {
+                            session.inFlight.decrementAndGet();
+                            session.gapCount.incrementAndGet();
+                            if (session.captureStopping.get())
+                                session.lastGapTrack = "sample_cancelled_on_finalize";
+                            return;
+                        }
+                        Sample sample =
+                                new Sample(
+                                        sequence,
+                                        timestamp,
+                                        capture.join(),
+                                        state.join(),
+                                        uiTree.join(),
+                                        input.join());
+                        this.enqueue(
+                                session,
+                                () -> {
+                                    try {
+                                        publication.run();
+                                        uiGuard.run();
+                                    } catch (ProtocolState.ProtocolException denied) {
+                                        session.gapCount.incrementAndGet();
+                                        session.lastGapTrack = "sample_read_context_changed";
+                                        return;
+                                    }
+                                    session.writeSample(sample);
+                                },
+                                "sample");
                         session.inFlight.decrementAndGet();
-                        session.gapCount.incrementAndGet();
-                        if (session.captureStopping.get())
-                            session.lastGapTrack = "sample_cancelled_on_finalize";
-                        return;
-                    }
-                    Sample sample =
-                            new Sample(
-                                    sequence,
-                                    timestamp,
-                                    capture.join(),
-                                    state.join(),
-                                    tree.join(),
-                                    input.join());
-                    this.enqueue(session, () -> session.writeSample(sample), "sample");
-                    session.inFlight.decrementAndGet();
-                });
+                    });
+        } catch (Throwable failedCapture) {
+            owned.forEach(future -> future.cancel(false));
+            session.inFlight.decrementAndGet();
+            session.gapCount.incrementAndGet();
+            session.lastGapTrack = "source_capture_failed_before_sample";
+            finalizeSession(session, "read_authority_or_capture_failed");
+        }
     }
 
     private void enqueue(RecordingSession session, ThrowingRunnable task, String track) {
@@ -339,18 +500,20 @@ final class RecordingEngine implements AutoCloseable {
                 });
     }
 
-    private RecordingSession require(String id) {
+    private RecordingSession require(String id, String category) {
+        observation.worldReads().authorize(category);
         RecordingSession session = this.sessions.get(id);
-        if (session == null) {
+        if (session == null || !session.config.category().equals(category)) {
             throw new ProtocolState.ProtocolException(
                     "RECORDING_NOT_FOUND", 404, "Unknown recording: " + id);
         }
         return session;
     }
 
-    private static JsonObject stateRequest(JsonArray reads) {
+    private static JsonObject stateRequest(Config config) {
         JsonObject request = new JsonObject();
-        request.add("reads", reads.deepCopy());
+        request.addProperty("category", config.category());
+        request.add("reads", config.stateReads().deepCopy());
         return request;
     }
 
@@ -547,6 +710,8 @@ final class RecordingEngine implements AutoCloseable {
         private JsonObject manifest() {
             JsonObject json = new JsonObject();
             json.addProperty("artifactVersion", "mcp-artifact-v0");
+            json.addProperty("domain", "WORLD");
+            json.addProperty("dataCategory", this.config.category());
             json.addProperty("schemaVersion", "0.0.1-phase5");
             json.addProperty("recordingId", this.id);
             json.addProperty("status", this.status.equals("failed") ? "failed" : "completed");
@@ -592,6 +757,8 @@ final class RecordingEngine implements AutoCloseable {
         private JsonObject statusJson() {
             JsonObject json = new JsonObject();
             json.addProperty("type", "recording.session");
+            json.addProperty("domain", "WORLD");
+            json.addProperty("dataCategory", this.config.category());
             json.addProperty("recordingId", this.id);
             json.addProperty("status", this.status);
             json.addProperty("lifecycle", this.lifecycle);
@@ -906,6 +1073,7 @@ final class RecordingEngine implements AutoCloseable {
             JsonObject input) {}
 
     private record Config(
+            String category,
             long intervalMillis,
             long durationMillis,
             long maxSamples,
@@ -917,10 +1085,25 @@ final class RecordingEngine implements AutoCloseable {
             int cellHeight,
             int spacing) {
         private static Config from(JsonObject request) {
+            String category;
+            try {
+                category =
+                        WorldDataView.Category.parse(
+                                        request.has("category")
+                                                ? request.get("category").getAsString()
+                                                : "USER")
+                                .name();
+            } catch (RuntimeException error) {
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_WORLD_CATEGORY", 400, "Recording category must be USER or DEBUG");
+            }
             long interval = bounded(longValue(request, "intervalMs", 250L), 50L, 60_000L);
             long duration = bounded(longValue(request, "durationMs", 5_000L), 100L, 300_000L);
             long maxSamples = bounded(longValue(request, "maxSamples", 20L), 1L, 512L);
             boolean capture = bool(request, "captureFrames", true);
+            if (request.has("stateReads") && !request.get("stateReads").isJsonArray())
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_RECORDING", 400, "stateReads must be an array");
             JsonArray reads =
                     request.has("stateReads") && request.get("stateReads").isJsonArray()
                             ? request.getAsJsonArray("stateReads").deepCopy()
@@ -929,11 +1112,16 @@ final class RecordingEngine implements AutoCloseable {
                 throw new ProtocolState.ProtocolException(
                         "INVALID_RECORDING", 400, "stateReads supports at most 32 entries");
             }
+            for (var read : reads)
+                if (!read.isJsonObject())
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_RECORDING", 400, "Every state read must be an object");
             JsonObject contact =
                     request.has("contactSheet") && request.get("contactSheet").isJsonObject()
                             ? request.getAsJsonObject("contactSheet")
                             : new JsonObject();
             return new Config(
+                    category,
                     interval,
                     duration,
                     maxSamples,
@@ -948,6 +1136,7 @@ final class RecordingEngine implements AutoCloseable {
 
         private JsonObject toJson() {
             JsonObject json = new JsonObject();
+            json.addProperty("category", this.category);
             json.addProperty("intervalMs", this.intervalMillis);
             json.addProperty("durationMs", this.durationMillis);
             json.addProperty("maxSamples", this.maxSamples);

@@ -48,6 +48,10 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  $captureGuard=if($target.StartsWith('26.3-')){$constants-match'grabMouse'-and$constants-match'releaseMouse'}else{$constants-match'grabOrReleaseMouse'}
  Require ($captureGuard-and$constants-match'isKeyDown') "$target standard capture/polling guard missing"
  Require ($runtime-match'validatePointerGuard'-and$runtime-match'interactionIdentity'-and$runtime-match'mouseDelta') "$target atomic GUI/relative pointer path missing"
+ $buttonBody=[regex]::Match($runtime,'(?s)private JsonObject mouseButtonGuardedNow\(.*?(?=\n    @Override)').Value
+ Require ($buttonBody-match'advanceDragGuard\(guard, this.snapshotUiTree\(\)\)' -and $buttonBody.IndexOf('this.refreshMenu(client)')-lt$buttonBody.IndexOf('AutomationEngine.advanceDragGuard')) "$target drag must advance its own pickup state immediately after the native button callback, not in an unrelated key callback"
+ $keyBody=[regex]::Match($runtime,'(?s)private JsonObject keyGuardedNow\(.*?(?=\n    @Override)').Value
+ Require (-not$keyBody.Contains('AutomationEngine.advanceDragGuard')) "$target key input must not adopt unrelated drag item changes"
  Require ($engine-match'InputSequenceQueue'-and$engine-match'armDeadline'-and$engine-match'POINTER_HELD') "$target bounded ownership missing"
  Require ($engine-match'AgentPointer.interpolate'-and$engine-match'UI_TARGET_INVALIDATED'-and$engine-match'mouseButtonGuarded') "$target deterministic target-checked input missing"
  Require ($engine-match'AgentPointer.approach'-and$engine-match'InteractionPacing.movementSteps'-and$engine-match'pacedStep\(step, this\)'-and$engine-match'if \(release\) ready') "$target cancellable spectator pacing/release bypass missing"

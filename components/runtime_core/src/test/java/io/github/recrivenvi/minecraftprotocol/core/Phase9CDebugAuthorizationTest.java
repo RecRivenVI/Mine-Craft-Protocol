@@ -11,6 +11,24 @@ import org.junit.jupiter.api.Test;
 
 final class Phase9CDebugAuthorizationTest {
     @Test
+    void worldReadAndArmCannotGrantTypedWorldWriteScope() {
+        try (ProtocolState state = state(Set.of("debug", "debug.write", "debug.world.read"))) {
+            var armed = state.armDebug("world", "world", "epoch-a", Set.of("world"), 60_000L);
+            var error =
+                    assertThrows(
+                            ProtocolState.ProtocolException.class,
+                            () ->
+                                    state.requireDebugAuthorization(
+                                            armed.get("debugArmId").getAsString(),
+                                            "world",
+                                            "epoch-a",
+                                            "world",
+                                            "world"));
+            assertEquals("DEBUG_SCOPE_DENIED", error.code());
+        }
+    }
+
+    @Test
     void armBindsPrincipalWorldEpochAndNamespace() {
         try (ProtocolState state = state(Set.of("debug", "debug.write", "debug.player"))) {
             JsonObject armed =

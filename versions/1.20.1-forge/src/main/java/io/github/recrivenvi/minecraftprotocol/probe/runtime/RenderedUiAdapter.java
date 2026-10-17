@@ -266,6 +266,11 @@ final class RenderedUiAdapter {
                     keyboardField(
                             book, key, signing ? "Book title" : "Book page", value, true, !signing);
             editor.addProperty("focusOffset", 0);
+            if (signing) {
+                // Native titleKeyPressed supports Backspace/Enter, not select-all or cursor keys.
+                editor.addProperty("textReplaceStrategy", "backspace_from_end");
+                editor.addProperty("valueComplete", value.length() <= 2048);
+            }
             editor.addProperty("contextKey", key + "." + access.minecraftProtocolProbe$pageIndex());
             editor.addProperty(
                     "nodeId",

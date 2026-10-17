@@ -57,7 +57,7 @@ public final class ProtocolState implements AutoCloseable {
     private final AtomicLong auditSequence = new AtomicLong();
     private final AtomicLong debugMutationSequence = new AtomicLong();
     private final Map<String, GameplayActWindow> gameplayActs = new ConcurrentHashMap<>();
-    private ControlLease lease;
+    private volatile ControlLease lease;
     private DebugArm debugArm;
     private final AgentControlSession controlSession;
     private final AgentTaskLifecycle agentTask = new AgentTaskLifecycle();
@@ -212,12 +212,59 @@ public final class ProtocolState implements AutoCloseable {
         }
     }
 
+    // Called under the native control-session lock: never acquire ProtocolState in reverse order.
+    void requireCommandLease() {
+        ControlLease current = this.lease;
+        if (current == null || current.expiresAtMillis() <= System.currentTimeMillis())
+            throw new ProtocolException(
+                    "CONTROL_LEASE_REQUIRED", 409, "A current unexpired input Lease is required");
+    }
+
     boolean hasScope(String scope) {
         return this.scopes.contains(scope);
     }
 
+    io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category requireUiCategory(
+            String value) {
+        requireScope("ui");
+        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category category;
+        try {
+            category =
+                    io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category.parse(value);
+        } catch (IllegalArgumentException error) {
+            throw new ProtocolException(
+                    "INVALID_UI_CATEGORY", 400, "UI category must be USER or DEBUG");
+        }
+        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.requireReadScopes(
+                category, this::requireScope);
+        if (!io.github.recrivenvi.minecraftprotocol.safety.UiDataView.allowsRead(
+                controlSession().snapshot().mode().name(), category))
+            throw new ProtocolException(
+                    "UI_CATEGORY_MODE_MISMATCH",
+                    409,
+                    "READ supports USER/DEBUG; TAKEOVER only USER; OPERATE only DEBUG");
+        return category;
+    }
+
     String principalId() {
         return this.principalId;
+    }
+
+    Runnable uiReadGuard(String category) {
+        requireUiCategory(category);
+        long generation = controlSession().snapshot().transitionSequence();
+        return () -> {
+            requireUiCategory(category);
+            if (generation != controlSession().snapshot().transitionSequence())
+                throw new ProtocolException(
+                        "UI_READ_CONTEXT_CHANGED",
+                        409,
+                        "Control context changed before UI read publication");
+        };
+    }
+
+    static boolean uiDiagnosticOperation(String operation) {
+        return operation.startsWith("ui.") || operation.startsWith("fixture.ui.");
     }
 
     void requireDebugScope(String domain) {
@@ -853,17 +900,27 @@ public final class ProtocolState implements AutoCloseable {
 
     JsonObject startOperation(
             Function<String, CompletableFuture<JsonObject>> factory, boolean leaseBound) {
+        return startOperation(factory, leaseBound, Set.of());
+    }
+
+    JsonObject startOperation(
+            Function<String, CompletableFuture<JsonObject>> factory,
+            boolean leaseBound,
+            Set<String> diagnosticDomains) {
         String id = UUID.randomUUID().toString();
         CompletableFuture<JsonObject> future = factory.apply(id);
-        return this.startOperation(id, future, leaseBound);
+        return this.startOperation(id, future, leaseBound, diagnosticDomains);
     }
 
     JsonObject startOperation(CompletableFuture<JsonObject> future, boolean leaseBound) {
-        return this.startOperation(UUID.randomUUID().toString(), future, leaseBound);
+        return this.startOperation(UUID.randomUUID().toString(), future, leaseBound, Set.of());
     }
 
     private JsonObject startOperation(
-            String id, CompletableFuture<JsonObject> future, boolean leaseBound) {
+            String id,
+            CompletableFuture<JsonObject> future,
+            boolean leaseBound,
+            Set<String> diagnosticDomains) {
         if (this.operations.size() >= 16) {
             this.operations.entrySet().removeIf(entry -> !entry.getValue().isRunning());
         }
@@ -871,14 +928,55 @@ public final class ProtocolState implements AutoCloseable {
             future.cancel(true);
             throw new ProtocolException("TOO_MANY_OPERATIONS", 429, "Too many active operations");
         }
-        Operation operation = new Operation(id, future, leaseBound);
+        Operation operation = new Operation(id, future, leaseBound, diagnosticDomains);
         this.operations.put(id, operation);
         future.whenComplete((result, error) -> operation.complete(result, error));
-        return operation.snapshot();
+        JsonObject started = operation.snapshot();
+        if (!diagnosticDomains.isEmpty()) {
+            started.remove("result");
+            started.remove("error");
+            started.remove("errorCode");
+            started.remove("errorDetails");
+        }
+        return started;
     }
 
     JsonObject operationStatus(String operationId) {
         return this.requireOperation(operationId).snapshot();
+    }
+
+    void onOperationTerminal(String operationId, Consumer<JsonObject> observer) {
+        Operation operation = this.requireOperation(operationId);
+        operation.terminal.thenRun(() -> observer.accept(operation.snapshot()));
+    }
+
+    Set<String> operationDiagnosticDomains(String operationId) {
+        Operation operation = this.operations.get(operationId);
+        return operation == null ? Set.of() : operation.diagnosticDomains;
+    }
+
+    Runnable operationReadGuard(
+            String operationId, String category, Consumer<String> authorizeWorld) {
+        Set<String> domains = operationDiagnosticDomains(operationId);
+        if (domains.isEmpty()) return () -> {};
+        Runnable authorize =
+                () -> {
+                    if (domains.contains("UI")) requireUiCategory(category);
+                    if (domains.contains("WORLD")) authorizeWorld.accept(category);
+                    if (!"DEBUG".equals(category))
+                        throw new ProtocolException(
+                                "OPERATION_NOT_FOUND", 404, "Unknown operation");
+                };
+        authorize.run();
+        long generation = controlSession().snapshot().transitionSequence();
+        return () -> {
+            authorize.run();
+            if (generation != controlSession().snapshot().transitionSequence())
+                throw new ProtocolException(
+                        "DEBUG_READ_CONTEXT_CHANGED",
+                        409,
+                        "Control context changed before Debug operation publication");
+        };
     }
 
     JsonObject operationSnapshot() {
@@ -1081,8 +1179,15 @@ public final class ProtocolState implements AutoCloseable {
                         false,
                         false,
                         "currentPlayerPermissions",
-                        "normalNetwork",
+                        "nativeChatInput",
                         "serverValidation"));
+        JsonArray commandScopes = new JsonArray();
+        commandScopes.add("control");
+        commandScopes.add("input");
+        operations
+                .get(operations.size() - 1)
+                .getAsJsonObject()
+                .add("additionalScopes", commandScopes);
         operations.add(descriptor("capture.composite", "capture", false, false, true));
         operations.add(descriptor("wait.screen", "read", false, false, true));
         operations.add(descriptor("wait.until", "read", false, false, true));
@@ -1094,6 +1199,8 @@ public final class ProtocolState implements AutoCloseable {
                         true,
                         false,
                         true,
+                        "screenRevision",
+                        "menuRevision",
                         "leasePerStep",
                         "selectorReresolution"));
         operations.add(descriptor("observation.client_live", "read", false, false, false));
@@ -1369,6 +1476,22 @@ public final class ProtocolState implements AutoCloseable {
         JsonArray supportedPreconditions = new JsonArray();
         for (String precondition : preconditions) supportedPreconditions.add(precondition);
         json.add("supportedPreconditions", supportedPreconditions);
+        if (id.equals("ui.action")) {
+            JsonArray additional = new JsonArray();
+            AutomationEngine.STEP_ADDITIONAL_SCOPES.get("ui.action").forEach(additional::add);
+            json.add("additionalScopes", additional);
+        }
+        if (id.equals("pipeline.execute")) {
+            JsonObject byStep = new JsonObject();
+            new java.util.TreeMap<>(AutomationEngine.STEP_ADDITIONAL_SCOPES)
+                    .forEach(
+                            (type, scopes) -> {
+                                JsonArray additional = new JsonArray();
+                                scopes.forEach(additional::add);
+                                byStep.add(type, additional);
+                            });
+            json.add("additionalScopesByStep", byStep);
+        }
         return json;
     }
 
@@ -1385,11 +1508,17 @@ public final class ProtocolState implements AutoCloseable {
     public static final class ProtocolException extends RuntimeException {
         private final String code;
         private final int httpStatus;
+        private final JsonObject details;
 
         public ProtocolException(String code, int httpStatus, String message) {
+            this(code, httpStatus, message, new JsonObject());
+        }
+
+        public ProtocolException(String code, int httpStatus, String message, JsonObject details) {
             super(message);
             this.code = code;
             this.httpStatus = httpStatus;
+            this.details = details.deepCopy();
         }
 
         public String code() {
@@ -1398,6 +1527,10 @@ public final class ProtocolState implements AutoCloseable {
 
         public int httpStatus() {
             return this.httpStatus;
+        }
+
+        public JsonObject details() {
+            return this.details.deepCopy();
         }
     }
 
@@ -1483,6 +1616,7 @@ public final class ProtocolState implements AutoCloseable {
             String operationId) {}
 
     private static final class Operation {
+        private final Set<String> diagnosticDomains;
         private final String id;
         private final CompletableFuture<JsonObject> future;
         private final CompletableFuture<Void> terminal = new CompletableFuture<>();
@@ -1496,57 +1630,81 @@ public final class ProtocolState implements AutoCloseable {
         private volatile JsonObject result;
         private volatile String error;
         private volatile String errorCode;
+        private volatile JsonObject errorDetails;
         private volatile String cancellationReason;
         private volatile long completedAtMillis;
 
-        private Operation(String id, CompletableFuture<JsonObject> future, boolean leaseBound) {
+        private Operation(
+                String id,
+                CompletableFuture<JsonObject> future,
+                boolean leaseBound,
+                Set<String> diagnosticDomains) {
             this.id = id;
             this.future = future;
             this.leaseBound = leaseBound;
+            this.diagnosticDomains = Set.copyOf(diagnosticDomains);
         }
 
-        private synchronized void complete(JsonObject result, Throwable error) {
-            if (this.state.equals("cancelled")) return;
-            this.completedAtMillis = System.currentTimeMillis();
-            if (error == null) {
-                this.result = result;
-                this.status = "completed";
-                this.state = "completed";
-            } else if (error instanceof CancellationException) {
-                this.status = "cancelled";
-                this.state = "cancelled";
-            } else {
-                Throwable cause = error.getCause() == null ? error : error.getCause();
-                this.error =
-                        cause instanceof TimeoutException
-                                ? "operation timed out"
-                                : cause.getMessage();
-                if (cause instanceof ProtocolException protocolException)
-                    this.errorCode = protocolException.code();
-                else if (cause instanceof TimeoutException) this.errorCode = "OPERATION_TIMEOUT";
-                boolean timedOut =
-                        cause instanceof TimeoutException
-                                || "PIPELINE_TIMEOUT".equals(this.errorCode)
-                                || "WAIT_TIMEOUT".equals(this.errorCode)
-                                || "REQUEST_DEADLINE_EXCEEDED".equals(this.errorCode);
-                this.status = timedOut ? "timed_out" : "failed";
-                this.state = this.status;
+        private void complete(JsonObject result, Throwable error) {
+            synchronized (this) {
+                if (this.state.equals("cancelled")) return;
+                this.completedAtMillis = System.currentTimeMillis();
+                if (error == null) {
+                    this.result = result;
+                    this.status = "completed";
+                    this.state = "completed";
+                } else if (error instanceof CancellationException) {
+                    this.status = "cancelled";
+                    this.state = "cancelled";
+                } else {
+                    Throwable cause = error.getCause() == null ? error : error.getCause();
+                    this.error =
+                            cause instanceof TimeoutException
+                                    ? "operation timed out"
+                                    : cause.getMessage();
+                    if (cause instanceof ProtocolException protocolException) {
+                        this.errorCode = protocolException.code();
+                        JsonObject details = protocolException.details();
+                        if (this.errorCode.equals("WORLD_TARGET_NOT_HIT")
+                                && details.has("actualHit")
+                                && details.get("actualHit").isJsonObject())
+                            this.errorDetails =
+                                    WorldHitEvidence.details(details.getAsJsonObject("actualHit"));
+                    } else if (cause instanceof TimeoutException)
+                        this.errorCode = "OPERATION_TIMEOUT";
+                    boolean timedOut =
+                            cause instanceof TimeoutException
+                                    || "PIPELINE_TIMEOUT".equals(this.errorCode)
+                                    || "WAIT_TIMEOUT".equals(this.errorCode)
+                                    || "REQUEST_DEADLINE_EXCEEDED".equals(this.errorCode);
+                    this.status = timedOut ? "timed_out" : "failed";
+                    this.state = this.status;
+                }
             }
+            // Observers can take control/session locks; never invoke them under the Operation lock.
             this.terminal.complete(null);
         }
 
-        private synchronized void cancel(String reason) {
-            if (this.state.equals("executing")
-                    || this.state.equals("scheduled")
-                    || this.state.equals("accepted")) {
-                this.status = "cancelled";
-                this.state = "cancelled";
-                this.cancellationReason = reason;
-                this.completedAtMillis = System.currentTimeMillis();
+        private void cancel(String reason) {
+            synchronized (this) {
+                if (this.state.equals("executing")
+                        || this.state.equals("scheduled")
+                        || this.state.equals("accepted")) {
+                    this.status = "cancelled";
+                    this.state = "cancelled";
+                    this.cancellationReason = reason;
+                    this.completedAtMillis = System.currentTimeMillis();
+                } else return;
+            }
+            try {
                 this.future.cancel(true);
                 if (this.future instanceof CancellableOperationFuture cancellable) {
-                    this.result = cancellable.cancellationSnapshot();
+                    JsonObject captured = cancellable.cancellationSnapshot();
+                    synchronized (this) {
+                        this.result = captured;
+                    }
                 }
+            } finally {
                 this.terminal.complete(null);
             }
         }
@@ -1555,7 +1713,7 @@ public final class ProtocolState implements AutoCloseable {
             return this.status.equals("running");
         }
 
-        private JsonObject snapshot() {
+        private synchronized JsonObject snapshot() {
             JsonObject json = new JsonObject();
             json.addProperty("type", "operation");
             json.addProperty("operationId", this.id);
@@ -1576,9 +1734,25 @@ public final class ProtocolState implements AutoCloseable {
             json.addProperty("startedAtMillis", this.startedAtMillis);
             if (this.completedAtMillis > 0L)
                 json.addProperty("completedAtMillis", this.completedAtMillis);
-            if (this.result != null) json.add("result", this.result.deepCopy());
+            JsonObject capturedResult = this.result == null ? null : this.result.deepCopy();
+            if (this.future instanceof PlayerCommandEvidence.Source source) {
+                // Read completeness first: true must never accompany an earlier incomplete list.
+                // Cancellation can become terminal before the native owner-thread cleanup drains.
+                json.addProperty("commandSubmissionsComplete", source.commandSubmissionsComplete());
+                var receipts = source.commandSubmissions();
+                if (!receipts.isEmpty()) {
+                    if (capturedResult == null) {
+                        capturedResult = new JsonObject();
+                        capturedResult.addProperty("type", "input.command.provenance");
+                        capturedResult.addProperty("partial", true);
+                    }
+                    PlayerCommandEvidence.attach(capturedResult, receipts);
+                }
+            }
+            if (capturedResult != null) json.add("result", capturedResult);
             if (this.error != null) json.addProperty("error", this.error);
             if (this.errorCode != null) json.addProperty("errorCode", this.errorCode);
+            if (this.errorDetails != null) json.add("errorDetails", this.errorDetails.deepCopy());
             if (this.cancellationReason != null)
                 json.addProperty("cancellationReason", this.cancellationReason);
             return json;

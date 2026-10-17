@@ -4,8 +4,8 @@
       "command": "node",
       "args": ["<repository>/components/companion/dist/index.js"],
       "env": {
-        "MCP_MINECRAFT_BASE_URL": "http://127.0.0.1:25583",
-        "MCP_MINECRAFT_TOKEN_FILE": "<repository>/instances/26.3-fabric/client/minecraft-protocol/token"
+        "MCP_MINECRAFT_INSTANCE_DIR": "<repository>/instances/26.3-fabric/client",
+        "MCP_MINECRAFT_TARGET": "26.3-fabric"
       }
     }
   }

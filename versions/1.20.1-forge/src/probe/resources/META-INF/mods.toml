@@ -1,0 +1,18 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}_probe"
+version="${mod_version}"
+displayName="${mod_name} Validation Probe"
+displayTest="${display_test}"
+authors="${mod_authors}"
+description="${mod_description} validation-only fixtures"
+
+[[dependencies.${mod_id}_probe]]
+modId="${mod_id}"
+mandatory=true
+versionRange="[${mod_version}]"
+ordering="AFTER"
+side="BOTH"

@@ -41,6 +41,13 @@ export async function asToolResult(operation: () => Promise<JsonValue>): Promise
           manualRevocationReason: runtime.manualRevocationReason
         } : {}),
         ...(runtime?.control ? { control: runtime.control } : {}),
+        ...(runtime?.executionOutcome ? {
+          executionOutcome: runtime.executionOutcome, retrySafe: runtime.retrySafe
+        } : {}),
+        ...(runtime?.rateLimit ? {
+          retryAfterMillis: runtime.retryAfterMillis, rateLimit: runtime.rateLimit
+        } : {}),
+        ...(runtime?.actualHit ? {actualHit:runtime.actualHit} : {}),
         ...(runtime?.requestId ? { requestId: runtime.requestId } : {})
       },
       companion: {

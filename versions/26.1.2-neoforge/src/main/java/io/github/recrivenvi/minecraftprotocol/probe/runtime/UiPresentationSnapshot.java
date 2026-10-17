@@ -2,6 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.runtime;
 
 import com.google.gson.*;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.*;
+import io.github.recrivenvi.minecraftprotocol.safety.UiHudIcons;
 import io.github.recrivenvi.minecraftprotocol.safety.UiRenderedIcons;
 import io.github.recrivenvi.minecraftprotocol.safety.UiRenderedText;
 import java.util.Comparator;
@@ -35,6 +36,7 @@ final class UiPresentationSnapshot {
         sidebar(client, children, hudVisible);
         effects(client, children, hudVisible);
         playerList(client, children, hudVisible);
+        vitalIcons(client, children, result, hudVisible);
         if (hud.minecraftProtocolProbe$titleTime() > 0) {
             add(children, "hud.title", text(hud.minecraftProtocolProbe$title()), hudVisible);
             add(children, "hud.subtitle", text(hud.minecraftProtocolProbe$subtitle()), hudVisible);
@@ -106,7 +108,37 @@ final class UiPresentationSnapshot {
         limitations.add(
                 "USER Toast text requires a fully shown toast and a native render sample no older than one second at the same GUI size; this is not a framebuffer or third-party rendering guarantee");
         result.add("limitations", limitations);
+        limitations.add(
+                "Vital icons are the ordered native glyph composition, including container/blinking/foreground layers; no raw health, food, air, saturation or mount statistics. The completed sample is world/camera/Screen/size bound, expires after 250 ms and fails closed beyond 256 glyphs; third-party draw replacement and final pixel occlusion are not guaranteed.");
         return result;
+    }
+
+    private static void vitalIcons(
+            Minecraft client, JsonArray nodes, JsonObject result, boolean visible) {
+        var sample =
+                ((UiHudIcons.Source) client.gui)
+                        .minecraftProtocolProbe$hudIcons()
+                        .sample(
+                                client.level,
+                                client.getCameraEntity(),
+                                client.screen,
+                                client.getWindow().getGuiScaledWidth(),
+                                client.getWindow().getGuiScaledHeight(),
+                                System.nanoTime());
+        result.addProperty("hudIconSampleStatus", visible ? sample.status() : "OCCLUDED");
+        if (!visible || !sample.status().equals("CURRENT")) return;
+        int index = 0;
+        for (var icon : sample.icons()) {
+            String family = icon.kind().name().toLowerCase(java.util.Locale.ROOT);
+            JsonObject node = add(nodes, "hud.vitals." + family + "." + index, icon.label(), true);
+            node.addProperty("entryIndex", index++);
+            node.addProperty("role", "status_icon");
+            node.addProperty("resourceId", icon.resourceId());
+            node.addProperty("iconSource", "last_completed_native_hud_draw");
+            node.addProperty(
+                    "valueSemantics", "ordered_native_glyph_composition_not_raw_statistics");
+            bounds(node, icon.x(), icon.y(), icon.width(), icon.height());
+        }
     }
 
     private static void hotbar(Minecraft client, JsonArray nodes, boolean visible) {

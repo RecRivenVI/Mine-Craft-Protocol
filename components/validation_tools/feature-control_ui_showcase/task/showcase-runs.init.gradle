@@ -3,23 +3,29 @@ gradle.projectsEvaluated {
     def target = System.getProperty('showcase.target')
     if (target == null || gradle.rootProject.name != 'Mine-Craft-Protocol') return
     def directory = System.getProperty('showcase.directory')
-    def port = System.getProperty('showcase.port')
-    if (!(target in ['1.20.1-forge', '26.3-fabric']) || !directory || !port)
-        throw new GradleException('Explicit showcase target, directory and port required')
-    def expected = gradle.rootProject.file("validations/feature-control_ui_showcase/instance/${target}/client")
+    def role = System.getProperty('showcase.role', 'client')
+    if (!(role in ['client', 'client-multiplayer'])) throw new GradleException('Unknown Showcase role')
+    if (!(target in ['1.20.1-forge', '1.21.1-neoforge', '26.1.2-neoforge', '26.3-neoforge', '26.3-fabric']) || !directory)
+        throw new GradleException('Explicit showcase target and directory required')
+    def expected = gradle.rootProject.file("validations/feature-control_ui_showcase/instance/${target}/${role}")
     if (new File(directory).canonicalFile != expected.canonicalFile)
         throw new GradleException('Showcase directory is outside its validation instance')
     def candidate = gradle.rootProject.project(":version:${target}")
-    def extension = candidate.extensions.findByName('loom') ?: candidate.extensions.getByName('legacyForge')
-    def run = extension.runs.getByName('validationFeatureControlUiShowcaseClient')
-    run.jvmArguments.add("-Dminecraft.protocol.probe.port=${port}".toString())
+    def extension = candidate.extensions.findByName('loom') ?: candidate.extensions.findByName('neoForge') ?: candidate.extensions.getByName('legacyForge')
+    def suffix = role == 'client' ? 'Client' : 'ClientMultiplayer'
+    def run = extension.runs.getByName("validationFeatureControlUiShowcase${suffix}")
+    def catalog = new groovy.json.JsonSlurper().parse(gradle.rootProject.file('validations/feature-control_ui_showcase/task/acceptance-mods.json'))
+    def inputs = role == 'client' ? catalog[target] : []
+    if (!(inputs instanceof List)) throw new GradleException('Missing acceptance input selection')
+    candidate.tasks.named("prepareValidationFeatureControlUiShowcase${suffix}Instance") { mods.set(inputs) }
     gradle.rootProject.tasks.register('verifyShowcaseConfiguration') {
         group = 'verification'
         doLast {
             def actual = target.endsWith('-fabric') ? run.runDirectory.get().asFile : run.gameDirectory.get().asFile
             assert actual.canonicalFile == expected.canonicalFile
-            assert run.jvmArguments.get().contains("-Dminecraft.protocol.probe.port=${port}".toString())
+            assert !run.jvmArguments.get().any { it.startsWith('-Dminecraft.protocol.probe.port=') }
             assert run.jvmArguments.get().contains('-Dminecraft.protocol.showcaseFixture=true')
+            assert candidate.tasks.named("prepareValidationFeatureControlUiShowcase${suffix}Instance").get().mods.get() == inputs
             logger.lifecycle('SHOWCASE_CONFIGURATION: PASS (template validation run; no daily configuration override; no launch)')
         }
     }

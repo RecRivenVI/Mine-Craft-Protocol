@@ -31,6 +31,30 @@ foreach($target in $targets){
   foreach($license in Get-ChildItem (Join-Path $root 'licenses') -File){
    Assert-True ($null-ne$zip.GetEntry('META-INF/licenses/'+$license.Name)) "$target third-party license missing"
   }
+  $targetFacts=Get-Content (Join-Path $root "versions/$target/target.properties") -Raw
+  $httpVersion=[regex]::Match($targetFacts,'(?m)^netty_http_version=(.+)$').Groups[1].Value.Trim()
+  $httpJars=@($zip.Entries|Where-Object FullName -Match '(?:^|/)netty-codec-http-[^/]+\.jar$')
+  if($httpVersion){
+   Assert-True ($httpJars.Count-eq1-and$httpJars[0].FullName-eq"META-INF/jarjar/netty-codec-http-$httpVersion.jar") "$target must embed one matching HTTP module"
+   Assert-True ($null-ne$zip.GetEntry('META-INF/jarjar/metadata.json')) "$target Jar-in-Jar metadata missing"
+   $buffer=[IO.MemoryStream]::new();$stream=$httpJars[0].Open();$stream.CopyTo($buffer);$stream.Dispose();$buffer.Position=0
+   $inner=[IO.Compression.ZipArchive]::new($buffer,[IO.Compression.ZipArchiveMode]::Read)
+   try{foreach($class in @('HttpMessage','FullHttpResponse')){Assert-True ($null-ne$inner.GetEntry("io/netty/handler/codec/http/$class.class")) "$target embedded HTTP class missing: $class"}}
+   finally{$inner.Dispose();$buffer.Dispose()}
+  }else{Assert-True ($httpJars.Count-eq0) "$target must use the game's HTTP library without embedding a conflicting copy"}
+  if($target.EndsWith('-fabric')){
+   $apiJars=@($zip.Entries|Where-Object FullName -Match '^META-INF/jars/fabric-api-[^/]+\.jar$')
+   Assert-True ($apiJars.Count-eq1) "$target must include its required Fabric API for single-JAR installation"
+   $reader=[IO.StreamReader]::new($zip.GetEntry('fabric.mod.json').Open())
+   try{$metadata=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
+   Assert-True ($apiJars[0].FullName-in@($metadata.jars.file)) "$target nested Fabric API is not registered with Loader"
+  }
+  if($target-eq'1.20.1-forge'){
+   $reader=[IO.StreamReader]::new($zip.GetEntry("$modId.refmap.json").Open())
+   try{$refmap=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
+   $effect=$refmap.mappings.'io/github/recrivenvi/minecraftprotocol/probe/mixin/EffectIconRenderMixin'
+   Assert-True ($effect.'lambda$renderEffects$0'-match'^Lnet/minecraft/client/gui/Gui;m_\d+_\(') 'Forge effect lambda must have production SRG mapping'
+  }
  }finally{$zip.Dispose()}
  $hashes[$target]=(Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
 }

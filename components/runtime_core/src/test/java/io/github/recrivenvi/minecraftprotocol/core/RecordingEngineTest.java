@@ -20,6 +20,60 @@ import org.junit.jupiter.api.io.TempDir;
 
 final class RecordingEngineTest {
     @Test
+    void eventCannotEnterDiagnosticRecordingAfterModeAuthorityLoss(@TempDir Path artifactRoot)
+            throws Exception {
+        CountDownLatch sampleStarted = new CountDownLatch(1);
+        ProbeService service =
+                (ProbeService)
+                        Proxy.newProxyInstance(
+                                ProbeService.class.getClassLoader(),
+                                new Class<?>[] {ProbeService.class},
+                                (proxy, method, args) -> {
+                                    if (method.getName().equals("artifactRoot"))
+                                        return artifactRoot;
+                                    if (method.getName().equals("inputState")) {
+                                        sampleStarted.countDown();
+                                        return new CompletableFuture<JsonObject>();
+                                    }
+                                    if (method.getReturnType().equals(CompletableFuture.class))
+                                        return CompletableFuture.completedFuture(new JsonObject());
+                                    throw new UnsupportedOperationException(method.getName());
+                                });
+        try (var state =
+                new ProtocolState(
+                        java.util.Set.of("read", "debug", "debug.world.read", "control"),
+                        "test",
+                        ignored -> {})) {
+            var engine =
+                    new RecordingEngine(
+                            service,
+                            new ObservationEngine(service, new WorldReadEngine(service, state)),
+                            state);
+            try {
+                var config =
+                        JsonParser.parseString(
+                                        "{\"category\":\"DEBUG\",\"captureFrames\":false,\"intervalMs\":60000,\"stateReads\":[],\"contactSheet\":{\"enabled\":false}}")
+                                .getAsJsonObject();
+                String id = engine.start(config).get("recordingId").getAsString();
+                assertTrue(sampleStarted.await(2, TimeUnit.SECONDS));
+                var lease = state.acquireLease(60000);
+                var payload = new JsonObject();
+                payload.addProperty("type", "world.internal");
+                payload.addProperty("secret", "forbidden_after_takeover");
+                engine.recordEvent("world", payload);
+                state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
+                engine.stop(id, "test_stop", "DEBUG");
+            } finally {
+                engine.close();
+            }
+            try (var files = Files.walk(artifactRoot)) {
+                for (Path file : files.filter(path -> path.toString().endsWith(".ndjson")).toList())
+                    assertTrue(!Files.readString(file).contains("forbidden_after_takeover"));
+            }
+        }
+    }
+
+    @Test
     void failedContactSheetRetainsTypedFailureAndDoesNotClaimReadyBundle(@TempDir Path artifactRoot)
             throws Exception {
         assertFinalizationFailure(artifactRoot, new byte[] {1, 2, 3, 4});
@@ -62,8 +116,13 @@ final class RecordingEngineTest {
                                         return CompletableFuture.completedFuture(new JsonObject());
                                     throw new UnsupportedOperationException(method.getName());
                                 });
-        try (RecordingEngine engine =
-                new RecordingEngine(service, new ObservationEngine(service))) {
+        try (ProtocolState state =
+                        new ProtocolState(java.util.Set.of("read"), "test", ignored -> {});
+                RecordingEngine engine =
+                        new RecordingEngine(
+                                service,
+                                new ObservationEngine(service, new WorldReadEngine(service, state)),
+                                state)) {
             JsonObject request = new JsonObject();
             request.addProperty("intervalMs", 50);
             request.addProperty("durationMs", 300_000);
@@ -122,7 +181,12 @@ final class RecordingEngineTest {
                                     throw new UnsupportedOperationException(method.getName());
                                 });
 
-        RecordingEngine engine = new RecordingEngine(service, new ObservationEngine(service));
+        ProtocolState state = new ProtocolState(java.util.Set.of("read"), "test", ignored -> {});
+        RecordingEngine engine =
+                new RecordingEngine(
+                        service,
+                        new ObservationEngine(service, new WorldReadEngine(service, state)),
+                        state);
         JsonObject request = new JsonObject();
         request.addProperty("intervalMs", 50L);
         request.addProperty("durationMs", 300_000L);
@@ -153,5 +217,6 @@ final class RecordingEngineTest {
         JsonObject status = engine.status(recordingId);
         assertEquals("completed", status.get("status").getAsString());
         assertEquals("CLOSED", status.get("lifecycle").getAsString());
+        state.close();
     }
 }

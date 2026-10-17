@@ -21,6 +21,10 @@ Get-Help ./components/validation_tools/conformance-agent_control/task/Invoke-Con
 
 按原脚本断言判断 PASS/FAIL/PARTIAL；构建、静态、真实运行、人工验收分开记录。
 跨 Target 使用同一合同不自动证明 parity，只有实际比较的子项才可作一致性证据。
+SurfaceContractCatalogueTest核对全部正式HTTP操作与当前分类输入、生产Operation描述、12类实际条件的授权前置路径、
+实际Provider目录/读取准入及保留诊断Target分支；RuntimeCoreBoundaryTest用真实HTTP证明无实验Adapter时不暴露observe/inventory。
+Companion通过实际MCP listTools核对每项metadata与typed action集合，任务begin/heartbeat/end亦在目录中；
+这些检查不是五端Minecraft Live，仍需目标专属真实结果。Peer接收端主体/撤权验收不由分类元数据替代。
 `task/` 保存验证数据，脚本位于 components/validation_tools/；`instance/` 是可选 ignored 隔离数据；`result/` 只收长期证据。
 没有现成结果/实例就不创建占位目录。原生源码测试仍在各组件/Target。
 结果只对其绑定提交有效；未执行的 Minecraft Live/人工验收必须标为未执行。

@@ -5,7 +5,7 @@ function Check([bool]$Ok,[string]$Reason){if(-not$Ok){throw "Native/MCP surface:
 $schema=Get-Content (Join-Path $root 'components/protocol_schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
 $server=Get-Content (Join-Path $root 'components/companion/src/server.ts') -Raw
 $tools=[regex]::Matches($server,"registerTool\('").Count
-$methods=@($schema.paths.PSObject.Properties|ForEach-Object {$_.Value.PSObject.Properties|Where-Object {$_.Value.operationId}})
+$methods=@($schema.paths.PSObject.Properties|ForEach-Object {$_.Value.PSObject.Properties|Where-Object {$_.Name-in@('get','post','put','patch','delete','options','head','trace')-and$_.Value.operationId}})
 $reference=Get-Content (Join-Path $root 'documents/reference/protocol-native_v0.md') -Raw
 $companion=Get-Content (Join-Path $root 'documents/reference/api-companion.md') -Raw
 Check ($reference.Contains($schema.info.version)-and$companion.Contains($schema.info.version)) 'Current protocol version drift'

@@ -5,6 +5,30 @@
 
 ## 输入与窗口
 
+生命HUD采样：26.3在Hud/Renderpearl的extract方法观察GuiGraphicsExtractor.blitSprite；
+26.1.2使用Gui/Blaze3d RenderPipeline，1.21.1使用GuiGraphics.blitSprite及renderAirLevel。
+Forge1.20.1分别观察Gui.renderHeart和原生ForgeGui四种绘制，以icons.png原生UV解码图标身份，帧边界来自GameRenderer。
+五端均先原样调用绘制一次再采样；Forge自有方法remap=false，但其内部Minecraft blit保持remap=true。
+专属字节码测试约束委托原参数与调用次数，不允许以Mixin静默跳过代替实际渲染验证。
+
+BlockState 的 DEBUG 属性与 Resource Version 统一使用原生 `Property.getName(value)` 的序列化值，不能使用枚举 `toString()`；
+例如 NoteBlockInstrument 的内部枚举名称不是可写回的属性值。Native setter 先校验完整映射，再进行一次原版 setBlockAndUpdate；
+同类型更新保留未指定属性，跨类型使用默认状态。各端解析名称/API 自行适配，不共享 Minecraft 类型。
+
+玩家命令 helper 使用各端当前 Chat 绑定及原生字符回调，不直接调用 sendCommand。
+26.3 的 SDL 键先转协议键，旧端保留 GLFW keysym/scancode；Forge/NeoForge 的带修饰 Chat 绑定明确拒绝，
+不假装普通 T 键仍有效。聊天框和连接身份在每一阶段复验，原生 256 UTF-16 输入上限包含斜杠。
+各 Target 自己提取 ChatScreen/EditBox 和派发字符，MC 无关的草稿守卫和阶段编排在 runtime_core。
+命令方块/矿车配置由各端原生 ServerboundSetCommandBlockPacket/ServerboundSetCommandMinecartPacket 提取，
+共用最终命令许可与证据分类。Forge 最终 send 重载为两个参数，1.21.1 为 PacketSendListener 加 flush，
+现代端为 ChannelFutureListener 加 flush；Forge 不引用其版本不存在的独立签名命令包。
+26.3 的时间查询使用原生 time query gametime，不假定旧版本的 daytime 字面量仍存在。
+
+世界持续动作的共享 core 只编排有界 gesture；各 Target 的 WorldGestureMixin 在 MultiPlayerGameMode
+原版入口复验客户端目标，未持有语义 gesture 时不改变 Vanilla。新钩子计入生产 Hook manifest 与兼容门禁。
+26.3 的 interact 合并 EntityHitResult 参数；1.x 的 interact/interactAt 分开。物品使用时长、原版 pick
+所属对象、键位枚举和反转设置按 Target 适配，不共享 Minecraft 源码。取消仍保留原生松键效果。
+
 UI 原生容器在五端分别提取。1.20.1/1.21.1 用具名 Invoker 读取受保护列表行边界，
 Accessor 读取世界行 summary，字符回调仍是 GLFW 参数；26.1.2/26.3 使用 CharacterEvent。
 26.3 NeoForge 的字符入口公开，其他端经具名 Invoker，不用 Reflection。
@@ -34,6 +58,13 @@ Runtime 只关闭 SDL relative mode，不调用宿主光标定位。相对 Agent
 
 ## 渲染与证据
 
+世界 USER 呈现通过原生 LevelRenderer 的瞄准轮廓方法只读观察。
+1.20.1/1.21.1 的 renderHitOutline 接收 Entity、BlockPos 和 BlockState，按同一原生 Shape 排除空轮廓；
+26.1.2 的 renderHitOutline 接收 BlockOutlineRenderState 与 ARGB；26.3 两端改为 submitHitOutline。
+现代端读取原生 shape/pos/color，旧端遵循实际 CollisionContext，不用跨版本反射或修改绘制参数。
+GameRenderer.render 的 HEAD/TAIL 分隔完成帧，GUI/Overlay、隐藏 HUD、摄像机/目标/尺寸变化及过期使样本失效。
+输出只证明原生轮廓提交，GUI 中心只是参考，不是方块几何、材料、最终像素或可执行输入落点。
+
 最终内容 Hook 改为 Renderpearl GpuSurface.blitFromTexture 之前：
 游戏内容、证据 readback、Operator Chrome/Pointer、present 的顺序保持不变。
 静态 Hook 数量和 Runtime manifest 按真实 Target 更新，不沿用旧 API 的数量。
@@ -44,6 +75,11 @@ Operator pass 使用整数 GUI 宽高投影；26.1.2/26.3 的原生 GuiRenderer 
 真实人工 Esc、焦点、宿主光标和视觉质量仍需用户单独验收，自动 smoke 不替代这些结论。
 
 ## 原版 UI 原生区域
+
+本地HUD文字在26.3位于client.gui.hud，旧三端位于client.gui；三种消息都通过各端原生setTitle/setSubtitle/setOverlayMessage设置纯文字。
+完整Component内容守卫在1.20.1使用FriendlyByteBuf.writeComponent，其余使用TRUSTED_CONTEXT_FREE_STREAM_CODEC，并另外绑定完整解析文字的UTF-16单位。
+原生样式Codec需真实Loader/注册表，相关断言在src/probe的Mixin内执行，避免伪造FML启动或让probe与产品产生JPMS split package。
+投影/私有元数据隔离仍由普通JUnit检查；实际接口、Native内容守卫与最终制品分别验收，不因编译通过推定原生通过。
 
 原生 Widget/Listener 图与 render-only 区域分开读取。26.1.2/26.3 的 AbstractScrollArea 提供统一滚动基础；
 1.20.1/1.21.1 分别读取 AbstractSelectionList 与 AbstractScrollWidget，使用各自真正的滑块高度和范围。
@@ -61,6 +97,10 @@ Operator pass 使用整数 GUI 宽高投影；26.1.2/26.3 的原生 GuiRenderer 
 滑块绘制分别从 top+13/top+15 开始；语义滑块取绘制与按下范围的交集，拖动中允许自身裁剪高度变化。
 交易卷轴保留原版按可见七条交易计算的离散滑块位置；复用 trade identity 拒绝滚动后的旧行。
 1.20.1 的固定石头配方夹具不启用卷轴，不将此分支当作拖动验收；1.21.1 与 26.x 使用凝灰岩多行配方。
+
+ui.scroll.set的Screen分支绑定实际Screen身份及四种已确认的track，单独版本化当前比例、布局和语义上下文。
+创造模式同步scrollOffs与原生ItemPickerMenu.scrollTo；织布机按totalRowCount减去四行、切石机按getOffscreenRows计算原生显示起点；
+交易按总数减去七条计算整数起点，不执行选择回调或发送包。无范围时只接受0；普通AbstractSelectionList仍使用像素，不混用同名字段的单位。
 
 26.x 的 ActiveTextCollector 使用原生 prepared glyph active area；旧版用 Font advance 加原生 style hit test 确认区域。
 进度图内部类型在 26.3 NeoForge 已公开，旧版本用精确只读 Accessor/Invoker；Fabric 不读取 NeoForge 的页码扩展。
@@ -117,3 +157,108 @@ Minecraft 自带 Netty、Mixin 与 LWJGL 由游戏/Loader 管理；补充 HTTP �
 图标位置遵循原生 20 像素间隔、16 像素图案及渐隐期间的纵向位置，只作为显示边界。
 实际选择/执行继续调用 Runtime 原生键盘路径；中键打开继续走原生鼠标路径，不调用菜单或传送业务函数。
 选择后的名称可以作为 USER 读取，未选中名称只属于 DEBUG；菜单与绑定变动共同使旧操作目标失效。
+
+## 原生玩家命令边界
+
+五端在 ClientPacketListener 方法入口和 Connection 最终公开 send 重载检查 Agent 命令；
+不替换原版命令执行，不在 Screen 的崩溃包装回调内抛出协议异常。回调返回后由输入 Operation 报告拒绝。
+TAKEOVER 外真人命令不受拦截，异步许可失效后不允许借用另一 Operation 或 Lease。
+
+| Target | 文本链接入口 | 最终 send 参数 | 原生命令包 |
+| --- | --- | --- | --- |
+| 1.20.1 Forge | sendUnsignedCommand 返回 boolean | Packet、PacketSendListener | ServerboundChatCommandPacket |
+| 1.21.1 NeoForge | sendUnsignedCommand 返回 boolean | Packet、PacketSendListener、flush | 普通与 Signed 两种 |
+| 26.1.2 NeoForge | sendUnattendedCommand 带 Screen | Packet、ChannelFutureListener、flush | 普通与 Signed 两种 |
+| 26.3 NeoForge/Fabric | sendUnattendedCommand 带 Screen | Packet、ChannelFutureListener、flush | 普通与 Signed 两种 |
+
+1.x 的客户端 Dispatcher 泛型是 SharedSuggestionProvider，26.x 是 ClientSuggestionProvider。
+每端有界解析实际收到的命令树；别名子上下文可能从参数开始，必须使用 context.getRootNode，
+不能把参数名称误分类成新命令。同一根的别名续段合并为完整 root+arguments，
+避免设置命令被误判为无参数查询，或把查询别名误标为修改；原生上下文预算在合并前计数。
+execute 返回命令树根的重定向继续解析终端根。
+真实 Brigadier 测试分别覆盖直接命令、别名和嵌套别名；函数/调度内容未决时拒绝。
+原生参数解析结束按 Brigadier 的 canRead 判定，不能无条件对 getRemaining 取子串。
+1.20.1 的 ComponentArgument 会在有效 JSON 末尾把 reader 推进到输入长度后一位；
+五端保持与原生 execute 一致的结束规则，不截断、改写命令或忽略仍可读取的非空后缀。
+实际 ComponentArgument 回归另检查损坏 JSON 与尾随文本，不能用根命令分类代替完整解析。
+26.3 的 time query 不再提供旧 daytime 分支；跨端测试使用实际均支持的 gametime，不放宽语法校验。
+输入引擎在进入客户端队列前捕获短期 Operation 许可；发包时再检查当前连接、scope、模式和 Lease。
+Lease 读取复用 ProtocolState 的同一个 volatile 记录，不在持有客户端控制锁时反向取得协议监视器，避免与退出竞争死锁。
+新增的两处方法和一处发包取消注入均公开计入 Hook manifest；观察 Hook 仍不得取消流程。
+
+## 有界客户端世界读取
+
+首批世界语义动作：26.3/26.1.2 的 pick(float) 位于 Minecraft，1.20.1/1.21.1 通过 GameRenderer 原版 pick。
+具名 Invoker 只刷新原生命中结果，不调用攻击/使用业务函数；实际按键仍走原生回调和 GAME_ROUTED 来源票据。
+26.3 使用 SDL KEYBOARD 和 NativeInputMapping 反向转换；固定版本使用 KEYSYM/GLFW。
+Forge/NeoForge 的额外 modifier 绑定明确拒绝，不能丢掉修饰键后误发主键；Fabric 没有该 Loader 绑定扩展。
+1.x 只有 Y 轴反转，其余两代支持各自 X/Y 选项；灵敏度和反转仍由 Vanilla 处理，纯数学只计算相对误差。
+对 LevelChunk.setBlockState 的客户端目标缓存记录单调修改序号；
+两条 1.x 回调参数为 position/state/boolean，26.x 为 position/state/int。
+RETURN 的非 null 旧状态才记为实际变更；不变确认包不误增，真实 A→B→A 仍两次失效。
+同步 destroyBlock 范围内按原版破坏前流体状态核对替代，并记录有界邻居变化；
+线程局部来源不能吸收其他线程或调用外更新。只追踪客户端弱 Chunk，不收集服务端块数据。
+1.20.1 的 ItemStack.getUseDuration 无参数，其余传入玩家；副手持续使用仍交给普通 use 键与原版优先级，
+不直接调用目标版本的 useItem 业务方法。客户端 usingHand/riding 读取沿各自原生 API。
+原生分发拆出客户端同步实现，在同一授权 admission 中使用；不能嵌套异步请求再 join 等待客户端自己。
+五端普通方块瞄准分别使用对应 Minecraft 的 BlockState.getShape、CollisionContext 和 OUTLINE clip；
+候选来自真实盒体及面中心，不共享 Minecraft 源码或按原版 ID 特判。原生 pick 仍决定是否可交互。
+工作台/铁砧联合场景复用各端原生 Screen 与菜单槽位；Shift 需真实路由按下/松开，不能只依赖鼠标 modifier。
+
+五端 Jigsaw 配置都读取原生 ServerboundSetJigsawBlockPacket.getFinalState，生成包单独识别，不解析假命令占位。
+1.20.1 的配置包构造参数没有 selection/placement priority，另外四端有这两个整数；
+旧两端使用 ResourceLocation，26.x 使用 Identifier。生产路径均由原版 UI 构造包，不自研发送捷径。
+Generate 在原生 onDone 保存配置并关闭 Screen 后才发送生成包；拒绝第二包必须保留第一包来源和未确认语义。
+Structure 的四种 UpdateType 五端分别映射；1.20.1/1.21.1 的包没有 strict 布尔值，26.x 多一个 strict。
+原生 handler 均先写参数再分派动作；扫描、文件保存、模板加载不能按同一类“配置完成”处理。
+
+UI 物品守卫不使用 ItemStack 的普通 hashCode。1.21.1 与 26.x 在各自客户端注册表上调用原生
+ItemStack.STREAM_CODEC，编码 count=1 的副本，数量另外校验；1.20.1 用 FriendlyByteBuf 编码客户端物品 ID
+和现有 NBT tag，不复制整个 NBT。共享 core 只负责字节预算、密钥指纹和上下文令牌，不引用 Minecraft。
+这只证明原版客户端物品数据；不承诺第三方自定义 capability/codec 自动完整适配。
+拖动状态在各端原生鼠标回调返回后、同一客户端线程内推进；下一个输入之前仍校验外部更新，
+耗时快照校验完成后再检查 originating input permit，取消不能因编码耗时而变成晚到输入。
+
+五端 WorldClientSnapshot 只在客户端线程读取当前 level/player；Minecraft 相关适配不共享源码。
+1.20.1 的 ChunkStatus 位于 chunk 包，其余位于 chunk.status；两条 1.x 使用 Inventory.selected，
+26.x 使用 getSelectedSlot，维度键分别使用 location/identifier。缓存查询都传 FULL、required=false，
+直接从返回的缓存 Chunk 读取 BlockState；实体迭代来自客户端 entitiesForRendering，不查询 ServerLevel。
+纯 Java WorldClientModel 共享字段白名单、半径、扫描/时间/字节预算；不改变任何目标的输入路径或 UI USER。
+
+实体反馈沿客户端同步事实：LivingEntity.isBaby、TamableAnimal.isTame/isInSittingPose。
+Forge 1.20.1 的牵引方法在 Mob，其余四端在 Leashable；getLeashHolder 只解析当前 ClientLevel 的缓存实体。
+持有者未知时不输出 leashHeldByPlayer，不能把延迟解析解释成其他所有者；不发布 UUID、love 或繁殖冷却。
+原版 getLeashHolder 会惰性填充客户端缓存，必须先解析持有者再读取 isLeashed，避免同一响应矛盾。
+村民测试物品 NBT 的数量键在 1.20.1 为 Count，其余为 count，生产交互仍走原版 use 与语义菜单，不使用 NBT 写入捷径。
+
+命令载荷只读访问各端原生 BlockInput.tag；1.20.1 的 ItemInput.tag 与 1.21.1 的 components 通过精确 Accessor，
+26.x 使用原生 record components()。现代 DataComponentPatch 在当前客户端 RegistryOps 上编码，
+旧端仅捕获 BlockEntityTag/EntityTag；不构造物品、查询玩家库存或服务器对象来分类。
+1.x CompoundTag/StringTag 使用 getAllKeys/getAsString，26.x 使用 keySet/value；
+共同的预算、字段提取和效果聚合在 runtime_core，Minecraft 类型不跨 Target 共享。
+
+全量区块快照均从原生 replaceWithPacketData 的 HEAD 记录整块失效：1.x 接收 FriendlyByteBuf、CompoundTag 与实体数据回调，
+26.1.2 改为高度图 Map，26.3 改为 x/z 与 ClientboundLevelChunkPacketData。回调不消费或改写这些参数，
+与 setBlockState 的位置级历史共存；各端测试核对实际方法唯一性、返回类型与生产注入元数据。
+验证探针仅重发已加载 Chunk 的同一份原生数据，1.x ChunkPos 使用字段、26.x 使用 x()/z()。
+Forge performCommand 返回 int，其余返回 void；测试 Mixin 分别采用 CallbackInfoReturnable 与 CallbackInfo。
+旧 Forge 通过验证启动的 --mixin 参数早期登记探针，不能等到 Mod 构造时再登记；日常运行与发行 JAR 不加载探针。
+其探针 AP 另产 refmap，但映射文件不进入产品 reobfJar 的输入；不让产品构建依赖测试映射，也不放宽发行探针排除检查。
+
+Showcase的验证Toast使用原生API：1.21.1为getToasts()/ToastComponent及render返回Visibility；
+26.1.2为getToastManager()/ToastManager，26.3为gui.toastManager()，两者由update维护有限显示时间。
+1.21.1的TutorialToast构造器不接Font，26.x接Font；SystemToastId均可使用有界的long显示时间。
+三个Neo的新增按钮由probe Mixin接入自有AutomationProbeScreen，仍需显式showcaseFixture，不能把测试依赖放入产品。
+原生API差异依据当前编译构件核对；实际执行结果只看Showcase的绑定记录，不从此表推断五端Live通过。
+
+## UI 文本编辑器
+
+1.20.1/1.21.1的BookEditScreen使用pageEdit/titleEdit两个TextFieldHelper，26.1.2/26.3的页正文使用MultiLineEditBox，标题为独立EditBox。
+旧两端滚动范围使用getMaxScroll，26.x使用maxScrollAmount；旧端没有TestInstanceBlockEditScreen，不引用不存在的管理类。
+TextFieldHelper均提供selectAll/insertText、getCursorPos/getSelectionPos及setSelectionRange；通过Mixin读取其原生stringValidator，不自行复制行宽/页长算法。
+AbstractSignEditScreen四行共享同一原生helper，typed修改非当前行时临时选择该行，完成后恢复原行与选择区；完整草稿绑定各行独立资源身份。
+当前原版普通/悬挂告示牌最大行宽分别为90/60；生产代码不写死这两个值，仍使用对应原生validator。
+旧两端BookEditScreen.titleKeyPressed只有Backspace与Enter分支，不调用titleEdit.keyPressed，不支持Ctrl+A或移动标题光标；
+其USER节点声明backspace_from_end和完整值，通用Automation只发送有界真实退格，不能直接调用TextFieldHelper替代玩家。
+26.x独立标题EditBox继续原生全选；通用输入在清空后核对真实文字，再决定是否键入替换值。
+修改可能重建原生文字组件，恢复文字不承诺隐藏格式或服务器状态的事务回滚；结果和已知边界见Native协议。

@@ -1,0 +1,17 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "io.github.recrivenvi.minecraftprotocol.probe.validation.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "CommandsReplayMixin",
+        "ChunkPacketReplayMixin",
+        "CommandConfigurationProbeMixin",
+        "ShowcaseToastProbeMixin",
+        "UiPresentationContentProbeMixin",
+        "UiToastContentProbeMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

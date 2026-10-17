@@ -8,6 +8,7 @@ import io.github.recrivenvi.minecraftprotocol.safety.InteractionPacing;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +20,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -26,8 +28,26 @@ public final class AutomationEngine implements AutoCloseable {
     private static final int MAX_PIPELINE_STEPS = 256;
     private static final long MAX_PIPELINE_MILLIS = 300_000L;
     private static final long MAX_STEP_DELAY_MILLIS = 60_000L;
+    static final Map<String, List<String>> STEP_ADDITIONAL_SCOPES =
+            Map.ofEntries(
+                    Map.entry("delay", List.of()),
+                    Map.entry("mouse.move", List.of()),
+                    Map.entry("mouse.delta", List.of()),
+                    Map.entry("mouse.button", List.of()),
+                    Map.entry("mouse.click", List.of()),
+                    Map.entry("mouse.scroll", List.of()),
+                    Map.entry("mouse.drag", List.of()),
+                    Map.entry("key", List.of()),
+                    Map.entry("key.tap", List.of()),
+                    Map.entry("key.chord", List.of()),
+                    Map.entry("ui.action", List.of("ui")),
+                    Map.entry("ui.drag", List.of("ui")),
+                    Map.entry("wait.until", List.of("read")),
+                    Map.entry("assert.that", List.of("read")),
+                    Map.entry("world.action", List.of()));
 
     private final ProbeService service;
+    private final Consumer<JsonObject> authorizeStep;
     private final ScheduledExecutorService scheduler;
     private final Set<PipelineExecution> activeExecutions = ConcurrentHashMap.newKeySet();
     private volatile ConditionEngine conditionEngine;
@@ -37,7 +57,12 @@ public final class AutomationEngine implements AutoCloseable {
     private final InteractionPacing pacing = new InteractionPacing();
 
     public AutomationEngine(ProbeService service) {
+        this(service, step -> {});
+    }
+
+    AutomationEngine(ProbeService service, Consumer<JsonObject> authorizeStep) {
         this.service = service;
+        this.authorizeStep = authorizeStep;
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
@@ -57,6 +82,36 @@ public final class AutomationEngine implements AutoCloseable {
 
     void setConditionEngine(ConditionEngine conditionEngine) {
         this.conditionEngine = conditionEngine;
+    }
+
+    void requireCommandDispatch(String gestureId) {
+        PipelineExecution execution =
+                this.activeExecutions.stream()
+                        .filter(active -> active.gestureId.equals(gestureId))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new ProtocolState.ProtocolException(
+                                                "PLAYER_COMMAND_ORIGIN_UNAVAILABLE",
+                                                409,
+                                                "Command has no active input operation"));
+        execution.checkActive();
+    }
+
+    void noteCommandSubmission(JsonObject receipt) {
+        String gestureId = receipt.get("gestureId").getAsString();
+        requireCommandDispatch(gestureId);
+        PipelineExecution execution =
+                this.activeExecutions.stream()
+                        .filter(active -> active.gestureId.equals(gestureId))
+                        .findFirst()
+                        .orElseThrow();
+        if (execution.commandReceipts.size() >= 16)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_BUDGET_EXCEEDED",
+                    413,
+                    "Input operation command receipt budget is exhausted");
+        execution.commandReceipts.add(receipt.deepCopy());
     }
 
     public CompletableFuture<JsonObject> resolve(JsonObject selector) {
@@ -123,6 +178,25 @@ public final class AutomationEngine implements AutoCloseable {
             Runnable leaseCheck,
             Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                     admission) {
+        return this.uiAction(request, leaseCheck, admission, false);
+    }
+
+    CompletableFuture<JsonObject> uiAction(
+            JsonObject request,
+            Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
+                    admission,
+            boolean strictMenuRevision) {
+        return this.uiAction(request, leaseCheck, admission, strictMenuRevision, null);
+    }
+
+    CompletableFuture<JsonObject> uiAction(
+            JsonObject request,
+            Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
+                    admission,
+            boolean strictMenuRevision,
+            InputDispatchContext.Preconditions preflight) {
         JsonObject step = request.deepCopy();
         step.addProperty("type", "ui.action");
         JsonArray steps = new JsonArray();
@@ -131,7 +205,14 @@ public final class AutomationEngine implements AutoCloseable {
         pipeline.add("steps", steps);
         pipeline.addProperty("cleanupOnComplete", false);
         return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
-                this.executePipeline(pipeline, leaseCheck, admission),
+                this.executeInput(
+                        pipeline,
+                        leaseCheck,
+                        admission,
+                        false,
+                        null,
+                        strictMenuRevision,
+                        preflight),
                 result ->
                         CompletableFuture.completedFuture(
                                 result.getAsJsonArray("steps")
@@ -162,7 +243,18 @@ public final class AutomationEngine implements AutoCloseable {
             Runnable leaseCheck,
             Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                     admission) {
-        return this.executeInput(request, leaseCheck, admission, false, null);
+        return this.executePipeline(request, leaseCheck, admission, false, null);
+    }
+
+    CompletableFuture<JsonObject> executePipeline(
+            JsonObject request,
+            Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
+                    admission,
+            boolean strictMenuRevision,
+            InputDispatchContext.Preconditions preflight) {
+        return this.executeInput(
+                request, leaseCheck, admission, false, null, strictMenuRevision, preflight);
     }
 
     public CompletableFuture<JsonObject> rawInput(
@@ -170,13 +262,33 @@ public final class AutomationEngine implements AutoCloseable {
             Runnable leaseCheck,
             Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                     admission) {
+        return this.rawInput(step, leaseCheck, admission, false);
+    }
+
+    CompletableFuture<JsonObject> rawInput(
+            JsonObject step,
+            Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
+                    admission,
+            boolean strictMenuRevision) {
+        return this.rawInput(step, leaseCheck, admission, strictMenuRevision, null);
+    }
+
+    CompletableFuture<JsonObject> rawInput(
+            JsonObject step,
+            Runnable leaseCheck,
+            Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
+                    admission,
+            boolean strictMenuRevision,
+            InputDispatchContext.Preconditions preflight) {
         JsonArray steps = new JsonArray();
         steps.add(step.deepCopy());
         JsonObject request = new JsonObject();
         request.add("steps", steps);
         request.addProperty("cleanupOnComplete", false);
         return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
-                this.executeInput(request, leaseCheck, admission, true, null),
+                this.executeInput(
+                        request, leaseCheck, admission, true, null, strictMenuRevision, preflight),
                 value ->
                         CompletableFuture.completedFuture(
                                 value.getAsJsonArray("steps")
@@ -190,15 +302,29 @@ public final class AutomationEngine implements AutoCloseable {
             Runnable leaseCheck,
             Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                     admission) {
+        final String normalized;
+        try {
+            normalized = PlayerCommandPolicy.normalize(command);
+        } catch (ProtocolState.ProtocolException invalid) {
+            return CompletableFuture.failedFuture(invalid);
+        }
         JsonObject step = new JsonObject();
         step.addProperty("type", "internal.player.command");
         JsonArray steps = new JsonArray();
         steps.add(step);
         JsonObject request = new JsonObject();
         request.add("steps", steps);
-        request.addProperty("cleanupOnComplete", false);
+        request.addProperty("cleanupOnComplete", true);
         return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
-                this.executeInput(request, leaseCheck, admission, false, command),
+                this.executeInput(
+                        request,
+                        leaseCheck,
+                        admission,
+                        false,
+                        normalized,
+                        false,
+                        new InputDispatchContext.Preconditions(
+                                null, null, () -> service.playerCommand(normalized, "prepare"))),
                 value ->
                         CompletableFuture.completedFuture(
                                 value.getAsJsonArray("steps")
@@ -213,7 +339,9 @@ public final class AutomationEngine implements AutoCloseable {
             Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                     admission,
             boolean raw,
-            String command) {
+            String command,
+            boolean strictMenuRevision,
+            InputDispatchContext.Preconditions preflight) {
         if (this.closed) return failed("INPUT_QUEUE_CLOSED", 409, "Input is closed");
         if (!request.has("steps") || !request.get("steps").isJsonArray()) {
             return failed("INVALID_PIPELINE", 400, "Pipeline requires a steps array");
@@ -223,10 +351,19 @@ public final class AutomationEngine implements AutoCloseable {
             return failed("INVALID_PIPELINE", 400, "Pipeline step count must be between 1 and 256");
         }
         for (JsonElement element : steps) {
-            if (!element.isJsonObject() || !element.getAsJsonObject().has("type")) {
+            if (!element.isJsonObject()
+                    || !element.getAsJsonObject().has("type")
+                    || !element.getAsJsonObject().get("type").isJsonPrimitive()
+                    || !element.getAsJsonObject().getAsJsonPrimitive("type").isString()) {
                 return failed("INVALID_PIPELINE", 400, "Every pipeline step requires a type");
             }
             JsonObject step = element.getAsJsonObject();
+            String type = string(step, "type", "");
+            if (!STEP_ADDITIONAL_SCOPES.containsKey(type)
+                    && !(command != null && type.equals("internal.player.command")))
+                return failed(
+                        "UNSUPPORTED_PIPELINE_STEP", 400, "Unsupported pipeline step: " + type);
+            this.authorizeStep.accept(step);
             if (step.has("category") && !"USER".equals(string(step, "category", ""))) {
                 return failed(
                         "USER_UI_OPERATION_REQUIRED",
@@ -244,7 +381,9 @@ public final class AutomationEngine implements AutoCloseable {
                         cleanupOnComplete,
                         admission,
                         raw,
-                        command);
+                        command,
+                        strictMenuRevision,
+                        preflight);
         this.activeExecutions.add(execution);
         CompletableFuture<JsonObject> result = execution.result;
         try {
@@ -321,6 +460,11 @@ public final class AutomationEngine implements AutoCloseable {
     };
 
     private static JsonObject guard(JsonObject state, JsonObject selector, String action) {
+        return guard(state, selector, action, false);
+    }
+
+    private static JsonObject guard(
+            JsonObject state, JsonObject selector, String action, boolean strictMenuRevision) {
         JsonObject result = new JsonObject(), frame = new JsonObject();
         copy(state, frame, FRAME_FIELDS);
         // Text edits may legitimately rebuild menu contents (for example Creative search).
@@ -328,11 +472,27 @@ public final class AutomationEngine implements AutoCloseable {
         if (action.equals("type_text")) frame.remove("menuRevision");
         result.add("frame", frame);
         if (selector != null) {
+            // Unrelated slots may update while the pointer moves. Pin the actual target,
+            // carried stack and menu owner instead; explicit global revision pins remain strict.
+            if (!strictMenuRevision) frame.remove("menuRevision");
+            if (state.has("carriedStack"))
+                result.add("carriedStack", state.get("carriedStack").deepCopy());
             JsonObject resolution = resolveTree(state, selector);
             requireActionable(resolution.getAsJsonObject("node"), action);
+            requireItemContent(resolution.getAsJsonObject("node"));
+            if (state.has("carriedStack"))
+                requireItemContent(state.getAsJsonObject("carriedStack"));
             result.add("selector", selector.deepCopy());
             result.add("node", resolution.getAsJsonObject("node").deepCopy());
             result.addProperty("action", action);
+            JsonObject node = result.getAsJsonObject("node");
+            if (action.equals("double_click")
+                    && string(node, "role", "").equals("list_item")
+                    && node.has("selected")
+                    && node.get("selected").isJsonPrimitive()
+                    && node.getAsJsonPrimitive("selected").isBoolean()
+                    && !node.get("selected").getAsBoolean())
+                result.addProperty("trackClickSelection", true);
         }
         return result;
     }
@@ -346,6 +506,10 @@ public final class AutomationEngine implements AutoCloseable {
                 throw new ProtocolState.ProtocolException(
                         "UI_TARGET_INVALIDATED", 409, "Pointer context changed: " + field);
         }
+        if (guard.has("carriedStack")
+                && !guard.get("carriedStack").equals(tree.get("carriedStack")))
+            throw new ProtocolState.ProtocolException(
+                    "UI_TARGET_INVALIDATED", 409, "Pointer carried stack changed");
         if (tree.has("overlayIdentity") && tree.get("overlayIdentity").getAsLong() != 0)
             throw new ProtocolState.ProtocolException(
                     "UI_TARGET_INVALIDATED", 409, "An Overlay now blocks the target");
@@ -360,6 +524,7 @@ public final class AutomationEngine implements AutoCloseable {
                         "UI_TARGET_INVALIDATED", 409, "Pointer target no longer resolves");
             }
             JsonObject original = guard.getAsJsonObject("node");
+            requireItemContent(current);
             for (String field :
                     new String[] {
                         "nodeId",
@@ -381,16 +546,18 @@ public final class AutomationEngine implements AutoCloseable {
                         "selected",
                         "activationEnabled",
                         "multiline",
+                        "textReplaceStrategy",
+                        "valueComplete",
                         "item",
-                        "count"
+                        "count",
+                        "slotDisabled",
+                        "contentRevision",
+                        "contentFingerprint"
                     }) {
                 boolean ownDragChange =
                         bool(guard, "dragActive", false)
-                                && ((string(original, "role", "").equals("scrollbar_thumb")
-                                                && (field.equals("y") || field.equals("height")))
-                                        || (string(original, "role", "").equals("slot")
-                                                && (field.equals("item")
-                                                        || field.equals("count"))));
+                                && string(original, "role", "").equals("scrollbar_thumb")
+                                && (field.equals("y") || field.equals("height"));
                 if (!ownDragChange
                         && original.has(field)
                         && (!current.has(field) || !original.get(field).equals(current.get(field))))
@@ -404,6 +571,81 @@ public final class AutomationEngine implements AutoCloseable {
         }
         if (guard.has("destination"))
             validatePointerGuard(guard.getAsJsonObject("destination"), tree);
+    }
+
+    private static void requireItemContent(JsonObject node) {
+        if (node.has("contentGuardAvailable") && !bool(node, "contentGuardAvailable", false))
+            throw new ProtocolState.ProtocolException(
+                    "UI_CONTENT_GUARD_UNAVAILABLE",
+                    409,
+                    "Item data could not be guarded within the native encoding budget; no unsafe fallback");
+    }
+
+    /**
+     * Native owner-thread only, immediately after the originating mouse callback, before yielding.
+     */
+    public static void advanceDragGuard(JsonObject guard, JsonObject after) {
+        if (guard == null || !bool(guard, "trackDrag", false)) return;
+        JsonObject structure = guard.deepCopy();
+        stripOwnedItemState(structure);
+        validatePointerGuard(structure, after);
+        advanceOwnedItemState(guard, after);
+    }
+
+    /** Native owner-thread only, after the first press callback and before yielding. */
+    public static void advanceClickSelectionGuard(JsonObject guard, JsonObject after) {
+        if (guard == null || !bool(guard, "trackClickSelection", false)) return;
+        JsonObject structure = guard.deepCopy();
+        structure.getAsJsonObject("node").remove("selected");
+        validatePointerGuard(structure, after);
+        JsonObject current =
+                resolveTree(after, guard.getAsJsonObject("selector")).getAsJsonObject("node");
+        if (!current.has("selected")
+                || !current.get("selected").isJsonPrimitive()
+                || !current.getAsJsonPrimitive("selected").isBoolean())
+            throw new ProtocolState.ProtocolException(
+                    "UI_TARGET_INVALIDATED", 409, "List selection is no longer observable");
+        guard.getAsJsonObject("node").add("selected", current.get("selected").deepCopy());
+        // Only this callback's own selection can advance. Later external changes still reject.
+        guard.remove("trackClickSelection");
+    }
+
+    private static final String[] ITEM_STATE_FIELDS = {
+        "item",
+        "count",
+        "contentRevision",
+        "contentFingerprint",
+        "contentGuardAvailable",
+        "slotDisabled"
+    };
+
+    private static void stripOwnedItemState(JsonObject guard) {
+        guard.remove("carriedStack");
+        guard.getAsJsonObject("frame").remove("menuRevision");
+        if (guard.has("node") && string(guard.getAsJsonObject("node"), "role", "").equals("slot"))
+            for (String field : ITEM_STATE_FIELDS) guard.getAsJsonObject("node").remove(field);
+        if (guard.has("destination")) stripOwnedItemState(guard.getAsJsonObject("destination"));
+    }
+
+    private static void advanceOwnedItemState(JsonObject guard, JsonObject after) {
+        if (guard.getAsJsonObject("frame").has("menuRevision") && after.has("menuRevision"))
+            guard.getAsJsonObject("frame")
+                    .add("menuRevision", after.get("menuRevision").deepCopy());
+        if (after.has("carriedStack")) {
+            requireItemContent(after.getAsJsonObject("carriedStack"));
+            guard.add("carriedStack", after.get("carriedStack").deepCopy());
+        }
+        if (guard.has("node") && string(guard.getAsJsonObject("node"), "role", "").equals("slot")) {
+            JsonObject current =
+                    resolveTree(after, guard.getAsJsonObject("selector")).getAsJsonObject("node");
+            for (String field : ITEM_STATE_FIELDS) {
+                guard.getAsJsonObject("node").remove(field);
+                if (current.has(field))
+                    guard.getAsJsonObject("node").add(field, current.get(field).deepCopy());
+            }
+        }
+        if (guard.has("destination"))
+            advanceOwnedItemState(guard.getAsJsonObject("destination"), after);
     }
 
     private CompletableFuture<JsonObject> smoothMove(
@@ -532,7 +774,8 @@ public final class AutomationEngine implements AutoCloseable {
                                     request.has("selector")
                                             ? request.getAsJsonObject("selector")
                                             : null;
-                            JsonObject expected = guard(state, selector, action);
+                            JsonObject expected =
+                                    guard(state, selector, action, execution.strictMenuRevision);
                             JsonObject node =
                                     expected.has("node") ? expected.getAsJsonObject("node") : null;
                             if (node != null
@@ -767,39 +1010,69 @@ public final class AutomationEngine implements AutoCloseable {
                                     return simpleResult("ui.text_focus");
                                 });
         if (bool(request, "replace", true)) {
+            if (string(node, "textReplaceStrategy", "select_all").equals("backspace_from_end")) {
+                String previous = node.get("value").getAsString();
+                for (int i = 0; i < previous.codePointCount(0, previous.length()); i++)
+                    chain = chain.thenCompose(done -> guardedTextKey(259, focused, execution));
+            } else {
+                chain =
+                        chain.thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        341, 0, 1, 2, focused)))
+                                .thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        65, 0, 1, 2, focused)))
+                                .thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        65, 0, 0, 2, focused)))
+                                .thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        341, 0, 0, 0, focused)))
+                                .thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        259, 0, 1, 0, focused)))
+                                .thenCompose(
+                                        done ->
+                                                execution.effect(
+                                                        () ->
+                                                                service.keyGuarded(
+                                                                        259, 0, 0, 0, focused)));
+            }
             chain =
-                    chain.thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () ->
-                                                            service.keyGuarded(
-                                                                    341, 0, 1, 2, focused)))
-                            .thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () -> service.keyGuarded(65, 0, 1, 2, focused)))
-                            .thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () -> service.keyGuarded(65, 0, 0, 2, focused)))
-                            .thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () ->
-                                                            service.keyGuarded(
-                                                                    341, 0, 0, 0, focused)))
-                            .thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () ->
-                                                            service.keyGuarded(
-                                                                    259, 0, 1, 0, focused)))
-                            .thenCompose(
-                                    done ->
-                                            execution.effect(
-                                                    () ->
-                                                            service.keyGuarded(
-                                                                    259, 0, 0, 0, focused)));
+                    chain.thenCompose(done -> execution.effect(service::debugUiTree))
+                            .thenApply(
+                                    tree -> {
+                                        validatePointerGuard(focused, tree);
+                                        JsonObject current =
+                                                resolveTree(
+                                                                tree,
+                                                                focused.getAsJsonObject("selector"))
+                                                        .getAsJsonObject("node");
+                                        if (!current.has("value")
+                                                || !current.get("value").isJsonPrimitive()
+                                                || !current.getAsJsonPrimitive("value").isString()
+                                                || !current.get("value").getAsString().isEmpty())
+                                            throw new ProtocolState.ProtocolException(
+                                                    "UI_TEXT_REPLACEMENT_FAILED",
+                                                    409,
+                                                    "Native editor did not clear; replacement was not typed. Earlier player input may have effects.");
+                                        return simpleResult("ui.text_cleared");
+                                    });
         }
         final JsonObject textGuard = focused;
         for (int codePoint : text.codePoints().toArray()) {
@@ -835,6 +1108,20 @@ public final class AutomationEngine implements AutoCloseable {
         if (checkedText(request).contains("\n") && !bool(node, "multiline", false))
             throw new ProtocolState.ProtocolException(
                     "INVALID_UI_TEXT", 400, "Newlines require a native multiline editor");
+        if (bool(request, "replace", true)) {
+            String strategy = string(node, "textReplaceStrategy", "select_all");
+            if (!Set.of("select_all", "backspace_from_end").contains(strategy)
+                    || strategy.equals("backspace_from_end")
+                            && (!bool(node, "valueComplete", false)
+                                    || !node.has("value")
+                                    || !node.get("value").isJsonPrimitive()
+                                    || !node.getAsJsonPrimitive("value").isString()
+                                    || node.get("value").getAsString().length() > 2048))
+                throw new ProtocolState.ProtocolException(
+                        "UI_TEXT_REPLACEMENT_UNAVAILABLE",
+                        409,
+                        "Native editor must declare a bounded complete value and supported replacement strategy");
+        }
     }
 
     private CompletableFuture<JsonObject> guardedTextKey(
@@ -1013,6 +1300,7 @@ public final class AutomationEngine implements AutoCloseable {
     private CompletableFuture<JsonObject> runStep(JsonObject step, PipelineExecution execution) {
         String type = step.get("type").getAsString();
         return switch (type) {
+            case "world.action" -> this.worldAction(step, execution);
             case "delay" ->
                     execution
                             .delay(
@@ -1032,7 +1320,12 @@ public final class AutomationEngine implements AutoCloseable {
                     execution.command == null
                             ? failed(
                                     "UNSUPPORTED_PIPELINE_STEP", 400, "Internal step is not public")
-                            : execution.effect(() -> service.playerCommand(execution.command));
+                            : execution
+                                    .commandPhase("open")
+                                    .thenCompose(
+                                            ignored ->
+                                                    this.commandChatReady(
+                                                            execution, System.nanoTime()));
             case "mouse.button" ->
                     execution.effect(
                             () ->
@@ -1074,6 +1367,310 @@ public final class AutomationEngine implements AutoCloseable {
         };
     }
 
+    private CompletableFuture<JsonObject> commandChatReady(
+            PipelineExecution execution, long openedAt) {
+        return execution
+                .commandPhase("ready")
+                .thenCompose(
+                        state -> {
+                            if (bool(state, "ready", false)) return commandChatType(execution);
+                            if (System.nanoTime() - openedAt > TimeUnit.SECONDS.toNanos(5))
+                                return failed(
+                                        "PLAYER_COMMAND_CHAT_UNAVAILABLE",
+                                        409,
+                                        "Native Chat key did not open a ready input within 5 seconds");
+                            return execution
+                                    .delay(20)
+                                    .thenCompose(ignored -> commandChatReady(execution, openedAt));
+                        });
+    }
+
+    private CompletableFuture<JsonObject> commandChatType(PipelineExecution execution) {
+        return execution
+                .commandPhase("type")
+                .thenCompose(
+                        state -> {
+                            if (bool(state, "typed", false))
+                                return execution
+                                        .commandPhase("submit")
+                                        .thenCompose(
+                                                receipt -> commandChatFeedback(execution, receipt));
+                            return execution
+                                    .delay(20)
+                                    .thenCompose(ignored -> commandChatType(execution));
+                        });
+    }
+
+    private CompletableFuture<JsonObject> commandChatFeedback(
+            PipelineExecution execution, JsonObject receipt) {
+        return execution
+                .commandPhase("feedback")
+                .thenCompose(
+                        feedback -> {
+                            if (bool(feedback, "complete", false)) {
+                                receipt.add("commandFeedback", feedback);
+                                return CompletableFuture.completedFuture(receipt);
+                            }
+                            return execution
+                                    .delay(20)
+                                    .thenCompose(
+                                            ignored -> commandChatFeedback(execution, receipt));
+                        });
+    }
+
+    private CompletableFuture<JsonObject> worldAction(
+            JsonObject step, PipelineExecution execution) {
+        io.github.recrivenvi.minecraftprotocol.safety.WorldActionRequest spec;
+        try {
+            spec = io.github.recrivenvi.minecraftprotocol.safety.WorldActionRequest.parse(step);
+        } catch (RuntimeException invalid) {
+            return failed("INVALID_WORLD_ACTION", 400, invalid.getMessage());
+        }
+        return aimWorldTarget(spec, null, execution, 0)
+                .thenCompose(
+                        frame -> {
+                            if (spec.action().equals("aim"))
+                                return CompletableFuture.completedFuture(frame);
+                            JsonObject expected = frame.getAsJsonObject("guard");
+                            return execution
+                                    .effect(
+                                            () ->
+                                                    service.worldActionFrame(
+                                                            spec.targetRef(),
+                                                            spec.action(),
+                                                            expected,
+                                                            true,
+                                                            spec.options()))
+                                    .thenCompose(
+                                            pressed -> {
+                                                long started = System.nanoTime();
+                                                CompletableFuture<JsonObject> held =
+                                                        spec.action().equals("mine")
+                                                                        || spec.action()
+                                                                                .equals("use_hold")
+                                                                ? holdWorld(
+                                                                        spec, expected, execution,
+                                                                        started)
+                                                                : execution
+                                                                        .delay(80)
+                                                                        .thenApply(
+                                                                                ignored ->
+                                                                                        new JsonObject());
+                                                return held.thenCompose(
+                                                                progress ->
+                                                                        releaseWorldBinding(
+                                                                                        pressed
+                                                                                                .getAsJsonObject(
+                                                                                                        "binding"),
+                                                                                        execution)
+                                                                                .thenCompose(
+                                                                                        ignored ->
+                                                                                                spec.action()
+                                                                                                                .equals(
+                                                                                                                        "use_hold")
+                                                                                                        ? waitWorldRelease(
+                                                                                                                spec,
+                                                                                                                expected,
+                                                                                                                execution,
+                                                                                                                0)
+                                                                                                        : spec.action()
+                                                                                                                        .equals(
+                                                                                                                                "place")
+                                                                                                                ? execution
+                                                                                                                        .effect(
+                                                                                                                                () ->
+                                                                                                                                        service
+                                                                                                                                                .worldActionProgress(
+                                                                                                                                                        spec
+                                                                                                                                                                .targetRef(),
+                                                                                                                                                        expected,
+                                                                                                                                                        true))
+                                                                                                                : CompletableFuture
+                                                                                                                        .completedFuture(
+                                                                                                                                progress)))
+                                                        .thenCompose(
+                                                                progress ->
+                                                                        execution
+                                                                                .effect(
+                                                                                        service
+                                                                                                ::worldActionEnd)
+                                                                                .thenApply(
+                                                                                        ignored -> {
+                                                                                            progress.entrySet()
+                                                                                                    .forEach(
+                                                                                                            e ->
+                                                                                                                    pressed
+                                                                                                                            .add(
+                                                                                                                                    e
+                                                                                                                                            .getKey(),
+                                                                                                                                    e.getValue()
+                                                                                                                                            .deepCopy()));
+                                                                                            pressed
+                                                                                                    .addProperty(
+                                                                                                            "inputReleased",
+                                                                                                            true);
+                                                                                            pressed
+                                                                                                    .addProperty(
+                                                                                                            "effectConfirmed",
+                                                                                                            false);
+                                                                                            pressed
+                                                                                                    .addProperty(
+                                                                                                            "requestedHoldMs",
+                                                                                                            spec
+                                                                                                                    .holdMs());
+                                                                                            pressed
+                                                                                                    .addProperty(
+                                                                                                            "outcome",
+                                                                                                            spec.action()
+                                                                                                                            .equals(
+                                                                                                                                    "mine")
+                                                                                                                    ? "client_break_predicted"
+                                                                                                                    : "input_dispatched_effect_requires_observation");
+                                                                                            return pressed;
+                                                                                        }));
+                                            });
+                        })
+                .thenApply(
+                        result -> {
+                            result.remove("guard");
+                            result.addProperty("type", "world.action_result");
+                            result.addProperty("domain", "WORLD");
+                            result.addProperty("dataCategory", "USER");
+                            result.addProperty("evidenceAuthority", "PLAYTEST");
+                            result.addProperty("entryLayer", "GAME_ROUTED_RAW");
+                            result.addProperty("directMutationUsed", false);
+                            result.addProperty("action", spec.action());
+                            result.addProperty("targetRef", spec.targetRef());
+                            service.gestureEvent(execution.gestureId, "world_action", result);
+                            return result;
+                        });
+    }
+
+    private CompletableFuture<JsonObject> releaseWorldBinding(
+            JsonObject binding, PipelineExecution execution) {
+        return execution.effect(
+                () ->
+                        binding.get("kind").getAsString().equals("mouse")
+                                ? service.mouseButton(binding.get("code").getAsInt(), 0, 0)
+                                : service.key(
+                                        binding.get("code").getAsInt(),
+                                        binding.get("scanCode").getAsInt(),
+                                        0,
+                                        0));
+    }
+
+    private CompletableFuture<JsonObject> holdWorld(
+            io.github.recrivenvi.minecraftprotocol.safety.WorldActionRequest spec,
+            JsonObject expected,
+            PipelineExecution execution,
+            long started) {
+        return execution
+                .effect(() -> service.worldActionProgress(spec.targetRef(), expected, false))
+                .thenCompose(
+                        progress -> {
+                            if (bool(progress, "done", false))
+                                return CompletableFuture.completedFuture(progress);
+                            long elapsed =
+                                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+                            if (elapsed >= spec.holdMs()) {
+                                if (spec.action().equals("mine"))
+                                    return failed(
+                                            "WORLD_MINE_TIMEOUT",
+                                            409,
+                                            "Mining budget exhausted; no completion was observed");
+                                if (!bool(progress, "nativeUseStarted", false))
+                                    return failed(
+                                            "WORLD_USE_NOT_STARTED",
+                                            409,
+                                            "Vanilla did not begin sustained item use");
+                                return CompletableFuture.completedFuture(progress);
+                            }
+                            return execution
+                                    .delay(Math.min(50, spec.holdMs() - elapsed))
+                                    .thenCompose(
+                                            ignored ->
+                                                    holdWorld(spec, expected, execution, started));
+                        });
+    }
+
+    private CompletableFuture<JsonObject> waitWorldRelease(
+            io.github.recrivenvi.minecraftprotocol.safety.WorldActionRequest spec,
+            JsonObject expected,
+            PipelineExecution execution,
+            int attempt) {
+        return execution
+                .effect(() -> service.worldActionProgress(spec.targetRef(), expected, true))
+                .thenCompose(
+                        progress -> {
+                            if (bool(progress, "released", false))
+                                return CompletableFuture.completedFuture(progress);
+                            if (attempt >= 20)
+                                return failed(
+                                        "WORLD_USE_RELEASE_TIMEOUT",
+                                        409,
+                                        "Routed release was sent, but native use has not ended");
+                            return execution
+                                    .delay(50)
+                                    .thenCompose(
+                                            ignored ->
+                                                    waitWorldRelease(
+                                                            spec,
+                                                            expected,
+                                                            execution,
+                                                            attempt + 1));
+                        });
+    }
+
+    private CompletableFuture<JsonObject> aimWorldTarget(
+            io.github.recrivenvi.minecraftprotocol.safety.WorldActionRequest spec,
+            JsonObject expected,
+            PipelineExecution execution,
+            int attempt) {
+        if (attempt >= 80)
+            return failed(
+                    "WORLD_AIM_TIMEOUT", 409, "Vanilla aim did not converge within 80 corrections");
+        return execution
+                .effect(
+                        () ->
+                                service.worldActionFrame(
+                                        spec.targetRef(),
+                                        spec.action(),
+                                        expected,
+                                        false,
+                                        spec.options()))
+                .thenCompose(
+                        frame -> {
+                            if (bool(frame, "onTarget", false))
+                                return CompletableFuture.completedFuture(frame);
+                            if (attempt > 4 && doubleValue(frame, "aimError", 180) < 0.05)
+                                return CompletableFuture.failedFuture(
+                                        new ProtocolState.ProtocolException(
+                                                "WORLD_TARGET_NOT_HIT",
+                                                409,
+                                                "Native raycast does not hit the requested target/face (occlusion, reach or shape)",
+                                                WorldHitEvidence.details(
+                                                        frame.has("actualHit")
+                                                                        && frame.get("actualHit")
+                                                                                .isJsonObject()
+                                                                ? frame.getAsJsonObject("actualHit")
+                                                                : null)));
+                            JsonObject pinned = frame.getAsJsonObject("guard");
+                            return execution
+                                    .effect(
+                                            () ->
+                                                    service.worldAimDelta(
+                                                            spec.targetRef(),
+                                                            pinned,
+                                                            requiredDouble(frame, "dx"),
+                                                            requiredDouble(frame, "dy")))
+                                    .thenCompose(ignored -> execution.delay(50))
+                                    .thenCompose(
+                                            ignored ->
+                                                    aimWorldTarget(
+                                                            spec, pinned, execution, attempt + 1));
+                        });
+    }
+
     private static boolean gui(JsonObject state) {
         return bool(state, "guiAbsolute", !string(state, "screenClass", "").isEmpty());
     }
@@ -1096,10 +1693,17 @@ public final class AutomationEngine implements AutoCloseable {
     }
 
     private CompletableFuture<JsonObject> pacedStep(JsonObject step, PipelineExecution execution) {
+        this.authorizeStep.accept(step);
         String type = string(step, "type", "");
         boolean input =
                 type.startsWith("mouse.") || type.startsWith("key") || type.startsWith("ui.");
         if (!input) return runStep(step, execution);
+        boolean menuIndependentDwell =
+                type.startsWith("key")
+                        || type.equals("ui.drag")
+                        || type.equals("ui.action")
+                                && step.has("selector")
+                                && !step.has("coordinates");
         boolean release =
                 (type.equals("key") || type.equals("mouse.button"))
                                 && integer(step, "action", 1) == 0
@@ -1122,6 +1726,12 @@ public final class AutomationEngine implements AutoCloseable {
                                         if (wait == 0)
                                             return CompletableFuture.completedFuture(null);
                                         JsonObject expected = guard(state, null, "click");
+                                        // Semantic resolution follows dwell; keyboard has no slot
+                                        // target. Raw pointer coordinates and explicit pins stay
+                                        // strict. Screen/geometry/owner checks always apply.
+                                        if (menuIndependentDwell && !execution.strictMenuRevision)
+                                            expected.getAsJsonObject("frame")
+                                                    .remove("menuRevision");
                                         return execution
                                                 .delay(wait)
                                                 .thenCompose(
@@ -1247,6 +1857,13 @@ public final class AutomationEngine implements AutoCloseable {
         int button = integer(step, "button", 0), modifiers = integer(step, "modifiers", 0);
         int segments = (int) bounded(longValue(step, "segments", 12), 1, 120);
         long duration = bounded(longValue(step, "durationMs", 600), 0, 60000);
+        JsonObject dragging = expected.deepCopy();
+        dragging.addProperty("dragActive", true);
+        dragging.addProperty("trackDrag", true);
+        if (dragging.has("destination")) {
+            dragging.getAsJsonObject("destination").addProperty("dragActive", true);
+            dragging.getAsJsonObject("destination").addProperty("trackDrag", true);
+        }
         CompletableFuture<JsonObject> chain =
                 smoothMove(fromX, fromY, execution, expected)
                         .thenCompose(
@@ -1254,13 +1871,7 @@ public final class AutomationEngine implements AutoCloseable {
                                         execution.effect(
                                                 () ->
                                                         service.mouseButtonGuarded(
-                                                                button, 1, modifiers, expected)));
-        JsonObject dragging = expected.deepCopy();
-        dragging.addProperty("dragActive", true);
-        dragging.getAsJsonObject("frame")
-                .remove("menuRevision"); // own pickup legitimately changes carried/slot state
-        if (dragging.has("destination"))
-            dragging.getAsJsonObject("destination").getAsJsonObject("frame").remove("menuRevision");
+                                                                button, 1, modifiers, dragging)));
         for (int index = 1; index <= segments; index++) {
             double x =
                     io.github.recrivenvi.minecraftprotocol.safety.AgentPointer.interpolate(
@@ -1278,7 +1889,9 @@ public final class AutomationEngine implements AutoCloseable {
                                                                     x, y, dragging)));
         }
         return chain.thenCompose(
-                ignored -> execution.effect(() -> service.mouseButton(button, 0, modifiers)));
+                ignored ->
+                        execution.effect(
+                                () -> service.mouseButtonGuarded(button, 0, modifiers, dragging)));
     }
 
     private CompletableFuture<JsonObject> uiDrag(JsonObject step, PipelineExecution execution) {
@@ -1288,8 +1901,14 @@ public final class AutomationEngine implements AutoCloseable {
                         state -> {
                             JsonObject fromSelector = requiredObject(step, "fromSelector"),
                                     toSelector = requiredObject(step, "toSelector");
-                            JsonObject expected = guard(state, fromSelector, "click");
-                            JsonObject destination = guard(state, toSelector, "click");
+                            JsonObject expected =
+                                    guard(
+                                            state,
+                                            fromSelector,
+                                            "click",
+                                            execution.strictMenuRevision);
+                            JsonObject destination =
+                                    guard(state, toSelector, "click", execution.strictMenuRevision);
                             expected.add("destination", destination);
                             JsonObject from = expected.getAsJsonObject("node"),
                                     to = destination.getAsJsonObject("node");
@@ -1495,6 +2114,8 @@ public final class AutomationEngine implements AutoCloseable {
         private final long startedAtMillis = System.currentTimeMillis();
         private final CompletableFuture<JsonObject> result;
         private final JsonArray stepResults = new JsonArray();
+        private final List<JsonObject> commandReceipts =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
         private final AtomicBoolean cleanupStarted = new AtomicBoolean();
         private final AtomicBoolean cancellationRequested = new AtomicBoolean();
         private final AtomicBoolean finishing = new AtomicBoolean();
@@ -1505,6 +2126,9 @@ public final class AutomationEngine implements AutoCloseable {
         private int index;
         private final boolean raw;
         private final String command;
+        private final boolean strictMenuRevision;
+        private final InputDispatchContext.Preconditions preflight;
+        private final InputDispatchContext.FirstInput firstInput;
         private final String gestureId = java.util.UUID.randomUUID().toString();
         private final AtomicBoolean started = new AtomicBoolean();
         private final CompletableFuture<Void> drained = new CompletableFuture<>();
@@ -1518,8 +2142,13 @@ public final class AutomationEngine implements AutoCloseable {
                 Function<Supplier<CompletableFuture<JsonObject>>, CompletableFuture<JsonObject>>
                         admission,
                 boolean raw,
-                String command) {
+                String command,
+                boolean strictMenuRevision,
+                InputDispatchContext.Preconditions preflight) {
             this.raw = raw;
+            this.strictMenuRevision = strictMenuRevision;
+            this.preflight = preflight;
+            this.firstInput = new InputDispatchContext.FirstInput(preflight);
             this.command = command;
             this.steps = steps;
             this.admission = admission;
@@ -1549,6 +2178,29 @@ public final class AutomationEngine implements AutoCloseable {
                 this.drained.complete(null);
                 return;
             }
+            try {
+                this.leaseCheck.run();
+                this.checkActive();
+            } catch (Throwable stale) {
+                this.fail(stale);
+                return;
+            }
+            if (this.preflight != null) {
+                // Admission can precede the actual queue turn by seconds. Recheck the
+                // caller's exact values before claiming a gesture or cleaning held input.
+                this.effect(this.preflight)
+                        .whenComplete(
+                                (value, error) -> {
+                                    if (this.result.isDone()
+                                            || this.finishing.get()
+                                            || this.cancellationRequested.get()) return;
+                                    if (error != null) this.fail(unwrap(error));
+                                    else this.startReady();
+                                });
+            } else this.startReady();
+        }
+
+        private void startReady() {
             try {
                 this.leaseCheck.run();
                 this.checkActive();
@@ -1608,6 +2260,7 @@ public final class AutomationEngine implements AutoCloseable {
                 this.leaseCheck.run();
                 JsonObject step = this.steps.get(this.index).getAsJsonObject();
                 int stepIndex = this.index++;
+                int commandStart = this.commandReceipts.size();
                 CompletableFuture<JsonObject> stepFuture = this.track(pacedStep(step, this));
                 this.currentStep = stepFuture;
                 stepFuture.whenComplete(
@@ -1623,6 +2276,12 @@ public final class AutomationEngine implements AutoCloseable {
                                                 return;
                                             }
                                             JsonObject recorded = new JsonObject();
+                                            if (stepResult != null)
+                                                PlayerCommandEvidence.attach(
+                                                        stepResult,
+                                                        this.commandReceipts.subList(
+                                                                commandStart,
+                                                                this.commandReceipts.size()));
                                             recorded.addProperty("index", stepIndex);
                                             recorded.addProperty(
                                                     "stepType", step.get("type").getAsString());
@@ -1664,6 +2323,7 @@ public final class AutomationEngine implements AutoCloseable {
                                 System.currentTimeMillis() - this.startedAtMillis);
                         json.addProperty("cleanupOnComplete", this.cleanupOnComplete);
                         json.add("steps", this.stepResults.deepCopy());
+                        PlayerCommandEvidence.attach(json, this.commandReceipts);
                         json.add(
                                 "cleanup",
                                 cleanupResult == null
@@ -1729,6 +2389,15 @@ public final class AutomationEngine implements AutoCloseable {
 
         private CompletableFuture<JsonObject> effect(
                 Supplier<CompletableFuture<JsonObject>> supplier) {
+            return effect(supplier, false);
+        }
+
+        private CompletableFuture<JsonObject> commandPhase(String phase) {
+            return effect(() -> service.playerCommand(this.command, phase), phase.equals("submit"));
+        }
+
+        private CompletableFuture<JsonObject> effect(
+                Supplier<CompletableFuture<JsonObject>> supplier, boolean commandSubmit) {
             this.checkActive();
             this.leaseCheck.run();
             CompletableFuture<JsonObject> future;
@@ -1737,7 +2406,13 @@ public final class AutomationEngine implements AutoCloseable {
                         this.admission.apply(
                                 () -> {
                                     this.checkActive();
-                                    return supplier.get();
+                                    return InputDispatchContext.run(
+                                            this.gestureId,
+                                            this::checkActive,
+                                            this.firstInput,
+                                            this.command,
+                                            commandSubmit,
+                                            supplier);
                                 });
             } catch (Throwable throwable) {
                 return CompletableFuture.failedFuture(throwable);
@@ -1781,7 +2456,7 @@ public final class AutomationEngine implements AutoCloseable {
             if (!this.cleanupStarted.compareAndSet(false, true)) {
                 return this.cleanupResult;
             }
-            if (!this.started.get()) {
+            if (!this.started.get() || this.firstInput.rejected()) {
                 this.cleanupResult.complete(simpleResult("input.queued_cancelled"));
                 return this.cleanupResult;
             }
@@ -1795,11 +2470,27 @@ public final class AutomationEngine implements AutoCloseable {
         }
     }
 
-    private static final class PipelineFuture extends CompletableFuture<JsonObject> {
+    private static final class PipelineFuture extends CompletableFuture<JsonObject>
+            implements PlayerCommandEvidence.Source {
         private final PipelineExecution execution;
 
         private PipelineFuture(PipelineExecution execution) {
             this.execution = execution;
+        }
+
+        @Override
+        public List<JsonObject> commandSubmissions() {
+            return execution.commandReceipts.stream().map(JsonObject::deepCopy).toList();
+        }
+
+        @Override
+        public boolean commandSubmissionsComplete() {
+            // Native cleanup is complete before result callbacks; queue handoff may follow them.
+            return execution.cleanupResult.isDone()
+                            && !execution.cleanupResult.isCompletedExceptionally()
+                    || !execution.cleanupOnComplete
+                            && execution.result.isDone()
+                            && !execution.result.isCompletedExceptionally();
         }
 
         @Override

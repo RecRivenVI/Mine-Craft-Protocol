@@ -1,0 +1,17 @@
+// Decorate the native prepare task, never the product's input or render path.
+allprojects { candidate ->
+    candidate.tasks.configureEach { preparation ->
+        def daily = preparation.name in ['prepareClientInstance', 'prepareClientMultiplayerInstance']
+        def validation = preparation.name ==~ /prepareValidation.*Client(Multiplayer)?Instance/
+        if (daily || validation) {
+            def manual = daily || preparation.name == 'prepareValidationFeatureControlUiShowcaseClientInstance'
+            preparation.doFirst {
+                candidate.providers.exec {
+                    commandLine 'pwsh', '-NoProfile', '-File', rootProject.file('components/validation_tools/Prepare-InstanceProfile.ps1').absolutePath,
+                            '-Directory', preparation.directory.get().asFile.absolutePath,
+                            '-Kind', manual ? 'acceptance' : 'automatic'
+                }.result.get().assertNormalExitValue()
+            }
+        }
+    }
+}

@@ -9,8 +9,11 @@
 
 ## 构建与原生测试
 
+首次运行将下列缓存目录占位符替换为仓库之外的本机路径；工具只准备已登记的验收输入，不启动游戏或修改EULA。
+
 ```powershell
 npm --prefix components/companion ci --include=dev
+pwsh -File components/validation_tools/feature-control_ui_showcase/task/Prepare-AcceptanceInputs.ps1 -CacheDirectory '<本机验收Mod缓存目录>'
 ./gradlew.bat projects verifyConfiguration verifyCompliance
 ./gradlew.bat spotlessApply check verifyRelease
 ./gradlew.bat :runtime_core:test :runtime_safety:test :protocol_schema:test :companion:check :validation_tools:check
@@ -28,6 +31,9 @@ npm --prefix components/companion ci --include=dev
 node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --validation=migration-runtime_core
 ```
 
+生成器同时验证并发布固定alpha快照；其他线程的复制、使用登记与保留规则见[alpha工作流](workflow-alpha_agent.md#固定分发与使用登记)。
+build/release仅是会被构建覆盖的收集位置，不是跨线程分发入口。
+
 配置缓存设置及当前任务不兼容原因以 [gradle.properties](../../gradle.properties) 为准。
 
 Companion 的 Node 版本要求与 npm 依赖分别以其 `package.json`、`package-lock.json` 为准。
@@ -43,9 +49,25 @@ GitHub Actions 先按该版本要求准备 Node，再执行 `npm ci --include=de
 
 日常实例为 `instances/<target>/{client,client-multiplayer,server}`。
 [配置格式](../../gradle/conventions/specification/reference/configuration-repository.md)定义 TOML、覆盖规则与 EULA；
-模板内置客户端玩家名 DevPlayer/DevGuest。服务端仅在用户于 local.toml 接受 EULA 后启动。
+模板默认玩家名可由本机覆盖；本机验收使用RecRivenVI。服务端仅在用户于 local.toml 接受 EULA 后启动。
 旧 properties 个人配置不再作为构建输入；本地未知内容保留，不自动删除。
 普通验收一次一个客户端，不操作仓库之外的游戏实例。
+
+## 实例预设
+
+自动客户端固定1920×1080，全局游戏音量0；保留各验证的隔离玩家名、世界和纯净Mod集合。
+用户观察/验收客户端固定2560×1440，全局音量0.5、音乐音量0，玩家名RecRivenVI。
+日常预设来自instances.toml，本机玩家名与输入路径在local.toml；Showcase的两种角色在其validation.toml中独立声明。
+标准Native prepare任务通过工具组件统一准备声音，不修改产品Runtime或模板；仅处理本仓库已停止的标准实例，保留其他选项与存档。
+独立发行安装使用同一自动标准，但仍只安装一个最终产品JAR，不用附加Mod掩盖依赖错误。
+
+Custom Skin Loader与Zume只用于用户验收，不打包进产品、不加入自动基线。
+按Modrinth的精确Minecraft/Loader匹配固定已发布文件；当前可用范围及登记见[依赖说明](../reference/dependency-runtime.md#验收附加模组)。
+准备工具按inputs.toml的来源下载并核对官方SHA-512及登记SHA-256，保留已有本机路径，不接受不匹配的缓存。
+CI准备相同的本地输入后仍执行完整check和verifyRelease，不因可选验收模组把检查降级。
+
+Showcase普通Case/All/PrepareClient为人工观察，使用client角色；Smoke/CoreSmoke为自动验证，使用隔离client-multiplayer角色。
+两者不会复用实例、凭据、世界或附加Mod。自动结果不替代用户视觉/物理输入验收；不使用Computer Use。
 
 ## 产品验证
 

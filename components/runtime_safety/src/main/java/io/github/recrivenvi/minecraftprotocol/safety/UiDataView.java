@@ -56,6 +56,8 @@ public final class UiDataView {
                     "role",
                     "class",
                     "nodeRevision",
+                    "contentRevision",
+                    "contentGuardAvailable",
                     "elementIdentity",
                     "coverage",
                     "acquisition",
@@ -76,6 +78,7 @@ public final class UiDataView {
                     "packId",
                     "entryIndex",
                     "slot",
+                    "slotDisabled",
                     "menuIdentity",
                     "contextKey",
                     "inputRoute",
@@ -84,6 +87,8 @@ public final class UiDataView {
                     "boundsSemantics",
                     "focusOffset",
                     "multiline",
+                    "textReplaceStrategy",
+                    "valueComplete",
                     "editable",
                     "value",
                     "valueMinimum",
@@ -155,7 +160,13 @@ public final class UiDataView {
         if (captured.has("presentation")) {
             JsonObject presentation = captured.getAsJsonObject("presentation");
             JsonObject visible =
-                    copy(presentation, Set.of("coverage", "limitations", "hudOcclusionPolicy"));
+                    copy(
+                            presentation,
+                            Set.of(
+                                    "coverage",
+                                    "limitations",
+                                    "hudOcclusionPolicy",
+                                    "hudIconSampleStatus"));
             visible.add(
                     "children",
                     blocked
@@ -166,7 +177,14 @@ public final class UiDataView {
         if (!blocked && captured.has("carriedStack")) {
             result.add(
                     "carriedStack",
-                    copy(captured.getAsJsonObject("carriedStack"), Set.of("id", "count", "empty")));
+                    copy(
+                            captured.getAsJsonObject("carriedStack"),
+                            Set.of(
+                                    "id",
+                                    "count",
+                                    "empty",
+                                    "contentRevision",
+                                    "contentGuardAvailable")));
         }
         if (!blocked && captured.has("screenData")) {
             result.add(

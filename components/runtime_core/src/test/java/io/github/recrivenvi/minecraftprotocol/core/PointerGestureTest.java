@@ -11,10 +11,23 @@ import java.util.concurrent.atomic.*;
 import org.junit.jupiter.api.Test;
 
 final class PointerGestureTest {
-    private static final class World {
+    static final class World {
         volatile int revision = 1, width = 320;
         volatile long gameCursorRevision = 1;
         volatile boolean moveTarget;
+        volatile int menuRevision = 1, carriedCount, otherCount, targetCount;
+        volatile int targetData, otherData, carriedData;
+        volatile boolean targetDataAvailable = true;
+        volatile boolean targetSlotDisabled;
+        volatile long menuIdentity = 7;
+        volatile Runnable afterMove, duringMove, afterPress, beforePointerRead;
+        volatile Runnable beforeNativeInput;
+        volatile Runnable afterPointerValidation;
+        volatile boolean slots;
+        volatile boolean selectionRows, selectedTarget;
+        volatile Runnable afterRelease;
+        final AtomicInteger pointerReads = new AtomicInteger();
+        final AtomicInteger uiReads = new AtomicInteger(), debugUiReads = new AtomicInteger();
         final AtomicInteger moves = new AtomicInteger(),
                 presses = new AtomicInteger(),
                 releases = new AtomicInteger(),
@@ -25,12 +38,21 @@ final class PointerGestureTest {
         volatile double x = 5, y = 5;
         volatile int buttons;
         volatile CompletableFuture<JsonObject> blockedCleanup;
+        volatile CompletableFuture<JsonObject> blockedUiRead;
 
         JsonObject tree() {
             JsonObject tree = new JsonObject();
             tree.addProperty("screenRevision", revision);
             tree.addProperty("gameCursorRevision", gameCursorRevision);
-            tree.addProperty("menuRevision", 1);
+            tree.addProperty("menuRevision", menuRevision);
+            tree.addProperty("menuIdentity", menuIdentity);
+            JsonObject carried = new JsonObject();
+            carried.addProperty("empty", carriedCount == 0);
+            carried.addProperty("id", carriedCount == 0 ? "minecraft:air" : "minecraft:stone");
+            carried.addProperty("count", carriedCount);
+            carried.addProperty("contentFingerprint", "item:" + carriedData);
+            carried.addProperty("contentGuardAvailable", true);
+            tree.add("carriedStack", carried);
             tree.addProperty("screenIdentity", revision);
             tree.addProperty("overlayIdentity", 0);
             tree.addProperty("screenClass", "FakeScreen");
@@ -48,9 +70,21 @@ final class PointerGestureTest {
                 JsonObject node = new JsonObject();
                 node.addProperty("nodeId", "button-" + i);
                 node.addProperty("elementIdentity", i + 1);
-                node.addProperty("class", "Button");
-                node.addProperty("role", "button");
+                node.addProperty("class", slots ? "Slot" : "Button");
+                node.addProperty("role", slots ? "slot" : selectionRows ? "list_item" : "button");
+                if (selectionRows) node.addProperty("selected", i == 0 && selectedTarget);
                 node.addProperty("label", i == 0 ? "A" : "B");
+                int count = i == 0 ? targetCount : otherCount;
+                node.addProperty("count", count);
+                if (slots) {
+                    if (i == 0) node.addProperty("slotDisabled", targetSlotDisabled);
+                    int data = i == 0 ? targetData : otherData;
+                    node.addProperty("contentRevision", "slot-" + i + ":" + data + ":" + count);
+                    node.addProperty("contentFingerprint", "item:" + data);
+                    node.addProperty("contentGuardAvailable", i != 0 || targetDataAvailable);
+                }
+                if (slots)
+                    node.addProperty("item", count == 0 ? "minecraft:air" : "minecraft:stone");
                 node.addProperty("x", i == 0 ? (moveTarget ? 80 : 40) : 150);
                 node.addProperty("y", 20);
                 node.addProperty("width", 30);
@@ -59,6 +93,7 @@ final class PointerGestureTest {
                 node.addProperty("visible", true);
                 JsonArray actions = new JsonArray();
                 actions.add("click");
+                if (selectionRows) actions.add("double_click");
                 node.add("actions", actions);
                 children.add(node);
             }
@@ -75,19 +110,69 @@ final class PointerGestureTest {
                                 if (method.getName().equals("gestureEvent")
                                         || method.getName().equals("attachControlSession"))
                                     return null;
+                                if (Set.of(
+                                                "mouseMoveGuarded",
+                                                "mouseButtonGuarded",
+                                                "mouseButton",
+                                                "mouseScrollGuarded",
+                                                "mouseScroll",
+                                                "mouseDelta",
+                                                "key",
+                                                "keyGuarded",
+                                                "character")
+                                        .contains(method.getName())) {
+                                    if (beforeNativeInput != null) beforeNativeInput.run();
+                                    var permit = InputDispatchContext.capture();
+                                    if (permit != null)
+                                        permit.beforeInput(
+                                                (screen, menu) -> {
+                                                    if (screen != null && screen != revision)
+                                                        throw new ProtocolState.ProtocolException(
+                                                                "STALE_SCREEN_REVISION",
+                                                                409,
+                                                                "changed before native event");
+                                                    if (menu != null && menu != menuRevision)
+                                                        throw new ProtocolState.ProtocolException(
+                                                                "STALE_MENU_REVISION",
+                                                                409,
+                                                                "changed before native event");
+                                                });
+                                }
                                 JsonObject result = new JsonObject();
                                 switch (method.getName()) {
-                                    case "pointerState", "uiTree" -> result = tree();
+                                    case "pointerState" -> {
+                                        pointerReads.incrementAndGet();
+                                        if (beforePointerRead != null) beforePointerRead.run();
+                                        result = tree();
+                                    }
+                                    case "uiTree", "debugUiTree" -> {
+                                        boolean debug = method.getName().equals("debugUiTree");
+                                        (debug ? debugUiReads : uiReads).incrementAndGet();
+                                        if (blockedUiRead != null) return blockedUiRead;
+                                        result = tree();
+                                        result.addProperty("domain", "UI");
+                                        result.addProperty(
+                                                "dataCategory", debug ? "DEBUG" : "USER");
+                                        if (debug) result.add("debugFacts", new JsonObject());
+                                    }
                                     case "inputState" ->
                                             result.addProperty("pressedButtonCount", buttons);
                                     case "mouseMoveGuarded" -> {
                                         AutomationEngine.validatePointerGuard(
                                                 (JsonObject) args[2], tree());
+                                        if (afterPointerValidation != null)
+                                            afterPointerValidation.run();
+                                        var permit = InputDispatchContext.capture();
+                                        if (permit != null) permit.check();
                                         x = (double) args[0];
                                         y = (double) args[1];
                                         moves.incrementAndGet();
                                         events.add("move");
                                         positions.add(x);
+                                        if (duringMove != null) duringMove.run();
+                                        AutomationEngine.advanceDragGuard(
+                                                (JsonObject) args[2], tree());
+                                        if (afterMove != null) afterMove.run();
                                     }
                                     case "mouseButtonGuarded" -> {
                                         AutomationEngine.validatePointerGuard(
@@ -97,11 +182,17 @@ final class PointerGestureTest {
                                             buttons++;
                                             events.add("press:" + Math.round(x));
                                             pressTimes.add(System.nanoTime());
+                                            if (afterPress != null) afterPress.run();
                                         } else {
                                             releases.incrementAndGet();
                                             buttons = 0;
                                             events.add("release");
                                         }
+                                        AutomationEngine.advanceDragGuard(
+                                                (JsonObject) args[3], tree());
+                                        if ((int) args[1] == 1)
+                                            AutomationEngine.advanceClickSelectionGuard(
+                                                    (JsonObject) args[3], tree());
                                     }
                                     case "mouseButton" -> {
                                         if ((int) args[1] == 1) {
@@ -112,9 +203,11 @@ final class PointerGestureTest {
                                             releases.incrementAndGet();
                                             buttons = 0;
                                             events.add("release");
+                                            if (afterRelease != null) afterRelease.run();
                                         }
                                     }
                                     case "key" -> events.add("key");
+                                    case "mouseDelta" -> events.add("delta");
                                     case "releaseAllInput" -> {
                                         cleanups.incrementAndGet();
                                         buttons = 0;
@@ -191,6 +284,460 @@ final class PointerGestureTest {
                 int stopped = state.moves.get();
                 Thread.sleep(80);
                 assertEquals(stopped, state.moves.get());
+            }
+        }
+    }
+
+    @Test
+    void unrelatedMenuUpdatesDuringSemanticMotionDoNotInvalidateTheTarget() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.afterMove =
+                () -> {
+                    state.menuRevision++;
+                    state.otherCount++;
+                };
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            engine.uiAction(action("A"), () -> {}).get(3, TimeUnit.SECONDS);
+            assertTrue(state.otherCount > 3, "The other node really changed during movement");
+            assertEquals(1, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void crafterCellStateChangeDuringPointerMotionRejectsBeforeClick() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.afterMove = () -> state.targetSlotDisabled = true;
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var request = engine.uiAction(action("A"), () -> {});
+            var error =
+                    assertThrows(ExecutionException.class, () -> request.get(3, TimeUnit.SECONDS));
+            assertEquals(
+                    "UI_TARGET_INVALIDATED",
+                    ((ProtocolState.ProtocolException) error.getCause()).code());
+            assertTrue(state.moves.get() > 0);
+            assertEquals(0, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void nativeOwnedCrafterCellChangeAdvancesDragGuardWithoutLateFailure() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.afterPress = () -> state.targetSlotDisabled = true;
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var request =
+                    pipeline(
+                            "[{\"type\":\"ui.drag\",\"fromSelector\":{\"label\":\"A\"},\"toSelector\":{\"label\":\"B\"},\"durationMs\":100,\"segments\":4}]",
+                            3000);
+            engine.executePipeline(request, () -> {}).get(3, TimeUnit.SECONDS);
+            assertTrue(state.targetSlotDisabled);
+            assertEquals(1, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void semanticDoubleClickAcceptsOnlyItsFirstNativePressSelection() throws Exception {
+        World state = new World();
+        state.selectionRows = true;
+        state.afterPress = () -> state.selectedTarget = true;
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            JsonObject request = action("A");
+            request.addProperty("action", "double_click");
+            engine.uiAction(request, () -> {}).get(3, TimeUnit.SECONDS);
+            assertEquals(2, state.presses.get());
+            assertEquals(2, state.releases.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void semanticDoubleClickRejectsExternalSelectionAndAnyOtherTargetChange() throws Exception {
+        for (String phase : List.of("before_press", "inside_callback", "after_release")) {
+            World state = new World();
+            state.selectionRows = true;
+            state.afterPress = () -> state.selectedTarget = true;
+            if (phase.equals("before_press")) state.afterMove = () -> state.selectedTarget = true;
+            if (phase.equals("inside_callback"))
+                state.afterPress =
+                        () -> {
+                            state.selectedTarget = true;
+                            state.moveTarget = true;
+                        };
+            if (phase.equals("after_release"))
+                state.afterRelease = () -> state.selectedTarget = false;
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                JsonObject request = action("A");
+                request.addProperty("action", "double_click");
+                var error =
+                        assertThrows(
+                                ExecutionException.class,
+                                () -> engine.uiAction(request, () -> {}).get(3, TimeUnit.SECONDS));
+                assertEquals(
+                        "UI_TARGET_INVALIDATED",
+                        ((ProtocolState.ProtocolException) error.getCause()).code());
+                assertEquals(phase.equals("before_press") ? 0 : 1, state.presses.get());
+                assertEquals(0, state.buttons);
+            }
+        }
+    }
+
+    @Test
+    void menuUpdatesDuringPreResolutionDwellAreNotAnOldTarget() throws Exception {
+        World state = new World();
+        state.beforePointerRead =
+                () -> {
+                    if (state.pointerReads.get() == 2) {
+                        state.menuRevision++;
+                        state.otherCount++;
+                    }
+                };
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            engine.uiAction(action("A"), () -> {}).get(3, TimeUnit.SECONDS);
+            assertEquals(1, state.otherCount);
+            assertEquals(1, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void sameItemAndCountMetadataChangeInvalidatesOnlyTheActualSemanticTarget() throws Exception {
+        for (boolean target : List.of(false, true)) {
+            World state = new World();
+            state.slots = true;
+            state.targetCount = 8;
+            state.otherCount = 8;
+            state.afterMove =
+                    () -> {
+                        if (state.moves.get() == 3) {
+                            if (target) state.targetData++;
+                            else state.otherData++;
+                            state.menuRevision++;
+                        }
+                    };
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending = engine.uiAction(action("A"), () -> {});
+                if (target) {
+                    var failure =
+                            assertThrows(
+                                    ExecutionException.class,
+                                    () -> pending.get(3, TimeUnit.SECONDS));
+                    assertEquals(
+                            "UI_TARGET_INVALIDATED",
+                            ((ProtocolState.ProtocolException) failure.getCause()).code());
+                    assertEquals(0, state.presses.get());
+                    int stopped = state.moves.get();
+                    Thread.sleep(60);
+                    assertEquals(stopped, state.moves.get());
+                } else {
+                    pending.get(3, TimeUnit.SECONDS);
+                    assertEquals(1, state.presses.get());
+                }
+                assertEquals(0, state.buttons);
+            }
+        }
+    }
+
+    @Test
+    void unguardableItemMetadataRefusesBeforeTheFirstPointerInput() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.targetDataAvailable = false;
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var failure =
+                    assertThrows(
+                            ExecutionException.class,
+                            () -> engine.uiAction(action("A"), () -> {}).get(3, TimeUnit.SECONDS));
+            assertEquals(
+                    "UI_CONTENT_GUARD_UNAVAILABLE",
+                    ((ProtocolState.ProtocolException) failure.getCause()).code());
+            assertEquals(0, state.moves.get());
+            assertEquals(0, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void changedCarriedStackOrMenuOwnerStillRejectsBeforePress() throws Exception {
+        for (boolean carried : List.of(false, true)) {
+            World state = new World();
+            state.afterMove =
+                    () -> {
+                        if (state.moves.get() == 3) {
+                            if (carried) state.carriedCount = 1;
+                            else state.menuIdentity++;
+                        }
+                    };
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending = engine.uiAction(action("A"), () -> {});
+                var error =
+                        assertThrows(
+                                ExecutionException.class, () -> pending.get(3, TimeUnit.SECONDS));
+                assertEquals(
+                        "UI_TARGET_INVALIDATED",
+                        ((ProtocolState.ProtocolException) error.getCause()).code());
+                assertEquals(0, state.presses.get());
+                assertEquals(0, state.buttons);
+                int stopped = state.moves.get();
+                Thread.sleep(100);
+                assertEquals(stopped, state.moves.get());
+            }
+        }
+    }
+
+    @Test
+    void semanticTargetContentChangesCannotHideBehindUnrelatedMenuTolerance() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.afterMove =
+                () -> {
+                    if (state.moves.get() == 3) {
+                        state.targetCount++;
+                        state.menuRevision++;
+                    }
+                };
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var error =
+                    assertThrows(
+                            ExecutionException.class,
+                            () -> engine.uiAction(action("A"), () -> {}).get(3, TimeUnit.SECONDS));
+            assertEquals(
+                    "UI_TARGET_INVALIDATED",
+                    ((ProtocolState.ProtocolException) error.getCause()).code());
+            assertEquals(0, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void explicitGlobalMenuPinRemainsStrictDuringDwellAndMotion() throws Exception {
+        for (boolean dwell : List.of(false, true)) {
+            World state = new World();
+            if (dwell)
+                state.beforePointerRead =
+                        () -> {
+                            if (state.pointerReads.get() == 2) state.menuRevision++;
+                        };
+            else state.afterMove = () -> state.menuRevision++;
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending =
+                        engine.uiAction(
+                                action("A"), () -> {}, java.util.function.Supplier::get, true);
+                var error =
+                        assertThrows(
+                                ExecutionException.class, () -> pending.get(3, TimeUnit.SECONDS));
+                assertEquals(
+                        "UI_TARGET_INVALIDATED",
+                        ((ProtocolState.ProtocolException) error.getCause()).code());
+                assertEquals(0, state.presses.get());
+                assertEquals(0, state.buttons);
+            }
+        }
+    }
+
+    @Test
+    void keyboardDwellDoesNotBindAnUnrelatedSlotButExplicitPinsRemainStrict() throws Exception {
+        for (boolean strict : List.of(false, true)) {
+            World state = new World();
+            state.beforePointerRead =
+                    () -> {
+                        if (state.pointerReads.get() == 2) state.menuRevision++;
+                    };
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending =
+                        engine.rawInput(
+                                JsonParser.parseString(
+                                                "{\"type\":\"key\",\"key\":256,\"action\":1}")
+                                        .getAsJsonObject(),
+                                () -> {},
+                                java.util.function.Supplier::get,
+                                strict);
+                if (strict) {
+                    var error =
+                            assertThrows(
+                                    ExecutionException.class,
+                                    () -> pending.get(3, TimeUnit.SECONDS));
+                    assertEquals(
+                            "UI_TARGET_INVALIDATED",
+                            ((ProtocolState.ProtocolException) error.getCause()).code());
+                    assertFalse(state.events.contains("key"));
+                } else {
+                    pending.get(3, TimeUnit.SECONDS);
+                    assertTrue(state.events.contains("key"));
+                }
+                assertEquals(0, state.moves.get());
+                assertEquals(0, state.presses.get());
+            }
+        }
+    }
+
+    @Test
+    void coordinateRequestsStillPinMenuBeforePreResolutionDwell() throws Exception {
+        for (boolean raw : List.of(false, true)) {
+            World state = new World();
+            state.beforePointerRead =
+                    () -> {
+                        if (state.pointerReads.get() == 2) state.menuRevision++;
+                    };
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending =
+                        raw
+                                ? engine.rawInput(
+                                        JsonParser.parseString(
+                                                        "{\"type\":\"mouse.move\",\"x\":55,\"y\":30}")
+                                                .getAsJsonObject(),
+                                        () -> {},
+                                        java.util.function.Supplier::get)
+                                : engine.uiAction(
+                                        JsonParser.parseString(
+                                                        "{\"coordinates\":{\"x\":55,\"y\":30}}")
+                                                .getAsJsonObject(),
+                                        () -> {});
+                var error =
+                        assertThrows(
+                                ExecutionException.class, () -> pending.get(3, TimeUnit.SECONDS));
+                assertEquals(
+                        "UI_TARGET_INVALIDATED",
+                        ((ProtocolState.ProtocolException) error.getCause()).code());
+                assertEquals(0, state.moves.get());
+                assertEquals(0, state.presses.get());
+                assertEquals(0, state.buttons);
+            }
+        }
+    }
+
+    @Test
+    void coordinateMotionStillUsesTheGlobalMenuContext() throws Exception {
+        World state = new World();
+        state.afterMove = () -> state.menuRevision++;
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var pending =
+                    engine.uiAction(
+                            JsonParser.parseString("{\"coordinates\":{\"x\":55,\"y\":30}}")
+                                    .getAsJsonObject(),
+                            () -> {});
+            var error =
+                    assertThrows(ExecutionException.class, () -> pending.get(3, TimeUnit.SECONDS));
+            assertEquals(
+                    "UI_TARGET_INVALIDATED",
+                    ((ProtocolState.ProtocolException) error.getCause()).code());
+            assertEquals(0, state.presses.get());
+        }
+    }
+
+    @Test
+    void ownDragPickupMayChangeTheCarriedStackWithoutLosingTargetOwnership() throws Exception {
+        World state = new World();
+        state.slots = true;
+        state.targetCount = 8;
+        state.afterPress =
+                () -> {
+                    state.targetCount = 0;
+                    state.carriedCount = 8;
+                    state.menuRevision++;
+                };
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var request =
+                    pipeline(
+                            "[{\"type\":\"ui.drag\",\"fromSelector\":{\"label\":\"A\"},\"toSelector\":{\"label\":\"B\"},\"durationMs\":100,\"segments\":4}]",
+                            3000);
+            engine.executePipeline(request, () -> {}).get(3, TimeUnit.SECONDS);
+            assertEquals(1, state.presses.get());
+            assertEquals(0, state.buttons);
+            assertEquals(8, state.carriedCount);
+        }
+    }
+
+    @Test
+    void cancellationDuringPointerValidationNeverReachesTheNativeMove() throws Exception {
+        World state = new World();
+        CountDownLatch validated = new CountDownLatch(1), resume = new CountDownLatch(1);
+        state.afterPointerValidation =
+                () -> {
+                    validated.countDown();
+                    try {
+                        if (!resume.await(2, TimeUnit.SECONDS))
+                            throw new AssertionError("test stalled");
+                    } catch (InterruptedException failure) {
+                        Thread.currentThread().interrupt();
+                        throw new AssertionError(failure);
+                    }
+                };
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            var pending = engine.uiAction(action("A"), () -> {});
+            try {
+                assertTrue(validated.await(2, TimeUnit.SECONDS));
+                assertTrue(pending.cancel(false));
+            } finally {
+                resume.countDown();
+            }
+            assertThrows(CancellationException.class, pending::join);
+            Thread.sleep(120);
+            assertEquals(0, state.moves.get());
+            assertEquals(0, state.presses.get());
+            assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void dragTracksOwnedAllocationButRejectsExternalTargetOrCarriedMetadata() throws Exception {
+        for (String change : List.of("owned", "slot", "carried")) {
+            World state = new World();
+            state.slots = true;
+            state.targetCount = 8;
+            state.otherCount = 1;
+            state.afterPress =
+                    () -> {
+                        state.targetCount = 0;
+                        state.carriedCount = 8;
+                        state.menuRevision++;
+                    };
+            if (change.equals("owned"))
+                state.duringMove =
+                        () -> {
+                            if (state.buttons == 1) {
+                                state.carriedCount--;
+                                state.otherCount++;
+                                state.menuRevision++;
+                            }
+                        };
+            else
+                state.afterMove =
+                        () -> {
+                            if (state.buttons == 1) {
+                                if (change.equals("slot")) state.otherData++;
+                                else state.carriedData++;
+                                state.menuRevision++;
+                            }
+                        };
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var request =
+                        pipeline(
+                                "[{\"type\":\"ui.drag\",\"fromSelector\":{\"label\":\"A\"},\"toSelector\":{\"label\":\"B\"},\"durationMs\":100,\"segments\":4}]",
+                                3000);
+                var pending = engine.executePipeline(request, () -> {});
+                if (change.equals("owned")) {
+                    pending.get(3, TimeUnit.SECONDS);
+                    assertEquals(4, state.carriedCount);
+                    assertEquals(5, state.otherCount);
+                } else {
+                    var failure =
+                            assertThrows(
+                                    ExecutionException.class,
+                                    () -> pending.get(3, TimeUnit.SECONDS));
+                    assertEquals(
+                            "UI_TARGET_INVALIDATED",
+                            ((ProtocolState.ProtocolException) failure.getCause()).code());
+                    int stopped = state.moves.get();
+                    Thread.sleep(60);
+                    assertEquals(stopped, state.moves.get());
+                }
+                assertEquals(1, state.presses.get());
+                assertEquals(0, state.buttons);
             }
         }
     }

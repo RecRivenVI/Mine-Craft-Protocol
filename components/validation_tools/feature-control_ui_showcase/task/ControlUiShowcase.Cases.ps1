@@ -11,8 +11,14 @@ $script:showcaseCases=[ordered]@{
     'cursor-rule'='光标全局规则：GUI 换页保留，第一人称捕获/释放遵循游戏归中与显隐'
     'pause-pointer'='暂停菜单落点：游戏释放时的小数中心与真实按钮中心，只悬停'
     'inventory-pointer'='背包落点：游戏释放中心与有物品 Slot 中心，只悬停并清理'
+    'world-observe'='世界 READ：USER 客户端模型与独立 DEBUG 读取'
+    'world-interact'='诊断夹具 → USER 语义目标 → Vanilla 工作台交互 → 恢复'
+    'wait-evidence'='真实 GUI、Wait/Assert、Capture、Recording 与 Artifact'
+    'persistent-read'='Save & Quit 后读取 PERSISTED world/player/chunk'
+    'cancel-cleanup'='实际 held input → cancel → READ、输入清零与无晚到输入'
     'manual-esc'='可选：等候真人物理 Esc（不属于 -All）'
 }
+. (Join-Path $PSScriptRoot 'CoreFeatureShowcase.Cases.ps1')
 function Get-ShowcaseCaseOrder { @($script:showcaseCases.Keys|Where-Object {$_-ne'manual-esc'}) }
 function Show-Read {
     Exit-ShowcaseWorld;Set-ShowcaseMode READ|Out-Null
@@ -62,14 +68,22 @@ function Show-PointerInteraction {
     Invoke-ShowcaseSlot $sourceSlot;Wait-ShowcaseHold
     Invoke-ShowcaseSlot $destinationSlot;Wait-ShowcaseHold
     $until=[DateTime]::UtcNow.AddSeconds(5)
-    do {$menu=Get-ShowcaseMenu;$moved=@($menu.server.menu.slots|Where-Object slot -eq $destinationSlot)[0];if($moved.id-eq'minecraft:stone'-and$moved.count-eq8){break};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow-lt$until)
-    Assert-Showcase ($moved.id-eq'minecraft:stone'-and$moved.count-eq8) 'Vanilla slot-to-slot move not observed'
+    do {$tree=Get-ShowcaseTree;$moved=@(Get-ShowcaseNodes $tree|Where-Object {$_.role-eq'slot'-and$_.slot-eq$destinationSlot})[0];if($moved.item-eq'minecraft:stone'-and$moved.count-eq8){break};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow-lt$until)
+    Assert-Showcase ($moved.item-eq'minecraft:stone'-and$moved.count-eq8) 'Vanilla slot-to-slot move not observed in USER UI'
     $from=Get-ShowcaseSlotNode $destinationSlot;$to=Get-ShowcaseSlotNode $script:reservedSlots[2]
     Write-Host '  TAKEOVER：真实 button hold / mouseMoved / drag / release。'
     Invoke-ShowcasePipeline @(@{type='ui.drag';fromSelector=@{nodeId=$from.nodeId};toSelector=@{nodeId=$to.nodeId};durationMs=900;segments=12;button=0})|Out-Null
     # Vanilla drag semantics can leave a carried stack. Explicitly place it in the reserved slot.
-    $menu=Get-ShowcaseMenu
-    if(-not$menu.server.menu.carriedStack.empty){Invoke-ShowcaseSlot $script:reservedSlots[3]}
+    $tree=Get-ShowcaseTree
+    $slots=@(Get-ShowcaseNodes $tree|Where-Object {$_.role-eq'slot'-and$_.slot-in$script:reservedSlots})
+    $stoneCount=[int]($slots|Where-Object {$_.item-eq'minecraft:stone'}|Measure-Object -Property count -Sum).Sum
+    if(-not$tree.carriedStack.empty){
+        Assert-Showcase ($tree.carriedStack.id-eq'minecraft:stone') 'Unexpected carried item after native drag; no fallback click'
+        $stoneCount+=[int]$tree.carriedStack.count
+    }
+    Assert-Showcase ($stoneCount-eq8) 'Native drag did not preserve the eight fixture items in USER slots/carried stack'
+    $script:caseEvidence.Add(@{kind='semantic_slot_drag';category='USER';fixtureItem='minecraft:stone';totalCount=$stoneCount;carriedCount=[int]$tree.carriedStack.count;gameplayArrange='DEBUG_PRIVILEGED'})
+    if(-not$tree.carriedStack.empty){Invoke-ShowcaseSlot $script:reservedSlots[3]}
     Wait-ShowcaseHold
     Assert-ShowcaseCleanInput|Out-Null
     Restore-ShowcaseItems
@@ -90,6 +104,14 @@ function Start-ShowcaseToasts {
     Start-ShowcaseTakeover;Click-ShowcaseLabel 'Showcase Toasts (Fixture)'
     # This is a pre-existing diagnostic Screen, not a new Runtime endpoint.
     Click-ShowcaseLabel 'Close Probe'
+    $deadline=[DateTime]::UtcNow.AddSeconds(8)
+    do {
+        $presentation=Get-ShowcaseTree
+        if(Test-ShowcaseFixtureToasts $presentation){break}
+        Start-Sleep -Milliseconds 100
+    }while([DateTime]::UtcNow-lt$deadline)
+    Assert-Showcase (Test-ShowcaseFixtureToasts $presentation) 'Fixture Tutorial/System Toasts were not actually published by native rendering'
+    $script:caseEvidence.Add(@{fixture='native_tutorial_and_system_toasts';visible=$true;source='last_native_toast_render';gameplayAcceptance=$false})
 }
 function Show-UiOverlay {
     Enter-ShowcaseWorld
@@ -233,6 +255,11 @@ function Invoke-ShowcaseCase([string]$Name) {
         'cursor-rule' {Show-CursorRule}
         'pause-pointer' {Show-PausePointer}
         'inventory-pointer' {Show-InventoryPointer}
+        'world-observe' {Show-WorldObservation}
+        'world-interact' {Show-WorldInteraction}
+        'wait-evidence' {Show-WaitEvidence}
+        'persistent-read' {Show-PersistentRead}
+        'cancel-cleanup' {Show-CancelCleanup}
         'manual-esc' {Show-ManualEsc}
         default {throw "Unknown showcase case: $Name"}
     }

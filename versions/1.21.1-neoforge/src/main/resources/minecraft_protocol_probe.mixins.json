@@ -5,11 +5,18 @@
     "compatibilityLevel": "JAVA_21",
     "refmap": "minecraft_protocol_probe.refmap.json",
     "client": [
+        "ConnectionMixin",
+        "CommandBlockInputAccessor",
+        "CommandItemInputAccessor",
+        "PlayerCommandMixin",
+        "WorldPickInvoker",
+        "WorldChunkRevisionMixin",
         "HudUiAccessor",
         "SpectatorGuiUiAccessor",
         "SpectatorMenuUiAccessor",
         "KeyBindingUiAccessor",
         "EffectIconRenderMixin",
+        "HudVitalIconsMixin",
         "BossOverlayUiAccessor",
         "PlayerListUiAccessor",
         "ToastManagerUiAccessor",
@@ -22,6 +29,7 @@
         "ScrollWidgetUiAccessor",
         "RecipeOverlayUiAccessor",
         "ChatUiAccessor",
+        "CommandFeedbackChatAccessor",
         "ChatComponentUiAccessor",
         "CommandSuggestionsUiAccessor",
         "SuggestionListUiAccessor",
@@ -33,6 +41,7 @@
         "StonecutterUiAccessor",
         "LoomUiAccessor",
         "SignUiAccessor",
+        "TextFieldUiAccessor",
         "BookUiAccessor",
         "BookViewUiAccessor",
         "MerchantUiAccessor",
@@ -50,6 +59,7 @@
         "LevelTicksAccessor",
         "MinecraftMixin",
         "GameRendererMixin",
+        "WorldOutlineMixin",
         "MouseHandlerInvoker",
         "MouseHandlerAccessor",
         "MouseHandlerMixin",
@@ -62,7 +72,8 @@
         "RecipePageAccessor",
         "SelectionListAccessor",
         "WorldEntryAccessor",
-        "KeyboardCharacterInvoker"
+        "KeyboardCharacterInvoker",
+        "WorldGestureMixin"
     ],
     "injectors": {
         "defaultRequire": 1

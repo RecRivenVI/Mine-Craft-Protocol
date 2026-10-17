@@ -1,3 +1,14 @@
+val verifyInstanceProfiles by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/Test-InstanceProfiles.ps1",
+        )
+    }
+
 val verifyControl by
     tasks.registering(Exec::class) {
         workingDir(rootDir.parentFile.parentFile)
@@ -39,4 +50,59 @@ val verifyWorldReadTools by
         )
     }
 
-tasks.check { dependsOn(verifyControl, verifyShowcase, verifyVanillaUiTools, verifyWorldReadTools) }
+val verifyAlphaConfiguration by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--test",
+            "components/validation_tools/regression-v1_release/task/alpha-configuration.test.mjs",
+            "components/validation_tools/regression-v1_release/task/alpha-consumer.test.mjs",
+        )
+    }
+
+val verifyAlphaSnapshots by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/regression-v1_release/task/Test-AlphaSnapshot.ps1",
+        )
+    }
+
+val verifyInstalledEvidence by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--test",
+            "components/validation_tools/integration-packaged_runtime/task/installed-evidence.test.mjs",
+        )
+    }
+
+val verifyInstalledCleanup by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/integration-packaged_runtime/task/Test-InstalledInstanceCleanup.ps1",
+        )
+    }
+
+tasks.check {
+    dependsOn(
+        verifyInstanceProfiles,
+        verifyAlphaSnapshots,
+        verifyInstalledEvidence,
+        verifyInstalledCleanup,
+        verifyControl,
+        verifyShowcase,
+        verifyVanillaUiTools,
+        verifyWorldReadTools,
+        verifyAlphaConfiguration,
+    )
+}

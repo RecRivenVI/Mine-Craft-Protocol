@@ -82,11 +82,22 @@ val test by tasks.registering {
                 "WorldDataCategory",
                 "WorldReadContract",
                 "WorldUserPlayerResponse",
+                "WorldSceneResponse",
+                "RuntimeConnection",
             )) {
             check(javaRoot.resolve("$model.java").isFile) { "Missing Java model: $model" }
             check(tsRoot.resolve("$model.ts").isFile) { "Missing TypeScript model: $model" }
         }
-        for (model in listOf("PlayerStateResponse", "BlockStateResponse", "EntityQueryResponse")) {
+        for (model in
+            listOf(
+                "PlayerStateResponse",
+                "BlockStateResponse",
+                "EntityQueryResponse",
+                "WorldSceneResponse",
+                "ProviderReadResponse",
+                "StateFrameResponse",
+                "RecordingStatusResponse",
+            )) {
             check(javaRoot.resolve("$model.java").readText().contains("getDataCategory()")) {
                 "Java model drops basic world category: $model"
             }
@@ -97,6 +108,41 @@ val test by tasks.registering {
                     .contains("'dataCategory': json['dataCategory']"),
             ) {
                 "TypeScript decoder drops basic world category: $model"
+            }
+        }
+        for ((field, getter) in
+            listOf(
+                "configurationKind" to "getConfigurationKind()",
+                "configurationPayloadType" to "getConfigurationPayloadType()",
+                "configuredCommandEffect" to "getConfiguredCommandEffect()",
+            )) {
+            check(javaRoot.resolve("PlayerCommandSubmission.java").readText().contains(getter)) {
+                "Java command receipt drops $field"
+            }
+            check(
+                tsRoot
+                    .resolve("PlayerCommandSubmission.ts")
+                    .readText()
+                    .contains("'$field': json['$field']"),
+            ) {
+                "TypeScript command receipt decoder drops $field"
+            }
+        }
+        for ((field, getter) in
+            listOf(
+                "properties" to "getProperties()",
+                "expectedProperties" to "getExpectedProperties()",
+            )) {
+            check(javaRoot.resolve("DebugWorldBlockMutation.java").readText().contains(getter)) {
+                "Java typed BlockState model drops $field"
+            }
+            check(
+                tsRoot
+                    .resolve("DebugWorldBlockMutation.ts")
+                    .readText()
+                    .contains("'$field': json['$field']"),
+            ) {
+                "TypeScript typed BlockState decoder drops $field"
             }
         }
         logger.lifecycle(

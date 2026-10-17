@@ -15,3 +15,16 @@ Gradle Wrapper
 版权声明：Copyright 2015 the original author or authors.
 许可：Apache License, Version 2.0，https://www.apache.org/licenses/LICENSE-2.0
 SPDX-License-Identifier: Apache-2.0
+
+Netty HTTP
+文件：旧Target发行JAR的META-INF/jarjar/netty-codec-http-*.jar
+来源：https://github.com/netty/netty，版本与对应Target的游戏Netty对齐
+版权声明：Copyright 2014 The Netty Project
+许可：Apache License, Version 2.0，licenses/netty-apache_2.0.txt；上游归属说明见licenses/netty_notice-apache_2.0.txt
+SPDX-License-Identifier: Apache-2.0
+
+Fabric API
+文件：Fabric发行JAR的META-INF/jars/fabric-api-*.jar及其嵌入模块
+来源：https://github.com/FabricMC/fabric，版本以Fabric Target事实为准
+许可：Apache License, Version 2.0，嵌入JAR内的LICENSE-fabric-api及各模块许可文件
+SPDX-License-Identifier: Apache-2.0

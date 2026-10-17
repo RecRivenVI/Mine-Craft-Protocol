@@ -16,8 +16,10 @@ const { Client } = await import(pathToFileURL(require.resolve('@modelcontextprot
 const { StdioClientTransport } = await import(pathToFileURL(require.resolve('@modelcontextprotocol/client/stdio')).href);
 const environment = Object.fromEntries(Object.entries(process.env).filter(([, value]) => typeof value === 'string'));
 delete environment.MCP_MINECRAFT_TOKEN;
-environment.MCP_MINECRAFT_BASE_URL = 'http://127.0.0.1:28591';
-environment.MCP_MINECRAFT_TOKEN_FILE = resolve(instance, 'minecraft-protocol/token');
+delete environment.MCP_MINECRAFT_BASE_URL;
+delete environment.MCP_MINECRAFT_TOKEN_FILE;
+environment.MCP_MINECRAFT_INSTANCE_DIR = instance;
+environment.MCP_MINECRAFT_TARGET = target;
 const client = new Client({ name: 'ui-category-conformance', version: '1.0.0' });
 const transport = new StdioClientTransport({ command: process.execPath,
   args: [resolve(repo, 'components/companion/dist/index.js')], env: environment, stderr: 'pipe' });

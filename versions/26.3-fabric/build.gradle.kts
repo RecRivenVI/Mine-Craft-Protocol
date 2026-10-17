@@ -23,4 +23,5 @@ sourceSets.test {
 
 dependencies {
     implementation(target.module("net.fabricmc.fabric-api:fabric-api", "fabric_api_version"))
+    include(target.module("net.fabricmc.fabric-api:fabric-api", "fabric_api_version"))
 }

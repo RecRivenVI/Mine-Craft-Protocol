@@ -1,26 +1,30 @@
 [CmdletBinding()]param([switch]$Offline,[string[]]$OnlyTargets=@())
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+. (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
+$runtimeRunnerLock=$null
 function Assert-True([bool]$Condition,[string]$Message){if(-not$Condition){throw "Phase 9C five-target live failed: $Message"}}
 function Invoke-Json($Base,[string]$Method,[string]$Path,[hashtable]$Headers,[object]$Body){$p=@{Uri=$Base+$Path;Method=$Method;Headers=$Headers;TimeoutSec=10};if($null-ne$Body){$p.ContentType='application/json';$p.Body=$Body|ConvertTo-Json -Depth 40 -Compress};Invoke-RestMethod @p}
 $runs=@(
- @{Target='1.20.1-forge';Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.20.1-forge\client';Port=25581;Has9A=$true},
- @{Target='1.21.1-neoforge';Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client';Port=25581;Has9A=$false},
- @{Target='26.1.2-neoforge';Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client';Port=25582;Has9A=$false},
- @{Target='26.3-neoforge';Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-neoforge\client';Port=25582;Has9A=$true;WorldExit=$true},
- @{Target='26.3-fabric';Task=':version:26.3-fabric:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-fabric\client';Port=25583;Has9A=$true})
+ @{Target='1.20.1-forge';Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.20.1-forge\client';Port=$null;Has9A=$true},
+ @{Target='1.21.1-neoforge';Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client';Port=$null;Has9A=$false},
+ @{Target='26.1.2-neoforge';Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client';Port=$null;Has9A=$false},
+ @{Target='26.3-neoforge';Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-neoforge\client';Port=$null;Has9A=$true;WorldExit=$true},
+ @{Target='26.3-fabric';Task=':version:26.3-fabric:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-fabric\client';Port=$null;Has9A=$true})
 if($OnlyTargets.Count){$runs=@($runs|Where-Object{$_.Target-in$OnlyTargets})}
 Push-Location $root
 try {
  $env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,fixture,debug,debug.write,debug.player,debug.entity,debug.world,debug.block_entity,debug.menu,debug.provider,debug.chunk,debug.client,debug.network'
  $results=foreach($run in $runs){
   Write-Host "[Phase9C] starting $($run.Target)"
-  Assert-True(-not[bool](Get-NetTCPConnection -LocalPort $run.Port -State Listen -ErrorAction SilentlyContinue))"port $($run.Port) occupied"
   $directory=(Resolve-Path $run.Dir).Path
+  if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};$runtimeRunnerLock=Enter-RuntimeRunner $directory
   $arguments=@($run.Task,'--no-daemon');if($Offline){$arguments+='--offline'}
   $process=Start-Process '.\gradlew.bat' -ArgumentList $arguments -WorkingDirectory $root -RedirectStandardOutput(Join-Path $directory 'phase9c-five-target-stdout.log') -RedirectStandardError(Join-Path $directory 'phase9c-five-target-stderr.log') -PassThru -WindowStyle Hidden
   $tokenFile=Join-Path $directory 'minecraft-protocol\token';$deadline=(Get-Date).AddMinutes(6);$session=$null
-  do{if(Test-Path -LiteralPath $tokenFile){$token=(Get-Content -LiteralPath $tokenFile -Raw).Trim();$auth=@{Authorization="Bearer $token"};try{$session=Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/session" -Headers $auth -TimeoutSec 2}catch{$session=$null}};if($session-and$session.target-eq$run.Target-and($session.inWorld-or$session.screenClass-match'TitleScreen')){break};Start-Sleep -Seconds 2}while((Get-Date)-lt$deadline)
+  $connection=Wait-RuntimeConnection $directory $run.Target $process.StartTime.ToUniversalTime() $process
+  $run.Port=$connection.Port;$auth=$connection.Headers;$token=(Get-Content $connection.TokenFile -Raw).Trim()
+  $session=Invoke-RestMethod "$($connection.BaseUri)/v0/session" -Headers $auth -TimeoutSec 3
   Assert-True($session-and$session.target-eq$run.Target)"$($run.Target) not ready"
   $base="http://127.0.0.1:$($run.Port)"
   [void](Invoke-Json $base POST '/v0/control/emergency-release' $auth $null);$lease=Invoke-Json $base POST '/v0/control/acquire' $auth @{ttlMs=60000};$headers=@{Authorization="Bearer $token";'X-MCP-Control-Lease'=$lease.leaseId}
@@ -73,4 +77,4 @@ try {
  }
  [pscustomobject]@{Result='PASS';Targets=$results.Count;Results=$results}
 }
-finally{Pop-Location}
+finally{if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};Pop-Location}

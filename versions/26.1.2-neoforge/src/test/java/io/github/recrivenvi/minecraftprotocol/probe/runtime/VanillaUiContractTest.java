@@ -133,7 +133,7 @@ final class VanillaUiContractTest {
                         """
             {"screenIdentity":1,"screenRevision":1,"width":640,"height":360,"children":[
             {"nodeId":"input","elementIdentity":2,"class":"EditBox","role":"text_field","focused":true,"active":true,"visible":true,
-             "x":20,"y":20,"width":200,"height":20,"actions":["click","type_text","hover"]},
+             "x":20,"y":20,"width":200,"height":20,"value":"Original","actions":["click","type_text","hover"]},
             {"nodeId":"slider","elementIdentity":3,"class":"Slider","role":"slider","active":true,"visible":true,
              "x":20,"y":60,"width":108,"height":20,"actions":["click","set_value","hover"]}]}
             """);
@@ -142,7 +142,7 @@ final class VanillaUiContractTest {
         int navigationRemaining;
         final List<Integer> keyPresses = new ArrayList<>();
         double x, y;
-        boolean replaceScreen;
+        boolean replaceScreen, textSelected;
 
         ProbeService service() {
             return (ProbeService)
@@ -174,6 +174,29 @@ final class VanillaUiContractTest {
                                             AutomationEngine.validatePointerGuard(
                                                     (JsonObject) args[4], tree);
                                             keyPresses.add((int) args[0]);
+                                            JsonObject field =
+                                                    tree.getAsJsonArray("children")
+                                                            .get(0)
+                                                            .getAsJsonObject();
+                                            if ((int) args[0] == 65 && ((int) args[3] & 2) != 0)
+                                                textSelected = true;
+                                            if ((int) args[0] == 259 && field.has("value")) {
+                                                String value = field.get("value").getAsString();
+                                                field.addProperty(
+                                                        "value",
+                                                        textSelected || value.isEmpty()
+                                                                ? ""
+                                                                : value.substring(
+                                                                        0,
+                                                                        value.offsetByCodePoints(
+                                                                                value.length(),
+                                                                                -1)));
+                                                textSelected = false;
+                                            }
+                                            if ((int) args[0] == 257 && field.has("value"))
+                                                field.addProperty(
+                                                        "value",
+                                                        field.get("value").getAsString() + "\n");
                                             if ((int) args[0] == 264 || (int) args[0] == 265)
                                                 if (--navigationRemaining == 0)
                                                     tree.getAsJsonArray("children")
@@ -186,6 +209,15 @@ final class VanillaUiContractTest {
                                         AutomationEngine.validatePointerGuard(
                                                 (JsonObject) args[1], tree);
                                         characters.add((int) args[0]);
+                                        JsonObject field =
+                                                tree.getAsJsonArray("children")
+                                                        .get(0)
+                                                        .getAsJsonObject();
+                                        field.addProperty(
+                                                "value",
+                                                field.get("value").getAsString()
+                                                        + new String(
+                                                                Character.toChars((int) args[0])));
                                         if (replaceScreen) tree.addProperty("screenIdentity", 2);
                                     }
                                     default -> {}

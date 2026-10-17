@@ -4,6 +4,20 @@ height = 1440
 
 [client]
 jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+mods = ["customskinloader-bootstrap"]
 
 [client-multiplayer]
 jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+mods = ["customskinloader-bootstrap"]
+
+[targets."1.20.1-forge".client]
+mods = ["customskinloader-bootstrap", "zume"]
+
+[targets."1.20.1-forge".client-multiplayer]
+mods = ["customskinloader-bootstrap", "zume"]
+
+[targets."1.21.1-neoforge".client]
+mods = ["customskinloader-bootstrap", "zume"]
+
+[targets."1.21.1-neoforge".client-multiplayer]
+mods = ["customskinloader-bootstrap", "zume"]

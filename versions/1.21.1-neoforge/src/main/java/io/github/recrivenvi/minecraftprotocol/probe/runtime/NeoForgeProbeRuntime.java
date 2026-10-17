@@ -12,7 +12,7 @@ import io.github.recrivenvi.minecraftprotocol.core.ProbeService;
 import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;
 import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
-import io.github.recrivenvi.minecraftprotocol.core.RuntimeToken;
+import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
 import io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.MouseHandlerInvoker;
@@ -54,6 +54,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CrafterMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -84,7 +85,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private volatile long clientTick;
     private volatile long screenRevision;
     private volatile long menuRevision;
-    private volatile int lastMenuHash;
+    private volatile String lastMenuHash = "";
+    private final UiItemDataGuard itemDataGuard = new UiItemDataGuard();
+    private final Map<Slot, UiItemDataGuard.Content> slotContents =
+            new java.util.IdentityHashMap<>();
+    private UiItemDataGuard.Content carriedContent = UiItemDataGuard.Content.unavailable();
+    private boolean menuContentIncomplete;
     private volatile AbstractContainerMenu lastMenu;
     private final AtomicLong screenSlotClickSequence = new AtomicLong();
     private final AtomicLong menuDispatchSequence = new AtomicLong();
@@ -98,6 +104,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private volatile String lastTraceDetail = "";
     private volatile String lastServerThread = "";
     private volatile AgentControlSession controlSession = new AgentControlSession();
+    private volatile io.github.recrivenvi.minecraftprotocol.core.PlayerCommandGate commandGate;
     private volatile AgentControlSession.Snapshot controlPresence = this.controlSession.snapshot();
     private final java.util.concurrent.atomic.AtomicLongArray suppressedNative =
             new java.util.concurrent.atomic.AtomicLongArray(AgentInputContext.Kind.values().length);
@@ -134,6 +141,82 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private NeoForgeProbeRuntime() {
         this.phase9a.installProviderDispatcher(this::dispatchProvider);
         this.phase9a.installProviderMutationDispatcher(this::dispatchProviderMutation);
+    }
+
+    public static boolean allowSemanticWorldInput(String kind) {
+        return INSTANCE.worldTargeting.holdActive()
+                ? INSTANCE.controlPresence.agentControlled() && INSTANCE.worldTargeting.permit(kind)
+                : true;
+    }
+
+    public static boolean allowPlayerCommand(
+            String command, boolean packet, net.minecraft.network.Connection source) {
+        return allowPlayerCommand(command, packet, null, source);
+    }
+
+    public static boolean allowPlayerCommandPacket(
+            net.minecraft.network.protocol.Packet<?> packet,
+            net.minecraft.network.Connection source) {
+        var configuration = NativePlayerCommands.configuration(packet);
+        if (configuration != null)
+            return allowPlayerCommand(configuration.command(), true, configuration.kind(), source);
+        String command =
+                packet
+                                instanceof
+                                net.minecraft.network.protocol.game.ServerboundChatCommandPacket
+                                        unsigned
+                        ? unsigned.command()
+                        : packet
+                                        instanceof
+                                        net.minecraft.network.protocol.game
+                                                        .ServerboundChatCommandSignedPacket
+                                                signed
+                                ? signed.command()
+                                : null;
+        return command == null || allowPlayerCommand(command, true, source);
+    }
+
+    private static boolean allowPlayerCommand(
+            String command,
+            boolean packet,
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandGate.ConfigurationKind
+                    configuration,
+            net.minecraft.network.Connection source) {
+        var gate = INSTANCE.commandGate;
+        boolean routed = AgentInputContext.isAgentRouted();
+        if (gate == null) return !routed && !INSTANCE.controlPresence.agentControlled();
+        if (!gate.requiresInspection(routed)) return true;
+        Minecraft client = INSTANCE.minecraft;
+        if (client == null
+                || !client.isSameThread()
+                || client.getConnection() == null
+                || !source.isConnected()
+                || client.getConnection().getConnection() != source)
+            return gate.reject(
+                    "PLAYER_COMMAND_CONTEXT_CHANGED",
+                    "Command connection no longer belongs to the current player");
+        return configuration == null
+                ? gate.allow(
+                        command, routed, packet, () -> NativePlayerCommands.parse(client, command))
+                : gate.allowConfiguration(
+                        command,
+                        routed,
+                        configuration,
+                        () ->
+                                NativePlayerCommands.parseConfiguration(
+                                        client, configuration, command));
+    }
+
+    public static void beforeSemanticDestroy(net.minecraft.core.BlockPos pos) {
+        INSTANCE.worldTargeting.beforeDestroy(pos);
+    }
+
+    public static void afterSemanticDestroy(net.minecraft.core.BlockPos pos, boolean success) {
+        INSTANCE.worldTargeting.afterDestroy(pos, success);
+    }
+
+    public static void semanticUseReleased() {
+        INSTANCE.worldTargeting.usingReleased();
     }
 
     public static void onClientTick(Minecraft minecraft) {
@@ -289,6 +372,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public void attachControlSession(AgentControlSession session) {
         this.controlSession = session;
         this.controlPresence = session.snapshot();
+    }
+
+    @Override
+    public void attachPlayerCommandGate(
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandGate gate) {
+        this.commandGate = gate;
     }
 
     @Override
@@ -786,9 +875,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             minecraft.options.pauseOnLostFocus = false;
         }
         if (this.initialized.compareAndSet(false, true)) {
-            String token = RuntimeToken.resolve(minecraft.gameDirectory.toPath());
-            int port = Integer.getInteger("minecraft.protocol.probe.port", 25581);
-            this.transport = new ProbeTransport(this, token, port, "1.21.1-neoforge");
+            this.transport =
+                    ProbeTransport.forInstance(
+                            this, minecraft.gameDirectory.toPath(), "1.21.1-neoforge");
             this.transport.startAsync();
             if (this.shutdownRegistered.compareAndSet(false, true)) {
                 Runtime.getRuntime()
@@ -895,6 +984,18 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     capabilities.addProperty("input.drag_scroll", "runtime_verified");
                     capabilities.addProperty(
                             "command.player.execute", "normal_network_current_permissions");
+                    capabilities.addProperty(
+                            "command.player.configuration",
+                            "native_command_blocks_and_jigsaw_final_state");
+                    capabilities.addProperty(
+                            "command.player.jigsaw_generation",
+                            "unavailable_unresolved_template_effects");
+                    capabilities.addProperty(
+                            "command.player.structure_configuration",
+                            "native_parameter_update_and_scan");
+                    capabilities.addProperty(
+                            "command.player.structure_template",
+                            "unavailable_storage_or_unresolved_template_effects");
                     capabilities.addProperty("wait.assert", "runtime_verified");
                     capabilities.addProperty(
                             "fixture.standard_mod_gui", "runtime_verified_contaminated");
@@ -986,6 +1087,29 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     boolean mouse = client.mouseHandler instanceof MouseHandlerInvoker;
                     boolean screen = this.screenRevision > 0;
                     JsonArray hooks = new JsonArray();
+                    JsonObject scene = WorldPresentationSnapshot.capture();
+                    hooks.add(
+                            hook(
+                                    "world_presentation_frame",
+                                    "MIXIN_INJECT",
+                                    "GameRenderer.render",
+                                    "HEAD/TAIL",
+                                    "read_observation",
+                                    scene.get("available").getAsBoolean()
+                                            ? "runtime_verified"
+                                            : "unverified_until_world_render",
+                                    "world.presentation"));
+                    hooks.add(
+                            hook(
+                                    "world_target_outline",
+                                    "MIXIN_INJECT",
+                                    "LevelRenderer.renderHitOutline",
+                                    "RETURN",
+                                    "read_observation",
+                                    scene.getAsJsonArray("nodes").isEmpty()
+                                            ? "unverified_until_outline"
+                                            : "runtime_verified",
+                                    "world.presentation"));
                     hooks.add(
                             hook(
                                     "runtime_pre_loader_shutdown",
@@ -1187,9 +1311,46 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     JsonObject json = base("diagnostics.hook_manifest");
                     json.addProperty("policy", "capability_fidelity_first");
                     json.addProperty("overwriteCount", 0);
-                    json.addProperty("cancellableInjectionCount", 12);
-                    json.addProperty("replacementInjectionCount", 5);
-                    json.addProperty("controlFlowPolicy", "operator_control_hooks_only");
+                    json.addProperty("cancellableInjectionCount", 20);
+                    hooks.add(
+                            operatorHook(
+                                    "player_command_entry_guard",
+                                    "ClientPacketListener command and link methods",
+                                    true,
+                                    false,
+                                    "configured_origin_and_effect_guard"));
+                    hooks.add(
+                            operatorHook(
+                                    "player_command_packet_guard",
+                                    "Connection native command packet send",
+                                    true,
+                                    false,
+                                    "configured_origin_and_effect_guard"));
+                    hooks.add(
+                            operatorHook(
+                                    "world_semantic_gesture_guard",
+                                    "MultiPlayerGameMode native actions",
+                                    true,
+                                    false,
+                                    "bounded_owned_gesture_guard"));
+                    JsonObject vitalDraw =
+                            hook(
+                                    "hud_vital_native_draw",
+                                    "MIXIN_REDIRECT",
+                                    "native health/armor/food/air/mount HUD draws",
+                                    "AFTER_UNCHANGED_ORIGINAL_DRAW",
+                                    "passive_draw_observation",
+                                    "unverified_until_exercised",
+                                    "ui.presentation");
+                    vitalDraw.addProperty("plane", "OBSERVATION");
+                    vitalDraw.addProperty("replacement", true);
+                    vitalDraw.addProperty("originalInvocationCount", 1);
+                    vitalDraw.addProperty("originalArguments", "unchanged");
+                    hooks.add(vitalDraw);
+                    json.addProperty("replacementInjectionCount", 10);
+                    json.addProperty("passiveDrawDelegationCount", 5);
+                    json.addProperty(
+                            "controlFlowPolicy", "operator_control_and_exact_hud_draw_delegation");
                     json.addProperty("thirdPartyTargetCount", 0);
                     json.addProperty("runtimeSelfTest", true);
                     json.addProperty("overall", tick && mouse && screen ? "ready" : "degraded");
@@ -1258,7 +1419,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             root.addProperty("screenClass", "");
             root.add("children", SpectatorUiTree.capture(client, root, this::interactionIdentity));
             root.add("presentation", UiPresentationSnapshot.capture(client));
-            UiDebugEngine.describe(root, this.phase9a);
+            UiDebugEngine.describe(
+                    root, this.phase9a, screen, this::interactionIdentity, this.itemDataGuard);
             return root;
         }
 
@@ -1287,6 +1449,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             carriedSnapshot.addProperty(
                     "id", BuiltInRegistries.ITEM.getKey(carried.getItem()).toString());
             carriedSnapshot.addProperty("count", carried.getCount());
+            addItemContent(carriedSnapshot, carriedContent, "carried:" + menuIdentity);
             root.add("carriedStack", carriedSnapshot);
             int slotBudget = Math.max(0, 2048 - root.get("treeNodeCount").getAsInt());
             int capturedSlots = Math.min(menu.slots.size(), slotBudget);
@@ -1307,10 +1470,18 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 node.addProperty("coverage", "semantic_native");
                 addSlotBounds(node, left + slot.x, top + slot.y);
                 node.addProperty("active", slot.isActive());
+                if (menu instanceof CrafterMenu crafter && viewIndex < 9) {
+                    // Disabled Crafter cells remain clickable: the native click enables them.
+                    node.addProperty("slotDisabled", crafter.isSlotDisabled(viewIndex));
+                }
                 boolean visible = addSlotVisibility(node, screen.width, screen.height);
                 ItemStack stack = slot.getItem();
                 node.addProperty("item", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
                 node.addProperty("count", stack.getCount());
+                addItemContent(
+                        node,
+                        slotContents.getOrDefault(slot, UiItemDataGuard.Content.unavailable()),
+                        "slot:" + menuIdentity + ":" + this.interactionIdentity(slot));
                 addInteractionMetadata(node, "slot", slot.isActive() && visible);
                 children.add(node);
             }
@@ -1320,7 +1491,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         VanillaUiTree.markOccluded(children);
         root.add("children", children);
         root.add("presentation", UiPresentationSnapshot.capture(client));
-        UiDebugEngine.describe(root, this.phase9a);
+        UiDebugEngine.describe(
+                root, this.phase9a, screen, this::interactionIdentity, this.itemDataGuard);
         return root;
     }
 
@@ -1381,6 +1553,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         this.agentPointerY = rawY;
         this.agentPointerInitialized = true;
         this.logicalPointer.move(guiX, guiY);
+        if (guard != null && guard.has("trackDrag"))
+            AutomationEngine.advanceDragGuard(guard, this.snapshotUiTree());
         JsonObject evidence = inputEvidence("GAME_ROUTED_RAW", client.screen != null, false);
         evidence.addProperty("pointerPlane", this.logicalPointer.plane().name());
         evidence.addProperty("guiX", guiX);
@@ -1391,38 +1565,37 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> mouseDelta(double dx, double dy) {
-        return this.onControlledClient(
-                () -> {
-                    Minecraft client = requireClient();
-                    if (!this.gameplayViewport())
-                        throw new ProtocolState.ProtocolException(
-                                "GAMEPLAY_POINTER_REQUIRED",
-                                409,
-                                "Relative input requires gameplay without Screen/Overlay");
-                    if (!Double.isFinite(dx)
-                            || !Double.isFinite(dy)
-                            || Math.abs(dx) > 8192
-                            || Math.abs(dy) > 8192)
-                        throw new ProtocolState.ProtocolException(
-                                "INVALID_POINTER_DELTA",
-                                400,
-                                "Relative delta exceeds its finite pixel budget");
-                    this.syncPointerContext(client);
-                    double x =
-                            (this.agentPointerX + dx)
-                                    * client.getWindow().getGuiScaledWidth()
-                                    / client.getWindow().getScreenWidth();
-                    double y =
-                            (this.agentPointerY + dy)
-                                    * client.getWindow().getGuiScaledHeight()
-                                    / client.getWindow().getScreenHeight();
-                    JsonObject result = this.movePointerNow(client, x, y, null);
-                    result.addProperty("type", "input.mouse.delta");
-                    result.addProperty("dx", dx);
-                    result.addProperty("dy", dy);
-                    result.addProperty("cameraProcessing", "vanilla_sensitivity_inversion");
-                    return result;
-                });
+        return this.onControlledClient(() -> this.mouseDeltaNow(dx, dy));
+    }
+
+    private JsonObject mouseDeltaNow(double dx, double dy) {
+        Minecraft client = requireClient();
+        if (!this.gameplayViewport())
+            throw new ProtocolState.ProtocolException(
+                    "GAMEPLAY_POINTER_REQUIRED",
+                    409,
+                    "Relative input requires gameplay without Screen/Overlay");
+        if (!Double.isFinite(dx)
+                || !Double.isFinite(dy)
+                || Math.abs(dx) > 8192
+                || Math.abs(dy) > 8192)
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_POINTER_DELTA", 400, "Relative delta exceeds its finite pixel budget");
+        this.syncPointerContext(client);
+        double x =
+                (this.agentPointerX + dx)
+                        * client.getWindow().getGuiScaledWidth()
+                        / client.getWindow().getScreenWidth();
+        double y =
+                (this.agentPointerY + dy)
+                        * client.getWindow().getGuiScaledHeight()
+                        / client.getWindow().getScreenHeight();
+        JsonObject result = this.movePointerNow(client, x, y, null);
+        result.addProperty("type", "input.mouse.delta");
+        result.addProperty("dx", dx);
+        result.addProperty("dy", dy);
+        result.addProperty("cameraProcessing", "vanilla_sensitivity_inversion");
+        return result;
     }
 
     private long interactionIdentity(Object object) {
@@ -1431,6 +1604,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     private void checkPointerGuard(JsonObject guard) {
         if (guard != null) AutomationEngine.validatePointerGuard(guard, this.snapshotUiTree());
+        // Encoding item data may take time; an effect cancelled meanwhile must not reach input.
+        var dispatch = this.commandGate.dispatch();
+        if (dispatch != null) dispatch.checkEffect();
     }
 
     @Override
@@ -1523,55 +1699,58 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> mouseButtonGuarded(
             int button, int action, int modifiers, JsonObject guard) {
         return this.onControlledClient(
-                () -> {
-                    this.checkPointerGuard(guard);
-                    Minecraft client = requireClient();
-                    this.restoreAgentPointer(client);
-                    boolean screen = client.screen != null;
-                    boolean menu = client.screen instanceof AbstractContainerScreen<?>;
-                    long beforeMenu = this.menuDispatchSequence.get();
-                    long beforePacket = this.containerPacketSequence.get();
-                    if (action == 1) this.buttonFrames.put(button, this.pointerFrameStamp(client));
-                    if (action == 1) this.buttonScreens.put(button, client.screen);
-                    if (action == 0
-                            && this.buttonScreens.containsKey(button)
-                            && (!java.util.Objects.equals(
-                                            this.buttonFrames.get(button),
-                                            this.pointerFrameStamp(client))
-                                    || this.buttonScreens.get(button) != client.screen)) {
-                        this.clearMouseButtonState(client);
-                    } else {
-                        AgentInputContext.dispatch(
-                                AgentInputContext.Event.button(
-                                        client.getWindow().getWindow(), button, action, modifiers),
-                                () ->
-                                        ((MouseHandlerInvoker) client.mouseHandler)
-                                                .minecraftProtocolProbe$onPress(
-                                                        client.getWindow().getWindow(),
-                                                        button,
-                                                        action,
-                                                        modifiers));
-                    }
-                    if (action == 0) {
-                        this.buttonScreens.remove(button);
-                        this.buttonFrames.remove(button);
-                    }
-                    if (action == InputConstants.PRESS) this.pressedButtons.add(button);
-                    else if (action == InputConstants.RELEASE) this.pressedButtons.remove(button);
-                    if (action == InputConstants.PRESS || action == InputConstants.RELEASE)
-                        this.logicalPointer.button(
-                                button, action == InputConstants.PRESS, System.nanoTime());
-                    this.refreshScreen(client);
-                    this.refreshMenu(client);
-                    JsonObject evidence = inputEvidence("GAME_ROUTED_RAW", screen, menu);
-                    evidence.addProperty(
-                            "normalMenuProcessingObserved",
-                            this.menuDispatchSequence.get() > beforeMenu);
-                    evidence.addProperty(
-                            "normalPacketObserved",
-                            this.containerPacketSequence.get() > beforePacket);
-                    return evidence;
-                });
+                () -> this.mouseButtonGuardedNow(button, action, modifiers, guard));
+    }
+
+    private JsonObject mouseButtonGuardedNow(
+            int button, int action, int modifiers, JsonObject guard) {
+        this.checkPointerGuard(guard);
+        Minecraft client = requireClient();
+        this.restoreAgentPointer(client);
+        boolean screen = client.screen != null;
+        boolean menu = client.screen instanceof AbstractContainerScreen<?>;
+        long beforeMenu = this.menuDispatchSequence.get();
+        long beforePacket = this.containerPacketSequence.get();
+        if (action == 1) this.buttonFrames.put(button, this.pointerFrameStamp(client));
+        if (action == 1) this.buttonScreens.put(button, client.screen);
+        if (action == 0
+                && this.buttonScreens.containsKey(button)
+                && (!java.util.Objects.equals(
+                                this.buttonFrames.get(button), this.pointerFrameStamp(client))
+                        || this.buttonScreens.get(button) != client.screen)) {
+            this.clearMouseButtonState(client);
+        } else {
+            AgentInputContext.dispatch(
+                    AgentInputContext.Event.button(
+                            client.getWindow().getWindow(), button, action, modifiers),
+                    () ->
+                            ((MouseHandlerInvoker) client.mouseHandler)
+                                    .minecraftProtocolProbe$onPress(
+                                            client.getWindow().getWindow(),
+                                            button,
+                                            action,
+                                            modifiers));
+        }
+        if (action == 0) {
+            this.buttonScreens.remove(button);
+            this.buttonFrames.remove(button);
+        }
+        if (action == InputConstants.PRESS) this.pressedButtons.add(button);
+        else if (action == InputConstants.RELEASE) this.pressedButtons.remove(button);
+        if (action == InputConstants.PRESS || action == InputConstants.RELEASE)
+            this.logicalPointer.button(button, action == InputConstants.PRESS, System.nanoTime());
+        this.refreshScreen(client);
+        this.refreshMenu(client);
+        if (action == InputConstants.PRESS && guard != null && guard.has("trackClickSelection"))
+            AutomationEngine.advanceClickSelectionGuard(guard, this.snapshotUiTree());
+        if (guard != null && guard.has("trackDrag"))
+            AutomationEngine.advanceDragGuard(guard, this.snapshotUiTree());
+        JsonObject evidence = inputEvidence("GAME_ROUTED_RAW", screen, menu);
+        evidence.addProperty(
+                "normalMenuProcessingObserved", this.menuDispatchSequence.get() > beforeMenu);
+        evidence.addProperty(
+                "normalPacketObserved", this.containerPacketSequence.get() > beforePacket);
+        return evidence;
     }
 
     @Override
@@ -1615,74 +1794,143 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> keyGuarded(
             int key, int scanCode, int action, int modifiers, JsonObject guard) {
         return this.onControlledClient(
-                () -> {
-                    if (action != 0) this.checkPointerGuard(guard);
-                    Minecraft client = requireClient();
-                    AgentInputContext.dispatch(
-                            AgentInputContext.Event.key(
-                                    client.getWindow().getWindow(),
-                                    key,
-                                    scanCode,
-                                    action,
-                                    modifiers),
-                            () ->
-                                    client.keyboardHandler.keyPress(
-                                            client.getWindow().getWindow(),
-                                            key,
-                                            scanCode,
-                                            action,
-                                            modifiers));
-                    if (action == InputConstants.PRESS || action == InputConstants.REPEAT) {
-                        this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
-                    } else if (action == InputConstants.RELEASE) {
-                        this.pressedKeys.remove(key);
-                    }
-                    this.refreshScreen(client);
-                    this.refreshMenu(client);
-                    JsonObject evidence =
-                            inputEvidence(
-                                    "GAME_ROUTED_RAW",
-                                    client.screen != null,
-                                    client.screen instanceof AbstractContainerScreen<?>);
-                    evidence.addProperty("keyMappingPath", client.screen == null);
-                    return evidence;
-                });
+                () -> this.keyGuardedNow(key, scanCode, action, modifiers, guard));
+    }
+
+    private JsonObject keyGuardedNow(
+            int key, int scanCode, int action, int modifiers, JsonObject guard) {
+        if (action != 0) this.checkPointerGuard(guard);
+        Minecraft client = requireClient();
+        AgentInputContext.dispatch(
+                AgentInputContext.Event.key(
+                        client.getWindow().getWindow(), key, scanCode, action, modifiers),
+                () ->
+                        client.keyboardHandler.keyPress(
+                                client.getWindow().getWindow(), key, scanCode, action, modifiers));
+        if (action == InputConstants.PRESS || action == InputConstants.REPEAT) {
+            this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
+        } else if (action == InputConstants.RELEASE) {
+            this.pressedKeys.remove(key);
+        }
+        this.refreshScreen(client);
+        this.refreshMenu(client);
+        JsonObject evidence =
+                inputEvidence(
+                        "GAME_ROUTED_RAW",
+                        client.screen != null,
+                        client.screen instanceof AbstractContainerScreen<?>);
+        evidence.addProperty("keyMappingPath", client.screen == null);
+        return evidence;
     }
 
     @Override
     public CompletableFuture<JsonObject> character(int codePoint, JsonObject guard) {
-        return this.onControlledClient(
+        return this.onControlledClient(() -> this.characterNow(codePoint, guard));
+    }
+
+    private JsonObject characterNow(int codePoint, JsonObject guard) {
+        this.checkPointerGuard(guard);
+        Minecraft client = requireClient();
+        if (client.screen == null
+                || !Character.isValidCodePoint(codePoint)
+                || (codePoint >= 0xD800 && codePoint <= 0xDFFF)
+                || Character.isISOControl(codePoint)) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_UI_TEXT", 400, "Only valid GUI characters are accepted");
+        }
+        if (guard != null && guard.has("selector")) {
+            JsonObject node =
+                    AutomationEngine.resolveTree(
+                                    this.snapshotUiTree(), guard.getAsJsonObject("selector"))
+                            .getAsJsonObject("node");
+            if (!node.has("focused") || !node.get("focused").getAsBoolean())
+                throw new ProtocolState.ProtocolException(
+                        "UI_FOCUS_CHANGED", 409, "Text target is no longer focused");
+        }
+        long window = client.getWindow().getWindow();
+        AgentInputContext.dispatch(
+                new AgentInputContext.Event(
+                        AgentInputContext.Kind.CHARACTER, window, codePoint, 0, 0, 0),
+                () ->
+                        ((io.github.recrivenvi.minecraftprotocol.probe.mixin
+                                                .KeyboardCharacterInvoker)
+                                        client.keyboardHandler)
+                                .minecraftProtocolProbe$character(window, codePoint, 0));
+        return inputEvidence("GAME_ROUTED_RAW", true, false);
+    }
+
+    private final WorldTargeting worldTargeting = new WorldTargeting();
+
+    @Override
+    public CompletableFuture<JsonObject> worldAimDelta(
+            String targetRef, JsonObject guard, double dx, double dy) {
+        return onControlledClient(
                 () -> {
-                    this.checkPointerGuard(guard);
-                    Minecraft client = requireClient();
-                    if (client.screen == null
-                            || !Character.isValidCodePoint(codePoint)
-                            || (codePoint >= 0xD800 && codePoint <= 0xDFFF)
-                            || Character.isISOControl(codePoint)) {
-                        throw new ProtocolState.ProtocolException(
-                                "INVALID_UI_TEXT", 400, "Only valid GUI characters are accepted");
-                    }
-                    if (guard != null && guard.has("selector")) {
-                        JsonObject node =
-                                AutomationEngine.resolveTree(
-                                                this.snapshotUiTree(),
-                                                guard.getAsJsonObject("selector"))
-                                        .getAsJsonObject("node");
-                        if (!node.has("focused") || !node.get("focused").getAsBoolean())
-                            throw new ProtocolState.ProtocolException(
-                                    "UI_FOCUS_CHANGED", 409, "Text target is no longer focused");
-                    }
-                    long window = client.getWindow().getWindow();
-                    AgentInputContext.dispatch(
-                            new AgentInputContext.Event(
-                                    AgentInputContext.Kind.CHARACTER, window, codePoint, 0, 0, 0),
-                            () ->
-                                    ((io.github.recrivenvi.minecraftprotocol.probe.mixin
-                                                            .KeyboardCharacterInvoker)
-                                                    client.keyboardHandler)
-                                            .minecraftProtocolProbe$character(
-                                                    window, codePoint, 0));
-                    return inputEvidence("GAME_ROUTED_RAW", true, false);
+                    worldTargeting.validate(targetRef, guard);
+                    return mouseDeltaNow(dx, dy);
+                });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> worldActionFrame(
+            String targetRef, String action, JsonObject guard, boolean press) {
+        return worldActionFrame(targetRef, action, guard, press, new JsonObject());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> worldActionFrame(
+            String targetRef, String action, JsonObject guard, boolean press, JsonObject options) {
+        return onControlledClient(
+                () ->
+                        worldTargeting.frame(
+                                targetRef,
+                                action,
+                                guard,
+                                press,
+                                options,
+                                binding ->
+                                        binding.get("kind").getAsString().equals("mouse")
+                                                ? mouseButtonGuardedNow(
+                                                        binding.get("code").getAsInt(), 1, 0, null)
+                                                : keyGuardedNow(
+                                                        binding.get("code").getAsInt(),
+                                                        binding.get("scanCode").getAsInt(),
+                                                        1,
+                                                        0,
+                                                        null)));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> worldActionProgress(
+            String ref, JsonObject guard, boolean released) {
+        return onControlledClient(() -> worldTargeting.progress(ref, guard, released), false);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> worldActionEnd() {
+        return onClientCleanup(
+                () -> {
+                    worldTargeting.end();
+                    return new JsonObject();
+                });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> worldPresentation() {
+        return clientWorldRead("scene", new JsonObject());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> clientWorldRead(String kind, JsonObject query) {
+        JsonObject detached = query.deepCopy();
+        return onClient(
+                () -> {
+                    JsonObject result =
+                            base(kind.equals("player") ? "player.state" : "world." + kind);
+                    WorldClientSnapshot.capture(kind, detached, this.worldTargeting)
+                            .entrySet()
+                            .forEach(e -> result.add(e.getKey(), e.getValue()));
+                    return result;
                 });
     }
 
@@ -1719,40 +1967,239 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 });
     }
 
+    private final io.github.recrivenvi.minecraftprotocol.core.PlayerCommandChat commandChat =
+            new io.github.recrivenvi.minecraftprotocol.core.PlayerCommandChat();
+    private final io.github.recrivenvi.minecraftprotocol.core.PlayerCommandFeedback
+            commandFeedback =
+                    new io.github.recrivenvi.minecraftprotocol.core.PlayerCommandFeedback();
+
+    private boolean commandFeedbackReadable() {
+        return requireClient().options.chatVisibility().get()
+                != net.minecraft.world.entity.player.ChatVisiblity.HIDDEN;
+    }
+
+    private java.util.List<
+                    io.github.recrivenvi.minecraftprotocol.core.PlayerCommandFeedback.Message>
+            commandFeedbackMessages() {
+        var access =
+                (io.github.recrivenvi.minecraftprotocol.probe.mixin.CommandFeedbackChatAccessor)
+                        requireClient().gui.getChat();
+        boolean readable = commandFeedbackReadable();
+        return access.minecraftProtocolProbe$messages().stream()
+                .limit(100)
+                .map(
+                        message ->
+                                new io.github.recrivenvi.minecraftprotocol.core
+                                        .PlayerCommandFeedback.Message(
+                                        message, readable ? message.content().getString() : null))
+                .toList();
+    }
+
+    private net.minecraft.client.KeyMapping commandChatOpening;
+
+    private net.minecraft.client.KeyMapping requireIdleChatMapping() {
+        var mapping = requireClient().options.keyChat;
+        if (((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor) mapping)
+                        .minecraftProtocolProbe$pendingClicks()
+                != 0)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_INPUT_PENDING",
+                    409,
+                    "Wait for the preceding Chat key action before starting a new command");
+        return mapping;
+    }
+
+    private io.github.recrivenvi.minecraftprotocol.core.PlayerCommandChat.Frame commandChatFrame() {
+        Minecraft client = requireClient();
+        if (client.getOverlay() != null)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_CONTEXT_CHANGED", 409, "An Overlay prevents native Chat input");
+        Screen screen = client.screen;
+        net.minecraft.client.gui.components.EditBox input = null;
+        boolean chat = screen instanceof net.minecraft.client.gui.screens.ChatScreen;
+        if (chat) {
+            for (var child : screen.children()) {
+                if (child instanceof net.minecraft.client.gui.components.EditBox edit) {
+                    if (input != null)
+                        throw new ProtocolState.ProtocolException(
+                                "PLAYER_COMMAND_CONTEXT_CHANGED", 409, "Ambiguous Chat input");
+                    input = edit;
+                }
+            }
+        }
+        return new io.github.recrivenvi.minecraftprotocol.core.PlayerCommandChat.Frame(
+                client.level,
+                client.player,
+                client.getConnection(),
+                screen,
+                input,
+                chat,
+                input == null ? "" : input.getValue(),
+                input != null && input.isFocused(),
+                input == null ? 0 : input.getCursorPosition(),
+                input == null ? "" : input.getHighlighted());
+    }
+
+    private JsonObject commandChatBinding() {
+        var mapping = requireClient().options.keyChat;
+        if (mapping.getKeyModifier() != net.neoforged.neoforge.client.settings.KeyModifier.NONE)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_BINDING_UNSUPPORTED",
+                    409,
+                    "Modified Chat bindings require an explicit chord");
+        var key =
+                ((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor) mapping)
+                        .minecraftProtocolProbe$key();
+        JsonObject binding = new JsonObject();
+        if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM) {
+            int code = key.getValue();
+            if (code < 0)
+                throw new ProtocolState.ProtocolException(
+                        "PLAYER_COMMAND_BINDING_UNSUPPORTED", 409, "Unsupported Chat key binding");
+            binding.addProperty("kind", "key");
+            binding.addProperty("code", code);
+        } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE) {
+            int code =
+                    switch (key.getValue()) {
+                        case com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT -> 0;
+                        case com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT -> 1;
+                        case com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE -> 2;
+                        default -> -1;
+                    };
+            if (code < 0)
+                throw new ProtocolState.ProtocolException(
+                        "PLAYER_COMMAND_BINDING_UNSUPPORTED",
+                        409,
+                        "Unsupported Chat mouse binding");
+            binding.addProperty("kind", "mouse");
+            binding.addProperty("code", code);
+        } else if (key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.SCANCODE) {
+            binding.addProperty("kind", "key");
+            binding.addProperty("code", -1);
+            binding.addProperty("scanCode", key.getValue());
+        } else
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_BINDING_UNSUPPORTED", 409, "Unbound Chat key cannot be routed");
+        return binding;
+    }
+
     @Override
-    public CompletableFuture<JsonObject> playerCommand(String rawCommand) {
+    public CompletableFuture<JsonObject> playerCommand(String command, String phase) {
         return this.onControlledClient(
                 () -> {
-                    Minecraft client = requireClient();
-                    if (client.player == null || client.getConnection() == null) {
-                        throw new ProtocolState.ProtocolException(
-                                "PLAYER_UNAVAILABLE",
-                                409,
-                                "A connected current player is required");
+                    var dispatch = this.commandGate.dispatch();
+                    JsonObject result = base("command.player." + phase);
+                    switch (phase) {
+                        case "prepare" -> {
+                            if (!this.pressedKeys.isEmpty() || !this.pressedButtons.isEmpty())
+                                throw new ProtocolState.ProtocolException(
+                                        "PLAYER_COMMAND_INPUT_HELD",
+                                        409,
+                                        "Release existing held input before a command gesture");
+                            requireIdleChatMapping();
+                            commandChatBinding();
+                            this.commandChat.prepare(
+                                    commandChatFrame(),
+                                    command,
+                                    dispatch.gestureId(),
+                                    net.minecraft.SharedConstants.MAX_CHAT_LENGTH);
+                            this.commandGate.allow(
+                                    command,
+                                    true,
+                                    false,
+                                    () -> NativePlayerCommands.parse(requireClient(), command));
+                            dispatch.check();
+                        }
+                        case "open" -> {
+                            this.commandChat.beforeOpen(
+                                    commandChatFrame(), command, dispatch.gestureId());
+                            this.commandChatOpening = requireIdleChatMapping();
+                            var binding = commandChatBinding();
+                            int code = binding.get("code").getAsInt();
+                            if (binding.get("kind").getAsString().equals("key")) {
+                                keyGuardedNow(
+                                        code,
+                                        binding.has("scanCode")
+                                                ? binding.get("scanCode").getAsInt()
+                                                : 0,
+                                        1,
+                                        0,
+                                        null);
+                                keyGuardedNow(
+                                        code,
+                                        binding.has("scanCode")
+                                                ? binding.get("scanCode").getAsInt()
+                                                : 0,
+                                        0,
+                                        0,
+                                        null);
+                            } else {
+                                mouseButtonGuardedNow(code, 1, 0, null);
+                                mouseButtonGuardedNow(code, 0, 0, null);
+                            }
+                        }
+                        case "ready" ->
+                                result.addProperty(
+                                        "ready",
+                                        this.commandChat.ready(
+                                                commandChatFrame(), command, dispatch.gestureId()));
+                        case "type" -> {
+                            String chunk =
+                                    this.commandChat.nextChunk(
+                                            commandChatFrame(), command, dispatch.gestureId());
+                            for (int cp : chunk.codePoints().toArray()) {
+                                this.commandChat.requireDraft(
+                                        commandChatFrame(), command, dispatch.gestureId());
+                                characterNow(cp, null);
+                                dispatch.checkEffect();
+                                this.commandChat.acceptCharacter(
+                                        commandChatFrame(), command, dispatch.gestureId(), cp);
+                            }
+                            result.addProperty(
+                                    "typed",
+                                    this.commandChat
+                                            .nextChunk(
+                                                    commandChatFrame(),
+                                                    command,
+                                                    dispatch.gestureId())
+                                            .isEmpty());
+                        }
+                        case "submit" -> {
+                            this.commandChat.beforeSubmit(
+                                    commandChatFrame(), command, dispatch.gestureId());
+                            this.commandFeedback.begin(
+                                    commandFeedbackMessages(), commandFeedbackReadable());
+                            keyGuardedNow(257, 0, 1, 0, null);
+                            keyGuardedNow(257, 0, 0, 0, null);
+                            for (var entry : dispatch.receipt().entrySet())
+                                result.add(entry.getKey(), entry.getValue());
+                            result.addProperty("type", "command.player.execute");
+                        }
+                        case "feedback" -> {
+                            var client = requireClient();
+                            result =
+                                    this.commandChat.matchesWorld(
+                                                    client.level,
+                                                    client.player,
+                                                    client.getConnection(),
+                                                    command,
+                                                    dispatch.gestureId())
+                                            ? this.commandFeedback.poll(
+                                                    commandFeedbackMessages(),
+                                                    commandFeedbackReadable())
+                                            : this.commandFeedback.finishContextChanged();
+                            if (result.get("complete").getAsBoolean()) {
+                                this.commandChat.clear();
+                                this.commandFeedback.clear();
+                            }
+                        }
+                        default ->
+                                throw new IllegalArgumentException(
+                                        "Unknown internal command phase");
                     }
-                    String command = rawCommand == null ? "" : rawCommand.trim();
-                    if (command.startsWith("/")) command = command.substring(1);
-                    if (command.isBlank()
-                            || command.length() > 2048
-                            || command.chars()
-                                    .anyMatch(character -> character == 10 || character == 13)) {
-                        throw new ProtocolState.ProtocolException(
-                                "INVALID_PLAYER_COMMAND",
-                                400,
-                                "Command must be one non-empty line of at most 2048 characters");
-                    }
-                    client.getConnection().sendCommand(command);
-                    JsonObject json = base("command.player.execute");
-                    json.addProperty("accepted", true);
-                    json.addProperty("perspective", "current_player");
-                    json.addProperty("mode", "PLAYTEST");
-                    json.addProperty("mechanism", "NORMAL_NETWORK");
-                    json.addProperty("normalPacket", true);
-                    json.addProperty("serverValidation", true);
-                    json.addProperty("permissionEscalated", false);
-                    json.addProperty("evidenceContaminated", false);
-                    return json;
-                });
+                    return result;
+                },
+                !phase.equals("prepare") && !phase.equals("ready") && !phase.equals("feedback"));
     }
 
     @Override
@@ -2242,9 +2689,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                         this::interactionIdentity,
                                         authorization);
                         JsonObject after =
-                                UiDebugEngine.find(
-                                        this.snapshotUiTree().getAsJsonArray("children"),
-                                        result.get("nodeId").getAsString());
+                                UiDebugEngine.findNode(
+                                        this.snapshotUiTree(), result.get("nodeId").getAsString());
                         if (after != null) {
                             result.add("after", after);
                             result.add("afterResourceVersion", after.get("resourceVersion"));
@@ -2336,32 +2782,23 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             Long expectedScreenRevision, Long expectedMenuRevision) {
         return this.onClient(
                 () -> {
-                    Minecraft client = requireClient();
-                    this.refreshScreen(client);
-                    this.refreshMenu(client);
-                    if (expectedScreenRevision != null
-                            && expectedScreenRevision != this.screenRevision) {
-                        throw new ProtocolState.ProtocolException(
-                                "STALE_SCREEN_REVISION",
-                                409,
-                                "Expected screen revision "
-                                        + expectedScreenRevision
-                                        + " but found "
-                                        + this.screenRevision);
-                    }
-                    if (expectedMenuRevision != null && expectedMenuRevision != this.menuRevision) {
-                        throw new ProtocolState.ProtocolException(
-                                "STALE_MENU_REVISION",
-                                409,
-                                "Expected menu revision "
-                                        + expectedMenuRevision
-                                        + " but found "
-                                        + this.menuRevision);
-                    }
+                    this.checkInputPreconditions(expectedScreenRevision, expectedMenuRevision);
                     JsonObject json = base("preconditions");
                     json.addProperty("status", "satisfied");
                     return json;
                 });
+    }
+
+    private void checkInputPreconditions(Long expectedScreenRevision, Long expectedMenuRevision) {
+        Minecraft client = requireClient();
+        this.refreshScreen(client);
+        this.refreshMenu(client);
+        if (expectedScreenRevision != null && expectedScreenRevision != this.screenRevision)
+            throw new ProtocolState.ProtocolException(
+                    "STALE_SCREEN_REVISION", 409, "Screen revision changed before input dispatch");
+        if (expectedMenuRevision != null && expectedMenuRevision != this.menuRevision)
+            throw new ProtocolState.ProtocolException(
+                    "STALE_MENU_REVISION", 409, "Menu revision changed before input dispatch");
     }
 
     @Override
@@ -2476,6 +2913,17 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> releaseAllInput(String reason) {
         return this.onClientCleanup(
                 () -> {
+                    this.worldTargeting.end();
+                    if (this.commandChatOpening != null) {
+                        // Drop only this gesture's queued native Chat key action, never all key
+                        // mappings.
+                        ((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor)
+                                        this.commandChatOpening)
+                                .minecraftProtocolProbe$release();
+                        this.commandChatOpening = null;
+                    }
+                    this.commandChat.clear();
+                    this.commandFeedback.clear();
                     Minecraft client = requireClient();
                     int releasedKeys = this.pressedKeys.size();
                     int releasedButtons = this.pressedButtons.size();
@@ -2621,7 +3069,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier) {
+        return this.onControlledClient(supplier, true);
+    }
+
+    private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier, boolean input) {
         AgentControlSession.Snapshot accepted = this.controlPresence;
+        var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
         return this.onClient(
                 () -> {
                     AgentControlSession.Snapshot current = this.controlPresence;
@@ -2638,7 +3091,17 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                         : "Control session ended before dispatch");
                     }
                     ensureExclusiveOwnerState();
-                    return this.controlSession.withTakeover(accepted, supplier);
+                    return this.controlSession.withTakeover(
+                            accepted,
+                            () -> {
+                                try (var dispatch = this.commandGate.enter(accepted, permit)) {
+                                    if (input && permit != null)
+                                        permit.beforeInput(this::checkInputPreconditions);
+                                    T result = supplier.get();
+                                    dispatch.check();
+                                    return result;
+                                }
+                            });
                 });
     }
 
@@ -2929,33 +3392,78 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 client.screen instanceof AbstractContainerScreen<?> container
                         ? container.getMenu()
                         : client.player == null ? null : client.player.containerMenu;
-        int menuHash = menuHash(menu);
+        String menuHash = menuHash(menu);
         if (menu != this.lastMenu) {
             this.lastMenu = menu;
             this.lastMenuHash = menuHash;
             this.menuRevision++;
             return;
         }
-        if (menuHash != this.lastMenuHash) {
+        if (menuContentIncomplete || !menuHash.equals(this.lastMenuHash)) {
             this.lastMenuHash = menuHash;
             this.menuRevision++;
         }
     }
 
-    private static int menuHash(AbstractContainerMenu menu) {
-        if (menu == null) return 0;
-        int hash = menu.containerId;
-        for (Slot slot : menu.slots) {
-            hash = 31 * hash + System.identityHashCode(slot);
-            hash = 31 * hash + slot.x;
-            hash = 31 * hash + slot.y;
+    private String menuHash(AbstractContainerMenu menu) {
+        slotContents.clear();
+        menuContentIncomplete = false;
+        carriedContent = itemDataGuard.empty();
+        if (menu == null) return "";
+        var budget = new UiItemDataGuard.Budget();
+        StringBuilder data =
+                new StringBuilder().append(menu.containerId).append(':').append(menu.slots.size());
+        int limit = Math.min(menu.slots.size(), UiItemDataGuard.MAX_SLOTS);
+        menuContentIncomplete = limit != menu.slots.size();
+        for (int i = 0; i < limit; i++) {
+            Slot slot = menu.slots.get(i);
             ItemStack stack = slot.getItem();
-            hash = 31 * hash + BuiltInRegistries.ITEM.getKey(stack.getItem()).hashCode();
-            hash = 31 * hash + stack.getCount();
+            var content = itemContent(stack, budget);
+            slotContents.put(slot, content);
+            menuContentIncomplete |= !content.available();
+            if (menu instanceof CrafterMenu crafter && i < 9)
+                data.append(":disabled:").append(crafter.isSlotDisabled(i));
+            data.append(':')
+                    .append(this.interactionIdentity(slot))
+                    .append(':')
+                    .append(slot.x)
+                    .append(':')
+                    .append(slot.y)
+                    .append(':')
+                    .append(stack.getCount())
+                    .append(':')
+                    .append(content.fingerprint());
         }
-        hash = 31 * hash + BuiltInRegistries.ITEM.getKey(menu.getCarried().getItem()).hashCode();
-        hash = 31 * hash + menu.getCarried().getCount();
-        return hash;
+        carriedContent = itemContent(menu.getCarried(), budget);
+        menuContentIncomplete |= !carriedContent.available();
+        data.append(":carried:")
+                .append(menu.getCarried().getCount())
+                .append(':')
+                .append(carriedContent.fingerprint());
+        return itemDataGuard.signText(data.toString());
+    }
+
+    private UiItemDataGuard.Content itemContent(ItemStack stack, UiItemDataGuard.Budget budget) {
+        if (stack.isEmpty()) return itemDataGuard.empty();
+        var connection = requireClient().getConnection();
+        if (connection == null) return UiItemDataGuard.Content.unavailable();
+        return itemDataGuard.capture(
+                budget,
+                buffer ->
+                        ItemStack.STREAM_CODEC.encode(
+                                new net.minecraft.network.RegistryFriendlyByteBuf(
+                                        buffer, connection.registryAccess()),
+                                stack.copyWithCount(1)));
+    }
+
+    private void addItemContent(JsonObject node, UiItemDataGuard.Content content, String context) {
+        node.addProperty("contentGuardAvailable", content.available());
+        node.addProperty(
+                "contentRevision",
+                itemDataGuard.revision(context + ":" + node.get("count").getAsInt(), content));
+        // Only the internal pointer snapshot/DEBUG graph retains the cross-slot fingerprint.
+        // UiDataView filters it out of USER trees and action results.
+        node.addProperty("contentFingerprint", content.fingerprint());
     }
 
     private static JsonObject operatorHook(

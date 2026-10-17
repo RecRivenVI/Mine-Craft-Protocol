@@ -1,20 +1,20 @@
 # 世界领域控制与首个里程碑
 
 IMPLEMENTING：三模式二类别的方向已获同意，本文定义世界领域首个里程碑的设计与验收边界。
-六个基础读取已接入类别/权限；完整感知、命令分类和覆盖目录尚未实现。
+世界 USER 已采用有界客户端世界模型；读取消费链保持类别/权限隔离。命令边界按批准目录分类并拒绝未知效果，完整语义玩家操作目录与世界里程碑尚未完成。
 已实现接口以 Native/OpenAPI 为准；本文的未实现部分不冒充产品能力或自动授权其他阶段。
-交付状态只由[执行计划](../project/plan-execution.md)负责；UI 里程碑继续暂停。
+交付状态只由[状态页](../project/status-milestones.md)负责，推进步骤见[执行计划](../project/plan-execution.md)；UI 与世界联合推进，但分别交付验收。
 已有生产路径的调查保留在[研究记录](../research/investigation-world_control.md)，不改写历史结论。
 
 ## 交付边界
 
-首个世界里程碑交付：Agent 无需截图识别或手写世界坐标，即可读取原版玩家实际感知，
+首个世界里程碑交付：Agent 无需截图识别或手写世界坐标，即可读取有界客户端世界信息，
 通过语义目标执行原版玩家操作，并用独立授权的内部读取与强类型修改完成测试准备、诊断和恢复。
 它不是自动寻路、生存策略或任意游戏对象编辑器。
 
 | 模式 | 类别 | 世界领域职责 |
 | --- | --- | --- |
-| READ | USER | 只读当前呈现与标明时效的既有观察，不代替玩家探索 |
+| READ | USER | 只读有界客户端世界模型与标明时效的既有观察，不代替玩家探索 |
 | READ | DEBUG | 独立授权读取有界内部状态，明确客户端、服务器和加载限制 |
 | TAKEOVER | USER | 使用当前玩家身份、原版输入和实际服务器权限；必须持有既有 Lease |
 | OPERATE | DEBUG | 独立授权的 typed mutation/Fixture，不模拟玩家，不取得输入 Lease |
@@ -26,99 +26,70 @@ TAKEOVER 不获得 Runtime Debug 权限，OPERATE 不获得玩家输入权限。
 
 世界范围以 LIVE 为准。Persistent Read 继续是独立的 PERSISTED/last_saved_state，
 不补齐看不见的 LIVE 信息；Persistent Write 不进入里程碑。正常游戏保存并不等于调用 Persistent Write。
-既有 UI 用于打开容器、聊天、死亡重生等桥接；本设计不恢复 UI 补齐或统一人工验收。
+既有 UI 用于打开容器、聊天、死亡重生等桥接；UI 与世界各自验收，当前联合推进安排以执行计划为准，
+不由本设计自动开启统一人工验收。
 
-## USER 感知范围
+## USER 有界客户端世界模型
 
-### 当前呈现与主动揭示
+### 权威与字段边界
 
-USER 返回的是当前玩家能够获得的呈现语义，不是所有客户端已收到的数据。
-CLIENT_KNOWN 不等于 USER；服务器确认也不赋予透视。READ 不自动转头、移动、打开 F3、容器或聊天查询。
-“执行某动作后可见”先给出揭示动作；取得 TAKEOVER 后实际执行，再重新读取，不能提前返回隐藏内容。
+USER 世界读取不再要求数据出现在最终画面上，以当前玩家的客户端已加载/已接收世界为边界。
+CLIENT_KNOWN 不等于服务器真值或人眼可见；墙后、地下、背后的缓存方块或被追踪实体可以返回，
+这不是防透视、公平游戏或反作弊保证。UI USER 仍只读原版实际呈现，不随世界合同放宽。
 
-感知依据当前真实摄像机、视角、FOV、原版显隐和遮挡条件；不总按第一人称或生存模式判断。
-第三人称与合法旁观视角遵循它们实际显示的内容。候选剔除、视锥和单条射线不是可见性的充分证明。
-native hitResult 可以用于原版命中校验，但不能单独证明隐身目标或其内部信息对用户可见。
+- 玩家：当前客户端位置、朝向、生命、最大生命、吸收、食物、空气、选中热栏、维度及 gameMode/onGround/flying、usingItem/useTicks/usingHand/riding；不要求 HUD/F3 展开，不可得状态明确unknown。
+- 方块：范围内已缓存 Chunk 的 ID、BlockState 和整数位置；使用非加载查询，不读取方块实体或容器内容。
+- 实体：客户端追踪对象的类型、名称、位置、朝向、隐身、着地、生物 hurtAnimation/baby，以及适用对象的驯服、坐姿和牵引反馈；不开放 UUID、生命、AI、库存或 NBT。
+- 场景：附近缓存方块立方体与实体球形查询；原生准星轮廓只是可选 aimPresentation 提示，不支配整个模型可用性。
+- 服务器、Peer、完整 Deep/内部 Provider、Storage、计划刻及其他内部域不进入 USER；独立 DEBUG/PERSISTED 合同不变。
 
-| 内容 | USER 可以返回 | 不可以自动返回 |
-| --- | --- | --- |
-| 自身状态 | 实际显示的生命、护甲、饥饿、氧气、经验、冷却和装备表现 | 原始浮点血量、饱和度、疲劳、精确速度、隐藏属性与剩余内部 tick |
-| 方块与地形 | 当前可辨识表面、相对关系、可见外观和交互线索 | 墙后/地下方块、矿脉、完整 BlockState、内部坐标扫描 |
-| 实体 | 可辨识外观、屏幕位置、实际显示的名称/轮廓和行为 | 墙后/背后实体列表、UUID、完整包围盒、精确位置、AI 目标、隐藏装备与库存 |
-| 瞄准与触达 | 已感知目标、可供输入定位的热点、原版当前命中与拒绝反馈 | 依据隐藏数据保证攻击、掉落、交易或交互一定成功 |
-| 环境 | 画面呈现的昼夜、天气、水/火等状态及不确定性 | seed、精确世界时间、未显示的 biome、维度内部参数、Chunk/ticket/tick 调度 |
-| 物品 | 实际可见的图案、数量、选中状态，以及真正显示的名称/tooltip | 实体手持物的隐藏堆叠数量、NBT/Data Components、未显示的耐久与附魔 |
-| 容器 | 打开后的现有 USER 菜单与可见槽位 | 未打开箱子的内容、关闭后仍持续刷新的库存 |
-| 声音与字幕 | 本客户端实际可听线索或实际呈现的字幕、原版方向提示 | 把收到 sound packet 等同于听见，发布声音发射者 UUID、精确坐标或墙后实体详情 |
-| 正常操作反馈 | 实际可见聊天、动作栏、字幕、Boss/HUD 等反馈 | 服务器完整日志、命令内部返回值、没有呈现的消息与隐藏计数 |
+读取不自动移动玩家、转头、加载/生成区块、打开容器、执行命令或读取磁盘。
+Screen、HUD/F3 显隐、相机方向、第三人称与窗口最小化不再决定缓存模型的存在；
+离开世界后 available=false，不从服务器或旧样本补齐。
 
-外观不可区分的对象不能按内部 registry ID 反推出隐藏身份，例如普通石头与同外观的虫蚀方块。
-可确定时提供可辨识身份；不可确定时提供外观类别和不确定性。原版 F3 或正常反馈实际揭示身份后，
-才按该来源补充。隐身实体的可见盔甲/发光轮廓只能揭示相应表现，不自动开放其完整内部状态。
+### 范围、精度和预算
 
-透过玻璃、植被、局部遮挡、雾、暗处、粒子和 Screen/Overlay 的情况分别判断。
-未覆盖或无法证明的可见性保守返回不可感知/未支持，不退回原始状态；
-必需的原版场景长期未支持仍是里程碑缺口，不能靠保守隐藏把覆盖清单做成全绿。
-本层不承诺辨识每个孤立像素，也不引入 GPU 几何取证或光影识图；边界是有来源证明的结构化原版呈现。
+实现常量权威在 WorldClientModel，精确定义同步 Native OpenAPI/capabilities。
+单块查询和实体读取限定玩家附近 32 格；场景半径默认 4、最大 8，方块区域为玩家整数格中心的立方体。
+场景 blockLimit 默认 256、最大 512，实体 limit/entityLimit 默认 64、最大 128；
+方块由玩家所在格向外按立方壳层稳定遍历，预算截断不会只留下查询立方体底层。
+实体默认半径 16，场景实体球半径与场景 radius 一致。只读当前维度，不接受任意锚点或自动分页。
 
-声音规则以实际客户端音量、距离、衰减与字幕设置为准，不录宿主音频。
-静音实例不得返回伪造的“已听见”；字幕按自身原版呈现判断，不因静音一概删除。
-当前静音测试资产的正向可听验收需要用户另行允许测试声音，否则保留 PENDING，不自行解除静音。
+一次场景最多尝试 4096 个方块，实体最多扫描 2048 个缓存候选，循环预算 25 ms，响应最多 512 KiB。
+输入必须为有限数值，整数预算/方块坐标不接受小数、字符串或溢出；无效查询在调度读取前拒绝。
+有界循环可能提前停止，分别报告扫描数、不可用采样数与截断；字符串最多 512 字符并标记截断。
+达到上限按可能不完整报告，不把局部或空列表宣称为完整世界或不存在目标。
 
-### 精度按呈现来源确定
+输出 authority=CLIENT_KNOWN、source=bounded_client_world_model、dataSource=LIVE、
+visibility=not_evaluated、perceptionFiltered=false、storageAccessed=false、chunkLoadRequested=false。
+坐标保留客户端原始数值精度，方块为整数格；不是服务器最新状态、显示精度或无误差运动预测。
+sampledAtMillis 记录捕获时间；每次读取在客户端 owner thread 重新采样，不要求渲染帧可见性证明。
+出范围为 outside_user_radius，范围内未缓存 Chunk 为 chunk_not_loaded，无客户端世界为 client_world_unavailable。
+USER 模型通过下述短期 targetRef 连接语义输入；读取本身不执行动作，也不保证目标可达。
 
-采用“字段的实际呈现精度”，不采用一个全局坐标小数位，也不因技术接口支持 double 就增加游戏情报。
-可解析的显示值同时保留原始显示文本、来源与精度；不得用内部真值重新生成看似相同的文本。
+### 消费者与历史
 
-| 字段 | USER 精度与来源 | DEBUG/内部输入区别 |
-| --- | --- | --- |
-| 绝对 XYZ/朝向 | 仅当前真实显示的 F3 或合法反馈；遵循对应字段的原生格式与 reduced-debug 限制 | DEBUG 可读精确内部数值，不能借 USER 发布 |
-| 未显示 XYZ 的空间关系 | 前后、左右、上下、相邻、可见表面等；无来源不增加精确距离或方位角 | 输入执行器可保留命中与瞄准所需完整精度 |
-| HUD 生命/食物/护甲/氧气 | 原生实际画出的格、半格、空格及闪烁状态 | 不是原始值除以二或补充未显示的小数 |
-| 经验/冷却/蓄力条 | 实际文本、刻度或绘制像素分辨率 | 不发布比显示条更精细的进度、计时与内部 tick |
-| 装备/状态效果 | 已显示数量、耐久条、图标、tooltip 的原生精度 | 未呈现的等级/持续时间、组件和属性仍为 DEBUG |
-| 屏幕热点与交互区域 | 当前可见部分的 GUI 坐标，可保留小数；属于输入定位元数据 | 不等于披露完整隐藏模型/碰撞盒或世界坐标 |
-| 声音/字幕方向 | 当前实际存在的方向提示和文字；不伪造距离数值 | 内部 sound event/发射位置属于 DEBUG |
+Native、MCP、Provider、State Frame、Wait/Assert、Event resync 与 Recording stateReads 使用同一个入口。
+默认 USER；DEBUG 仍独立要求 read/debug/debug.world.read，未知/服务器/内部来源在调用前拒绝。
+USER 玩家条件可以断言已开放的坐标与生命，方块/实体条件受同一查询预算与字段白名单约束；
+实体结果被截断时，否定存在性条件返回 WORLD_USER_QUERY_INCOMPLETE，不用不完整候选证明不存在。
+UUID 等内部条件不能变成存在性旁路。普通事件仍采用独立白名单，放宽快照不自动开放所有事件。
+Frame/Recording 不混合类别，异步发布复验权限与模式 generation，取消沿既有请求链传播。
 
-本次静态核对确认 1.20.1 F3 的 XYZ 格式为 `%.3f / %.5f / %.3f`，朝向角度为 `%.1f`；
-它不是“三轴都保留三位”。26.3 使用可配置 Debug entry，打开 F3 本身也不证明某个字段当前被绘制。
-这些是版本事实示例，验收以各 Target 当前实际呈现为准，不将示例格式硬编码成五端统一合同。
-没有 F3/相应显示来源时，不因为数据属于当前玩家就直接提供绝对 XYZ、yaw/pitch。
-
-系统性精度原则：观察投影可以受限，输入落点不能被取整或补偿。
-屏幕热点、Vanilla mouse delta、sensitivity/inversion 处理和命中校验在内部保留原有精度；
-不将其反向输出为 USER 精确世界信息。既有虚拟圆球中心、动效、权限与截图隔离合同不改变。
-HUD 由同一原版呈现来源支撑 UI 与世界的自身感知，不另造一套互相矛盾的数值投影。
-尚缺的 UI 桥接支持明确列为前提缺口，不能因为 UI 暂停就推定通过或在世界任务中暗中恢复 UI 开发。
-
-### 记忆、预算与旁路
-
-离开视野或关闭容器后，可以读取明确标记 last_observed 的历史观察，但不能当作当前真值、
-在后台继续刷新隐藏内容或直接作为当前语义动作目标。重新使用前重新感知。
-本里程碑不建立自动地图、全世界记忆或 E1 知识系统。
-
-感知帧必须报告采样时间、来源、精度、完整性和截断；有限视野不能宣称世界完整快照。
-设计要求显式节点/字节/工作量/期限上限、可取消分页和有界 worker；具体数值在实施前依据既有预算与
-五端测量固定，不为了设计写入未经测量的性能承诺。分页不能绕过总预算，也不能扫描未加载数据。
-屏幕最小化、无有效呈现、视角替换或采样过旧时，拒绝当前感知，不拿上一帧无限续期。
-
-过滤必须在 Runtime 查询、计数与断言前完成。Provider、State Frame、Wait/Assert、Event/resync、
-Recording stateReads、Artifact、Native、MCP 和用户界面使用同一类别边界。
-布尔值、对象数量、错误差异、版本/hash 不能成为隐藏数据旁路；USER 的语义版本依据可发布投影，
-不能直接复用随隐藏字段变化的完整资源 revision。DEBUG 写前条件继续使用完整 Resource Version。
-USER targetRef 为不可解析的技术引用，不返回原始 UUID、内部坐标或可枚举对象编号。
-服务器 USER 结果也只确认当前玩家已获得的反馈，不能另发其没有看到的服务器真值。
+USER 语义版本只依据允许发布的模型；完整内部 Resource Version 仍用于 DEBUG 写前条件。
+历史未分类/DEBUG 数据不能追认为 USER；既有 last_observed 必须标时效，不在后台刷新成当前状态。
+声音和字幕仍只按实际呈现/可听来源，不把网络 sound event 自动解释成听到了声音；正向声音测试需单独授权。
 
 ## 语义操作与安全前置条件
 
-正常路径为：当前感知 → 语义目标/动作 → 原版相对输入瞄准 → 临执行复验 → 原版输入 → 等待真实反馈。
+正常路径为：当前客户端模型 → 语义目标/动作 → 原版相对输入瞄准 → 临执行复验 → 原版输入 → 等待真实反馈。
 Target adapter 使用实际键位和原生输入路径，不假定 W、数字键、鼠标键或修饰键永远是默认绑定。
-原始 GAME_ROUTED 输入仍可像真人盲走、盲挥或转头；缺少可感知目标时拒绝语义自动命中，
+原始 GAME_ROUTED 输入仍可像真人盲走、盲挥或转头；缺少有效当前目标时拒绝语义自动命中，
 不借 DEBUG 定位，不替 Agent 搜路，不提供成功保证。
 
 targetRef 内部绑定 session、世界/维度、玩家/摄像机、对象生命周期和感知上下文；不能跨重连、换世界、
-换维度或同坐标替换复用。输入前复验 mode/Lease、deadline、物品与玩家状态、原版距离/命中和可感知性。
-过期、未知或不可感知目标统一拒绝，不泄露隐藏对象是否仍存在；只设置短 TTL 不能替代复验。
+换维度或同坐标替换复用。输入前复验 mode/Lease、deadline、物品与玩家状态、原版距离/命中和原版实际命中/可交互性；缓存知道墙后目标不允许隔墙操作。
+过期、未知或不再可交互目标统一拒绝，不借读取能力绕过原版输入命中规则；只设置短 TTL 不能替代复验。
 持续挖掘要区分自己造成的进度/完成与无关替换；使用、蓄力、拖动和取消都受有界 gesture ownership 管理。
 
 UI 和世界共用输入 admission 与取消：Screen replacement、缩放/尺寸变化、维度变化、Lease loss、
@@ -130,20 +101,73 @@ manual revoke、disconnect/shutdown 先停止并清理输入，不能等 Fade，
 typed inventory mutation 必须授权实际世界资源，不能用 uiContextId/客户端 UI Arm 改世界库存。
 跨端快照报告一致性级别，不承诺客户端、菜单和服务器恰好同 tick。
 
-六个基础读取复用普通 `read` 进行世界 USER 读取；DEBUG 额外要求 `debug` 与专用 `debug.world.read`。
-客户端玩家 USER 暂仅复用既有 HUD 的热栏/副手/效果，节点上限以 OpenAPI 为准；不返回原始坐标/生命。
-场景和服务器 USER 在内部读取前明确拒绝；读取不要求 write、Arm 或输入 Lease。
-其他世界消费者尚未迁移，capabilities 明确列出 pendingClassification 与 consumerIsolationComplete=false。
-因此当前候选不能证明全链 USER 隔离，也不适合当作对抗隐藏信息泄漏的稳定版本。
-玩家动作继续依赖对应 input/control/command scope、TAKEOVER 和既有 Lease；
-OPERATE 写入继续使用 debug/debug.write、实际资源 namespace scope、有效世界 Arm、
-world fingerprint、epoch/lifecycle Resource Version 与可选值条件，不通过模式补权限。
-认证、请求合法性和 scope 优先；在 owner thread 发动作/修改前及发布异步读取结果前重新校验。
+客户端基础 player/block/entities 与 scene 复用普通 read 获取有界 USER 模型；服务器与内部来源明确 DEBUG。
+读取消费者隔离与首批 world.action 已接入，持续补充代表场景验收；不意味着命令效果或完整里程碑已完成。
+capabilities 保持 readConsumerIsolationComplete=true、consumerIsolationComplete=false、milestoneComplete=false；
+pendingClassification 仍包含 player_command_effects。权限、Lease、Arm、人工撤销与 Evidence 不变。
 
-旧宽泛世界读取在迁移后必须显式分类：默认 USER，内部数据消费者显式 DEBUG 且获得新权限。
-不能保留不受类别约束的隐藏兼容接口；变更要同步 OpenAPI、MCP 和所有真实消费者。
-旧事件/录制等产生的数据保留原始来源，不追认成 USER；重新访问按对应内部数据授权，不能通过新 READ 洗白。
-六个基础入口已按该要求改变默认响应与读取权限，其余消费者的迁移仍未完成。
+### 首批语义目标与动作
+
+USER 单块、场景方块与实体摘要可附带 targetRef/targetTtlMs。非空气缓存方块和可被原版选中的客户端实体
+使用独立 world: 引用，最长 15 秒、每 Runtime 最多 1024 项；引用不是 scope、Lease 或命中保证。
+未加载、空气、自身、死亡及不可选实体不提供可执行目标。范围预算、截断与 USER 字段白名单不变。
+
+现有 /v0/pipelines 的 world.action 支持 aim、attack、use、mine、use_hold、place，目标必须来自上述读取。
+MCP 使用既有 minecraft_run_input_pipeline；不增加自动 acquire、自动选物品、路径规划或 DEBUG 回退。
+动作与所有玩家输入共用串行队列、Operation、deadline、取消和清理，仍需 input scope、TAKEOVER 与 Lease。
+
+每次校正复验世界、玩家、摄像机、目标生命周期、选中物品和玩家位置，再通过既有 mouse.delta 调用原版相机处理。
+按下前同一客户端线程内重新原版 pick，再按实际 attack/use 键位执行短按；不直接修改朝向或 world state。
+无 Screen/Overlay、第一人称、非旁观且存活才允许执行；电影相机与不支持的键位明确拒绝。
+未指定放置面的方块动作从原生交互轮廓分解出的实际盒体取中心及面中心候选，最多 64 项，
+通过客户端原生 OUTLINE 射线选取无遮挡的近点，不按方块或 Mod ID 建表；空轮廓或无可用候选明确拒绝。
+这不是完整表面搜索，也不替代按下前的原生 pick、实体遮挡或距离校验；复杂形状仍可能没有候选。
+指定面的 place 继续使用原合同的面内 u/v，不因通用瞄准改成任意表面或绕过 BlockItem 规则。
+
+方块引用绑定缓存 Chunk 对象、BlockState 与位置级客户端变更历史；同 Chunk 其他位置更新不直接使它失效，
+同坐标 A→B→A 仍拒绝旧引用。共享历史最多保留 4096 次已观察 Chunk 的原生更新，只弱引用 Chunk，
+历史淘汰、序号耗尽或 Chunk 卸载/实例替换时 fail closed，重新读取取得新引用；不是延长 TTL 或放弃原版命中复验。
+原版同步挖掘的完成证明仍另保留整 Chunk 变化计数及有界连锁记录，不把位置级引用当作忽略破坏副作用的许可。
+全量区块包在原生 replaceWithPacketData 的 HEAD 单独记为整 Chunk 变更，先使旧引用失效再解码，
+即使复用同一 Chunk 对象且状态相同也不能沿用旧引用；读取中断不回滚失效。整块与位置变更共用 4096 项历史预算。
+验证探针只在专用运行中重发已加载 Chunk 的原生包，不修改世界或直接调用守卫，不进入产品 JAR。
+各端实际证据与其他未覆盖生命周期仍以执行计划为准，这不是完整世界里程碑声明。
+实体绑定具体客户端对象，移除或同 ID 替换失效；
+移动实体重新计算当前包围盒中心。世界/玩家/相机引用为弱引用，失效不会继续持有旧世界。
+
+mine 使用真实 attack 键持续挖掘，默认 5000 ms；use_hold 使用真实 use 键蓄力，默认 1000 ms。
+holdMs 只用于这两类动作，范围 50..10000 ms；同一 gesture 在每次原版交互调用与轮询中复验上下文。
+挖掘观察原版 destroyBlock 的客户端预测更新，区分自身完成与外部 Chunk 替换；超时明确失败并清理。
+完成判定跟踪本次同步原版 destroyBlock 调用，目标必须从原状态变成破坏前流体对应的原版状态；
+含水方块不再要求变为空气。调用内邻居/多格变化计入有界来源跟踪，最多 256 次；
+目标重复变更、未记录的 Chunk 修改、对象替换或预算超限均拒绝，不把任意多次修改当作自身完成。
+调用外的目标位置更新仍使引用失效；完成只代表客户端预测，不等于之后世界状态或服务器确认。
+use_hold 允许有界 32 格客户端原版射线瞄准，不改原版交互距离，不实现抛物线预判或自动追踪。
+use_hold.hand 为 main_hand（默认）或 off_hand，选中手必须具有原版使用时长；
+副手要求主手为空，冲突时按下前返回 WORLD_USE_HAND_CONFLICT，不绕过原版主副手优先级。
+动作仍只发送普通 use 键，由原版选择实际手；观察到另一只手使用会拒绝并释放。
+不自动换物品/换手，也不保证原版交互方块不会先消费 use；完整物品矩阵尚未覆盖。
+自然使用结束可以提前释放；按时松键后等待原版结束使用。取消只承诺释放输入，不回滚效果；弓松键可能射出箭。
+
+place 仅支持主手 BlockItem，必须指定 up/down/north/south/east/west 表面。
+可选 hit.u/v 范围 0.05..0.95，默认中心；上下表面 u=x/v=z，南北 u=x/v=y，东西 u=z/v=y。
+重新原版 pick 必须命中指定面，落点距请求位置不超过 0.025 格；不通过改输入坐标补偿。
+BlockPlaceContext 确定实际目的格和可替换性，expectedDestinationBlockId 可选值前置条件在按下和原版调用前复验。
+一次 place 最多允许一个原版 useItemOn，不自研放置规则、不自动潜行或绕过交互方块；实际物品规则仍由原版执行。
+
+玩家模型提供客户端 usingItem/useTicks/usingHand/riding，生物实体摘要可提供 hurtAnimation；
+这些不是服务器内部关系、实体生命或伤害数值。喂食可由实际 HUD 物品减少独立观察，骑乘由客户端乘坐状态观察；
+实体额外字段只投影客户端状态：baby 为生物幼体/体型标志，不是年龄数值；
+tamed/sitting 仅用于 TamableAnimal 的同步驯服标志/坐姿，不代表所有可驯服物种或服务器 AI 指令。
+leashed 为客户端牵引状态，leashHolderKnown 表示持有者在当前客户端缓存中可解析；
+仅已知持有者才返回 leashHeldByPlayer，不暴露持有者身份或坐标。未知不能解释为属于其他人。
+不读取 owner UUID、inLove、繁殖冷却、内部交易或服务器关系。
+驯服、喂食繁殖和牵引仍使用普通 use，不强制成功；随机驯服必须有尝试次数/时间预算，
+繁殖通过新出现的幼体独立确认，不能用消费食物直接证明已繁殖。
+与村民 use 打开菜单后，选报价、支付和收货转入既有语义 UI/Slot 合同；不直接调用交易业务函数。
+这些不等于所有动物、载具或交易分支全覆盖。当前不涵盖行走到目标、全部物品使用语义或完整世界操作目录。
+结果区分原版命中、输入分发与效果确认；effectConfirmed=false 要求 Agent 另用观察、Wait/Assert 判断真实效果。
+DEBUG Arrange 仍为 DEBUG_PRIVILEGED，GAME_ROUTED Act 的路径为 PLAYTEST，不会洗掉前置状态的污染记录。
 
 ## 玩家命令分类
 
@@ -155,10 +179,72 @@ world fingerprint、epoch/lifecycle Resource Version 与可选值条件，不通
 USER 命令不得使用服务器 console/高等级伪造 source，不能通过账号能力提升权限。
 
 里程碑的 USER 命令走原生聊天/文本/Enter 与正常网络验证，要求 command、相关输入权限和 Lease。
-现有 playerCommand 直接 sendCommand、标记 NORMAL_NETWORK 的路径不冒充 GAME_ROUTED；
-实施时需接入统一分类和真实用户提交路径，不能只换 mechanism 字符串。
-它当前立即返回 accepted/serverValidation，不等于服务器已执行成功；现有统一 PLAYTEST/未污染声明
-尚未按命令效果细分，是待实施缺口，不在本次设计中修代码。
+playerCommand helper 通过当前 Chat 绑定、原生字符回调与 Enter 提交，世界/连接和草稿全程绑定单一取消手势。
+现有 Screen/草稿、原生输入长度超限和未知绑定在输入前拒绝；没有直接发包回退。
+它返回 accepted/serverValidation，不等于服务器已执行成功；响应明确
+submissionStatus=submitted_unconfirmed、effectConfirmed=false、serverValidationObserved=false、gameplayAcceptanceEligible=false。
+原生适配器有界解析当前玩家实际收到的权限过滤命令树，沿 Brigadier 重定向和子上下文识别真实根与终端效果；
+效果为 COMMUNICATION、INFORMATION 或 STATE_MUTATION，classificationSource=native_player_command_tree。
+未知、未决函数/调度和宿主管理命令在发送前拒绝；这是原版语义分类，不证明第三方服务器没有改写同名命令。
+原生聊天 GAME_ROUTED_RAW 仅在状态修改时标记污染；不把输入来源当作效果成功或干净验收结论。
+状态修改的 mode=DEBUG_PRIVILEGED 是证据来源，不是切换 Presence Mode、授予 OP 或 Debug Arm。
+方法入口和最终命令数据包边界均检查来源、当前玩家连接、scope、Lease、模式世代、Operation 与过期输入许可；
+聊天 Enter 和文本链接共用边界，不在 Vanilla 崩溃包装回调内抛出协议异常，返回输入引擎后才报告拒绝。
+每项 Operation 最多 16 个回执；取消、结束、嵌套回调和线程切换不能借用另一 Operation 的输入许可。
+
+#### 命令反馈的最小关联方案
+
+第二批反馈采用有界时间关联，不伪造服务器请求ID或执行确认。只增强现有playerCommand helper，
+不改变命令分类、聊天输入、正常数据包、玩家权限或任意原始输入的语义。
+原生Enter之前，在同一客户端线程记录当前聊天消息对象的基线；其后最多观察500ms，
+只返回本窗口新进入客户端聊天缓冲的消息，最多16条、每条512个Unicode码点。
+不读取服务器日志、不执行服务器命令、不返回基线历史；聊天隐藏时不读取隐藏内容。
+返回commandFeedback，association=temporal_not_guaranteed、windowMillis/observedMillis、complete、truncated和messages。
+消息是非可信游戏文本，不是Agent指令；它可能含其他玩家/系统的无关反馈，或遗漏延迟、关闭反馈及超预算消息。
+空反馈、complete和错误色文字都不推导成功/失败，effectConfirmed/serverValidationObserved仍为false。
+
+观察与同一输入gesture、世界/连接及Lease绑定，继续占有原来的串行输入队列。
+取消、人工Esc、失去Lease或deadline到达即停止观察并清理；已提交命令不能回滚，
+取消错误仍按未确认效果处理，不自动重试。命令提交后的世界/玩家/连接身份变化则立即结束采样，
+complete=true、terminationReason=client_context_changed，observedMillis可以小于500；不读取替换上下文，
+不把普通跨维度命令误报成未提交，也不覆盖独立发生的撤权/取消错误。后续输入不能借用该窗口，不新增长期聊天订阅。
+普通键盘、富文本等非helper提交继续仅有来源回执，不假称已有同等关联。
+实现验收包括旧聊天不混入、重复文本区分、窗口/长度上限、取消/连接变化，以及真实普通命令的成功文本和服务器错误文本。
+本方案已接入五端并通过当前候选的Native/MCP相关回归；绑定范围见[当前状态](../project/status-milestones.md)。
+这不构成任意命令执行确认，也不证明第三方服务器、所有消息或完整世界里程碑已验收。
+发包前先保留活动录制来源，发送异常或调用方取消不能据此反推“没有效果/证据干净”。
+键/鼠标 release 与后续步骤不得抹去之前的命令来源；输入前拒绝和排队取消不生成提交事件。
+命令方块与命令方块矿车配置已接入原生最终发包守卫；配置载荷复用当前玩家树、scope、TAKEOVER、Lease 和输入许可。
+配置查询与清空仍改变配置，回执独立记录 configurationKind/configuredCommandEffect，始终保留诊断污染与未执行确认。
+不因配置的命令只读就把保存动作计为干净玩法，也不把 Helper 的命令许可借给配置操作。
+Jigsaw 界面配置已进入同一原生提交守卫，BLOCK_STATE 与 COMMAND 载荷明确区分；
+最终方块状态中的命令继续递归分类，普通方块状态仍是诊断配置，不是已执行模板生成。
+Generate 原生回调先保存配置后请求生成；未决生成拒绝但不撤销已提交配置，失败来源与 Artifact 保留该事实。
+
+管理型 UI 的原生提交目录如下，不以通用 Widget 可点击推定效果分类完成：
+
+| 原生表面/提交 | 当前边界 | 剩余项 |
+| --- | --- | --- |
+| 命令方块/矿车配置 | 命令程序及清空已守卫，配置始终诊断 | 完整上下文/间接程序目录 |
+| Jigsaw 配置/生成 | final_state 已守卫，模板生成未决时拒绝，保留前序配置来源 | 首个里程碑可按已知限制验证拒绝；生成包为零不等于前序配置零修改，完整模板解析不再必需 |
+| Structure UPDATE_DATA/SCAN_AREA | 已接最终提交守卫，原生参数更新/扫描保留独立诊断来源；扫描不是 READ 查询 | 五端实际存值/区域变化、权限、恢复与消费者证据 |
+| Structure SAVE_AREA/LOAD_AREA | 文件保存与未决模板加载在发送前拒绝，避免原生 handler 先更新参数 | 零包/零参数变化及已知限制可关闭首个里程碑此分支，不称支持保存/加载 |
+| Test Block/Test Instance | 26.1.2/26.3 的配置及全部动作包接入发送前管理拒绝；UI Debug文本框在回调前拒绝；1.x原生无对应类 | 验证零相关服务器包/存值变化及Native/MCP拒绝；不要求本里程碑实现测试程序执行，也不宣称客户端草稿自动回滚 |
+| Dialog/富文本回调 | 原生命令提交共用守卫；26.x非命令custom action按CUSTOM_UI_CALLBACK在最终发送前拒绝，不解释未知服务器效果 | 新拒绝路径仍须实际原生点击和零服务端回调验证，不由命令链接成功推定 |
+
+未接守卫或未验证的分支仍是M-07缺口，不以NATIVE_ABSENT、隐藏按钮或坐标兜底掩盖。
+按2026-10-16用户决定，不透明管理、函数/调度和来源不明数据复制可以“已验证拒绝+零相关服务器副作用+明确限制”收口；
+这是首个里程碑的限制关闭，不是该高风险功能已实现，不将合法前序配置或已执行效果虚报为零修改。
+已知语义只由当前原生数据与独立授权事实得出，不隐式读取服务器内部对象或磁盘补齐。
+嵌入程序按原生解析的 Tag、BlockInput、ItemInput 和 NbtPath 处理，不从原始 SNBT 子串猜测；
+Command 与 Jigsaw final_state 使用同一当前玩家树/注册表有界递归分类，普通名称与惰性 custom_data 不视为命令。
+未知的服务器来源复制值不隐式读取或猜测，明确拒绝；预算和当前边界见[Native 合同](../reference/protocol-native_v0.md)。
+这不是任意 NBT RPC，也不保证所有世界连锁或既有数据中的程序都已解析。
+函数/调度、其余不透明载荷与管理型GUI须补齐拒绝边界和零副作用证据，不再要求首个里程碑实现完整效果解析；未验证前M-07仍未完成。
+
+首个里程碑的保守拒绝目录为function/schedule、clone/place/loot、data modify的from/string来源、
+item的from/modify，以及未知custom UI回调。客户端不隐式读取服务器模板、战利品表、修饰器或源物品来猜测效果；
+这些返回PLAYER_COMMAND_UNCLASSIFIED，不是声称原生不可操作或已经支持其效果。已知字面物品/方块仍按原生参数有界解析。
 
 | 命令类 | 原版例子 | USER 路径与证据要求 |
 | --- | --- | --- |
@@ -173,7 +259,7 @@ USER 命令不得使用服务器 console/高等级伪造 source，不能通过�
 函数/调度内存在越界管理效果时拒绝；未决效果不允许宣称已通过安全分类。
 输入请求、pipeline、聊天 Enter、UI 文本链接触发命令及快捷键产生的 Agent 命令都在最终提交边界校验，
 携带可信输入来源和 Operation 授权上下文，不能只守高层 command helper 而允许键盘旁路。
-不阻断 TAKEOVER 外真人自己的命令；本轮不新增这样的钩子。
+不阻断 TAKEOVER 外真人自己的命令；输入来源提示本身不构成授权。
 
 原版 Ctrl+Pick Block、F3 组合快捷键、创造/旁观切换也按实际揭示或修改的效果登记，
 不会因为是按键而获得额外 Runtime 调试权限或天然 PLAYTEST 来源。
@@ -262,6 +348,7 @@ DEBUG mutation 在 commit point 前校验独立权限、Arm、资源/值条件�
 ## 证据与消费者
 
 Arrange、Act、Assert、Evidence 分别记录类别、机制、数据权威及资源变更。
+世界 USER 是客户端模型观察，不是人眼可见证明、服务器确认或动作成功证明；不得混淆这些依据。
 TAKEOVER 原版 gameplay Act 可以生成 PLAYTEST；OPERATE Debug 与管理员状态修改不能冒充它。
 Fixture Arrange 可以搭建测试前提，但不把准备过程计为玩家已完成目标。
 只读 DEBUG 断言不修改状态，不伪造 mutation contamination；它是独立诊断依据，不是 USER 目视证明。
@@ -288,9 +375,13 @@ Capture/Recording 继续确定性排除 Operator Chrome/Virtual Pointer。
 | `26.3-neoforge` | 参考实现、可配置 F3、当前原版全部新增行为 | 先完成并在游戏确认，再逐端移植；参考端通过不覆盖其他端 |
 | `26.3-fabric` | 当前原版行为与 NeoForge 相近但 Loader、客户端/服务端接线不同 | 单独运行全部适用合同，不能用相同 Minecraft 版本免验 |
 
-每端必须分别具备单人集成服、受控 Dedicated Server + 已配对 Peer、受控服务器但 Peer 禁用/未配对的结果。
-最后一种验证 USER 玩家路径继续工作、服务器 DEBUG 不可用时 fail closed，而不是无模组服务器兼容承诺；
-当前产品运行端为 both，安装要求不因本设计改变。Peer 已配对的必需能力缺失是缺口，不是无 Peer 限制。
+三部署完整模型见[部署设计](concept-deployment_scenarios.md)；首个里程碑只交付设计/主体/安装合同及既有Peer范围联动，
+当前进度在[状态页](../project/status-milestones.md)。独立服务端Runtime、控制台世界效果和完整仅服务端能力属于下一里程碑。
+本里程碑验证客户端有界模型/真实玩家动作、集成服服务器内部资源和既有Peer已声明目录的授权/证据。
+服务端没有玩家视角，不虚构world.action/相机；实施延期也不能标为原版不存在。
+保留集成服、受控Dedicated + Peer、禁用/未配对/失联和撤权测试，不在本Goal实施零玩家独立Runtime。
+当前运行端仍为both，单端兼容的设计不能被当作已可安装/实测的证明。
+Peer 已配对但必需能力缺失仍是缺口，不是无 Peer 限制。
 没有 EULA 授权、可用测试账号/服务或真人输入时，相关项目为 PENDING，不替用户同意，不推定 PASS。
 
 ### 固定测试副本与自动化
@@ -298,7 +389,9 @@ Capture/Recording 继续确定性排除 Operator Chrome/Virtual Pointer。
 为每 Target 建立本版本专用基准世界，固定地图、玩家、物品、实体、权限、键位与呈现设置。
 每次恢复同一已校验副本，测试数据与工具按现有 validations/tool/probe 规范放置；
 不借用日常存档，不复用升级过的跨版本世界。自然时间/AI 等变量使用明确 Fixture 设置或可验证条件控制，
-不依赖概率事件“碰巧发生”。当前基础分类 smoke 使用独立可重复世界，但还不是恢复固定副本的完整矩阵；
+不依赖概率事件“碰巧发生”。基础分类 smoke 已接入每端不可变、逐文件校验的固定世界副本；
+bootstrap 准备与正式恢复运行分开记录，不复制 Runtime 凭据，不在运行中复制存档。
+这仍不是完整世界/Peer 的固定副本矩阵；
 不能据它宣称这里要求的全部场景已经验收。
 
 未来结果绑定源码/发行 JAR、Loader/Java、世界基准 hash、原版 registry/feature flags、测试配置和日期，
@@ -310,8 +403,8 @@ Capture/Recording 继续确定性排除 Operator Chrome/Virtual Pointer。
 
 | 门禁 | 每 Target 必需验证 |
 | --- | --- |
-| USER 可见性 | 前方/背后/墙后、透明/局部遮挡、隐身/发光、暗处/雾、视角/Screen/Overlay、未知容器、旧观察不刷新 |
-| USER 精度 | F3 开关/reduced-debug/可配置条目、各轴原生精度、HUD 半格/闪烁/条、无来源无精确坐标、热点小数不损失 |
+| USER 模型 | 前方/背后/墙后与 Screen/HUD 变化不误报无数据；范围、缓存/未加载、实体候选预算、空/截断、无服务器/存档/未知容器旁路 |
+| USER 精度 | 客户端坐标/状态不依赖 F3；来源与采样时间诚实、不冒充服务器状态；UI/HUD 仍按原版呈现，输入热点小数不损失 |
 | 声音/字幕 | 静音不可伪造声音、字幕实际呈现；正向可听场景有明确授权与证据，未执行即 PENDING |
 | 无隐藏旁路 | Provider、Wait/Assert 布尔值、Event/resync/数量、State Frame、Recording/Artifact、错误和 revision/hash 的类别隔离 |
 | USER 操作 | WU-01 至 WU-20 的全部适用独立分支；语义路径、真实输入与 native 拒绝，不以坐标/Debug 绕过 |
@@ -329,17 +422,17 @@ NATIVE_ABSENT 需要该 Target 的原版注册/feature flag/权限前提证据�
 玩家权限拒绝本身是必测行为，不能将“没开 OP”用来省略有权限的命令场景。
 OUT_OF_SCOPE 只能对应本文明确排除项，不用于临时缩小必需清单。
 
-里程碑通过必须同时满足：五端全部适用项 PASS、没有必需 PENDING/FAIL、原版目录没有未映射行为，
+里程碑通过必须同时满足：五端全部适用项已通过或按用户批准的拒绝限制关闭、没有必需PENDING/FAIL、原版目录没有未映射行为，
 现有 Mode/Lease/权限/真人撤销/证据合同不回归，用户实际完成世界领域交付验收。
 构建、静态目录、历史 UI 46/46、代表端 smoke 与截图都不能替代该结论。
-复杂可见性未闭环、服务器内部能力尚未接通、非标准键位缺口都要保留为真实 blocker。
+USER 模型预算/权威缺口、服务器 DEBUG 能力尚未接通、非标准键位缺口都要保留为真实 blocker；像素可见性不再是世界 USER 读取门槛。
 
 ## 下一步设计冻结与实施顺序
 
-本设计明确范围和原则；基础分类不等于完整产品或五端世界验收。
-实施前需审阅命令效果/越界政策、USER 可见性与声音验收前提，固定字段/行为目录及实测预算，
-再将类别、错误、精度描述和能力声明正式写入 OpenAPI；不可先实现隐藏后门再补合同。
+有界 USER 模型、消费者分类、查询预算及能力声明已接入 Native/OpenAPI，不等于完整世界验收。
+后续实施需审阅命令效果/越界政策和声音验收前提，逐家族冻结行为目录与预算；不得以读取放宽代替玩家输入或授权。
 
-建议顺序为：入口/消费者分类与 USER 感知 → 世界语义玩家路径及命令 → typed Debug/恢复 →
+建议顺序为：有界模型独立验收 → 世界语义玩家路径及命令 → typed Debug/恢复 →
 固定副本五端/Peer/消费者矩阵 → 世界用户验收。
-参考 Target 优先且逐端确认，所有阶段需另行授权。UI 继续暂停，其他 Phase/Extension 不自动开始。
+参考 Target 优先且逐端确认。当前获准同时推进 UI 与世界首个里程碑，可联合验证世界交互和原生菜单；
+第三方大型整合包仍按原路线另行准备和验收，其他 Phase/Extension 不自动开始。

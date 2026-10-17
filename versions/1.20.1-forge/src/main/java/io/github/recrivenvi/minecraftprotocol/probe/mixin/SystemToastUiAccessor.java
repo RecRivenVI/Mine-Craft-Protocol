@@ -7,6 +7,12 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(SystemToast.class)
 public interface SystemToastUiAccessor {
+    @Accessor("lastChanged")
+    long minecraftProtocolProbe$lastChanged();
+
+    @Accessor("changed")
+    boolean minecraftProtocolProbe$changed();
+
     @Accessor("title")
     Component minecraftProtocolProbe$title();
 

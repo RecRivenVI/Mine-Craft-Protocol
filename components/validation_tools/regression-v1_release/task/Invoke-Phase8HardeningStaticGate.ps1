@@ -67,7 +67,10 @@ foreach ($target in $targets) {
             -and ([regex]::Matches($automation, 'requireConditionEngine\(\)\.assertThat')).Count -ge 2) `
         "$($target.Name) Pipeline and Automation Wait/Assert must share ConditionEngine semantics"
     Assert-True ($security -match 'TokenBucket' -and $security -match 'MAX_CONNECTIONS' -and $security -match 'category\(method, path\)') "$($target.Name) security rate budgets missing"
-    Assert-True ($runtime -match 'command\.player\.execute' -and $runtime -match 'NORMAL_NETWORK') "$($target.Name) current-player command capability missing"
+    $commandReceipt = Get-Content -LiteralPath (Join-Path $runtimeCore 'PlayerCommandEvidence.java') -Raw
+    Assert-True ($runtime -match 'command\.player\.execute' -and $runtime -match 'dispatch\.receipt\(\)' -and $commandReceipt -match 'GAME_ROUTED_RAW') "$($target.Name) guarded current-player submission receipt missing"
+    $commandGate = Get-Content -LiteralPath (Join-Path $runtimeCore 'PlayerCommandGate.java') -Raw
+    Assert-True ($runtime -match 'InputDispatchContext.capture\(\)' -and $runtime -match 'commandGate.enter\(accepted, permit\)' -and $commandGate -match 'PLAYER_COMMAND_UNCLASSIFIED' -and $commandGate -match 'PLAYER_COMMAND_OUT_OF_SCOPE' -and $commandReceipt -match '"gameplayAcceptanceEligible", false' -and $commandReceipt -match 'player_command_state_mutation') "$($target.Name) command origin, final classification and honest evidence missing"
 
     foreach ($name in @('AutomationEngine.java','ProtocolState.java','EventHub.java','ConditionEngine.java','SecurityGate.java','RecordingEngine.java')) {
         $text = (Get-Content -LiteralPath (Join-Path $runtimeCore $name) -Raw).TrimEnd() -replace "`r`n", "`n"

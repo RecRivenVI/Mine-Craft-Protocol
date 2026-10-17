@@ -1,0 +1,24 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}_probe",
+    "version": "${mod_version}",
+    "name": "${mod_name} Validation Probe",
+    "description": "${mod_description} validation-only fixtures",
+    "authors": [
+        "${mod_authors}"
+    ],
+    "license": "${mod_license}",
+    "environment": "${fabric_environment}",
+    "mixins": [
+        {
+            "config": "minecraft_protocol_probe.validation.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "${mod_id}": "${mod_version}",
+        "fabricloader": ">=${loader_minimum}",
+        "minecraft": "~${minecraft_version}",
+        "java": ">=${java_version}"
+    }
+}

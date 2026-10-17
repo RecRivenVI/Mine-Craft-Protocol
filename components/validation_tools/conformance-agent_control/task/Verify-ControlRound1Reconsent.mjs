@@ -3,14 +3,21 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { readFile, writeFile } from 'node:fs/promises';
-const require = createRequire(new URL('../../../components/companion/package.json', import.meta.url));
+import { writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { loadConfig } from '../../../companion/dist/config.js';
+const require = createRequire(new URL('../../../companion/package.json', import.meta.url));
 const { Client } = await import(pathToFileURL(require.resolve('@modelcontextprotocol/client')).href);
 const { StdioClientTransport } = await import(pathToFileURL(require.resolve('@modelcontextprotocol/client/stdio')).href);
 assert.equal(process.argv[5], '--conversation-reacquire-approved', 'Ask the user first; never infer conversation consent');
+const environment={...process.env};
+delete environment.MCP_MINECRAFT_BASE_URL;delete environment.MCP_MINECRAFT_TOKEN;delete environment.MCP_MINECRAFT_TOKEN_FILE;
+environment.MCP_MINECRAFT_INSTANCE_DIR=dirname(dirname(resolve(process.argv[3])));
+const config=loadConfig(environment);
+assert.equal(config.baseUrl.origin,process.argv[2].replace(/\/$/,''),'Explicit URL must match the intended instance discovery');
 const transport = new StdioClientTransport({ command: process.execPath,
-  args: [fileURLToPath(new URL('../../../components/companion/dist/index.js', import.meta.url))], stderr: 'pipe',
-  env: { ...process.env, MCP_MINECRAFT_BASE_URL: process.argv[2], MCP_MINECRAFT_TOKEN: (await readFile(process.argv[3], 'utf8')).trim() } });
+  args: [fileURLToPath(new URL('../../../companion/dist/index.js', import.meta.url))], stderr: 'pipe',
+  env: environment });
 const client = new Client({ name: 'control-r1-reconsent-conformance', version: '1.0' });
 const checks = [];
 let leased = false;

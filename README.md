@@ -16,9 +16,10 @@
 
 ## 快速开始
 
-参考 Target 为 `26.3-neoforge`。
+参考 Target 为 `26.3-neoforge`。先将缓存目录占位符替换为仓库之外的本机路径。
 
 ```powershell
+pwsh -File components/validation_tools/feature-control_ui_showcase/task/Prepare-AcceptanceInputs.ps1 -CacheDirectory '<本机验收Mod缓存目录>'
 ./gradlew.bat spotlessApply check verifyRelease
 ./gradlew.bat :version:26.3-neoforge:runClient
 ```
@@ -28,7 +29,7 @@
 - [开发与验证入口](documents/development/workflow-development.md)
 - [日常开发](gradle/conventions/specification/development/workflow-daily.md)、[配置格式](gradle/conventions/specification/reference/configuration-repository.md)
 - [Core 范围](documents/project/scope-core.md)、[可选扩展](documents/project/scope-extensions.md)
-- [执行计划](documents/project/plan-execution.md)、[控制模型](documents/design/concept-agent_control.md)
+- [当前状态](documents/project/status-milestones.md)、[执行计划](documents/project/plan-execution.md)、[控制模型](documents/design/concept-agent_control.md)
 - [Showcase](validations/feature-control_ui_showcase/validation.md)、[整合包长期计划](validations/compatibility-large_modpacks/validation.md)
 - [仓库规范](AGENTS.md)、[项目安全补充](documents/AGENTS.md)
 

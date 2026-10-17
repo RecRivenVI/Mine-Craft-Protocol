@@ -3,7 +3,7 @@ gradle.beforeProject { project ->
     project.tasks.withType(JavaExec).configureEach { task ->
         if (task.name == 'runValidationConformanceVanillaUiClient') {
             def port = project.providers.gradleProperty('vanillaUiPort').get().toInteger()
-            if (port < 1024 || port > 65535) {
+            if (port < 0 || port > 65535) {
                 throw new GradleException('Invalid isolated UI Runtime port')
             }
             task.systemProperty('minecraft.protocol.probe.port', port.toString())

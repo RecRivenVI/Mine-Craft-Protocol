@@ -1,24 +1,28 @@
 [CmdletBinding()]param()
 $ErrorActionPreference='Stop'
 $root=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+. (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
+$runtimeRunnerLock=$null
 function A([bool]$condition,[string]$message){if(-not $condition){throw "Phase 9B.2 five-target live failed: $message"}}
 function J($base,$method,$path,$headers,$body){$parameters=@{Uri=$base+$path;Method=$method;Headers=$headers};if($null-ne$body){$parameters.ContentType='application/json';$parameters.Body=$body|ConvertTo-Json -Depth 30 -Compress};Invoke-RestMethod @parameters}
 $runs=@(
- @{Target='1.20.1-forge';Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.20.1-forge\client';Port=25581;Has9A=$true},
- @{Target='1.21.1-neoforge';Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client';Port=25581;Has9A=$false},
- @{Target='26.1.2-neoforge';Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client';Port=25582;Has9A=$false},
- @{Target='26.3-neoforge';Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-neoforge\client';Port=25582;Has9A=$true},
- @{Target='26.3-fabric';Task=':version:26.3-fabric:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-fabric\client';Port=25583;Has9A=$true})
+ @{Target='1.20.1-forge';Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.20.1-forge\client';Port=$null;Has9A=$true},
+ @{Target='1.21.1-neoforge';Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client';Port=$null;Has9A=$false},
+ @{Target='26.1.2-neoforge';Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client';Port=$null;Has9A=$false},
+ @{Target='26.3-neoforge';Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-neoforge\client';Port=$null;Has9A=$true},
+ @{Target='26.3-fabric';Task=':version:26.3-fabric:runValidationConformanceDeepStateClient';Dir='validations\conformance-deep_state\instance\26.3-fabric\client';Port=$null;Has9A=$true})
 Push-Location $root
 try{
  $env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,fixture,debug'
  $results=foreach($run in $runs){
   Write-Host "[Phase9B.2] starting $($run.Target)"
-  A(-not[bool](Get-NetTCPConnection -LocalPort $run.Port -State Listen -ErrorAction SilentlyContinue))"port $($run.Port) occupied"
   $dir=(Resolve-Path $run.Dir).Path
+  if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};$runtimeRunnerLock=Enter-RuntimeRunner $dir
   $process=Start-Process '.\gradlew.bat' -ArgumentList $run.Task,'--no-daemon','--offline' -WorkingDirectory $root -RedirectStandardOutput(Join-Path $dir 'phase9b2-live-stdout.log') -RedirectStandardError(Join-Path $dir 'phase9b2-live-stderr.log') -PassThru -WindowStyle Hidden
   $tokenFile=Join-Path $dir 'minecraft-protocol\token';$deadline=[DateTime]::UtcNow.AddMinutes(6);$session=$null
-  do{if(Test-Path $tokenFile){$token=(Get-Content $tokenFile -Raw).Trim();$auth=@{Authorization="Bearer $token"};try{$session=Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/session" -Headers $auth -TimeoutSec 2}catch{$session=$null}};if($session.target-eq$run.Target){break};Start-Sleep -Seconds 2}while([DateTime]::UtcNow-lt$deadline)
+  $connection=Wait-RuntimeConnection $dir $run.Target $process.StartTime.ToUniversalTime() $process
+  $run.Port=$connection.Port;$auth=$connection.Headers;$token=(Get-Content $connection.TokenFile -Raw).Trim()
+  $session=Invoke-RestMethod "$($connection.BaseUri)/v0/session" -Headers $auth -TimeoutSec 3
   A($session.target-eq$run.Target)"$($run.Target) not ready";$base="http://127.0.0.1:$($run.Port)"
   J $base POST '/v0/control/emergency-release' $auth $null|Out-Null;$lease=J $base POST '/v0/control/acquire' $auth @{ttlMs=60000};$leaseHeaders=@{Authorization="Bearer $token";'X-MCP-Control-Lease'=$lease.leaseId}
   try{
@@ -52,4 +56,4 @@ try{
   [pscustomobject]@{Target=$run.Target;Canonical=$b2.Details.Canonical.Result;ProviderRevision=$b2.Details.Provider.Result;Epoch=$b2.Details.Resource.Epoch;Lifecycle=$b2.Details.Resource.LifecycleFields;Executors=$b2.Details.Executors.Result;Formal='PASS';V1='PASS';Shutdown='PASS';Metrics=$formal.Budget}
  }
  [pscustomobject]@{Result='PASS';Targets=$results.Count;Results=$results}
-}finally{Pop-Location}
+}finally{if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};Pop-Location}

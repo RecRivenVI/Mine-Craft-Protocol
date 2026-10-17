@@ -345,10 +345,28 @@ test('web screenshot remains READ-compatible and rejects layout changes during c
   runtime.captureChanges = true; await assert.rejects(console.capture(), { code: 'WEB_UI_STALE_CAPTURE' });
 });
 
+test('web HTTP preserves structured Runtime quota hints without acquiring or replaying', async () => {
+  const runtime = new MockRuntime();
+  const rateLimit = { scope: 'principal', category: 'world', operationCategory: 'world', capacity: 60,
+    remaining: 0, refillPerSecond: 30, cost: 1 };
+  runtime.json = async () => { throw new RuntimeError('EXPENSIVE_OPERATION_RATE_LIMITED', 429, 'budget', 'quota-request',
+    { retryAfterMillis: 34, rateLimit }); };
+  const app = await startUiConsole(new UiConsole(runtime), 0);
+  try {
+    const bootstrap = await (await fetch(app.url + '/api/bootstrap')).json() as { browserToken: string };
+    const response = await fetch(app.url + '/api/snapshot', { headers: { 'x-web-ui-token': bootstrap.browserToken } });
+    assert.equal(response.status, 429);
+    const body = await response.json() as { error: string; retryAfterMillis: number; rateLimit: unknown };
+    assert.equal(body.error, 'EXPENSIVE_OPERATION_RATE_LIMITED');
+    assert.equal(body.retryAfterMillis, 34); assert.deepEqual(body.rateLimit, rateLimit);
+    assert.equal(runtime.mode, 'READ'); assert.equal(runtime.calls.length, 0);
+  } finally { await app.close(); }
+});
+
 test('web HTTP refuses foreign origins, absent sessions and arbitrary native paths; never exposes Runtime credentials', async () => {
   const runtime = new MockRuntime(), app = await startUiConsole(new UiConsole(runtime), 0);
   try {
-    assert.equal((await fetch(app.url)).status, 200);
+    assert.equal((await fetch(app.url).catch(error=>{throw new Error('Local UI connection failed: '+app.url,{cause:error});})).status, 200);
     assert.equal((await fetch(app.url + '/api/bootstrap', { headers: { origin: 'https://example.test' } })).status, 403);
     assert.equal((await fetch(app.url + '/api/snapshot')).status, 403);
     const wrongHostStatus = await new Promise<number | undefined>((resolve, reject) => {

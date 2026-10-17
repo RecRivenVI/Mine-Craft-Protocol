@@ -7,6 +7,27 @@ import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
 class WorldDataViewTest {
+    @Test
+    void commandEvidenceProjectionPreservesProvenanceWithoutCommandOrInternalFields() {
+        JsonObject source = new JsonObject();
+        source.addProperty("type", "command.player.submission");
+        source.addProperty("effectClassification", "STATE_MUTATION");
+        source.addProperty("mode", "DEBUG_PRIVILEGED");
+        source.addProperty("evidenceContaminated", true);
+        source.addProperty("command", "hidden raw command");
+        source.addProperty("uuid", "private player");
+        source.add("internal", new JsonObject());
+        var projected = WorldDataView.userEvent(source);
+        assertEquals("USER", projected.get("dataCategory").getAsString());
+        assertEquals("STATE_MUTATION", projected.get("effectClassification").getAsString());
+        assertEquals("DEBUG_PRIVILEGED", projected.get("mode").getAsString());
+        assertTrue(projected.get("evidenceContaminated").getAsBoolean());
+        assertFalse(projected.has("command"));
+        assertFalse(projected.has("uuid"));
+        assertFalse(projected.has("internal"));
+        assertTrue(source.has("command"));
+    }
+
     private static JsonObject node(String key, boolean visible) {
         JsonObject value = new JsonObject();
         value.addProperty("controlKey", key);

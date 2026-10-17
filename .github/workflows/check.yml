@@ -30,7 +30,10 @@ jobs:
         working-directory: components/companion
         run: npm ci --include=dev
       - name: Check
-        run: ./gradlew check verifyRelease --continue
+        shell: pwsh
+        run: |
+          ./components/validation_tools/feature-control_ui_showcase/task/Prepare-AcceptanceInputs.ps1 -CacheDirectory "$env:RUNNER_TEMP/acceptance-inputs"
+          ./gradlew check verifyRelease --continue
       - name: Upload compliance report
         if: always()
         uses: actions/upload-artifact@v7

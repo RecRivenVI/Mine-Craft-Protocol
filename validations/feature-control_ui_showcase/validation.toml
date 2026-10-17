@@ -1,6 +1,17 @@
 tool = "validation_tools"
-targets = ["1.20.1-forge", "26.3-fabric"]
+targets = ["1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric"]
 [instances.client]
+memory-min = "1G"
+memory-max = "4G"
+player-name = "RecRivenVI"
 width = 2560
 height = 1440
-jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.write,debug.menu"]
+jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]
+
+[instances.client-multiplayer]
+memory-min = "1G"
+memory-max = "4G"
+player-name = "ShowcaseTest"
+width = 1920
+height = 1080
+jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]

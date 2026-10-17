@@ -2,6 +2,8 @@ import com.diffplug.gradle.spotless.SpotlessExtension
 import com.diffplug.spotless.LineEnding
 import io.github.recrivenvi.conventions.component.ComponentConventions
 
+apply(from = "components/validation_tools/instance-profiles.gradle")
+
 // One pruned walk replaces Spotless's union of one walk per glob. Keep the template's file scope.
 extensions.configure<SpotlessExtension> {
     setLineEndings(LineEnding.UNIX)

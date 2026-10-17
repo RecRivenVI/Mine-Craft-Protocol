@@ -33,4 +33,4 @@ STABLE / DEFERRED / CANCELLED，不替代 Runtime Phase 状态。
 只有新的明确产品治理决定才能把扩展能力提升为交付义务。
 
 迁移前详细目标与原文保留在[历史记录](../research/audit-scope_extensions.md)；
-当前实现及下一授权任务仍看[执行计划](plan-execution.md)。
+当前实现状态见[状态页](status-milestones.md)，下一授权任务见[执行计划](plan-execution.md)。

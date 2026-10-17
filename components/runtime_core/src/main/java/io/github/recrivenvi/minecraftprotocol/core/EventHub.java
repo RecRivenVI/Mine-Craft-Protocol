@@ -25,13 +25,22 @@ final class EventHub implements AutoCloseable {
     static final int CLIENT_QUEUE_CAPACITY = 128;
     private final String target;
     private final Supplier<CompletableFuture<JsonObject>> resyncSupplier;
+    private final Runnable authorize;
     private final AtomicLong sequence = new AtomicLong();
     private final Deque<EventRecord> ring = new ArrayDeque<>();
     private final Map<Channel, ClientSubscription> subscriptions = new ConcurrentHashMap<>();
 
     EventHub(String target, Supplier<CompletableFuture<JsonObject>> resyncSupplier) {
+        this(target, resyncSupplier, () -> {});
+    }
+
+    EventHub(
+            String target,
+            Supplier<CompletableFuture<JsonObject>> resyncSupplier,
+            Runnable authorize) {
         this.target = target;
         this.resyncSupplier = resyncSupplier;
+        this.authorize = authorize;
     }
 
     JsonObject publish(JsonObject source) {
@@ -51,6 +60,7 @@ final class EventHub implements AutoCloseable {
     }
 
     JsonObject register(Channel channel, QueryStringDecoder requestUri) {
+        authorize.run();
         long resumeFrom = parseLong(requestUri, "resumeFromSequence", this.sequence.get());
         EventFilter filter = EventFilter.fromQuery(requestUri.parameters());
         ClientSubscription subscription = new ClientSubscription(channel, filter);
@@ -65,9 +75,18 @@ final class EventHub implements AutoCloseable {
         hello.add("filter", filter.toJson());
         channel.eventLoop()
                 .execute(
-                        () ->
+                        () -> {
+                            try {
+                                authorize.run();
+                            } catch (RuntimeException denied) {
+                                subscription.close();
+                                channel.close();
+                                return;
+                            }
+                            if (!subscription.closed && channel.isActive())
                                 channel.writeAndFlush(new TextWebSocketFrame(GSON.toJson(hello)))
-                                        .addListener(ignored -> subscription.resume(resumeFrom)));
+                                        .addListener(ignored -> subscription.resume(resumeFrom));
+                        });
         return hello;
     }
 
@@ -84,6 +103,13 @@ final class EventHub implements AutoCloseable {
     void accept(Channel channel, String payload) {
         ClientSubscription subscription = this.subscriptions.get(channel);
         if (subscription == null) return;
+        try {
+            authorize.run();
+        } catch (RuntimeException denied) {
+            unregister(channel);
+            channel.close();
+            return;
+        }
         JsonObject command;
         try {
             command = JsonParser.parseString(payload).getAsJsonObject();
@@ -109,24 +135,7 @@ final class EventHub implements AutoCloseable {
             case "event.ack" -> subscription.ack(Math.max(0L, longValue(command, "sequence", 0L)));
             case "event.resume" ->
                     subscription.resume(Math.max(0L, longValue(command, "resumeFromSequence", 0L)));
-            case "event.resync" ->
-                    this.resyncSupplier
-                            .get()
-                            .whenComplete(
-                                    (snapshot, failure) -> {
-                                        if (failure != null) {
-                                            subscription.control(
-                                                    error("RESYNC_FAILED", failure.getMessage()));
-                                            return;
-                                        }
-                                        JsonObject event = new JsonObject();
-                                        event.addProperty("type", "event.resync.snapshot");
-                                        event.addProperty("sequence", this.sequence.get());
-                                        event.addProperty("fullResyncRequired", false);
-                                        event.add("snapshot", snapshot);
-                                        subscription.clearGap();
-                                        subscription.control(event);
-                                    });
+            case "event.resync" -> subscription.resync();
             default ->
                     subscription.control(
                             error(
@@ -144,9 +153,10 @@ final class EventHub implements AutoCloseable {
     }
 
     JsonObject evaluateCondition(JsonObject condition) {
+        authorize.run();
         long after = Math.max(0L, longValue(condition, "afterSequence", 0L));
         String expectedType = string(condition, "eventType", "");
-        String expectedCategory = string(condition, "category", "");
+        String expectedCategory = string(condition, "eventCategory", "");
         EventRecord match = null;
         synchronized (this.ring) {
             for (EventRecord event : this.ring) {
@@ -202,7 +212,8 @@ final class EventHub implements AutoCloseable {
         private final Deque<EventRecord> pending = new ArrayDeque<>();
         private volatile EventFilter filter;
         private boolean flushScheduled;
-        private boolean closed;
+        private volatile boolean closed;
+        private CompletableFuture<JsonObject> pendingResync;
         private long lastAck;
         private long lastDelivered;
         private long gapFrom = -1L;
@@ -214,6 +225,45 @@ final class EventHub implements AutoCloseable {
             this.filter = filter;
         }
 
+        void resync() {
+            CompletableFuture<JsonObject> work;
+            synchronized (this) {
+                if (closed) return;
+                if (pendingResync != null) {
+                    control(error("RESYNC_BUSY", "One resync is already pending"));
+                    return;
+                }
+                try {
+                    work = resyncSupplier.get();
+                    pendingResync = work;
+                } catch (RuntimeException failure) {
+                    control(error("RESYNC_FAILED", "Resync could not start"));
+                    return;
+                }
+            }
+            work.whenComplete(
+                    (snapshot, failure) -> {
+                        synchronized (this) {
+                            if (closed) return;
+                            pendingResync = null;
+                        }
+                        if (failure != null) {
+                            control(
+                                    error(
+                                            "RESYNC_FAILED",
+                                            "Resync failed or its read context changed"));
+                            return;
+                        }
+                        JsonObject event = new JsonObject();
+                        event.addProperty("type", "event.resync.snapshot");
+                        event.addProperty("sequence", sequence.get());
+                        event.addProperty("fullResyncRequired", false);
+                        event.add("snapshot", snapshot);
+                        clearGap();
+                        control(event);
+                    });
+        }
+
         void resume(long resumeFrom) {
             synchronized (this) {
                 if (this.closed) return;
@@ -223,7 +273,8 @@ final class EventHub implements AutoCloseable {
                 if (resumeFrom < oldest - 1L) {
                     this.markGap(resumeFrom + 1L, oldest - 1L, true);
                 } else {
-                    for (EventRecord event : replayAfter(resumeFrom)) this.offerLocked(event);
+                    for (EventRecord event : replayAfter(resumeFrom))
+                        if (filter.matches(event.payload())) this.offerLocked(event);
                 }
             }
             this.scheduleFlush();
@@ -246,12 +297,19 @@ final class EventHub implements AutoCloseable {
         }
 
         void control(JsonObject message) {
-            if (!this.channel.isActive()) return;
+            if (closed || !this.channel.isActive()) return;
             this.channel
                     .eventLoop()
                     .execute(
                             () -> {
-                                if (this.channel.isActive())
+                                try {
+                                    authorize.run();
+                                } catch (RuntimeException denied) {
+                                    close();
+                                    channel.close();
+                                    return;
+                                }
+                                if (!closed && this.channel.isActive())
                                     this.channel.writeAndFlush(
                                             new TextWebSocketFrame(GSON.toJson(message)));
                             });
@@ -280,6 +338,13 @@ final class EventHub implements AutoCloseable {
         }
 
         private void flush() {
+            try {
+                authorize.run();
+            } catch (RuntimeException denied) {
+                close();
+                channel.close();
+                return;
+            }
             int sent = 0;
             while (this.channel.isActive() && this.channel.isWritable() && sent < 32) {
                 String payload;
@@ -301,6 +366,13 @@ final class EventHub implements AutoCloseable {
                         payload = GSON.toJson(event.payload());
                     }
                 }
+                try {
+                    authorize.run();
+                } catch (RuntimeException denied) {
+                    close();
+                    channel.close();
+                    return;
+                }
                 this.channel.write(new TextWebSocketFrame(payload));
                 sent++;
             }
@@ -321,10 +393,14 @@ final class EventHub implements AutoCloseable {
         }
 
         void close() {
+            CompletableFuture<JsonObject> work;
             synchronized (this) {
                 this.closed = true;
                 this.pending.clear();
+                work = pendingResync;
+                pendingResync = null;
             }
+            if (work != null) work.cancel(false);
         }
     }
 
@@ -342,7 +418,7 @@ final class EventHub implements AutoCloseable {
             return new EventFilter(
                     querySet(values, "type"),
                     querySet(values, "namespace"),
-                    querySet(values, "category"),
+                    querySet(values, "eventCategory"),
                     querySet(values, "recordingId"),
                     querySet(values, "pipelineRunId"),
                     querySet(values, "screen"),

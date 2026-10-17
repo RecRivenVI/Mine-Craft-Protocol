@@ -1,977 +1,977 @@
 {
   "loaderVersion": "0.19.5",
-  "concreteScreenCount": 119,
-  "inputs": [
-    {
-      "path": ".gradle/loom-cache/minecraftMaven/net/minecraft/minecraft-clientOnly-7e9a32a5b8/26.3/minecraft-clientOnly-7e9a32a5b8-26.3.jar",
-      "sha256": "c6562b965b3a3f18f22167cc848ccaf8be25083978229e4ad8d6166eba33efe2"
-    },
-    {
-      "path": ".gradle/loom-cache/minecraftMaven/net/minecraft/minecraft-common-7e9a32a5b8/26.3/minecraft-common-7e9a32a5b8-26.3.jar",
-      "sha256": "efea0750e86ab6f906d1958db896bf7330a3e5aec23ead9429b9c86137547249"
-    }
-  ],
   "acceptance": "NOT_VALIDATED",
   "limitations": [
     "Inventory is not operation coverage",
     "HUD, Toast, tooltip and other non-Screen interaction regions require a separate catalog",
     "Service/account state is not supplied by a static class inventory"
   ],
-  "generatedAt": "2026-10-13T11:13:54.6129969Z",
   "target": "26.3-fabric",
-  "screens": [
+  "inputs": [
     {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "com.mojang.realmsclient.gui.screens.configuration.RealmsPreferredRegionSelectionScreen",
-      "userOperation": "UNVALIDATED"
+      "sha256": "c6562b965b3a3f18f22167cc848ccaf8be25083978229e4ad8d6166eba33efe2",
+      "path": ".gradle/loom-cache/minecraftMaven/net/minecraft/minecraft-clientOnly-7e9a32a5b8/26.3/minecraft-clientOnly-7e9a32a5b8-26.3.jar"
     },
     {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.components.PopupScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.AccessibilityOnboardingScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.achievement.StatsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.advancements.AdvancementsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.AlertScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.BackupConfirmScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ChatScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ConfirmLinkScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ConfirmScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ConnectScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.CreateBuffetWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.CreateFlatWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.CreditsAndAttributionScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.DatapackLoadFailureScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.DeathScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.DeathScreen$TitleConfirmScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.debug.DebugOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.DialogListDialogScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.DialogScreen$WarningScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.MultiButtonDialogScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.ServerLinksDialogScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.dialog.DialogScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.SimpleDialogScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.dialog.WaitingForResponseScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.DirectJoinServerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.DisconnectedScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ErrorScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.FileFixerAbortedScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.friends.FriendsListConfirmScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.friends.FriendsOverlayScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.GenericMessageScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.GenericWaitingScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ChatScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.InBedChatScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.ItemCombinerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.AnvilScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BeaconScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BlastFurnaceScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BookEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BookSignScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BookViewScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.BrewingStandScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.CartographyTableScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.CommandBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.CrafterScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.CraftingScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.DispenserScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.EnchantmentScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.FurnaceScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.GrindstoneScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.HangingSignEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.HopperScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractMountInventoryScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.HorseInventoryScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.InventoryScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.JigsawBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.BookViewScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.LecternScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.LoomScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.MerchantScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.MinecartCommandBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractMountInventoryScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.NautilusInventoryScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.SignEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.ItemCombinerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.SmithingScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.SmokerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.StonecutterScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.StructureBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.TestBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.inventory.TestInstanceBlockEditScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.LevelLoadingScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ManageServerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.multiplayer.CodeOfConductScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.multiplayer.RestrictionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.multiplayer.SafetyScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.multiplayer.ServerReconfigScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.NoticeWithLinkScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.AccessibilityOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.ChatOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.controls.ControlsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.controls.KeyBindsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.FontOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.InWorldGameRulesScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.LanguageSelectScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.MouseSettingsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.OnlineOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.OptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.SoundOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.UnsupportedGraphicsWarningScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.options.VideoSettingsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.OutOfMemoryScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.packs.PackSelectionScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.PauseScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.PresetFlatWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.ConfirmLinkScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.PrivacyConfirmLinkScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.ProgressScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.RecoverWorldDataScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen$DiscardReportWarningScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.ChatReportScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.ChatSelectionScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.NameReportScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.ReportPlayerScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.ReportReasonSelectionScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.reporting.SkinReportScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.social.SocialInteractionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.telemetry.TelemetryInfoScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.TitleScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.WinScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.WorldOptionsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen$DetailsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.CreateWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.EditWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.ExperimentsScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.FileFixerProgressScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.OptimizeWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.Screen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.SelectWorldScreen",
-      "userOperation": "UNVALIDATED"
-    },
-    {
-      "debugOperation": "UNVALIDATED",
-      "superClass": "net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen",
-      "debugRead": "UNVALIDATED",
-      "userRead": "UNVALIDATED",
-      "class": "net.minecraft.client.gui.screens.worldselection.WorldCreationGameRulesScreen",
-      "userOperation": "UNVALIDATED"
+      "sha256": "efea0750e86ab6f906d1958db896bf7330a3e5aec23ead9429b9c86137547249",
+      "path": ".gradle/loom-cache/minecraftMaven/net/minecraft/minecraft-common-7e9a32a5b8/26.3/minecraft-common-7e9a32a5b8-26.3.jar"
     }
   ],
-  "method": "named_class_inheritance_inventory"
+  "generatedAt": "2026-10-16T06:05:14.0984616Z",
+  "method": "named_class_inheritance_inventory",
+  "concreteScreenCount": 119,
+  "screens": [
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "com.mojang.realmsclient.gui.screens.configuration.RealmsPreferredRegionSelectionScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.components.PopupScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.AccessibilityOnboardingScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.achievement.StatsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.advancements.AdvancementsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.AlertScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.BackupConfirmScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ChatScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
+      "class": "net.minecraft.client.gui.screens.ConfirmLinkScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ConfirmScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ConnectScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.CreateBuffetWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.CreateFlatWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.CreditsAndAttributionScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.DatapackLoadFailureScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.DeathScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
+      "class": "net.minecraft.client.gui.screens.DeathScreen$TitleConfirmScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.debug.DebugOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
+      "class": "net.minecraft.client.gui.screens.dialog.DialogListDialogScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
+      "class": "net.minecraft.client.gui.screens.dialog.DialogScreen$WarningScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
+      "class": "net.minecraft.client.gui.screens.dialog.MultiButtonDialogScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.dialog.ButtonListDialogScreen",
+      "class": "net.minecraft.client.gui.screens.dialog.ServerLinksDialogScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.dialog.DialogScreen",
+      "class": "net.minecraft.client.gui.screens.dialog.SimpleDialogScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.dialog.WaitingForResponseScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.DirectJoinServerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.DisconnectedScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ErrorScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.FileFixerAbortedScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ConfirmScreen",
+      "class": "net.minecraft.client.gui.screens.friends.FriendsListConfirmScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.friends.FriendsOverlayScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.GenericMessageScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.GenericWaitingScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ChatScreen",
+      "class": "net.minecraft.client.gui.screens.InBedChatScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.ItemCombinerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.AnvilScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.BeaconScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.BlastFurnaceScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.BookEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.BookSignScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.BookViewScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.BrewingStandScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.CartographyTableScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.CommandBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.CrafterScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.CraftingScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.DispenserScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.EnchantmentScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.FurnaceScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.GrindstoneScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.HangingSignEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.HopperScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractMountInventoryScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.HorseInventoryScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.InventoryScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.JigsawBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.BookViewScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.LecternScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.LoomScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.MerchantScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractCommandBlockEditScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.MinecartCommandBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractMountInventoryScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.NautilusInventoryScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.SignEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.ItemCombinerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.SmithingScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.SmokerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.inventory.AbstractContainerScreen",
+      "class": "net.minecraft.client.gui.screens.inventory.StonecutterScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.StructureBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.TestBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.inventory.TestInstanceBlockEditScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.LevelLoadingScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ManageServerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
+      "class": "net.minecraft.client.gui.screens.multiplayer.CodeOfConductScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.multiplayer.RestrictionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
+      "class": "net.minecraft.client.gui.screens.multiplayer.SafetyScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.multiplayer.ServerReconfigScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.NoticeWithLinkScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.AccessibilityOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.ChatOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.controls.ControlsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.controls.KeyBindsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.FontOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen",
+      "class": "net.minecraft.client.gui.screens.options.InWorldGameRulesScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.LanguageSelectScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.MouseSettingsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.OnlineOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.options.OptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.SkinCustomizationScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.SoundOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.options.UnsupportedGraphicsWarningScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.options.OptionsSubScreen",
+      "class": "net.minecraft.client.gui.screens.options.VideoSettingsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.OutOfMemoryScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.packs.PackSelectionScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.PauseScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.PresetFlatWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.ConfirmLinkScreen",
+      "class": "net.minecraft.client.gui.screens.PrivacyConfirmLinkScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.ProgressScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.RecoverWorldDataScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.multiplayer.WarningScreen",
+      "class": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen$DiscardReportWarningScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
+      "class": "net.minecraft.client.gui.screens.reporting.ChatReportScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.reporting.ChatSelectionScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
+      "class": "net.minecraft.client.gui.screens.reporting.NameReportScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.reporting.ReportPlayerScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.reporting.ReportReasonSelectionScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.reporting.AbstractReportScreen",
+      "class": "net.minecraft.client.gui.screens.reporting.SkinReportScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.social.SocialInteractionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.telemetry.TelemetryInfoScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.TitleScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.WinScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.WorldOptionsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.ConfirmExperimentalFeaturesScreen$DetailsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.CreateWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.EditWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.ExperimentsScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.FileFixerProgressScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.OptimizeWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.Screen",
+      "class": "net.minecraft.client.gui.screens.worldselection.SelectWorldScreen",
+      "userRead": "UNVALIDATED"
+    },
+    {
+      "debugRead": "UNVALIDATED",
+      "debugOperation": "UNVALIDATED",
+      "userOperation": "UNVALIDATED",
+      "superClass": "net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen",
+      "class": "net.minecraft.client.gui.screens.worldselection.WorldCreationGameRulesScreen",
+      "userRead": "UNVALIDATED"
+    }
+  ]
 }

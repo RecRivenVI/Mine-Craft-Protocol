@@ -25,7 +25,7 @@ public abstract class EffectIconRenderMixin implements UiRenderedIcons.Source {
                 client.getWindow().getGuiScaledHeight());
     }
 
-    @Inject(method = "lambda$renderEffects$0", at = @At("RETURN"), remap = false)
+    @Inject(method = "lambda$renderEffects$0", at = @At("RETURN"))
     private static void minecraftProtocolProbe$observed(
             GuiGraphics graphics,
             float alpha,

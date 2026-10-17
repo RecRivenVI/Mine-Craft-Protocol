@@ -14,4 +14,4 @@
 *.mca binary
 
 # 验证工具写入的结果与证据保持原样，不转换换行符（C-09）。
-validations/*/result/** -text
+validations/*/result/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

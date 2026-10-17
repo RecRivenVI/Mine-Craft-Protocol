@@ -14,12 +14,21 @@ pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-Vanill
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -All -DebugUi
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario editors
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-vitals
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario pointer
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario special-menus
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-toast
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Read-VanillaUiCatalog.ps1 -Target 26.3-neoforge
 ```
 
 首次由工具经标准接口创建夹具并在正常退出后保存基线；以后只恢复该基线，不覆写它。
+special-menus 为独立专项：讲台翻页/取书、马鞍往返和驴胸箱货物往返均走正常语义输入。
+有自动合成器的版本另检查禁用/启用空格、菜单版本变化及旧版本拒绝；1.20.1的原生构建中没有CrafterMenu/Screen，不伪造该用例。
+前置状态只由自有固定副本中的诊断命令准备，Act 不调用菜单业务方法、不手写UI坐标；不把专项等同全部原版UI完成。
 游戏操作、收尾、复制和结果均由工具执行；默认一次一个 Target。
-用户明确允许并行批测时可用 All；五端分别使用 28591–28595、独立副本和 token。
+用户明确允许并行批测时可用 All；五端使用独立副本、token 与 OS 自动分配的 Runtime 端口，按实例发现并固定启动身份。
+仅显式指定非零 RuntimePort 时使用连续的五端口区间，启动前检查占用，不按历史示例端口连接其他实例。
 每端最大堆为 4 GiB、初始堆为 1 GiB；启动后用该 Java 的 jcmd 核对实际最大堆，
 五个客户端全部达到标题页后才同时放行。该限制不包含堆外/GPU 内存和 Gradle 进程。
 All 不支持 KeepClient，不新建基线；先单端准备基线。批次结束检查所有自有客户端与端口释放。
@@ -29,15 +38,53 @@ All 不支持 KeepClient，不新建基线；先单端准备基线。批次结�
 窗口缩为 0×0 或 Screen 被外部操作替换时，原有目标失效保护应拒绝输入，不能绕过守卫继续计为 PASS。
 受干扰批次记为失败；恢复窗口后经接口正常退出，再从固定副本完整重跑，不拼接不同批次的检查结果。
 DebugRead 仅为该测试子进程显式配置 debug、debug.ui.read，不授予 debug.write、Arm 或更多世界修改权限。
-本矩阵需要 DebugUi：另外显式授予 debug.write、debug.ui，测试自己申请/解除仅 UI session 的 Arm。
-不隐式增加其他 Debug namespace；READ 类别消费者仍可只用 DebugRead，不能借此执行 UI mutation。
+本矩阵需要 DebugUi：另外显式授予 debug.write、debug.ui 与仅用于夹具同步的 debug.world.read，测试自己申请/解除仅 UI session 的 Arm。
+告示牌/进度夹具的服务器 tick 屏障先释放输入租约，在 READ 下显式读取 DEBUG，结束后检查人工撤销 latch 再申请接管。
+不授予世界修改 namespace；READ 类别消费者仍可只用 DebugRead，不能借此执行 UI mutation。
+DebugUi另显式授予fixture，仅用于既有诊断Screen准备probe本地Toast夹具，不扩大产品默认scope或将Fixture算为正常玩法。
+ui-debug-toast固定输出`<target>-ui-debug-toast.json`，覆盖SystemToast双字段reset、TutorialToast显示进度与原生单向hide。
+各端7项同PID/Target/启动时间窗的实际Loader完整样式/尾部/预算守卫，以及Native类型/值/旧版本拒绝和零输入，
+结合真实MCP DEBUG修改/批次恢复与网页USER私有字段隔离；通知移除后等待实际owner消失，再取新下标目标，不重放旧条件。
+Forge没有SystemToast.forceHide，只验证明确拒绝；probe夹具通过自己的结束按钮恢复正常计时，不作为产品隐藏PASS。
+固定副本和正常退出/端点删除同样必须通过；这一专项不替代完整UI、所有Toast呈现或完整领域验收。
 测试验证 READ 两类、TAKEOVER 仅 USER、OPERATE 仅 DEBUG，并检查拒绝没有输入副作用。
+pointer 为独立专项，不代表 all：验证窗口状态、原生语言列表/创造物品栏滚动条、
+语义 ui.drag 将一叠石头真实分到九个背包槽位、余量存入及正常退出；不使用截图或手写落点。
+物品由诊断命令准备，Act 走原生玩家输入，结果保留两类来源；core 与各端原生适配均纳入源码哈希。
 连续经原生页面进入/退出语言列表，实际跨越超过 2048 个分配身份的范围，
 核对未改变页面的按钮 nodeId 在反复读取、resolve 与真实点击之间稳定；不重试旧目标或改用坐标。
 共享单元测试另外覆盖表满时当前整棵树、对象引用而非 equals、逐项淘汰及编号不复用。
 五种 UI typed mutation 检查旧 revision、值前置条件、错误类型和边界；隐藏控件恢复，编辑内容通过 Cancel 丢弃。
+ui-debug专项只运行标题、五类既有setter、语言列表和世界名称草稿；不进入世界或代替完整UI矩阵。
+ui-debug-editors为M-03b参考端增量：固定世界中书本页/标题、普通与悬挂告示牌四行分别执行typed文本修改、
+错误类型/值/原生宽度/旧版本拒绝、焦点及完整草稿恢复，且每次确认OPERATE、DEBUG证据和零玩家输入。
+五端各6项/78份应用或拒绝样本、20次实际应用/恢复及清理均通过；逐文件核对源码工具哈希。
+不将新源码计入3d6e3fca已发布快照或旧五端结果。
+ui-debug-consumers单独验证五类setter及新增编辑器的真实MCP DEBUG mutate/batch恢复、Arm/值/旧版本拒绝及USER读取隔离，
+再通过MCP/隔离网页的真实USER键入恢复原值。网页仍只发布USER图；OPERATE时拒绝快照，不静默改成DEBUG或取得Lease。
+当前五端各10项/56份Native样本/26条消费者结果、逐文件源码绑定和正常退出清理通过；不是全部原版UI或最终制品验收。
+旧两端书名的空值替换使用声明的原生退格路径，26.x使用全选；Native/MCP/网页均核对实际清空和恢复。
+Operation的get/wait与Wait/Assert均验证USER拒绝，诊断读取仍可用；取消只返回生命周期。
+缺少独立读权限、混合领域与异步取消/模式发布的拒绝另由真实HTTP单测验证；网页不提供DEBUG编辑功能。
+
+```powershell
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-consumers
+```
+
+```powershell
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-editors
+```
+
+该增量固定写入`<target>-ui-debug-editors.json`；书本/告示牌修改的是原生编辑草稿，可能在原生关闭流程提交，
+必须恢复后正常保存/重开核对；不作为任意NBT或存档写入，不产生GAME_ROUTED证据。
+结果固定为`<target>-ui-debug.json`。uiDebugSamples逐项记录原生应用/拒绝、资源版本和零玩家输入；
+拒绝后重新读取实际节点，确认版本和输入序号未变化。隐藏/启用、文字、列表和滑块均显式恢复；
+调试Arm、模式、版本/值负例及错误原生类型不通过重放或坐标回退。取消/到期的owner许可另由Java并发测试验证。
 滑块通过独立 UI Arm 修改原生灵敏度设置，核对文案、诊断证据、零输入与旧版本拒绝，最终恢复原值。
 HUD 标题/副标题/动作栏与真实 Advancement Toast 的文本只通过接口判断，非截图验收。
+固定副本保留原版movement教学状态；通过真实跳跃输入和相对转向完成教学，读取实际clientTick推进、
+可见TutorialToast文本及自然隐藏，held input清零后才继续其他Toast检查。不直接隐藏通知、不改options或不可变基准。
+这同时是TutorialToast的USER呈现专项，不把截图或固定等待时间当作完成依据。
 Toast 专项额外触发原版多行进度和单条配方解锁，检查标题/名称阶段、不泄露待显示名称、F1 隐藏与自然结束。
 Fabric 同一副本另启动只读 MCP stdio 和随机本机端口的临时网页服务，分别读取真实 RecipeToast，
 验证 label、textPhase、textSupported、无动作及无 debugLabel；消费者不取得 Lease，关闭后不影响主测试任务或用户网站。
@@ -61,13 +108,16 @@ Fabric 另用真实 MCP 和随机端口网页读取稳定效果图标，保留�
 最终取消整个创建草稿并比较存档身份列表。它不验收所有预设、游戏规则或数据包组合。
 多人服务器列表先断言固定副本没有用户服务器，再通过原生表单添加两条 loopback 记录；
 悬停后操作排序图标，确认旧排序目标被拒绝，编辑名称、取消删除、确认清理及取消直连。
-地址使用 Runtime 端口加 100，启动前拒绝已占用端口；原版会尝试本机状态探测，测试不点击连接。
+地址使用本验证自己绑定的随机loopback端口，保持假服务器的所有权；原版会尝试本机状态探测，测试不点击连接，不探测不属于本次验证的服务。
 这些正常 GUI 操作只修改可丢弃实例的服务器列表，不连接第三方服务、不证明联机或认证成功。
 自绘卷轴新增创造背包上下拖动/搜索禁用/标签隐藏、织布机图案、切石机配方、12 条固定交易的
 语义拖动与滚动后重新选择，拒绝已滚出视口的旧目标。1.20.1 石头配方不足 13 项，仅检查禁用
 卷轴与无动作；其余四端用凝灰岩检查启用拖动，不将禁用分支冒充滚动 PASS。
 较长矩阵在无 held input 的案例边界释放并新建有界任务，保留 Runtime 原有 300 秒任务上限；
+显式UI、命令、按键及案例边界均维护自己任务的60秒心跳TTL，不靠频繁点击维持连续诊断命令。
 人工撤销会拒绝继续，不用延长产品权限预算或清除撤销状态来完成测试。
+每次自动acquire（含Debug恢复和退出清理）先读取新鲜控制状态，拒绝manual latch并绑定该modeVersion；
+status与acquire之间发生撤销时由Runtime原子拒绝旧版本，不能自动清除重新同意要求。
 编辑器增量验证多行/中文/追加文字、书本翻页后旧目标拒绝、签名后从服务器返回的只读内容，
 普通与悬挂告示牌四行乱序编辑、保存后重开及旧编辑器拒绝，并通过生存背包的语义槽位完成 2×2 合成取物。
 挂牌重开使用无遮挡的正面站位，等待客户端位置稳定；不把放置时朝上的命中方向当作重开牌面。
@@ -77,7 +127,7 @@ Fabric 另在当前副本交接控制权给真实 MCP stdio 和随机端口网�
 editorSamples 记录六条消费者结果，相关工具和界面目录纳入源码哈希。
 Scenario editors 只执行七项编辑器相关流程，结果单独写入 `<target>-editors.json`；
 不能用于 All 批次，也不会覆盖完整 `<target>.json`，不能将定向通过冒充全矩阵通过。
-Scenario hud 同样只执行十二项定向流程，结果为 `<target>-hud.json`，不能用于 All 或覆盖完整结果。
+Scenario hud 只执行定向呈现流程，结果为 `<target>-hud.json`，不能用于 All 或覆盖完整结果。
 Scenario spectator 执行标题、固定世界准备、旁观菜单和正常保存退出四项流程，
 结果为 `<target>-spectator.json`，不能用于 All 或覆盖完整结果。
 旁观菜单不是 Screen：通过语义中键打开、热栏键选中、重复点击零输入、旧节点拒绝、F1 隐藏、
@@ -106,6 +156,37 @@ node components/validation_tools/conformance-vanilla_ui/task/run-ui-category-con
 不申请 Lease、不操作玩家，收尾解除 Arm 并回 READ；结果固定为 ui-category-consumers-26.3-fabric.json。
 
 ## 通过标准
+
+ui-debug-hud专项执行标题、固定世界准备、原生HUD标题/副标题/动作栏文字修改与恢复、消费者隔离及保存退出。
+验证配置显式加载自己的probe Mixin，与既有世界验证接线一致；Forge 1.20.1不能依靠NeoForge/Fabric元数据自动发现该配置，不改变日常或发行JAR的运行参数。
+显式DebugUi授权不可省略；原生Component完整内容/样式/null/前缀尾段与预算的10项断言在真实Loader的probe中执行，结果必须绑定本次PID、Target与时间，不将普通JUnit或旧文件冒充原生通过。
+三种字段复用ui.text.set和UI Arm/版本守卫；Native输入增量为0，真实MCP修改/批次恢复和网页USER隔离均须各自产生样本。
+恢复只检查文本，原生消息生命周期及富文本格式不保证回滚；动作栏可自然过期，USER不能因DEBUG仍有字段而看到过期文字。
+固定结果为`<target>-ui-debug-hud.json`及`<target>-hud-content-probe.json`，不覆盖完整矩阵，probe不进入最终产品JAR。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-hud
+```
+
+ui-debug-scroll专项只执行标题、固定世界准备、创造/织布机/切石机/交易自绘卷轴及保存退出。
+显式DebugUi授权不可省略；每类都必须有真实Native修改/恢复样本，不能以场景被过滤或未授权而记通过。
+验证ui.scroll.set在OPERATE、UI Arm和新鲜Resource Version下修改原生本地滚动位置，拒绝错误值/旧版本，输入增量为0、不改变配方/交易选择或所持物品。
+无可滚动范围时只允许0并拒绝移动，不能把该分支当成成功滚动；结果固定写入`<target>-ui-debug-scroll.json`，不覆盖完整矩阵。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-scroll
+```
+
+world-selection专项从全新世界选择页确认固定世界未选中，再以nodeId语义double_click进入，读USER玩家可用、held为0，正常保存退出。
+结果为`<target>-world-selection.json`，不覆盖全套；首次点击自身选中不是允许无条件更新目标身份、内容、位置或Screen的理由。
+从仓库根目录运行：
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -Scenario world-selection
+```
+
+hud-vitals专项检查原生生命图标、小数伤害后的图标组合、护甲/饥饿、毒/凋零/吸收、氧气消耗、坐骑互斥及隐藏边界。
+真实MCP与隔离网页在READ且无Lease下读取相同有界图标，不产生输入或公开原始内部数值；结果写入各Target的hud-vitals固定结果，不覆盖完整UI矩阵。
 
 执行结果固定写入本项 result，绑定当次源码哈希和夹具哈希。
 实际执行的断言全部通过，输入归零、Lease 释放，未执行界面明确列出，不宣称覆盖全部原版 UI。

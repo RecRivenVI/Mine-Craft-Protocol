@@ -8,6 +8,8 @@ import java.util.concurrent.CompletableFuture;
 public interface ProbeService {
     default void attachControlSession(AgentControlSession session) {}
 
+    default void attachPlayerCommandGate(PlayerCommandGate gate) {}
+
     default void controlPresenceChanged(AgentControlSession.Snapshot snapshot) {}
 
     CompletableFuture<JsonObject> session();
@@ -60,13 +62,59 @@ public interface ProbeService {
                 new UnsupportedOperationException("Character input unavailable"));
     }
 
-    CompletableFuture<JsonObject> playerCommand(String command);
+    CompletableFuture<JsonObject> playerCommand(String command, String phase);
 
     CompletableFuture<JsonObject> playerState();
 
     CompletableFuture<JsonObject> blockState(int x, int y, int z);
 
     CompletableFuture<JsonObject> entities(double radius);
+
+    default CompletableFuture<JsonObject> worldAimDelta(
+            String targetRef, JsonObject guard, double dx, double dy) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_ACTION_UNAVAILABLE", 409, "Guarded world aiming unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> worldActionFrame(
+            String targetRef, String action, JsonObject guard, boolean press) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_ACTION_UNAVAILABLE", 409, "Semantic world input unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> worldActionFrame(
+            String targetRef, String action, JsonObject guard, boolean press, JsonObject options) {
+        return worldActionFrame(targetRef, action, guard, press);
+    }
+
+    default CompletableFuture<JsonObject> worldActionProgress(
+            String targetRef, JsonObject guard, boolean released) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_ACTION_UNAVAILABLE", 409, "World gesture monitoring unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> worldActionEnd() {
+        return CompletableFuture.completedFuture(new JsonObject());
+    }
+
+    default CompletableFuture<JsonObject> clientWorldRead(String kind, JsonObject query) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_USER_MODEL_UNAVAILABLE",
+                        409,
+                        "Bounded client world model unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> worldPresentation() {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_USER_PERCEPTION_UNAVAILABLE",
+                        409,
+                        "Native world presentation is unavailable"));
+    }
 
     CompletableFuture<JsonObject> serverPlayerState();
 

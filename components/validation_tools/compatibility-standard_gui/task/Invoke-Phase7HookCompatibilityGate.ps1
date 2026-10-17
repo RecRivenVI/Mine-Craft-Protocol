@@ -25,17 +25,33 @@ $results = foreach ($target in $targets) {
     $combined = $texts -join "`n"
 
     Assert-True ($combined -notmatch '@Overwrite') "$($target.Name) must not use Overwrite"
-    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java', 'SDLEventHandlerMixin.java')
-    $observationCode = ($files | Where-Object Name -notin $operatorFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java', 'SDLEventHandlerMixin.java', 'WorldGestureMixin.java', 'PlayerCommandMixin.java', 'ConnectionMixin.java')
+    $drawFiles = @('HudVitalIconsMixin.java')
+    if ($target.Name -eq '1.20.1-forge') { $drawFiles += 'ForgeVitalIconsMixin.java' }
+    $drawCode = ($files | Where-Object Name -in $drawFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    Assert-True (([regex]::Matches($drawCode, '@Redirect')).Count -eq 5 -and $drawCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Overwrite|@Modify') "$($target.Name) exact native HUD draw delegates cannot cancel or modify arguments"
+    $drawTest = Join-Path $repositoryRoot "versions/$($target.Name)/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/HudDrawDelegationTest.java"
+    Assert-True (Test-Path -LiteralPath $drawTest) "$($target.Name) must check compiled HUD handlers for one unchanged original draw before observation"
+    $observationCode = ($files | Where-Object { $_.Name -notin $operatorFiles -and $_.Name -notin $drawFiles } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
     Assert-True ($observationCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect') "$($target.Name) observation Hooks must not change control flow"
     Assert-True ($combined -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
-    $expectedCancellable=if($target.Name.StartsWith('26.3-')){17}elseif($target.Name.StartsWith('26.')){14}else{12}
-    $expectedRedirect=if($target.Name.StartsWith('26.3-')){4}else{5}
+    $expectedCancellable=if($target.Name.StartsWith('26.3-')){25}elseif($target.Name.StartsWith('26.')){22}else{20}
+    $expectedRedirect=if($target.Name.StartsWith('26.3-')){9}else{10}
     Assert-True ($cancellableCount -eq $expectedCancellable -and $redirectCount -eq $expectedRedirect) "$($target.Name) must match exclusive input/polling/warp guards and native-ingress/icon/keymapping redirects"
     $runtime=(Get-ChildItem -LiteralPath (Join-Path $mixinDirectory '../runtime') -Filter '*ProbeRuntime.java'|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw}) -join "`n"
+    $worldHook=Get-Content -LiteralPath (Join-Path $mixinDirectory 'WorldGestureMixin.java') -Raw
+    Assert-True ($worldHook -match '@Mixin\(MultiPlayerGameMode.class\)' -and $worldHook -match 'allowSemanticWorldInput' -and $worldHook -notmatch '@Redirect|@Overwrite') "$($target.Name) world guards must remain native call admission, not replacement actions"
+    $commandEntry=Get-Content -LiteralPath (Join-Path $mixinDirectory 'PlayerCommandMixin.java') -Raw
+    $commandPacket=Get-Content -LiteralPath (Join-Path $mixinDirectory 'ConnectionMixin.java') -Raw
+    Assert-True (([regex]::Matches($commandEntry,'cancellable\s*=\s*true')).Count-eq2-and$commandEntry-match'allowPlayerCommand'-and$commandEntry-notmatch'@Redirect|@Overwrite') "$($target.Name) command entry/link hooks must only admit native submission"
+    Assert-True (([regex]::Matches($commandPacket,'cancellable\s*=\s*true')).Count-eq1-and$commandPacket-match'allowPlayerCommandPacket'-and$commandPacket-notmatch'@Redirect|@Overwrite') "$($target.Name) final packet guard must only admit native command packets"
+    $commandAdapter=Get-Content -LiteralPath (Join-Path $mixinDirectory '../runtime/NativePlayerCommands.java') -Raw
+    Assert-True ($runtime-match'ServerboundChatCommandPacket'-and$runtime-match'NativePlayerCommands.configuration\(packet\)'-and$runtime-match'gate.allowConfiguration\('-and$commandAdapter-match'ServerboundSetCommandBlockPacket'-and$commandAdapter-match'ServerboundSetCommandMinecartPacket') "$($target.Name) final typed chat/block/minecart admission must remain in production adapters"
+    Assert-True ($runtime -match 'worldTargeting.holdActive\(\)' -and $runtime -match 'worldTargeting.permit\(kind\)') "$($target.Name) semantic veto must only apply while the Runtime owns a bounded gesture"
     Assert-True ($runtime -match ('"cancellableInjectionCount",\s*'+$cancellableCount+'\)') -and $runtime -match ('"replacementInjectionCount",\s*'+$redirectCount+'\)')) "$($target.Name) production Hook counts must match actual sources"
+    Assert-True ($runtime -match '"passiveDrawDelegationCount",\s*5\)' -and $runtime -match 'operator_control_and_exact_hud_draw_delegation' -and $runtime -match 'passive_draw_observation') "$($target.Name) production manifest must disclose passive draw delegation separately from operator control"
     $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
     $iconApi=if($target.Name.StartsWith('26.3-')){'SDL_SetWindowIcon'}else{'glfwSetWindowIcon'}
     Assert-True ($windowHook -match $iconApi -and $windowHook -match 'onVanillaWindowIcon') "$($target.Name) icon redirect must preserve actual Vanilla pixels"

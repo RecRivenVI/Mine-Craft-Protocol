@@ -9,6 +9,83 @@ import org.junit.jupiter.api.Test;
 
 class UiDataViewTest {
     @Test
+    void completeTextGuardMetadataRemainsDebugOnly() {
+        JsonObject raw =
+                object(
+                        """
+            {"children":[{"nodeId":"text","role":"text_field","visible":true,"value":"published prefix",
+            "textReplaceStrategy":"backspace_from_end","valueComplete":true,
+            "debugTextGuardAvailable":true,"resourceVersion":{"revision":1}}]}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertFalse(user.toString().contains("debugTextGuardAvailable"));
+        assertFalse(user.toString().contains("resourceVersion"));
+        JsonObject field = user.getAsJsonArray("children").get(0).getAsJsonObject();
+        assertEquals("backspace_from_end", field.get("textReplaceStrategy").getAsString());
+        assertTrue(field.get("valueComplete").getAsBoolean());
+        assertEquals(
+                "published prefix",
+                user.getAsJsonArray("children")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("value")
+                        .getAsString());
+        JsonObject debug = UiDataView.tree(raw, UiDataView.Category.DEBUG);
+        assertTrue(
+                debug.getAsJsonArray("children")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("debugTextGuardAvailable")
+                        .getAsBoolean());
+    }
+
+    @Test
+    void visibleDisabledCrafterCellRemainsActionableWithoutRevealingHiddenCells() {
+        JsonObject raw =
+                object(
+                        """
+            {"children":[{"nodeId":"cell","role":"slot","slot":0,"visible":true,
+            "active":true,"slotDisabled":true,"actions":["hover","click"]},
+            {"nodeId":"hidden","role":"slot","visible":false,"slotDisabled":true}]}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertEquals(1, user.getAsJsonArray("children").size());
+        JsonObject cell = user.getAsJsonArray("children").get(0).getAsJsonObject();
+        assertTrue(cell.get("slotDisabled").getAsBoolean());
+        assertTrue(cell.get("active").getAsBoolean());
+        assertTrue(
+                cell.getAsJsonArray("actions")
+                        .contains(new com.google.gson.JsonPrimitive("click")));
+        assertFalse(user.toString().contains("hidden"));
+    }
+
+    @Test
+    void userItemRevisionsAreOpaqueAndPrivateCrossSlotFingerprintsNeverEscape() {
+        JsonObject raw =
+                object(
+                        """
+            {"children":[{"nodeId":"slot","role":"slot","visible":true,"active":true,
+            "contentRevision":"opaque-context-token","contentGuardAvailable":true,"contentFingerprint":"PRIVATE"}],
+            "carriedStack":{"id":"minecraft:stone","count":8,"empty":false,"contentRevision":"opaque-carried-token",
+            "contentGuardAvailable":true,"contentFingerprint":"PRIVATE"}}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertFalse(user.toString().contains("PRIVATE"));
+        assertFalse(user.toString().contains("contentFingerprint"));
+        assertEquals(
+                "opaque-context-token",
+                user.getAsJsonArray("children")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("contentRevision")
+                        .getAsString());
+        JsonObject action = new JsonObject();
+        action.add("resolvedNode", raw.getAsJsonArray("children").get(0).deepCopy());
+        assertFalse(UiDataView.actionResult(action).toString().contains("PRIVATE"));
+        assertTrue(UiDataView.tree(raw, UiDataView.Category.DEBUG).toString().contains("PRIVATE"));
+    }
+
+    @Test
     void spectatorUserProjectionKeepsNativeShortcutsButHidesUnselectedInternalNames() {
         JsonObject raw =
                 object(
@@ -248,5 +325,21 @@ class UiDataViewTest {
         assertTrue(UiDataView.allowsRead("OPERATE", UiDataView.Category.DEBUG));
         assertFalse(UiDataView.allowsRead("OPERATE", UiDataView.Category.USER));
         assertFalse(UiDataView.allowsRead("unknown", UiDataView.Category.USER));
+    }
+
+    @Test
+    void hudSamplingStatusAndVisibleGlyphMetadataSurviveWithoutPrivateStats() {
+        var captured =
+                object(
+                        "{\"presentation\":{\"hudIconSampleStatus\":\"CURRENT\",\"rawHealth\":13.8,\"children\":[{\"visible\":true,\"active\":false,\"role\":\"status_icon\",\"controlKey\":\"hud.vitals.health.0\",\"resourceId\":\"minecraft:hud/heart/full\",\"health\":13.8,\"entryIndex\":0,\"actions\":[]},{\"visible\":false,\"label\":\"hidden glyph\"}]}}");
+        var view =
+                UiDataView.tree(captured, UiDataView.Category.USER).getAsJsonObject("presentation");
+        assertEquals("CURRENT", view.get("hudIconSampleStatus").getAsString());
+        assertFalse(view.has("rawHealth"));
+        assertEquals(1, view.getAsJsonArray("children").size());
+        var icon = view.getAsJsonArray("children").get(0).getAsJsonObject();
+        assertEquals("minecraft:hud/heart/full", icon.get("resourceId").getAsString());
+        assertEquals(0, icon.get("entryIndex").getAsInt());
+        assertFalse(icon.has("health"));
     }
 }

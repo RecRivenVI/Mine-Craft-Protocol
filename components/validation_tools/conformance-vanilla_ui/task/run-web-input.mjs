@@ -3,11 +3,13 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {connectRuntime} from '../../runtime-connection.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..'),target='26.3-fabric';
 const instance=resolve(repo,'validations/conformance-vanilla_ui/instance',target,'client');
 const owner=JSON.parse(await readFile(resolve(instance,'fixture-owner.json'),'utf8'));assert.equal(owner.owner,'Mine-Craft-Protocol vanilla UI conformance');assert.equal(owner.target,target);
-const native='http://127.0.0.1:28591',site=process.env.MCP_WEB_UI_URL??'http://127.0.0.1:4317';
+const connection=await connectRuntime(instance,target);
+const native=connection.base,site=process.env.MCP_WEB_UI_URL??'http://127.0.0.1:4317';
 const siteUrl=new URL(site);assert.equal(siteUrl.protocol,'http:');assert.equal(siteUrl.hostname,'127.0.0.1');assert.equal(siteUrl.pathname,'/');
 const bootstrap=await(await fetch(site+'/api/bootstrap')).json();
 let snapshot,sequence=0,failed,failureTree;
@@ -23,7 +25,7 @@ async function key(key){const r=await web('key',{key});snapshot=r.snapshot;}
 async function check(name,fn){await fn();checks.push(name);console.log('PASS web '+name);}
 async function title(){for(let i=0;i<10;i++){await refresh();if(snapshot.tree.screenClass?.endsWith('TitleScreen'))return;if(!snapshot.tree.screenClass){await key('Escape');continue;}const quit=nodes(snapshot.tree).find(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey));if(quit){await click(quit);await wait(s=>s.tree.screenClass.endsWith('TitleScreen'),'save & quit');return;}await key('Escape');}throw new Error('Title cleanup failed');}
 try{
- const s=await refresh();assert.equal(s.runtimeUrl,native);assert.equal(s.session.target,target);assert.equal(s.control.mode,'READ');assert(!s.control.reconsentRequired);assert(s.tree.screenClass.endsWith('TitleScreen'));
+ const s=await refresh();assert.equal(s.runtimeUrl,native);assert.equal(s.session.target,target);assert.equal(s.session.runtimeConnection.runtimeInstanceId,connection.instanceId);assert.equal(s.control.mode,'READ');assert(!s.control.reconsentRequired);assert(s.tree.screenClass.endsWith('TitleScreen'));
  await check('READ never injects player input',()=>assert.rejects(web('input',{type:'key',key:69,action:1,sequence:1,inputFrameKey:s.inputFrameKey}),e=>e.code==='TAKEOVER_REQUIRED'));
  snapshot=await web('acquire',{});sequence=snapshot.inputSequence;
  await check('screen-changing click and release stay in their original gesture',async()=>{

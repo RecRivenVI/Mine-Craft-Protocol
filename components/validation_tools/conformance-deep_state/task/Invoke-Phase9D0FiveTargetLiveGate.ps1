@@ -7,6 +7,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+. (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
+$runtimeRunnerLock=$null
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "Phase 9D-0 five-target live gate failed: $Message" }
@@ -22,11 +24,11 @@ function Invoke-Json([string]$Base, [string]$Method, [string]$Path, [hashtable]$
 }
 
 $runs = @(
-    @{ Target='1.20.1-forge'; Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\1.20.1-forge\client'; Port=25581 },
-    @{ Target='1.21.1-neoforge'; Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client'; Port=25581 },
-    @{ Target='26.1.2-neoforge'; Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client'; Port=25582 },
-    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.3-neoforge\client'; Port=25582 },
-    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.3-fabric\client'; Port=25583 }
+    @{ Target='1.20.1-forge'; Task=':version:1.20.1-forge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\1.20.1-forge\client'; Port=$null },
+    @{ Target='1.21.1-neoforge'; Task=':version:1.21.1-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\1.21.1-neoforge\client'; Port=$null },
+    @{ Target='26.1.2-neoforge'; Task=':version:26.1.2-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.1.2-neoforge\client'; Port=$null },
+    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.3-neoforge\client'; Port=$null },
+    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationConformanceDeepStateClient'; Dir='validations\conformance-deep_state\instance\26.3-fabric\client'; Port=$null }
 )
 if ($OnlyTargets.Count -gt 0) { $runs = @($runs | Where-Object { $_.Target -in $OnlyTargets }) }
 
@@ -35,8 +37,8 @@ try {
     $env:MCP_RUNTIME_SCOPES = 'read,ui,input,capture,event,diagnostics,control,command,fixture,debug,storage.read,debug.write,debug.player,debug.entity,debug.world,debug.block_entity,debug.menu,debug.provider,debug.chunk,debug.client,debug.network'
     $results = foreach ($run in $runs) {
         Write-Host "[Phase9D-0] starting $($run.Target)"
-        Assert-True (-not [bool](Get-NetTCPConnection -LocalPort $run.Port -State Listen -ErrorAction SilentlyContinue)) "port $($run.Port) is occupied"
         $directory = (Resolve-Path -LiteralPath $run.Dir).Path
+        if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};$runtimeRunnerLock=Enter-RuntimeRunner $directory
         $arguments = @($run.Task, '--no-daemon')
         if ($Offline) { $arguments += '--offline' }
         $process = Start-Process '.\gradlew.bat' -ArgumentList $arguments -WorkingDirectory $root `
@@ -46,15 +48,9 @@ try {
         $tokenFile = Join-Path $directory 'minecraft-protocol\token'
         $deadline = (Get-Date).AddMinutes(6)
         $session = $null
-        do {
-            if (Test-Path -LiteralPath $tokenFile) {
-                $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim()
-                $auth = @{ Authorization = "Bearer $token" }
-                try { $session = Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/session" -Headers $auth -TimeoutSec 2 } catch { $session = $null }
-            }
-            if ($session -and $session.target -eq $run.Target -and ($session.inWorld -or $session.screenClass -match 'TitleScreen')) { break }
-            Start-Sleep -Seconds 2
-        } while ((Get-Date) -lt $deadline)
+        $connection=Wait-RuntimeConnection $directory $run.Target $process.StartTime.ToUniversalTime() $process
+        $run.Port=$connection.Port;$auth=$connection.Headers;$token=(Get-Content $tokenFile -Raw).Trim()
+        $session=Invoke-RestMethod "$($connection.BaseUri)/v0/session" -Headers $auth -TimeoutSec 3
         Assert-True ($session -and $session.target -eq $run.Target) "$($run.Target) Runtime not ready"
         $base = "http://127.0.0.1:$($run.Port)"
         $v1 = & '.\components\validation_tools\regression-v1_release\task\Invoke-Phase8TargetSmoke.ps1' -BaseUri $base -TokenFile $tokenFile `
@@ -144,4 +140,4 @@ try {
     }
     [pscustomobject]@{ Result = 'PASS'; Targets = $results.Count; Results = $results }
 }
-finally { Pop-Location }
+finally { if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};Pop-Location }

@@ -1,0 +1,11 @@
+[customskinloader-bootstrap]
+version = "15.1"
+description = "用户验收实例的 Custom Skin Loader；不进入产品或纯净自动验证"
+source = "https://modrinth.com/mod/customskinloader/version/yyYvYfZI"
+sha256 = ["c8769a38b3cc1da2a7b2f5827d1a53a24cd1ef6d0784b1eb545569f5882a2ffb"]
+
+[zume]
+version = "1.2.2"
+description = "用户验收实例的 Zume；当前仅有匹配的 1.20.1 Forge 与 1.21.1 NeoForge 发布"
+source = "https://modrinth.com/mod/zume/version/Rh2ImJ86"
+sha256 = ["c33b99e8976dfeb0aeb1afcc2ad8e65c7310532ae5ccc38c75317d672dc95e6f"]

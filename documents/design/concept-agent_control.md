@@ -2,7 +2,7 @@
 
 CURRENT：Round 1 已验收，Rounds 2–4 IMPLEMENTATION COMPLETE；
 Unified Acceptance READY，尚未执行。Wire Protocol v1 NOT FROZEN。
-[执行计划](../project/plan-execution.md)负责交付状态；[Showcase](../../validations/feature-control_ui_showcase/validation.md)
+[当前状态页](../project/status-milestones.md)负责交付状态；[Showcase](../../validations/feature-control_ui_showcase/validation.md)
 仅供反复观察，不等同人工验收。
 
 ## 状态与验收
@@ -15,32 +15,54 @@ Unified Acceptance READY，尚未执行。Wire Protocol v1 NOT FROZEN。
 
 UI 与游戏世界是交互领域，不是互斥的会话状态；READ、TAKEOVER、OPERATE 是模式，
 USER、DEBUG 是数据/操作类别。模式按读取、用户接管、调试操控分层，但不采用自动权限继承。
-UI 已接入类别合同，游戏世界接口尚未按新类别全面改造；两个领域各自设首个里程碑。
-交付状态与推进安排以[执行计划](../project/plan-execution.md)为准。
+UI 与世界 LIVE 读取消费链已接入类别合同，完整操作目录与 Peer 授权仍待闭合；两个领域各自设首个里程碑。
+交付状态以[状态页](../project/status-milestones.md)为准，当前推进步骤见[执行计划](../project/plan-execution.md)；历史另行归档。
 世界的 USER 感知/精度、玩家命令、完整操作目录与五端门禁见[世界控制设计](concept-world_control.md)。
-六个基础世界读取已接入类别，其他世界消费者与完整感知仍未迁移；协议未冻结。
+仅客户端、仅服务端及双端的主体、权限交集和控制台规划见[部署设计](concept-deployment_scenarios.md)；
+它是两个领域的部署维度，不新增模式、类别、输入 Lease 或默认权限。新增部署能力尚未实现。
+世界 LIVE 读取消费者已接入类别；USER 为有界客户端模型而非严格视觉呈现，服务器与内部数据仍为 DEBUG。
+世界语义动作已覆盖代表场景，命令边界按批准目录分类并在发送前拒绝未知效果；完整操作目录与完整里程碑未完成，协议未冻结。
 源码调查保留在[研究记录](../research/investigation-world_control.md)，实际阶段见执行计划。
 
 | 模式 | USER | DEBUG |
 | --- | --- | --- |
-| READ | 用户当前可见内容及通过正常操作已获得的状态 | 独立授权的内部图与状态 |
+| READ | UI 为当前呈现；世界为有界客户端模型 | 独立授权的内部图与状态 |
 | TAKEOVER | 用户可复现的真实输入 | 不允许替代玩家输入 |
 | OPERATE | 不提供玩家模拟路径 | 明确支持的受控调试操作 |
 
-USER 默认不暴露屏幕外列表、被遮挡内容、隐藏祖先的子节点或未知内部字段；
+UI USER 默认不暴露屏幕外列表、被遮挡内容、隐藏祖先的子节点或未知内部字段；
 nodeId、版本、边界与语义键是定位/安全元数据，不是额外游戏情报。
 隐藏信息不能先发给 Companion/网页再隐藏，隔离发生在 Runtime 服务边界。
 当前分类投影是首步基础，不意味着所有 UI 自绘文字、特殊业务或调试写入都已完成。
 DEBUG 读取要求 ui、debug、debug.ui.read，不要求 write scope、Arm 或输入 Lease。
 DEBUG 图受原有节点/深度预算限制，报告 bounded captured UI graph，不宣称游戏全部数据。
 
-UI DEBUG 已提供原生控件 active/visible、EditBox 文本、列表 scrollAmount 和滑块设值五类强类型修改。
+UI DEBUG 提供原生控件 active/visible、原生文本、scrollAmount 和滑块设值五类强类型修改。
+文本包括EditBox、MultiLineEditBox、可编辑书本页/标题及普通/悬挂告示牌四行；新编辑器五端验收进度单独见状态页。
+书本与告示牌只修改当前原生编辑草稿，遵循原生校验；可能在原生关闭流程提交，返回native_editor_draft_may_submit_on_close。
+告示牌使用各自原生行宽限制，修改非当前行后恢复选中行与选择区；不发送玩家输入、不提供任意NBT或文件写入。
+恢复文字不等于恢复隐藏文字格式或回滚服务器事务；原生setter的草稿组件重建等副作用仍需单独核对。
 它们要求 OPERATE、debug/debug.write/debug.ui、有效 Arm 与 expectedResourceVersion；可叠加 expectedValue。
 Arm 使用 DEBUG tree 的 uiContextId 和 namespace=ui，绑定客户端 sessionEpoch，不要求世界已打开，
 也不能混入 worldFingerprint 或世界 namespace。复用现有 Arm、审计、取消与 bounded batch；不新增第二套授权。
 节点 token 绑定 Screen、对象、布局和语义状态；切页、布局或值变化使旧条件失效。
+原生文本控件的DEBUG token另绑定完整本地字符串的有界内容指纹，不只绑定公开的2048字符前缀；指纹不进入USER数据。
+DEBUG节点的debugTextGuardAvailable说明是否完成采样，失败则在修改前返回UI_CONTENT_GUARD_UNAVAILABLE。
+文本expectedValue比较完整原生值，不能用被截断的前缀冒充相等；该守卫不修改GAME_ROUTED输入或指针坐标。
+scrollAmount亦支持创造物品栏、织布机、切石机与交易的原生自绘卷轴；这些分支使用0～1归一化位置，不等于原生列表的像素偏移，
+无滚动范围只允许0，不选择配方或交易、不获取物品。
+ui.text.set亦支持本地HUD标题、副标题与动作栏，版本绑定实际HUD/世界/Component身份及完整原生内容；
+仅调用本地原生消息setter，可能重置消息生命周期、颜色或格式，返回native_hud_plain_text_and_lifetime。
+恢复纯文字不等于恢复计时或富文本；USER仍只含可见文字，隐藏DEBUG字段与完整内容守卫不进入USER，HUD字段不是可点击目标。
 原生文本 responder 可能替换 Screen，此时返回 postMutationContextChanged，after token 为空，不冒充未执行。
 这些调用不发玩家输入、不获取 Lease，证据始终为 DEBUG_PRIVILEGED；不支持任意回调、反射或原始对象写入。
+
+驻留SystemToast另支持ui.toast.reset，显式提供title/message两段纯文字，通过原生reset重排并可能重置生命期；
+TutorialToast在progressable时支持ui.slider.set的0～1显示进度，两类支持ui.toast.hide的单向隐藏请求。
+Forge 1.20.1没有原生SystemToast.forceHide，针对该类型明确拒绝隐藏，教学提示仍有原生hide。
+Toast版本绑定实际manager/实例/对象、完整格式化文字、显示进度及隐藏状态，而非列表下标或自然动画时钟；
+退出/替换的旧目标拒绝。仅DEBUG发布内部值和守卫，USER仍是无动作的当前呈现，排队或未知类型不获得修改入口。
+这些是本地诊断副作用，不表示教学自然完成，不支持复活已移除的Toast、富文本/计时回滚或任意通知源修改。
 
 presentation 提供有限 HUD/Toast 只读内容，与可操作 children 分开。
 USER 仅提供确认可见的标题、副标题、动作栏和完全显示的已支持 Toast；隐藏/排队内容不泄漏。
@@ -150,6 +172,7 @@ Presence、强度和文案以 500 ms 的 cubic-bezier(0,0,0.58,1) 过渡，
 蓝边每 1.5 s 往返一段（完整周期 3 s），曲线 cubic-bezier(0.42,0,0.58,1)，
 不透明度系数 0.76–1.0、宽度系数 0.88–1.0。
 96 显示像素的边缘区域按实际 GUI scale 转换并限制在半屏以内；中心不染色。
+四角使用相邻两边衰减的平滑并集，保持直边原有强度并在连接处连续；每个角像素只提交一次，避免叠色或方形等距线的斜接缝。
 GUI TAKEOVER 显示 24×24 GUI 像素的蓝色发光圆球，明亮本体向外透明衰减；
 偶数尺寸以球心对称，球心即真实输入坐标。真实按钮按下后，圆球在 60 ms 内缩至 70%，
 松开后在 140 ms 内恢复；拖拽保持按下状态，连续点击从当前尺寸平滑续接。

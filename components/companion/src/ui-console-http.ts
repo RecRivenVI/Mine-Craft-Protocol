@@ -66,7 +66,9 @@ export async function startUiConsole(controller: UiConsole, port = 4317) {
     } catch (error) {
       if (response.headersSent) { response.destroy(); return; }
       if (error instanceof RuntimeError) send(error.status, { error: error.code, message: error.message,
-        ...(error.control ? { control: error.control } : {}), ...(error.reconsentRequired ? { reconsentRequired: true, controlState: error.controlState } : {}) });
+        ...(error.control ? { control: error.control } : {}), ...(error.reconsentRequired ? { reconsentRequired: true, controlState: error.controlState } : {}),
+        ...(error.rateLimit ? { retryAfterMillis: error.retryAfterMillis, rateLimit: error.rateLimit } : {}),
+        ...(error.actualHit ? {actualHit:error.actualHit} : {}) });
       else send(500, { error: 'WEB_UI_REQUEST_FAILED', message: '本机网站请求失败；不会重放输入，请刷新查看实例状态' });
     }
   });

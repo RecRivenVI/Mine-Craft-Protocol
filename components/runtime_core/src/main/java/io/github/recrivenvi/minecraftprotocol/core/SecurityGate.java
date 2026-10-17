@@ -1,22 +1,31 @@
 package io.github.recrivenvi.minecraftprotocol.core;
 
+import com.google.gson.JsonObject;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 
 final class SecurityGate {
     static final AttributeKey<String> CONNECTION_ID =
             AttributeKey.valueOf("minecraft-protocol-connection-id");
     private static final int MAX_CONNECTIONS = 32;
     private final String principalId;
-    private final TokenBucket principalRequests = new TokenBucket(240.0, 120.0);
+    private final LongSupplier nanoTime;
+    private final TokenBucket principalRequests;
     private final Map<String, TokenBucket> principalExpensive = new ConcurrentHashMap<>();
     private final Map<String, ConnectionBudget> connections = new ConcurrentHashMap<>();
 
     SecurityGate(String principalId) {
+        this(principalId, System::nanoTime);
+    }
+
+    SecurityGate(String principalId, LongSupplier nanoTime) {
         this.principalId = principalId;
+        this.nanoTime = nanoTime;
+        this.principalRequests = new TokenBucket(240.0, 120.0, nanoTime);
     }
 
     String principalId() {
@@ -32,29 +41,25 @@ final class SecurityGate {
         }
         String created = UUID.randomUUID().toString();
         channel.attr(CONNECTION_ID).set(created);
-        this.connections.put(created, new ConnectionBudget());
+        this.connections.put(created, new ConnectionBudget(this.nanoTime));
         return created;
     }
 
     void admit(Channel channel, String method, String path) {
         String connectionId = this.connectionId(channel);
         ConnectionBudget connection =
-                this.connections.computeIfAbsent(connectionId, ignored -> new ConnectionBudget());
-        if (!this.principalRequests.tryAcquire() || !connection.requests.tryAcquire()) {
-            throw new ProtocolState.ProtocolException(
-                    "RATE_LIMITED", 429, "Request rate budget exceeded");
-        }
+                this.connections.computeIfAbsent(
+                        connectionId, ignored -> new ConnectionBudget(this.nanoTime));
         String category = category(method, path);
+        // Preserve admission order and charging: a later rejection does not refund earlier buckets.
+        this.principalRequests.acquire("principal", "requests", category);
+        connection.requests.acquire("connection", "requests", category);
         TokenBucket principalCategory =
-                this.principalExpensive.computeIfAbsent(category, SecurityGate::bucket);
+                this.principalExpensive.computeIfAbsent(category, this::bucket);
         TokenBucket connectionCategory =
-                connection.expensive.computeIfAbsent(category, SecurityGate::bucket);
-        if (!principalCategory.tryAcquire() || !connectionCategory.tryAcquire()) {
-            throw new ProtocolState.ProtocolException(
-                    "EXPENSIVE_OPERATION_RATE_LIMITED",
-                    429,
-                    "Rate budget exceeded for expensive category: " + category);
-        }
+                connection.expensive.computeIfAbsent(category, this::bucket);
+        principalCategory.acquire("principal", category, category);
+        connectionCategory.acquire("connection", category, category);
     }
 
     void remove(Channel channel) {
@@ -78,44 +83,78 @@ final class SecurityGate {
         return "ordinary";
     }
 
-    private static TokenBucket bucket(String category) {
+    private TokenBucket bucket(String category) {
         return switch (category) {
-            case "artifact" -> new TokenBucket(2.0, 0.2);
-            case "capture" -> new TokenBucket(8.0, 4.0);
-            case "recording" -> new TokenBucket(12.0, 1.0);
-            case "world" -> new TokenBucket(60.0, 30.0);
-            case "debug" -> new TokenBucket(10.0, 2.0);
-            case "pipeline" -> new TokenBucket(8.0, 2.0);
-            case "event" -> new TokenBucket(30.0, 10.0);
-            default -> new TokenBucket(120.0, 60.0);
+            case "artifact" -> new TokenBucket(2.0, 0.2, this.nanoTime);
+            case "capture" -> new TokenBucket(8.0, 4.0, this.nanoTime);
+            case "recording" -> new TokenBucket(12.0, 1.0, this.nanoTime);
+            case "world" -> new TokenBucket(60.0, 30.0, this.nanoTime);
+            case "debug" -> new TokenBucket(10.0, 2.0, this.nanoTime);
+            case "pipeline" -> new TokenBucket(8.0, 2.0, this.nanoTime);
+            case "event" -> new TokenBucket(30.0, 10.0, this.nanoTime);
+            default -> new TokenBucket(120.0, 60.0, this.nanoTime);
         };
     }
 
     private static final class ConnectionBudget {
-        private final TokenBucket requests = new TokenBucket(120.0, 60.0);
+        private final TokenBucket requests;
         private final Map<String, TokenBucket> expensive = new ConcurrentHashMap<>();
+
+        private ConnectionBudget(LongSupplier nanoTime) {
+            this.requests = new TokenBucket(120.0, 60.0, nanoTime);
+        }
     }
 
     private static final class TokenBucket {
         private final double capacity;
         private final double refillPerSecond;
+        private final LongSupplier nanoTime;
         private double tokens;
-        private long lastRefillNanos = System.nanoTime();
+        private long lastRefillNanos;
 
-        private TokenBucket(double capacity, double refillPerSecond) {
+        private TokenBucket(double capacity, double refillPerSecond, LongSupplier nanoTime) {
             this.capacity = capacity;
             this.refillPerSecond = refillPerSecond;
+            this.nanoTime = nanoTime;
             this.tokens = capacity;
+            this.lastRefillNanos = nanoTime.getAsLong();
         }
 
-        synchronized boolean tryAcquire() {
-            long now = System.nanoTime();
+        synchronized void acquire(String scope, String category, String operationCategory) {
+            long now = this.nanoTime.getAsLong();
             double elapsed = Math.max(0L, now - this.lastRefillNanos) / 1_000_000_000.0;
             this.tokens = Math.min(this.capacity, this.tokens + elapsed * this.refillPerSecond);
             this.lastRefillNanos = now;
-            if (this.tokens < 1.0) return false;
+            if (this.tokens < 1.0) {
+                JsonObject budget = new JsonObject();
+                budget.addProperty("scope", scope);
+                budget.addProperty("category", category);
+                budget.addProperty("operationCategory", operationCategory);
+                budget.addProperty("capacity", (long) this.capacity);
+                budget.addProperty("remaining", (long) Math.floor(this.tokens));
+                budget.addProperty("refillPerSecond", this.refillPerSecond);
+                budget.addProperty("cost", 1);
+                JsonObject details = new JsonObject();
+                details.add("rateLimit", budget);
+                details.addProperty(
+                        "retryAfterMillis",
+                        Math.max(
+                                1L,
+                                (long)
+                                        Math.ceil(
+                                                (1.0 - this.tokens)
+                                                        * 1000.0
+                                                        / this.refillPerSecond)));
+                boolean ordinary = category.equals("requests");
+                throw new ProtocolState.ProtocolException(
+                        ordinary ? "RATE_LIMITED" : "EXPENSIVE_OPERATION_RATE_LIMITED",
+                        429,
+                        ordinary
+                                ? "Request rate budget exceeded"
+                                : "Rate budget exceeded for expensive category: " + category,
+                        details);
+            }
             this.tokens -= 1.0;
-            return true;
         }
     }
 }

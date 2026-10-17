@@ -16,7 +16,12 @@ tasks.test {
 }
 
 dependencies {
-    implementation(target.module("io.netty:netty-codec-http", "netty_http_version"))
+    val nettyHttp =
+        implementation(target.module("io.netty:netty-codec-http", "netty_http_version"))
+            as ExternalModuleDependency
+    nettyHttp.isTransitive = false
+    nettyHttp.version { strictly("[${target.fact("netty_http_version")}]") }
+    add("jarJar", nettyHttp)
 }
 
 afterEvaluate {

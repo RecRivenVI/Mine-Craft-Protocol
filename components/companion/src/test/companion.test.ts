@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { Client } from '@modelcontextprotocol/client';
@@ -26,15 +27,38 @@ test('MCP basic world category forwarding preserves intent, unavailable errors a
   try {
     await client.connect(transport);
     const user = await client.callTool({name:'minecraft_get_state',arguments:{kind:'player'}});
-    assert.equal(user.isError,undefined);
+    assert.equal(user.isError,undefined,JSON.stringify({reply:user,runtime:runtime.baseUrl}));
     const value = (user.structuredContent as {data:Record<string,unknown>}).data;
-    assert.equal(value.dataCategory,'USER');assert(!('x' in value));
+    assert.equal(value.dataCategory,'USER');assert.equal(value.x,1);
     assert.equal(runtime.worldReads.at(-1),'/v0/player?category=USER');
     const internal = await client.callTool({name:'minecraft_get_state',arguments:{kind:'player',category:'DEBUG',serverAuthoritative:true}});
     assert.equal(internal.isError,undefined);
     assert.equal((internal.structuredContent as {data:Record<string,unknown>}).data.x,1);
     assert.equal(runtime.worldReads.at(-1),'/v0/server/player?category=DEBUG');
-    const unavailable = await client.callTool({name:'minecraft_query_world',arguments:{kind:'entities'}});
+    const frame = await client.callTool({name:'minecraft_get_state',arguments:{kind:'state_frame',category:'DEBUG',reads:[{providerId:'minecraft:client/player'}]}});
+    assert.equal(frame.isError,undefined);
+    assert.equal((frame.structuredContent as {data:{dataCategory:string;request:{category:string}}}).data.request.category,'DEBUG');
+    const condition = await client.callTool({name:'minecraft_assert',arguments:{condition:{type:'player',category:'DEBUG',healthMin:1}}});
+    assert.equal((condition.structuredContent as {data:{condition:{category:string}}}).data.condition.category,'DEBUG');
+    const scene = await client.callTool({name:'minecraft_get_state',arguments:{kind:'scene'}});
+    assert.equal((scene.structuredContent as {data:{dataCategory:string}}).data.dataCategory,'USER');
+    const boundedScene = await client.callTool({name:'minecraft_query_world',arguments:{kind:'scene',radius:2,blockLimit:32,entityLimit:4}});
+    assert.equal(boundedScene.isError,undefined);assert.equal(runtime.worldReads.at(-1),'/v0/world/scene?category=USER&radius=2&blockLimit=32&entityLimit=4');
+    const getScene = await client.callTool({name:'minecraft_get_state',arguments:{kind:'scene',sceneQuery:{radius:1,blockLimit:8}}});
+    assert.equal(getScene.isError,undefined);assert.equal(runtime.worldReads.at(-1),'/v0/world/scene?category=USER&radius=1&blockLimit=8');
+    const animals=await client.callTool({name:'minecraft_query_world',arguments:{kind:'entities',category:'USER',radius:8,limit:16}});
+    assert.equal(animals.isError,undefined);
+    const entityData=(animals.structuredContent as {data:{dataCategory:string;entities:Record<string,unknown>[]}}).data;
+    assert.equal(entityData.dataCategory,'USER');
+    assert.deepEqual(entityData.entities,[{type:'minecraft:wolf',baby:false,tamed:true,sitting:true,leashed:true,leashHolderKnown:true,leashHeldByPlayer:true}]);
+    const diagnosticRecording = await client.callTool({name:'minecraft_start_recording',arguments:{config:{category:'DEBUG',captureFrames:false}}});
+    assert.equal((diagnosticRecording.structuredContent as {data:{dataCategory:string}}).data.dataCategory,'DEBUG');
+    const diagnosticArtifact = await client.callTool({name:'minecraft_get_artifact',arguments:{recordingId,category:'DEBUG'}});
+    const artifactLink = diagnosticArtifact.content.find(block=>block.type==='resource_link');
+    assert(artifactLink && artifactLink.type==='resource_link' && artifactLink.uri.includes('/debug/'));
+    const diagnosticResource = await client.readResource({uri:`minecraft://recordings/debug/${recordingId}/artifact`});
+    assert('blob' in diagnosticResource.contents[0]!);
+    const unavailable = await client.callTool({name:'minecraft_query_world',arguments:{kind:'entities',perspective:'server'}});
     assert.equal(unavailable.isError,true);
     assert.equal((unavailable.structuredContent as {error:{code:string}}).error.code,'WORLD_USER_PERCEPTION_UNAVAILABLE');
     const count = runtime.worldReads.length;
@@ -47,6 +71,34 @@ test('MCP basic world category forwarding preserves intent, unavailable errors a
     assert.equal(runtime.leases.length,1,'Companion does not automatically release/change intent for a read');
     await client.callTool({name:'minecraft_control',arguments:{action:'release'}});
   } finally { await client.close().catch(()=>undefined); await runtime.close(); }
+});
+
+test('Debug batch automatic wait always selects DEBUG without adding world authority to UI-only batches', async () => {
+  const runtime = await startRuntime();
+  const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client = new Client({name:'debug-batch-category-test',version:'0.0.1'});
+  const resourceVersion = {sessionEpoch:recordingId,resourceType:'player',resourceKey:'player',lifecycleId:'player-1',revision:1,revisionSource:'snapshot_change_sequence',revisionScope:'resource',mutationPreconditionEligible:true};
+  const world = {operation:'player.health.set',worldFingerprint:'a'.repeat(64),expectedResourceVersion:resourceVersion,health:20};
+  const ui = {operation:'ui.widget.active.set',nodeId:'widget',expectedResourceVersion:{...resourceVersion,resourceType:'ui_node'},value:true};
+  try {
+    await client.connect(transport);
+    await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode:'OPERATE'}});
+    const armed=await client.callTool({name:'minecraft_debug_arm',arguments:{action:'arm',namespaces:['player']}});
+    assert.equal(armed.isError,undefined,JSON.stringify(armed));
+    assert.equal(runtime.worldReads.at(-1),'/v0/world/fingerprint?category=DEBUG','Automatic Arm discovery must preserve diagnostic read intent');
+    for (const [items,category] of [[[world],'DEBUG'],[[ui],'DEBUG'],[[ui,world],'DEBUG']] as const) {
+      const result = await client.callTool({name:'minecraft_debug',arguments:{action:'batch',items,debugArmId:'mock-arm'}});
+      assert.equal(result.isError,undefined,JSON.stringify(result));
+      assert.equal((result.structuredContent as {data:{state:string}}).data.state,'completed');
+      assert.equal(runtime.operationReads.at(-1),category);
+      assert.equal(runtime.leases.length,0,'Waiting for Debug must not acquire player input');
+    }
+    const count = runtime.operationReads.length;
+    await client.callTool({name:'minecraft_debug',arguments:{action:'batch',items:[world],debugArmId:'mock-arm',waitForCompletion:false}});
+    assert.equal(runtime.operationReads.length,count,'Explicit asynchronous return must not perform any result read');
+    const wrong = await client.callTool({name:'minecraft_wait_operation',arguments:{operationId:recordingId,category:'USER'}});
+    assert.equal((wrong.structuredContent as {error:{code:string}}).error.code,'OPERATION_NOT_FOUND');
+  } finally {await client.close().catch(()=>undefined);await runtime.close();}
 });
 
 async function body(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -62,14 +114,37 @@ function json(response: ServerResponse, status: number, value: unknown): void {
   response.end(bytes);
 }
 
-async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[]; worldReads: string[] }> {
+test('MCP typed block properties preserve both maps and reject malformed values before dispatch', async () => {
+  const runtime=await startRuntime(),transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}}),client=new Client({name:'typed-block-properties',version:'0.0.1'});
+  try {
+    await client.connect(transport);
+    await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode:'OPERATE'}});
+    const mutation={operation:'world.block.set',worldFingerprint:'a'.repeat(64),expectedResourceVersion:{sessionEpoch:recordingId,resourceType:'block',resourceKey:'world@2,80,0',lifecycleId:'block',revision:1,revisionSource:'snapshot_change_sequence',revisionScope:'resource',mutationPreconditionEligible:true},x:2,y:80,z:0,blockId:'minecraft:oak_log',properties:{axis:'x'},expectedProperties:{axis:'z'}};
+    const applied=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation,debugArmId:'mock-arm'}});
+    assert.equal(applied.isError,undefined);
+    assert.deepEqual(runtime.debugMutations,[mutation]);
+    for(const invalid of [{properties:{axis:1}},{properties:{axis:'x]{Command:run}'}},{properties:null},{expectedProperties:[]},{properties:Object.fromEntries(Array.from({length:65},(_,i)=>['p'+i,'x']))}]){
+      const result=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{...mutation,...invalid},debugArmId:'mock-arm'}});
+      assert.equal(result.isError,true);
+    }
+    assert.equal(runtime.debugMutations.length,1,'Invalid maps cannot reach the native mutation endpoint');
+    assert.equal(runtime.leases.length,0);
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
+
+async function startRuntime(operationEvidence: Record<string,unknown> = {}): Promise<{ revokeControl: () => void; baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[]; worldReads: string[]; operationReads: string[]; pipelines:Record<string,unknown>[]; inputRequests:Record<string,unknown>[]; debugMutations:Record<string,unknown>[] }> {
+  const debugMutations:Record<string,unknown>[]=[];
+  const pipelines:Record<string,unknown>[]=[];
+  const inputRequests:Record<string,unknown>[]=[];
   const worldReads: string[] = [];
+  const operationReads: string[] = [];
   const leases: string[] = [];
   const operationCancels: number[] = [];
   const deepObserveStarts: number[] = [];
   const deepObserveAborts: number[] = [];
   const deepObserveDeadlines: string[] = [];
   let longOperation = false;
+  let diagnosticOperation = false;
   let manuallyRevoked = false;
   let mode = 'READ';
   let generation = 0;
@@ -90,6 +165,7 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
     const path = url.pathname;
     const payload = await body(request);
+    if(['/v0/ui/action','/v0/pipelines'].includes(path))inputRequests.push({path,screen:request.headers['x-mcp-expected-screen-revision'],menu:request.headers['x-mcp-expected-menu-revision'],payload});
     const base = { target: 'mock-26.3-fabric', clientTick: 42, requestId: 'mock-request', protocolVersion: 'v0' };
 
     if (path === '/v0/session') return json(response, 200, { ...base, ...control(), type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
@@ -102,14 +178,15 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
       const category = url.searchParams.get('category') ?? 'USER';
       if ((mode === 'TAKEOVER' && category === 'DEBUG') || (mode === 'OPERATE' && category === 'USER')) return json(response, 409, { error:'WORLD_CATEGORY_MODE_MISMATCH',message:'Category does not match intent' });
       if (category === 'USER') {
-        if (path !== '/v0/player') return json(response,409,{error:'WORLD_USER_PERCEPTION_UNAVAILABLE',message:'No USER scene capture or fallback'});
-        return json(response,200,{type:'player.state',target:base.target,requestId:base.requestId,protocolVersion:'v0',domain:'WORLD',dataCategory:'USER',authority:'CLIENT_UI',available:false,presentation:[]});
+        if (path.startsWith('/v0/server/')) return json(response,409,{error:'WORLD_USER_PERCEPTION_UNAVAILABLE',message:'Server data requires DEBUG'});
+        if(path==='/v0/world/entities')return json(response,200,{...base,type:'world.entities',domain:'WORLD',dataCategory:'USER',authority:'CLIENT_KNOWN',entities:[{type:'minecraft:wolf',baby:false,tamed:true,sitting:true,leashed:true,leashHolderKnown:true,leashHeldByPlayer:true}]});
+        return json(response,200,{type:'player.state',target:base.target,requestId:base.requestId,protocolVersion:'v0',domain:'WORLD',dataCategory:'USER',authority:'CLIENT_KNOWN',source:'bounded_client_world_model',visibility:'not_evaluated',available:true,x:1,y:64,z:2,health:20});
       }
     }
     if (path === '/v0/player' || path === '/v0/server/player') return json(response, 200, { ...base, domain:'WORLD',dataCategory:'DEBUG',type: 'player.state', source: path.includes('/server/') ? 'integrated_server_live' : 'client_live', perspective: path.includes('/server/') ? 'server_authoritative_live' : 'client_known', available: true, x: 1, y: 64, z: 2 });
     if (path === '/v0/input/state') return json(response, 200, { ...base, type: 'input.state', pressedKeyCount: 0, pressedButtonCount: 0 });
     if (path === '/v0/capture/info') return json(response, 200, { ...base, type: 'capture.info', backend: 'opengl', mode: 'COMPOSITE', format: 'PNG' });
-    if (path === '/v0/state/frames') return json(response, 200, { ...base, type: 'state.frame', stateFrameId: recordingId, consistency: 'coordinated_best_effort', reads: payload.reads ?? [] });
+    if (path === '/v0/state/frames') return json(response, 200, { ...base, type: 'state.frame', stateFrameId: recordingId, consistency: 'coordinated_best_effort', dataCategory:payload.category ?? 'USER', request:payload, reads: payload.reads ?? [] });
     if (path === '/v0/observe/deep') {
       deepObserveDeadlines.push(String(request.headers['x-mcp-deadline-ms'] ?? ''));
       const providerQuery = typeof payload.providerQuery === 'object' && payload.providerQuery !== null
@@ -182,14 +259,19 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     });
     if (path === '/v0/ui/action') {
       if (request.headers['x-mcp-control-lease'] !== 'mock-lease') return json(response, 409, { error: 'CONTROL_LEASE_REQUIRED', message: 'lease required', requestId: 'mock-request' });
+      if(request.headers['x-mcp-expected-screen-revision']!==undefined&&request.headers['x-mcp-expected-screen-revision']!=='3')return json(response,409,{error:'STALE_SCREEN_REVISION',message:'initial Screen changed'});
       return json(response, 200, { ...base, type: 'ui.action_result', entryLayer: 'GAME_ROUTED_RAW', targetingSource: 'interaction_tree', payload });
     }
     if (path === '/v0/pipelines') {
+      diagnosticOperation = false;
+      pipelines.push(payload);
       const steps = Array.isArray(payload.steps) ? payload.steps as Array<Record<string, unknown>> : [];
       longOperation = steps.some(step => step.type === 'delay' && Number(step.durationMs) > 10_000);
       return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'running' });
     }
     if (path === `/v0/operations/${recordingId}/wait`) {
+      operationReads.push(url.searchParams.get('category') ?? 'USER');
+      if (diagnosticOperation && url.searchParams.get('category') !== 'DEBUG') return json(response, 404, { error:'OPERATION_NOT_FOUND',message:'Unknown operation' });
       if (longOperation) {
         await new Promise<void>(resolveWait => {
           request.once('close', resolveWait);
@@ -197,15 +279,15 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
         });
         if (response.destroyed) return;
       }
-      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: longOperation ? 'running' : 'completed', state: longOperation ? 'executing' : 'completed', result: { stepCount: 1 } });
+      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: longOperation ? 'running' : 'completed', state: longOperation ? 'executing' : 'completed', result: { stepCount: 1 }, ...operationEvidence });
     }
     if (path === `/v0/operations/${recordingId}` && request.method === 'DELETE') {
       longOperation = false;
       operationCancels.push(Date.now());
-      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'cancelled', state: 'cancelled' });
+      return json(response, 200, { ...base, type: 'operation', operationId: recordingId, ...operationEvidence, status: 'cancelled', state: 'cancelled' });
     }
-    if (path === `/v0/operations/${recordingId}`) return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'completed', result: { stepCount: 1 } });
-    if (path === '/v0/command/player') return json(response, 200, { ...base, type: 'command.player.execute', accepted: true, mode: 'PLAYTEST', mechanism: 'NORMAL_NETWORK', permissionEscalated: false });
+    if (path === `/v0/operations/${recordingId}`) return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'completed', result: { stepCount: 1 }, ...operationEvidence });
+    if (path === '/v0/command/player') return json(response, 200, { ...base, type: 'command.player.execute', accepted: true, mode: 'PLAYTEST', mechanism: 'GAME_ROUTED_RAW', permissionEscalated: false, effectClassification: 'COMMUNICATION', classificationSource: 'native_player_command_tree', effectConfirmed: false, serverValidationObserved: false, gameplayAcceptanceEligible: false, submissionStatus: 'submitted_unconfirmed', evidenceContaminated: false, contaminationReason: 'none' });
     if (path === '/v0/wait/until' || path === '/v0/assert') return json(response, 200, { ...base, type: 'assert.result', passed: true, condition: payload.condition });
     if (path === '/v0/readiness') return json(response, 200, { ...base, type: 'readiness', overall: 'ready', hooks: {} });
     if (path === '/v0/trace') return json(response, 200, { ...base, type: 'trace', screenRevision: 3, menuRevision: 1 });
@@ -214,7 +296,8 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     if (path === '/v0/diagnostics/thread') return json(response, 200, { ...base, type: 'thread.probe', affinity: url.searchParams.get('affinity'), thread: 'Render thread' });
     if (path === '/v0/server/peer') return json(response, 200, { ...base, type: 'server.peer.status', connected: false, protocol: 'peer-v0', pendingRequests: 0 });
     if (path === '/v0/server/peer/probe') return json(response, 409, { error: 'SERVER_PEER_UNAVAILABLE', message: 'no peer', requestId: 'mock-request' });
-    if (path === '/v0/recordings' && request.method === 'POST') return json(response, 200, { ...base, type: 'recording', recordingId, status: 'recording' });
+    if (path === '/v0/world/scene') { worldReads.push(path + url.search); return json(response, 200, {...base,type:'world.scene',dataCategory:'USER',coverage:'bounded_client_cache',visibility:'not_evaluated',blocks:[],entities:[],available:true}); }
+    if (path === '/v0/recordings' && request.method === 'POST') return json(response, 200, { ...base, type: 'recording', recordingId, dataCategory:payload.category ?? 'USER', status: 'recording' });
     if (path === '/v0/recordings') return json(response, 200, { ...base, type: 'recordings', recordings: [{ recordingId, status: 'completed' }] });
     if (path === `/v0/recordings/${recordingId}`) return json(response, 200, { ...base, type: 'recording', recordingId, status: 'completed', artifactReady: true });
     if (path === `/v0/recordings/${recordingId}/artifact`) {
@@ -230,7 +313,16 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
       return;
     }
     if (path === '/v0/diagnostics/ui/test-screen' || path === '/v0/fixture/player/teleport') return json(response, 200, { ...base, type: 'fixture', mode: 'FIXTURE', evidenceContaminated: true });
-    if (path === '/v0/world/fingerprint') return json(response, 200, { ...base, type: 'world.fingerprint', worldFingerprint: 'mock-fingerprint' });
+    if (path === '/v0/world/fingerprint') {
+      worldReads.push(path+url.search);
+      if (mode === 'OPERATE' && url.searchParams.get('category') !== 'DEBUG') return json(response,409,{error:'WORLD_CATEGORY_MODE_MISMATCH',message:'OPERATE requires DEBUG world reads'});
+      return json(response, 200, { ...base, type: 'world.fingerprint', worldFingerprint: 'mock-fingerprint' });
+    }
+    if (path === '/v0/debug/batches') {
+      diagnosticOperation = true;
+      return json(response, 200, {...base, type:'operation', operationId:recordingId, state:'executing'});
+    }
+    if(path==='/v0/debug/mutations')debugMutations.push(payload);
     if (path.startsWith('/v0/debug/')) return json(response, 200, { ...base, type: 'debug', debugArmId: 'mock-arm', mode: 'DEBUG_PRIVILEGED', evidenceContaminated: true });
     json(response, 404, { error: 'NOT_FOUND', message: `mock missing ${path}`, requestId: 'mock-request' });
   });
@@ -247,9 +339,106 @@ async function startRuntime(): Promise<{ revokeControl: () => void; baseUrl: str
     deepObserveAborts,
     deepObserveDeadlines,
     worldReads,
+    operationReads,
+    pipelines,
+    inputRequests,
+    debugMutations,
     close: async () => { server.close(); await once(server, 'close'); }
   };
 }
+
+test('MCP operation get/wait/cancel preserve partial command provenance without acquiring authority',async()=>{
+  const partial={type:'input.command.provenance',partial:true,evidenceAuthority:'DEBUG_PRIVILEGED',evidenceContaminated:true,commandEffectsConfirmed:false,commandSubmissions:[{accepted:true,perspective:'current_player',mode:'DEBUG_PRIVILEGED',mechanism:'GAME_ROUTED_RAW',normalPacket:true,serverValidation:true,permissionEscalated:false,effectClassification:'STATE_MUTATION',classificationSource:'native_player_command_tree',effectConfirmed:false,serverValidationObserved:false,gameplayAcceptanceEligible:false,submissionStatus:'submitted_unconfirmed',evidenceContaminated:true,contaminationReason:'player_command_state_mutation'}]};
+  for(const state of ['failed','timed_out','cancelled']){
+    const complete=state!=='cancelled';
+    const runtime=await startRuntime({status:state,state,commandSubmissionsComplete:complete,result:partial});
+    const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+    const client=new Client({name:'command-provenance-consumer',version:'0.0.1'});
+    try{
+      await client.connect(transport);
+      for(const name of ['minecraft_get_operation','minecraft_wait_operation','minecraft_cancel_operation']){
+        const reply=await client.callTool({name,arguments:{operationId:recordingId}});
+        assert.notEqual(reply.isError,true,JSON.stringify(reply));
+        const data=(reply.structuredContent as {data:Record<string,unknown>}).data;
+        assert.equal(data.state,name==='minecraft_cancel_operation'?'cancelled':state);
+        assert.equal(data.commandSubmissionsComplete,complete);
+        assert.deepEqual(data.result,partial);
+      }
+      assert.equal(runtime.leases.length,0);assert.equal(runtime.inputRequests.length,0);
+    }finally{await client.close();await transport.close();await runtime.close();}
+  }
+});
+
+test('MCP operation consumers preserve typed configuration provenance without treating it as command execution',async()=>{
+  const receipts=['COMMAND_BLOCK','COMMAND_MINECART','JIGSAW_BLOCK','STRUCTURE_UPDATE','STRUCTURE_SCAN'].map(configurationKind=>({type:'command.player.configuration',configurationKind,configurationPayloadType:configurationKind.startsWith('STRUCTURE_')?'STRUCTURE_PARAMETERS':configurationKind==='JIGSAW_BLOCK'?'BLOCK_STATE':'COMMAND',configuredCommandEffect:configurationKind.startsWith('STRUCTURE_')||configurationKind==='JIGSAW_BLOCK'?'STATE_MUTATION':'INFORMATION',effectClassification:'STATE_MUTATION',classificationSource:'native_player_command_configuration',mode:'DEBUG_PRIVILEGED',mechanism:'GAME_ROUTED_RAW',evidenceContaminated:true,contaminationReason:'player_command_configuration',effectConfirmed:false,serverValidationObserved:false,gameplayAcceptanceEligible:false,submissionStatus:'submitted_unconfirmed'}));
+  const result={type:'input.command.provenance',partial:true,evidenceAuthority:'DEBUG_PRIVILEGED',evidenceContaminated:true,commandEffectsConfirmed:false,commandSubmissions:receipts};
+  const runtime=await startRuntime({status:'failed',state:'failed',commandSubmissionsComplete:true,result});
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'command-configuration-consumer',version:'0.0.1'});
+  try{
+    await client.connect(transport);
+    for(const name of ['minecraft_get_operation','minecraft_wait_operation','minecraft_cancel_operation']){
+      const reply=await client.callTool({name,arguments:{operationId:recordingId}});
+      assert.notEqual(reply.isError,true,JSON.stringify(reply));
+      const data=(reply.structuredContent as {data:Record<string,unknown>}).data;
+      assert.deepEqual(data.result,result);
+      assert.equal(data.commandSubmissionsComplete,true);
+    }
+    assert.equal(runtime.leases.length,0);assert.equal(runtime.inputRequests.length,0);
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
+
+test('UI condition categories survive standalone and nested MCP validation without silent downgrade',async()=>{
+  const runtime=await startRuntime();
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'ui-condition-category-consumer',version:'0.0.1'});
+  try{
+    await client.connect(transport);
+    for(const type of ['screen','ui.exists','menu','inventory']){
+      const condition={type,category:'DEBUG',selector:{label:'safe'}};
+      const result=await client.callTool({name:'minecraft_assert',arguments:{condition}});
+      assert.notEqual(result.isError,true,JSON.stringify(result));
+      assert.equal((result.structuredContent as {data:{condition:{category:string}}}).data.condition.category,'DEBUG',type);
+    }
+    assert.equal(runtime.leases.length,0,'Read conditions never acquire input');
+    const readyCondition={type:'screen',category:'USER',classContains:'TitleScreen',ready:true,readyAction:'click',selector:{translationKey:'menu.singleplayer'}};
+    const ready=await client.callTool({name:'minecraft_wait',arguments:{condition:readyCondition,timeoutMs:5000}});
+    assert.notEqual(ready.isError,true,JSON.stringify(ready));
+    assert.deepEqual((ready.structuredContent as {data:{condition:unknown}}).data.condition,readyCondition);
+    await client.callTool({name:'minecraft_control',arguments:{action:'acquire'}});
+    for(const type of ['screen','ui.exists','menu','inventory']){
+      const result=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'assert.that',condition:{type,category:'DEBUG',selector:{label:'safe'}}}],waitForCompletion:false}});
+      assert.notEqual(result.isError,true,JSON.stringify(result));
+      const payload=runtime.inputRequests.at(-1)?.payload as {steps:{condition:{category:string}}[]};
+      assert.equal(payload.steps[0]?.condition.category,'DEBUG',type);
+      assert.equal(runtime.leases.length,1,'Forwarding a condition never upgrades/reacquires authority');
+    }
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
+
+test('MCP UI and pipeline forward explicit revision headers, not body hints or inferred replacements',async()=>{
+  const runtime=await startRuntime();
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'input-precondition-consumer',version:'0.0.1'});
+  try{
+    await client.connect(transport);
+    await client.callTool({name:'minecraft_control',arguments:{action:'acquire'}});
+    const ui=await client.callTool({name:'minecraft_interact_ui',arguments:{selector:{label:'safe'},expectedScreenRevision:3,expectedMenuRevision:1}});
+    assert.notEqual(ui.isError,true);
+    for(const [name,args] of [['minecraft_interact_ui',{selector:{label:'safe'}}],['minecraft_run_input_pipeline',{steps:[{type:'delay',durationMs:1}],waitForCompletion:false}]] as const){
+      const result=await client.callTool({name,arguments:{...args,expectedScreenRevision:3,expectedMenuRevision:1}});
+      assert.notEqual(result.isError,true);
+      const request=runtime.inputRequests.at(-1)!;
+      assert.equal(request.screen,'3');assert.equal(request.menu,'1');
+      const payload=request.payload as Record<string,unknown>;
+      assert.equal('expectedScreenRevision' in payload,false);assert.equal('expectedMenuRevision' in payload,false);assert.equal('leaseId' in payload,false);
+    }
+    const stale=await client.callTool({name:'minecraft_interact_ui',arguments:{selector:{label:'safe'},expectedScreenRevision:2}});
+    assert.equal(stale.isError,true);
+    assert.equal((stale.structuredContent as {error:{code:string}}).error.code,'STALE_SCREEN_REVISION');
+    assert.equal(runtime.inputRequests.at(-1)?.screen,'2','Never substitute a newly observed revision for the caller');
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
 
 test('MCP Companion exposes static tools/resources and preserves data-plane trust', async () => {
   const runtime = await startRuntime();
@@ -273,6 +462,19 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
 
     const listed = await client.listTools();
     assert.equal(listed.tools.length, 24);
+    const modeCatalogue=JSON.parse(await readFile(resolve(process.cwd(),'../../validations/conformance-agent_control/task/control-mode-surface.json'),'utf8')).mcp as Record<string,{default?:string;discriminator?:string;actions?:Record<string,string>}>;
+    assert.deepEqual(listed.tools.map(tool=>tool.name).sort(),Object.keys(modeCatalogue).sort(),'Every actual MCP tool needs one current catalogue entry');
+    const discriminatorValues=(schema:unknown,key:string):string[]=>{
+      const node=schema as {properties?:Record<string,{const?:string;enum?:string[]}>;oneOf?:unknown[];anyOf?:unknown[]};
+      const field=node.properties?.[key];
+      return field?.const?[field.const]:field?.enum??[...(node.oneOf??[]),...(node.anyOf??[])].flatMap(item=>discriminatorValues(item,key));
+    };
+    for(const tool of listed.tools){
+      const policy=modeCatalogue[tool.name]!;
+      assert.deepEqual(tool._meta?.['minecraft/modePolicy'],policy,tool.name+' actual discovery metadata must match the catalogue');
+      if(policy.actions)assert.deepEqual([...new Set(discriminatorValues(tool.inputSchema,policy.discriminator!))].sort(),Object.keys(policy.actions).sort(),tool.name+' has an unclassified typed action');
+      for(const value of policy.actions?Object.values(policy.actions):[policy.default])assert(['READ_COMPATIBLE','OPERATE_REQUIRED','TAKEOVER_REQUIRED','MODE_INDEPENDENT'].includes(value??''));
+    }
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_get_session'));
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_deep_observe'));
     assert.ok(listed.tools.some(tool => tool.name === 'minecraft_debug'));
@@ -305,6 +507,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const deepObserve = client.callTool({
       name: 'minecraft_deep_observe',
       arguments: {
+        category: 'DEBUG',
         perspective: 'server_authoritative',
         domains: ['providers'],
         includeProviderData: true,
@@ -398,6 +601,13 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const pipeline = await client.callTool({ name: 'minecraft_run_input_pipeline', arguments: { steps: [{ type: 'delay', durationMs: 1 }], waitForCompletion: true } });
     assert.equal(pipeline.isError, undefined);
     assert.equal(JSON.stringify(pipeline.structuredContent).includes('completed'), true);
+    const worldAction = await client.callTool({ name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'world:test',action:'aim'}],waitForCompletion:true} });
+    assert.equal(worldAction.isError,undefined);
+    const newActions=[{type:'world.action',targetRef:'world:test',action:'mine',holdMs:8000},{type:'world.action',targetRef:'world:test',action:'use_hold',hand:'off_hand',holdMs:1200},{type:'world.action',targetRef:'world:test',action:'place',face:'west',hit:{u:.25,v:.75},expectedDestinationBlockId:'minecraft:air'}];
+    for(const step of newActions){const reply=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[step],waitForCompletion:true}});assert.equal(reply.isError,undefined);assert.deepEqual((runtime.pipelines.at(-1)!.steps as unknown[])[0],step);}
+    const invalidHeld=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'world:test',action:'mine',holdMs:10001}]}});assert.equal(invalidHeld.isError,true);
+    const invalidWorldAction = await client.callTool({ name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'ui:foreign',action:'teleport'}]} });
+    assert.equal(invalidWorldAction.isError,true);
     const operation = await client.callTool({ name: 'minecraft_get_operation', arguments: { operationId: recordingId } });
     assert.equal(operation.isError, undefined);
     const waited = await client.callTool({ name: 'minecraft_wait_operation', arguments: { operationId: recordingId, timeoutMs: 1000 } });
@@ -406,7 +616,14 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(cancelled.isError, undefined);
     const command = await client.callTool({ name: 'minecraft_execute_player_command', arguments: { command: 'help' } });
     assert.equal(command.isError, undefined);
-    assert.equal(JSON.stringify(command.structuredContent).includes('NORMAL_NETWORK'), true);
+    assert.equal(JSON.stringify(command.structuredContent).includes('GAME_ROUTED_RAW'), true);
+    const receipt = (command.structuredContent as { data: Record<string, unknown> }).data;
+    assert.equal(receipt.effectClassification, 'COMMUNICATION');
+    assert.equal(receipt.effectConfirmed, false);
+    assert.equal(receipt.serverValidationObserved, false);
+    assert.equal(receipt.gameplayAcceptanceEligible, false);
+    assert.equal(receipt.evidenceContaminated, false);
+    assert.equal(receipt.contaminationReason, 'none');
 
     const debugCapabilities = await client.callTool({ name: 'minecraft_debug', arguments: { action: 'capabilities' } });
     assert.equal(debugCapabilities.isError, undefined);
@@ -459,12 +676,16 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(rawDebug.isError, true, 'generic raw Debug must be rejected by MCP schema');
     const uiArm = await client.callTool({name:'minecraft_debug_arm',arguments:{action:'arm',uiContextId:'ui-session:'+recordingId,namespaces:['ui']}});
     assert.equal(uiArm.isError, undefined);
-    for (const [operation,value] of [['ui.widget.active.set',false],['ui.widget.visible.set',true],['ui.text.set','bounded text'],['ui.scroll.set',10],['ui.slider.set',0.5]] as const) {
+    for (const [operation,value] of [['ui.widget.active.set',false],['ui.widget.visible.set',true],['ui.text.set','bounded text'],['ui.scroll.set',10],['ui.slider.set',0.5],['ui.toast.reset',{title:'title',message:'message'}],['ui.toast.hide',true]] as const) {
       const result = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation,nodeId:'widget',value,expectedResourceVersion:{...resourceVersion,resourceType:'ui_node',resourceKey:'screen:widget'}}}});
       assert.equal(result.isError,undefined,operation);
     }
     const invalidUi = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation:'ui.widget.visible.set',nodeId:'widget',value:'false',expectedResourceVersion:resourceVersion}}});
     assert.equal(invalidUi.isError,true,'typed UI schema rejects string booleans');
+    for(const [operation,value] of [['ui.toast.reset',{title:'missing message'}],['ui.toast.reset',{title:'t',message:'m',callback:true}],['ui.toast.hide',false],['ui.toast.hide','true']] as const){
+      const invalidToast=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation,nodeId:'toast.0',value,expectedResourceVersion:resourceVersion}}});
+      assert.equal(invalidToast.isError,true,'Toast schema must reject implicit fields, callbacks and reversible-hide claims');
+    }
     for (const value of [-0.01,1.01,'0.5',null]) {
       const invalidSlider = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation:'ui.slider.set',nodeId:'widget',value,expectedResourceVersion:resourceVersion}}});
       assert.equal(invalidSlider.isError,true,'slider requires a normalized numeric value');
@@ -519,7 +740,8 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const resources = await client.listResources();
     assert.equal(resources.resources.length, 4);
     const templates = await client.listResourceTemplates();
-    assert.equal(templates.resourceTemplates.length, 2);
+    assert.equal(templates.resourceTemplates.length, 4);
+    assert.equal(templates.resourceTemplates.filter(template=>template.uriTemplate.includes('/debug/')).length,2);
 
     const samples: number[] = [];
     for (let index = 0; index < 40; index++) {

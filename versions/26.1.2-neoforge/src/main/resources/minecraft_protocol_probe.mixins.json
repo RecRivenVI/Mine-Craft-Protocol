@@ -4,11 +4,14 @@
     "package": "io.github.recrivenvi.minecraftprotocol.probe.mixin",
     "compatibilityLevel": "JAVA_25",
     "client": [
+        "WorldPickInvoker",
+        "WorldChunkRevisionMixin",
         "HudUiAccessor",
         "SpectatorGuiUiAccessor",
         "SpectatorMenuUiAccessor",
         "KeyBindingUiAccessor",
         "EffectIconRenderMixin",
+        "HudVitalIconsMixin",
         "BossOverlayUiAccessor",
         "PlayerListUiAccessor",
         "ToastManagerUiAccessor",
@@ -24,6 +27,7 @@
         "AdvancementWidgetUiAccessor",
         "ScrollAreaUiAccessor",
         "ChatUiAccessor",
+        "CommandFeedbackChatAccessor",
         "CommandSuggestionsUiAccessor",
         "SuggestionListUiAccessor",
         "AdvancementsUiAccessor",
@@ -32,6 +36,7 @@
         "StonecutterUiAccessor",
         "LoomUiAccessor",
         "SignUiAccessor",
+        "TextFieldUiAccessor",
         "BookUiAccessor",
         "BookViewUiAccessor",
         "MerchantUiAccessor",
@@ -43,6 +48,8 @@
         "AbstractContainerScreenMixin",
         "BaseContainerBlockEntityAccessor",
         "ConnectionMixin",
+        "CommandBlockInputAccessor",
+        "PlayerCommandMixin",
         "DistanceManagerAccessor",
         "GuiRenderStateMixin",
         "InputConstantsMixin",
@@ -51,6 +58,7 @@
         "LevelTicksAccessor",
         "MinecraftMixin",
         "GameRendererMixin",
+        "WorldOutlineMixin",
         "GameRendererAccessor",
         "MouseHandlerInvoker",
         "MouseHandlerAccessor",
@@ -62,7 +70,8 @@
         "CreativeUiAccessor",
         "RecipeUiAccessor",
         "RecipePageAccessor",
-        "KeyboardCharacterInvoker"
+        "KeyboardCharacterInvoker",
+        "WorldGestureMixin"
     ],
     "injectors": {
         "defaultRequire": 1

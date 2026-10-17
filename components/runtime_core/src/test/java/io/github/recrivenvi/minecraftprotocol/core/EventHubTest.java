@@ -90,6 +90,58 @@ final class EventHubTest {
                 });
     }
 
+    @Test
+    void pendingResyncIsBoundedAndCancelledWhenSubscriptionCloses() {
+        var source = new CompletableFuture<JsonObject>();
+        EventHub hub = new EventHub("test-target", () -> source);
+        EmbeddedChannel channel = new EmbeddedChannel();
+        try {
+            hub.register(channel, new QueryStringDecoder("/v0/events"));
+            channel.runPendingTasks();
+            read(channel);
+            hub.accept(channel, "{\"type\":\"event.resync\"}");
+            hub.accept(channel, "{\"type\":\"event.resync\"}");
+            channel.runPendingTasks();
+            assertEquals("RESYNC_BUSY", read(channel).get("error").getAsString());
+            hub.unregister(channel);
+            assertTrue(source.isCancelled());
+            channel.runPendingTasks();
+            assertNull(channel.readOutbound());
+        } finally {
+            hub.close();
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
+    void queuedResyncCannotPublishAfterAuthorityIsLost() {
+        var source = new CompletableFuture<JsonObject>();
+        var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+        EventHub hub =
+                new EventHub(
+                        "test-target",
+                        () -> source,
+                        () -> {
+                            if (!allowed.get())
+                                throw new IllegalStateException("read context changed");
+                        });
+        EmbeddedChannel channel = new EmbeddedChannel();
+        try {
+            hub.register(channel, new QueryStringDecoder("/v0/events"));
+            channel.runPendingTasks();
+            read(channel);
+            hub.accept(channel, "{\"type\":\"event.resync\"}");
+            source.complete(event("private.snapshot"));
+            allowed.set(false);
+            channel.runPendingTasks();
+            assertNull(channel.readOutbound());
+            assertFalse(channel.isActive());
+        } finally {
+            hub.close();
+            channel.finishAndReleaseAll();
+        }
+    }
+
     private static JsonObject event(String type) {
         JsonObject event = new JsonObject();
         event.addProperty("type", type);

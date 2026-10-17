@@ -2,7 +2,7 @@
 
 Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的执行核心。
 原生 Runtime HTTP/WebSocket 与独立 Node MCP Companion 分离，五个 Target 是 siblings，
-没有跨 Target 的活动 Minecraft 对象或构建继承。当前实现/验收见[执行计划](../project/plan-execution.md)。
+没有跨 Target 的活动 Minecraft 对象或构建继承。当前实现/验收见[状态页](../project/status-milestones.md)，推进步骤见[执行计划](../project/plan-execution.md)。
 
 ## 组件与执行流
 
@@ -67,8 +67,14 @@ Operator UI/Pointer 在 framebuffer evidence 之后渲染，不能污染截图�
 
 ## Dedicated Peer 与持久化
 
-Server Peer 在独立认证/权限下提供服务器权威能力与受限 typed Debug；
-不能由客户端构建成功推断 server safety，也不宣称完整 ResourceVersion parity。
+三种部署目标（仅客户端、仅服务端、双端联动）的主体、权限、能力矩阵和里程碑要求，
+统一见[部署场景设计](concept-deployment_scenarios.md)。新增部署合同为 DESIGN/PENDING，
+当前 mod_side=both、客户端启动的 HTTP 入口及有限 Peer 不等于已实现三场景。
+
+现有 Server Peer 基于游戏玩家连接提供有限服务器读取，mutation 另按服务端开关/operator 检查，
+客户端 HTTP 入口保留自己的授权；这不等于服务端已完整验证 scope/Arm/资源版本委托。
+完整授权和独立服务器入口属于上述待实施设计；不能由客户端构建成功推断 server safety，
+也不宣称完整 ResourceVersion parity。
 
 Persistent Read 五端有安全 context、world/player/chunk adapter、有界读取、
 deadline/cancel/worker/生命周期、文件变化检测与明确 error classification。

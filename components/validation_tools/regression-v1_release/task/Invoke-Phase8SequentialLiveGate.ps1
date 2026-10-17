@@ -3,28 +3,30 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
+. (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
+$runtimeRunnerLock=$null
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "Phase 8 sequential live gate failed: $Message" }
 }
 
 $runs = @(
-    @{ Target='1.20.1-forge'; Task=':version:1.20.1-forge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\1.20.1-forge\client'; Port=25581; Backend='any'; World=$true },
-    @{ Target='1.21.1-neoforge'; Task=':version:1.21.1-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\1.21.1-neoforge\client'; Port=25581; Backend='any'; World=$true },
-    @{ Target='26.1.2-neoforge'; Task=':version:26.1.2-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.1.2-neoforge\client'; Port=25582; Backend='any'; World=$true },
-    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.3-neoforge\client'; Port=25582; Backend='opengl'; World=$true },
-    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationRegressionVulkanClient'; Directory='validations\regression-vulkan\instance\26.3-neoforge\client'; Port=25582; Backend='vulkan'; World=$false },
-    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.3-fabric\client'; Port=25583; Backend='opengl'; World=$true },
-    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationRegressionVulkanClient'; Directory='validations\regression-vulkan\instance\26.3-fabric\client'; Port=25583; Backend='vulkan'; World=$false }
+    @{ Target='1.20.1-forge'; Task=':version:1.20.1-forge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\1.20.1-forge\client'; Port=$null; Backend='any'; World=$true },
+    @{ Target='1.21.1-neoforge'; Task=':version:1.21.1-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\1.21.1-neoforge\client'; Port=$null; Backend='any'; World=$true },
+    @{ Target='26.1.2-neoforge'; Task=':version:26.1.2-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.1.2-neoforge\client'; Port=$null; Backend='any'; World=$true },
+    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.3-neoforge\client'; Port=$null; Backend='opengl'; World=$true },
+    @{ Target='26.3-neoforge'; Task=':version:26.3-neoforge:runValidationRegressionVulkanClient'; Directory='validations\regression-vulkan\instance\26.3-neoforge\client'; Port=$null; Backend='vulkan'; World=$false },
+    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationRegressionV1ReleaseClient'; Directory='validations\regression-v1_release\instance\26.3-fabric\client'; Port=$null; Backend='opengl'; World=$true },
+    @{ Target='26.3-fabric'; Task=':version:26.3-fabric:runValidationRegressionVulkanClient'; Directory='validations\regression-vulkan\instance\26.3-fabric\client'; Port=$null; Backend='vulkan'; World=$false }
 )
 
 Push-Location $root
 try {
     $env:MCP_RUNTIME_SCOPES = 'read,ui,input,capture,event,diagnostics,control,command,fixture,debug'
     $results = foreach ($run in $runs) {
-        Assert-True (-not [bool](Get-NetTCPConnection -LocalPort $run.Port -State Listen -ErrorAction SilentlyContinue)) "port $($run.Port) is already occupied"
         $directory = [IO.Path]::GetFullPath((Join-Path $root $run.Directory))
         [void][IO.Directory]::CreateDirectory($directory)
+        if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};$runtimeRunnerLock=Enter-RuntimeRunner $directory
         if ($run.Backend -eq 'vulkan' -and $run.Target -eq '26.3-neoforge') {
             $config = Join-Path $directory 'config'
             [void][IO.Directory]::CreateDirectory($config)
@@ -46,17 +48,9 @@ try {
         $tokenFile = Join-Path $directory 'minecraft-protocol\token'
         $deadline = [DateTime]::UtcNow.AddMinutes(3)
         $session = $null
-        do {
-            if (Test-Path -LiteralPath $tokenFile) {
-                try {
-                    $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim()
-                    $session = Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/session" `
-                        -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 2
-                } catch { $session = $null }
-            }
-            if ($session.target -eq $run.Target) { break }
-            Start-Sleep -Seconds 2
-        } while ([DateTime]::UtcNow -lt $deadline)
+        $connection=Wait-RuntimeConnection $directory $run.Target $process.StartTime.ToUniversalTime() $process
+        $run.Port=$connection.Port;$token=(Get-Content $tokenFile -Raw).Trim()
+        $session=Invoke-RestMethod "$($connection.BaseUri)/v0/session" -Headers $connection.Headers -TimeoutSec 3
         Assert-True ($session.target -eq $run.Target) "$($run.Target)/$($run.Backend) did not become ready"
 
         $parameters = @{
@@ -73,7 +67,7 @@ try {
             Where-Object { $_.Result }
         Assert-True ($smoke.Result -eq 'PASS') "$($run.Target)/$($run.Backend) smoke failed"
 
-        $auth = @{ Authorization = "Bearer $token" }
+        $auth = $connection.Headers
         for ($attempt = 0; $attempt -lt 3; $attempt++) {
             try {
                 Invoke-RestMethod "http://127.0.0.1:$($run.Port)/v0/control/emergency-release" -Method Post -Headers $auth | Out-Null
@@ -113,4 +107,4 @@ try {
         Results = $results
     }
 }
-finally { Pop-Location }
+finally { if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};Pop-Location }

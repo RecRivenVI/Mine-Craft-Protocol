@@ -172,22 +172,61 @@ public final class ControlChrome {
     /** Convert the 96 display-pixel band into GUI units without changing input coordinates. */
     public static void edges(
             Rectangles draw, int width, int height, float fade, float band, double guiScale) {
-        if (width <= 0 || height <= 0 || !Double.isFinite(guiScale) || guiScale <= 0) return;
+        if (width <= 0
+                || height <= 0
+                || !Double.isFinite(guiScale)
+                || guiScale <= 0
+                || !Float.isFinite(fade)
+                || fade <= 0
+                || !Float.isFinite(band)
+                || band <= 0) return;
+        if (width == 1 || height == 1) {
+            draw.fill(0, 0, width, height, color(245, ACCENT_RGB, fade));
+            return;
+        }
         int depth =
                 Math.max(
                         1,
                         Math.min(
                                 (int) Math.round(96 * band / guiScale),
                                 Math.min(width, height) / 2));
+        float[] profile = new float[depth];
         for (int inset = 0; inset < depth; inset++) {
             float distance = depth == 1 ? 1F : 1F - (float) inset / (depth - 1);
-            int color = color(Math.round(245 * distance * distance), ACCENT_RGB, fade);
+            profile[inset] = distance * distance;
+            int color = color(Math.round(245 * profile[inset]), ACCENT_RGB, fade);
             if ((color >>> 24) == 0) continue;
-            draw.fill(inset, inset, width - inset, inset + 1, color);
-            draw.fill(inset, height - inset - 1, width - inset, height - inset, color);
-            draw.fill(inset, inset + 1, inset + 1, height - inset - 1, color);
-            draw.fill(width - inset - 1, inset + 1, width - inset, height - inset - 1, color);
+            if (width > depth * 2) {
+                draw.fill(depth, inset, width - depth, inset + 1, color);
+                draw.fill(depth, height - inset - 1, width - depth, height - inset, color);
+            }
+            if (height > depth * 2) {
+                draw.fill(inset, depth, inset + 1, height - depth, color);
+                draw.fill(width - inset - 1, depth, width - inset, height - depth, color);
+            }
         }
+        // Smooth union of the two edge profiles. A minimum-distance square ring has a
+        // diagonal derivative seam; overlapping edge draws instead accumulate corner alpha.
+        // Submit each corner pixel once and merge equal-color horizontal runs.
+        for (int y = 0; y < depth; y++) {
+            int run = 0, previous = cornerColor(profile[0], profile[y], fade);
+            for (int x = 1; x <= depth; x++) {
+                int next = x == depth ? 0 : cornerColor(profile[x], profile[y], fade);
+                if (x < depth && next == previous) continue;
+                if ((previous >>> 24) != 0) {
+                    draw.fill(run, y, x, y + 1, previous);
+                    draw.fill(width - x, y, width - run, y + 1, previous);
+                    draw.fill(run, height - y - 1, x, height - y, previous);
+                    draw.fill(width - x, height - y - 1, width - run, height - y, previous);
+                }
+                run = x;
+                previous = next;
+            }
+        }
+    }
+
+    private static int cornerColor(float x, float y, float fade) {
+        return color(Math.round(245 * (x + y - x * y)), ACCENT_RGB, fade);
     }
 
     public static void panel(Rectangles draw, int x, int y, int width, int height, float fade) {

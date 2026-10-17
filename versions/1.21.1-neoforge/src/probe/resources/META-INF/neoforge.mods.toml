@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="${mod_license}"
+
+[[mods]]
+modId="${mod_id}_probe"
+version="${mod_version}"
+displayName="${mod_name} Validation Probe"
+authors="${mod_authors}"
+description="${mod_description} validation-only fixtures"
+
+[[mixins]]
+config="minecraft_protocol_probe.validation.mixins.json"
+
+[[dependencies.${mod_id}_probe]]
+modId="${mod_id}"
+type="required"
+versionRange="[${mod_version}]"
+ordering="AFTER"
+side="BOTH"

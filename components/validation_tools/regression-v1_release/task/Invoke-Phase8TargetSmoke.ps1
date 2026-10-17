@@ -118,7 +118,7 @@ try {
         $block = Invoke-Json GET "/v0/world/block?x=$x&y=$y&z=$z"
         Assert-True ($block.source -eq 'client_live' -and -not [bool]$block.storageAccessed) 'world query must remain LIVE-only'
         $command = Invoke-Json POST '/v0/command/player' -Headers $leaseHeaders -Body @{ command = 'help' }
-        Assert-True ($command.mechanism -eq 'NORMAL_NETWORK' -and -not [bool]$command.permissionEscalated) 'player command must use current permissions and normal packet path'
+        Assert-True ($command.mechanism -eq 'GAME_ROUTED_RAW' -and -not [bool]$command.permissionEscalated) 'player command must use native Chat input and current permissions'
         if ($RequireAuthoritative) {
             $serverPlayer = Invoke-Json GET '/v0/server/player'
             Assert-True ($serverPlayer.perspective -eq 'server_authoritative_live') 'integrated authority must be available'

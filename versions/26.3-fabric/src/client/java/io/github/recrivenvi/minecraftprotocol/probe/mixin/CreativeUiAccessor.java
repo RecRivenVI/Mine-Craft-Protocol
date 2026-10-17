@@ -11,6 +11,9 @@ public interface CreativeUiAccessor {
     @Accessor("scrollOffs")
     float minecraftProtocolProbe$scrollOffs();
 
+    @Accessor("scrollOffs")
+    void minecraftProtocolProbe$scrollOffs(float value);
+
     @Accessor("searchBox")
     net.minecraft.client.gui.components.EditBox minecraftProtocolProbe$searchBox();
 

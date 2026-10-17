@@ -2,7 +2,7 @@
 
 唯一正式承诺的 Core 是 **Agent-native Minecraft Autonomous Testing Platform**。
 Agent 应能独立驱动真实 Minecraft Java Runtime，完成准备、操作、观察、等待、断言、
-采证、诊断与回归。交付状态由[执行计划](plan-execution.md)负责。
+采证、诊断与回归。交付状态由[当前状态页](status-milestones.md)负责，[执行计划](plan-execution.md)只描述当前计划。
 Wire Protocol v1 **NOT FROZEN**。结构迁移不改变产品范围。
 
 ## 产品定位与边界

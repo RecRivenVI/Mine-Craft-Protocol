@@ -15,7 +15,10 @@ Fabric API 从 Fabric Target 的事实读取；ModDev、Loom 和 Wrapper 从各�
 ## 运行库与测试库
 
 Minecraft 提供 Netty、Gson、LWJGL 和 Mixin 运行库。旧端缺少的 Netty HTTP 模块只补同族、同版本，
-不能与其他游戏 Netty 模块混搭；26.3 NeoForge 测试直接继承游戏的 Netty，不重复指定更新版本。
+不能与其他游戏 Netty 模块混搭；Forge 1.20.1 与 NeoForge 1.21.1通过Loader Jar-in-Jar交付缺少的HTTP模块，
+不只加入开发类路径。嵌入依赖不传递捆绑游戏已有的buffer/common/handler等模块。
+原版26.1.2和26.3的官方library清单已包含HTTP模块，分别使用同族4.2.7.Final和4.2.16.Final；
+包括Fabric在内不再重复嵌入另一份游戏已提供的库。五端均须独立正常Loader安装验证，不从开发类路径推定成功。
 Mixin annotation processor 仅用于 Forge 编译和 refmap 生成，不替换 Loader 的运行时 Mixin。
 
 JUnit Jupiter 与 Platform Launcher 按版本目录匹配，产品组件测试须保持 Java 17 下限。
@@ -27,8 +30,37 @@ runtime_safety 的 UI 分类投影以 compileOnly 使用版本目录的 Gson，�
 
 runtime_core 以 compileOnly 使用 runtime_safety、Gson 和 Netty；独立契约测试使用相应 testImplementation。
 Netty 编译/测试基线固定为 Forge 1.20.1 已有的 4.1.82.Final，版本目录新增项目专用别名，
-不是游戏运行库升级。五端继续使用本端 Minecraft/Loader 管理的 Netty，不嵌入另一份或覆盖 4.2 系列。
+不是游戏运行库升级。五端继续使用本端 Minecraft/Loader 管理的 Netty；只在缺失HTTP模块的1.x端嵌入匹配模块，
+不覆盖4.2系列或打包JUnit等仅测试依赖。
 Java 编译保持 17 下限，共享组件与原生适配器分别验证；[组件边界](../design/architecture-runtime_core.md)说明接口分离。
+
+正式运行依赖的交付边界如下；implementation只表示编译/开发使用，不单独证明最终JAR交付。
+
+| 依赖 | 正式运行来源 |
+| --- | --- |
+| runtime_core、runtime_safety | 产品组件平铺进同一个最终JAR，无需另装 |
+| Netty HTTP | 1.x对应Target的Jar-in-Jar；26.1.2/26.3由原版库提供 |
+| Netty其余模块、Gson、Guava、Fastutil、JOML、LWJGL/STB及日志库 | 官方Minecraft/Loader运行库，不复制另一版本 |
+| Mixin及Loader API | 对应Loader原生运行库，annotation processor不随产品交付 |
+| Fabric API | Fabric产品JAR内由Loom include登记的嵌入依赖，不要求单独安装 |
+| JUnit、OpenAPI Generator、Node/TypeScript验证工具 | 仅测试或工具，不进入游戏发行JAR |
+
+Netty上游许可和归属说明随产品附带，Fabric API保留其原JAR及模块许可；详见[NOTICE](../../NOTICE)。
+每次alpha刷新都先核对当前五端最终JAR的独立安装证据，不用开发类路径补齐结果。
+
+## 验收附加模组
+
+这些是外部本地输入，不是产品依赖，不嵌入发行JAR，也不进入纯净自动验证。
+版本、来源与允许哈希只在[inputs.toml](../../inputs.toml)固定，本机文件位置仅在ignored local.toml。
+2026-10-16核对Modrinth精确游戏版本和Loader的发布列表：
+
+| 模组 | 可用的本项目Target | 不宣称的范围 |
+| --- | --- | --- |
+| [Custom Skin Loader](https://modrinth.com/mod/customskinloader) | 五端均有匹配的Universal发布 | 上游标注支持不等于本项目五端附加Mod运行验收已经通过 |
+| [Zume](https://modrinth.com/mod/zume) | 1.20.1 Forge、1.21.1 NeoForge | 26.1.2/26.3的对应Loader无匹配发布，跳过；不因其宽泛元数据范围强装 |
+
+使用原始官方JAR，不修改或重新发布第三方二进制；主模组权限、输入和证据合同不因此改变。
+下载、元数据/哈希核对、实际加载、用户体验分别判断。附加Mod冲突不得以移入自动基线或修改产品权限来掩盖。
 
 ## 格式工具与验证
 
@@ -38,4 +70,4 @@ Spotless、ktfmt、Java 格式器和 rumdl 由版本目录固定。Java 格式�
 
 升级后执行 `spotlessApply`、`build check verifyRelease` 和 Companion 测试/审计；
 改变 Loader 或 Minecraft 时补对应的真实 Runtime 验证。自动启动与接口检查不代替真人输入或视觉验收。
-本次升级事实与结果集中记录在[执行计划](../project/plan-execution.md)。
+升级阶段与当时结果保留在[阶段记录](../project/phase-1-core_delivery.md)，当前交付状态见[状态页](../project/status-milestones.md)。

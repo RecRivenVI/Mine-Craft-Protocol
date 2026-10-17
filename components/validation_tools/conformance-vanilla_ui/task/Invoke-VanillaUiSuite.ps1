@@ -2,35 +2,48 @@
 param(
     [Parameter(Mandatory,ParameterSetName='Single')][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
     [Parameter(Mandatory,ParameterSetName='Batch')][switch]$All,
-    [ValidateRange(1024,65435)][int]$RuntimePort=28591,
+    [ValidateRange(0,65535)][int]$RuntimePort=0,
     [string]$BatchId,
-    [ValidateSet('all','editors','hud','spectator')][string]$Scenario='all',
+    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast')][string]$Scenario='all',
     [switch]$KeepClient,
     [switch]$DebugRead,
     [switch]$DebugUi,
     [switch]$CaptureBaseline
 )
 $ErrorActionPreference='Stop'
+if($Scenario-in@('ui-debug-scroll','ui-debug-hud','ui-debug-toast')-and-not$DebugUi){throw "$Scenario requires explicit -DebugUi authorization"}
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
+. (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
+. (Join-Path $PSScriptRoot '../../InstanceProfiles.ps1')
+$requestedRuntimePort=$RuntimePort
 $batchSignal=Join-Path $repo 'validations/conformance-vanilla_ui/instance/batch-start.json'
+function Test-UiReceiptOwner($Report,[int]$PortNumber,[int]$ClientProcessId,[DateTime]$LaunchStarted) {
+    if($Report.runtimePort-ne$PortNumber-or$Report.launchAttestation.processId-ne$ClientProcessId){return $false}
+    # ConvertFrom-Json may produce a UTC DateTime; reparsing its display text loses the offset.
+    $time=if($Report.testedAt-is[DateTimeOffset]){$Report.testedAt}
+        elseif($Report.testedAt-is[DateTime]){[DateTimeOffset]::new($Report.testedAt)}
+        else{[DateTimeOffset]::Parse($Report.testedAt,[Globalization.CultureInfo]::InvariantCulture)}
+    return $time.UtcDateTime-ge$LaunchStarted.ToUniversalTime()
+}
 if($All){
     if($Scenario-ne'all'){throw 'Batch evidence requires the complete scenario matrix'}
     if($KeepClient-or$CaptureBaseline){throw 'Batch testing requires automatic shutdown and existing immutable baselines'}
     $targets=@('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')
-    if($RuntimePort+104-gt65535){throw 'Batch Runtime and loopback fixture port range exceeds 65535'}
+    if($RuntimePort-ne0-and$RuntimePort+4-gt65535){throw 'Batch Runtime port range exceeds 65535'}
     $batch=[guid]::NewGuid().ToString('N')
     foreach($t in $targets){if(-not(Test-Path (Join-Path $repo "validations/conformance-vanilla_ui/instance/$t/baseline/fixture-manifest.json"))){throw "Prepare a serial immutable baseline first: $t"}}
-    foreach($port in $RuntimePort..($RuntimePort+4)){if(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue){throw "Test port occupied: $port"}}
+    if($RuntimePort-ne0){foreach($port in $RuntimePort..($RuntimePort+4)){if(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue){throw "Test port occupied: $port"}}}
     $jobs=@()
     $batchFailure=$null
     $ready=@()
     try{
         for($i=0;$i-lt$targets.Count;$i++){
-            Write-Output "Starting $($targets[$i]): isolated fixture, port $($RuntimePort+$i), maximum heap 4 GiB"
+            $workerPort=if($RuntimePort-eq0){0}else{$RuntimePort+$i}
+            Write-Output "Starting $($targets[$i]): isolated fixture, requested port $workerPort (0=automatic), maximum heap 4 GiB"
             $jobs+=Start-Job -Name $targets[$i] -ScriptBlock {
                 param($script,$target,$port,$batch,$debugRead,$debugUi)
                 & $script -Target $target -RuntimePort $port -BatchId $batch -DebugRead:$debugRead -DebugUi:$debugUi
-            } -ArgumentList $PSCommandPath,$targets[$i],($RuntimePort+$i),$batch,$DebugRead.IsPresent,$DebugUi.IsPresent
+            } -ArgumentList $PSCommandPath,$targets[$i],$workerPort,$batch,$DebugRead.IsPresent,$DebugUi.IsPresent
         }
         $deadline=[DateTime]::UtcNow.AddMinutes(10)
         do{
@@ -67,6 +80,9 @@ if($All){
 $root=[IO.Path]::GetFullPath((Join-Path $repo "validations/conformance-vanilla_ui/instance/$Target"))
 $client=Join-Path $root 'client'
 $baseline=Join-Path $root 'baseline'
+[IO.Directory]::CreateDirectory($root)|Out-Null
+$runnerLock=[IO.File]::Open((Join-Path $root 'runner.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+try {
 $nodeScript=Join-Path $PSScriptRoot 'run-vanilla-ui.mjs'
 $owner='Mine-Craft-Protocol vanilla UI conformance'
 function Assert-Within([string]$Path) {
@@ -86,7 +102,7 @@ function Write-Owner([string]$Path) {
     [IO.Directory]::CreateDirectory($Path)|Out-Null
     [IO.File]::WriteAllText((Join-Path $Path 'fixture-owner.json'),(@{owner=$owner;target=$Target}|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
 }
-function Port-Free { -not(Get-NetTCPConnection -State Listen -LocalPort $RuntimePort -ErrorAction SilentlyContinue) }
+function Port-Free { try{Assert-RuntimeInstanceStopped $client;return $true}catch{return $false} }
 function Capture-Fixture {
     if(-not(Port-Free)){throw 'Client must be cleanly stopped before copying its fixture'}
     if(Test-Path -LiteralPath $baseline){throw 'Immutable baseline already exists; it will not be overwritten'}
@@ -128,19 +144,19 @@ function Restore-Fixture {
 }
 function Start-Client {
     if(-not(Port-Free)){throw 'A Runtime is already listening; refusing parallel launch'}
-    if(Get-NetTCPConnection -State Listen -LocalPort ($RuntimePort+100) -ErrorAction SilentlyContinue){throw 'Loopback server-list fixture port is occupied; refusing to ping an existing service'}
     Write-Owner $client
     $options=Join-Path $client 'options.txt'
-    if(-not(Test-Path -LiteralPath $options)){[IO.File]::WriteAllText($options,"soundCategory_master:0.0`n",[Text.UTF8Encoding]::new($false))}
-    $command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; & './gradlew.bat' ':version:$($Target):runValidationConformanceVanillaUiClient' '--offline' '--console=plain' '--init-script' 'components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle' '-PvanillaUiPort=$RuntimePort'; exit `$LASTEXITCODE"
-    if($DebugUi){$command="`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,debug,debug.ui.read,debug.write,debug.ui'; "+$command}
+    $optionsText=if(Test-Path -LiteralPath $options){[IO.File]::ReadAllText($options)}else{''}
+    [IO.File]::WriteAllText($options,(Get-InstanceProfileOptions $optionsText automatic),[Text.UTF8Encoding]::new($false))
+    $command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; & './gradlew.bat' ':version:$($Target):runValidationConformanceVanillaUiClient' '--offline' '--console=plain' '--init-script' 'components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle' '-PvanillaUiPort=$requestedRuntimePort'; exit `$LASTEXITCODE"
+    if($DebugUi){$command="`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,fixture,debug,debug.ui.read,debug.world.read,debug.write,debug.ui'; "+$command}
     elseif($DebugRead){$command="`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,debug,debug.ui.read'; "+$command}
     $p=Start-Process -FilePath 'pwsh' -ArgumentList @('-NoProfile','-Command',$command) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'launch-out.log') -RedirectStandardError (Join-Path $root 'launch-error.log')
     $deadline=[DateTime]::UtcNow.AddMinutes(9)
     do{
         if($p.HasExited){throw "Client launcher exited: $($p.ExitCode)"}
         $token=Join-Path $client 'minecraft-protocol/token'
-        if(Test-Path -LiteralPath $token){try{$headers=@{Authorization='Bearer '+(Get-Content -LiteralPath $token -Raw).Trim()};$tree=Invoke-RestMethod "http://127.0.0.1:$RuntimePort/v0/ui/tree" -Headers $headers -TimeoutSec 2;if($tree.target-eq$Target-and$tree.screenClass-like'*TitleScreen'-and-not$tree.overlayIdentity){return $p}}catch{}}
+        if(Test-Path -LiteralPath $token){try{$connection=Get-RuntimeConnection $client $Target -NotBefore $p.StartTime.ToUniversalTime();$headers=$connection.Headers;$tree=Invoke-RestMethod "$($connection.BaseUri)/v0/ui/tree" -Headers $headers -TimeoutSec 2;if($tree.target-eq$Target-and$tree.screenClass-like'*TitleScreen'-and-not$tree.overlayIdentity){$script:RuntimePort=$connection.Port;return $p}}catch{}}
         Start-Sleep -Milliseconds 250
     }while([DateTime]::UtcNow-lt$deadline)
     throw 'Client did not reach a ready title screen'
@@ -184,9 +200,28 @@ try{
     Run-Scenario test -Keep:$KeepClient
 }finally{
     if(-not$KeepClient){
-        if(-not$process.WaitForExit(10000)){Run-Scenario quit;if(-not$process.WaitForExit(60000)){throw 'Client shutdown incomplete'}}
-        if($process.ExitCode-ne0){throw 'Client launcher failed'}
-        if(-not(Port-Free)){throw 'Test Runtime port was not released'}
+        $cleanupError=$null
+        try{
+            if(-not$process.WaitForExit(10000)){Run-Scenario quit;if(-not$process.WaitForExit(60000)){throw 'Client shutdown incomplete'}}
+            if($process.ExitCode-ne0){throw 'Client launcher failed'}
+            if(-not(Port-Free)){throw 'Test Runtime port was not released'}
+        }catch{$cleanupError=$_;throw}
+        finally{
+            $suffix=if($Scenario-eq'all'){''}else{"-$Scenario"}
+            $receipt=Join-Path $repo "validations/conformance-vanilla_ui/result/$Target$suffix.json"
+            if(Test-Path -LiteralPath $receipt){
+                $report=Get-Content -LiteralPath $receipt -Raw|ConvertFrom-Json
+                # Never annotate a previous run after a failure before the Node runner wrote a receipt.
+                if(Test-UiReceiptOwner $report $RuntimePort $java.ProcessId $process.StartTime){
+                    $report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue (-not$cleanupError) -Force
+                    $report|Add-Member -NotePropertyName processExitCode -NotePropertyValue $process.ExitCode -Force
+                    $report|Add-Member -NotePropertyName endpointRemoved -NotePropertyValue (-not(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json'))) -Force
+                    if($cleanupError){$report.status='FAIL';$report|Add-Member -NotePropertyName shutdownError -NotePropertyValue ([string]$cleanupError) -Force}
+                    [IO.File]::WriteAllText($receipt,($report|ConvertTo-Json -Depth 40)+"`n",[Text.UTF8Encoding]::new($false))
+                }
+            }
+        }
     }
 }
 Write-Output "UI conformance completed: $Target; same fixture restored; KeepClient=$KeepClient"
+}finally{$runnerLock.Dispose()}

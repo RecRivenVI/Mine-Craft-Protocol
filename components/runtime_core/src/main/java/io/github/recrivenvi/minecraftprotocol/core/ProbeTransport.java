@@ -4,13 +4,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
+import io.github.recrivenvi.minecraftprotocol.safety.CancellableWork;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -25,6 +30,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpUtil;
@@ -50,6 +56,7 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
@@ -63,17 +70,25 @@ public final class ProbeTransport implements AutoCloseable {
             AttributeKey.valueOf("minecraft-protocol-control-lease");
     private static final AttributeKey<String> EVENT_REQUEST_URI =
             AttributeKey.valueOf("minecraft-protocol-event-request-uri");
+    private static final AttributeKey<String> EVENT_READ_CATEGORY =
+            AttributeKey.valueOf("minecraft-protocol-event-read-category");
 
     private final ProbeService service;
     private final String token;
     private final int port;
+    private final RuntimeEndpoint endpoint;
+    private final String runtimeInstanceId;
+    private final Object transportLifecycle = new Object();
+    private final CompletableFuture<Integer> ready = new CompletableFuture<>();
     private final SecurityGate securityGate;
     private final ProtocolState protocolState;
     private final AutomationEngine automation;
     private final ObservationEngine observation;
     private final WorldReadEngine worldReads;
     private final RecordingEngine recording;
+    private final PlayerCommandGate commandGate;
     private final EventHub eventHub;
+    private final EventHub debugEventHub;
     private final ConditionEngine conditions;
     private final DebugBatchEngine debugBatches;
     private final AtomicBoolean started = new AtomicBoolean();
@@ -87,13 +102,38 @@ public final class ProbeTransport implements AutoCloseable {
     private Channel serverChannel;
 
     public ProbeTransport(ProbeService service, String token, int port, String targetId) {
+        this(service, token, port, targetId, null);
+    }
+
+    public static ProbeTransport forInstance(
+            ProbeService service, Path gameDirectory, String targetId) {
+        int port = RuntimeEndpoint.configuredPort();
+        RuntimeEndpoint endpoint = RuntimeEndpoint.acquire(gameDirectory, targetId);
+        try {
+            return new ProbeTransport(
+                    service, RuntimeToken.resolve(gameDirectory), port, targetId, endpoint);
+        } catch (Throwable failure) {
+            endpoint.close();
+            throw failure;
+        }
+    }
+
+    private ProbeTransport(
+            ProbeService service,
+            String token,
+            int port,
+            String targetId,
+            RuntimeEndpoint endpoint) {
         this.service = service;
         this.token = token;
         this.port = port;
+        this.endpoint = endpoint;
+        this.runtimeInstanceId =
+                endpoint == null ? UUID.randomUUID().toString() : endpoint.instanceId();
         this.securityGate =
                 new SecurityGate(
                         "token:" + UUID.nameUUIDFromBytes(token.getBytes(StandardCharsets.UTF_8)));
-        this.automation = new AutomationEngine(service);
+        this.automation = new AutomationEngine(service, this::authorizeInputStep);
         this.protocolState =
                 new ProtocolState(
                         ProtocolState.configuredScopes(),
@@ -104,15 +144,47 @@ public final class ProbeTransport implements AutoCloseable {
                         },
                         this::controlPresenceChanged);
         this.service.attachControlSession(this.protocolState.controlSession());
-        this.observation = new ObservationEngine(service);
         this.worldReads = new WorldReadEngine(service, this.protocolState);
-        this.recording = new RecordingEngine(service, this.observation);
-        this.eventHub = new EventHub(targetId, this::resyncSnapshot);
+        this.observation = new ObservationEngine(service, this.worldReads);
+        this.recording = new RecordingEngine(service, this.observation, this.protocolState);
+        this.commandGate =
+                new PlayerCommandGate(
+                        this.protocolState.controlSession(),
+                        (gestureId, routed) -> {
+                            this.protocolState.requireScope("command");
+                            this.protocolState.requireScope("control");
+                            if (routed) this.protocolState.requireScope("input");
+                            this.protocolState.requireCommandLease();
+                            this.automation.requireCommandDispatch(gestureId);
+                        },
+                        receipt -> {
+                            this.automation.noteCommandSubmission(receipt);
+                            String event =
+                                    receipt.has("configurationKind")
+                                            ? "command.player.configuration"
+                                            : "command.player";
+                            if (receipt.get("evidenceContaminated").getAsBoolean())
+                                this.recording.contaminate(
+                                        receipt.get("mode").getAsString(),
+                                        event + ".submission_attempt",
+                                        receipt);
+                            this.recording.recordEvent(event + ".submitted", receipt);
+                        });
+        this.service.attachPlayerCommandGate(this.commandGate);
+        this.eventHub =
+                new EventHub(
+                        targetId, () -> resyncSnapshot("USER"), () -> worldReads.authorize("USER"));
+        this.debugEventHub =
+                new EventHub(
+                        targetId,
+                        () -> resyncSnapshot("DEBUG"),
+                        () -> worldReads.authorize("DEBUG"));
         this.conditions =
                 new ConditionEngine(
                         service,
                         this.protocolState,
                         this.eventHub,
+                        this.debugEventHub,
                         this.recording,
                         this.observation);
         this.automation.setConditionEngine(this.conditions);
@@ -129,39 +201,82 @@ public final class ProbeTransport implements AutoCloseable {
     }
 
     private void start() {
-        this.bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("mcp-boss", true));
-        this.workerGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("mcp-worker", true));
-        try {
-            this.serverChannel =
-                    new ServerBootstrap()
-                            .group(this.bossGroup, this.workerGroup)
-                            .channel(NioServerSocketChannel.class)
-                            .childOption(ChannelOption.TCP_NODELAY, true)
-                            .childHandler(
-                                    new ChannelInitializer<SocketChannel>() {
-                                        @Override
-                                        protected void initChannel(SocketChannel channel) {
-                                            channel.pipeline().addLast(new HttpServerCodec());
-                                            channel.pipeline()
-                                                    .addLast(
-                                                            new HttpObjectAggregator(
-                                                                    MAX_BODY_BYTES));
-                                            channel.pipeline().addLast(new ChunkedWriteHandler());
-                                            channel.pipeline().addLast(new AuthorizationHandler());
-                                            channel.pipeline()
-                                                    .addLast(
-                                                            new WebSocketServerProtocolHandler(
-                                                                    "/v0/events", null, true));
-                                            channel.pipeline().addLast(new RequestHandler());
-                                        }
-                                    })
-                            .bind(new InetSocketAddress("127.0.0.1", this.port))
-                            .syncUninterruptibly()
-                            .channel();
-        } catch (Throwable throwable) {
-            this.close();
-            throw throwable;
+        synchronized (this.transportLifecycle) {
+            if (this.closed.get()) {
+                this.ready.completeExceptionally(
+                        new IllegalStateException("Runtime closed before startup"));
+                return;
+            }
+            this.bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("mcp-boss", true));
+            this.workerGroup =
+                    new NioEventLoopGroup(1, new DefaultThreadFactory("mcp-worker", true));
+            try {
+                this.serverChannel =
+                        new ServerBootstrap()
+                                .group(this.bossGroup, this.workerGroup)
+                                .channel(NioServerSocketChannel.class)
+                                .childOption(ChannelOption.TCP_NODELAY, true)
+                                .childHandler(
+                                        new ChannelInitializer<SocketChannel>() {
+                                            @Override
+                                            protected void initChannel(SocketChannel channel) {
+                                                channel.pipeline().addLast(new HttpServerCodec());
+                                                channel.pipeline()
+                                                        .addLast(
+                                                                new ChannelOutboundHandlerAdapter() {
+                                                                    @Override
+                                                                    public void write(
+                                                                            ChannelHandlerContext
+                                                                                    context,
+                                                                            Object message,
+                                                                            ChannelPromise promise)
+                                                                            throws Exception {
+                                                                        if (message
+                                                                                instanceof
+                                                                                HttpResponse
+                                                                                        response)
+                                                                            response.headers()
+                                                                                    .set(
+                                                                                            RuntimeEndpoint
+                                                                                                    .INSTANCE_HEADER,
+                                                                                            runtimeInstanceId);
+                                                                        super.write(
+                                                                                context, message,
+                                                                                promise);
+                                                                    }
+                                                                });
+                                                channel.pipeline()
+                                                        .addLast(
+                                                                new HttpObjectAggregator(
+                                                                        MAX_BODY_BYTES));
+                                                channel.pipeline()
+                                                        .addLast(new ChunkedWriteHandler());
+                                                channel.pipeline()
+                                                        .addLast(new AuthorizationHandler());
+                                                channel.pipeline()
+                                                        .addLast(
+                                                                new WebSocketServerProtocolHandler(
+                                                                        "/v0/events", null, true));
+                                                channel.pipeline().addLast(new RequestHandler());
+                                            }
+                                        })
+                                .bind(new InetSocketAddress("127.0.0.1", this.port))
+                                .syncUninterruptibly()
+                                .channel();
+                int actualPort = ((InetSocketAddress) this.serverChannel.localAddress()).getPort();
+                if (this.endpoint != null) this.endpoint.publish(actualPort);
+                this.ready.complete(actualPort);
+            } catch (Throwable throwable) {
+                this.ready.completeExceptionally(throwable);
+                this.close();
+                throw new IllegalStateException(
+                        "Minecraft Protocol Runtime startup failed", throwable);
+            }
         }
+    }
+
+    public CompletableFuture<Integer> boundPort() {
+        return this.ready.copy();
     }
 
     public boolean agentPresent() {
@@ -175,8 +290,21 @@ public final class ProbeTransport implements AutoCloseable {
 
     public void broadcast(JsonObject event) {
         if (this.closed.get()) return;
-        JsonObject published = this.eventHub.publish(event);
-        this.recording.recordEvent("runtime.event", published);
+        JsonObject internal = event.deepCopy();
+        internal.addProperty("dataCategory", "DEBUG");
+        if (internal.has("operation")
+                && ProtocolState.uiDiagnosticOperation(internal.get("operation").getAsString())) {
+            try {
+                protocolState.requireUiCategory("DEBUG");
+                this.debugEventHub.publish(internal);
+            } catch (ProtocolState.ProtocolException denied) {
+                // A world event subscription is not authority to read a UI mutation receipt.
+            }
+        } else this.debugEventHub.publish(internal);
+        JsonObject user =
+                io.github.recrivenvi.minecraftprotocol.safety.WorldDataView.userEvent(event);
+        if (user != null) this.eventHub.publish(user);
+        this.recording.recordEvent("runtime.event", internal);
     }
 
     private void controlPresenceChanged(
@@ -205,16 +333,28 @@ public final class ProbeTransport implements AutoCloseable {
 
     @Override
     public void close() {
-        if (!this.closed.compareAndSet(false, true)) return;
-        this.eventHub.close();
-        this.conditions.close();
-        this.debugBatches.close();
-        this.automation.close();
-        this.protocolState.close();
-        this.recording.close();
-        if (this.serverChannel != null) this.serverChannel.close();
-        if (this.workerGroup != null) this.workerGroup.shutdownGracefully();
-        if (this.bossGroup != null) this.bossGroup.shutdownGracefully();
+        synchronized (this.transportLifecycle) {
+            if (!this.closed.compareAndSet(false, true)) return;
+            this.ready.completeExceptionally(new IllegalStateException("Runtime closed"));
+            this.eventHub.close();
+            this.debugEventHub.close();
+            this.conditions.close();
+            this.debugBatches.close();
+            this.automation.close();
+            this.commandGate.close();
+            this.protocolState.close();
+            this.recording.close();
+            if (this.serverChannel != null)
+                this.serverChannel
+                        .close()
+                        .addListener(
+                                ignored -> {
+                                    if (this.endpoint != null) this.endpoint.close();
+                                });
+            else if (this.endpoint != null) this.endpoint.close();
+            if (this.workerGroup != null) this.workerGroup.shutdownGracefully();
+            if (this.bossGroup != null) this.bossGroup.shutdownGracefully();
+        }
     }
 
     private final class AuthorizationHandler extends ChannelInboundHandlerAdapter {
@@ -238,6 +378,13 @@ public final class ProbeTransport implements AutoCloseable {
                     throw new ProtocolState.ProtocolException(
                             "UNAUTHORIZED", 401, "Missing or invalid Bearer token");
                 }
+                String expectedInstance = boundedHeader(request, RuntimeEndpoint.INSTANCE_HEADER);
+                if (expectedInstance != null && !runtimeInstanceId.equals(expectedInstance)) {
+                    throw new ProtocolState.ProtocolException(
+                            "RUNTIME_INSTANCE_MISMATCH",
+                            409,
+                            "Runtime instance changed; explicitly reconnect to the intended instance");
+                }
                 securityGate.admit(
                         context.channel(),
                         request.method().name(),
@@ -245,6 +392,10 @@ public final class ProbeTransport implements AutoCloseable {
                 protocolState.agentActivity();
                 if (new QueryStringDecoder(request.uri()).path().equals("/v0/events")) {
                     protocolState.requireScope("event");
+                    String category =
+                            stringQuery(new QueryStringDecoder(request.uri()), "category", "USER");
+                    worldReads.authorize(category);
+                    context.channel().attr(EVENT_READ_CATEGORY).set(category);
                     context.channel().attr(EVENT_REQUEST_URI).set(request.uri());
                     request.setUri("/v0/events");
                     String leaseId = boundedHeader(request, ProtocolState.LEASE_HEADER);
@@ -272,7 +423,7 @@ public final class ProbeTransport implements AutoCloseable {
             if (message instanceof FullHttpRequest request) {
                 this.handleHttp(context, request);
             } else if (message instanceof TextWebSocketFrame frame) {
-                eventHub.accept(context.channel(), frame.text());
+                eventHub(context.channel()).accept(context.channel(), frame.text());
             } else if (message instanceof WebSocketFrame frame
                     && !(frame instanceof TextWebSocketFrame)) {
                 frame.retain();
@@ -288,9 +439,11 @@ public final class ProbeTransport implements AutoCloseable {
                             .HANDSHAKE_COMPLETE) {
                 presenceWebSockets.add(context.channel().id().asLongText());
                 String requestUri = context.channel().attr(EVENT_REQUEST_URI).get();
-                eventHub.register(
-                        context.channel(),
-                        new QueryStringDecoder(requestUri == null ? "/v0/events" : requestUri));
+                eventHub(context.channel())
+                        .register(
+                                context.channel(),
+                                new QueryStringDecoder(
+                                        requestUri == null ? "/v0/events" : requestUri));
             }
             super.userEventTriggered(context, event);
         }
@@ -299,6 +452,7 @@ public final class ProbeTransport implements AutoCloseable {
         public void channelInactive(ChannelHandlerContext context) throws Exception {
             presenceWebSockets.remove(context.channel().id().asLongText());
             eventHub.unregister(context.channel());
+            debugEventHub.unregister(context.channel());
             securityGate.remove(context.channel());
             protocolState.releaseLeaseIfMatches(
                     context.channel().attr(CONTROL_LEASE_CHANNEL).get(),
@@ -308,7 +462,7 @@ public final class ProbeTransport implements AutoCloseable {
 
         @Override
         public void channelWritabilityChanged(ChannelHandlerContext context) throws Exception {
-            eventHub.channelWritable(context.channel());
+            eventHub(context.channel()).channelWritable(context.channel());
             super.channelWritabilityChanged(context);
         }
 
@@ -334,9 +488,19 @@ public final class ProbeTransport implements AutoCloseable {
                 String path,
                 ProtocolState.RequestMetadata metadata) {
             if (request.method() == HttpMethod.GET && path.equals("/v0/session")) {
-                read(context, metadata, path, "read", service::session);
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "read",
+                        () -> connectionSnapshot(service.session(), false));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/capabilities")) {
-                read(context, metadata, path, "read", service::capabilities);
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "read",
+                        () -> connectionSnapshot(service.capabilities(), true));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/readiness")) {
                 read(context, metadata, path, "read", service::readiness);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/diagnostics/hooks")) {
@@ -418,7 +582,11 @@ public final class ProbeTransport implements AutoCloseable {
                 sendImmediate(context, metadata, path, protocolState.securityContext());
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/events/resync")) {
                 protocolState.requireScope("event");
-                sendJsonFuture(context, metadata, path, resyncSnapshot());
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        resyncSnapshot(stringQuery(uri, "category", "USER")));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/ui/tree")) {
                 var category = uiCategory(stringQuery(uri, "category", "USER"));
                 read(context, metadata, path, "ui", () -> uiRead(category));
@@ -442,13 +610,9 @@ public final class ProbeTransport implements AutoCloseable {
                         metadata,
                         path,
                         protocolState.applyDeadline(
-                                automation
-                                        .resolve(selector, category)
-                                        .thenApply(
-                                                result -> {
-                                                    uiCategory(category.name());
-                                                    return result;
-                                                }),
+                                guardedUiRead(
+                                        category.name(),
+                                        () -> automation.resolve(selector, category)),
                                 metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/ui/action")) {
                 protocolState.requireScope("ui");
@@ -472,7 +636,10 @@ public final class ProbeTransport implements AutoCloseable {
                                                                 supplier ->
                                                                         protocolState.admitInput(
                                                                                 metadata.leaseId(),
-                                                                                supplier)));
+                                                                                supplier),
+                                                                metadata.expectedMenuRevision()
+                                                                        != null,
+                                                                inputPreflight(metadata)));
                 String idempotencyKey =
                         metadata.idempotencyKey() == null
                                 ? null
@@ -501,6 +668,7 @@ public final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/command/player")) {
                 protocolState.requireScope("command");
                 protocolState.requireScope("control");
+                protocolState.requireScope("input");
                 protocolState.requireTakeover(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 if (!body.has("command")) {
@@ -512,8 +680,6 @@ public final class ProbeTransport implements AutoCloseable {
                                 body.get("command").getAsString(),
                                 () -> protocolState.requireTakeover(metadata.leaseId()),
                                 supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
-                command.thenAccept(
-                        result -> recording.recordEvent("command.player.executed", result));
                 sendJsonFuture(
                         context,
                         metadata,
@@ -586,7 +752,21 @@ public final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/capture/info")) {
                 read(context, metadata, path, "capture", service::captureInfo);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/world/fingerprint")) {
-                read(context, metadata, path, "read", service::worldFingerprint);
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        worldReads.internal(
+                                stringQuery(uri, "category", "USER"), service::worldFingerprint));
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/world/scene")) {
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        protocolState.applyDeadline(
+                                worldReads.scene(
+                                        stringQuery(uri, "category", "USER"), worldQuery(uri)),
+                                metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/status")) {
                 protocolState.requireScope("debug");
                 sendImmediate(context, metadata, path, protocolState.debugStatus());
@@ -755,6 +935,13 @@ public final class ProbeTransport implements AutoCloseable {
                 }
                 protocolState.requireDebugCredential(metadata.debugArmId());
                 protocolState.requireOperateIntent();
+                Set<String> diagnosticDomains = new java.util.HashSet<>();
+                for (var item : body.getAsJsonArray("items")) {
+                    diagnosticDomains.add(
+                            requiredString(item.getAsJsonObject(), "operation").startsWith("ui.")
+                                    ? "UI"
+                                    : "WORLD");
+                }
                 JsonObject operation =
                         protocolState.startOperation(
                                 operationId ->
@@ -762,7 +949,8 @@ public final class ProbeTransport implements AutoCloseable {
                                                 work ->
                                                         debugBatches.start(
                                                                 operationId, body, metadata, work)),
-                                false);
+                                false,
+                                diagnosticDomains);
                 sendImmediate(context, metadata, path, operation);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/evidence")) {
                 protocolState.requireScope("debug");
@@ -946,7 +1134,12 @@ public final class ProbeTransport implements AutoCloseable {
                     && service instanceof Phase9AExperimentalService
                     && path.equals("/v0/diagnostics/phase9a/inventory")) {
                 protocolState.requireScope("read");
-                sendJsonFuture(context, metadata, path, service.phase9aInventory());
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        worldReads.internal(
+                                stringQuery(uri, "category", "USER"), service::phase9aInventory));
             } else if (request.method() == HttpMethod.POST
                     && service instanceof Phase9AExperimentalService
                     && path.equals("/v0/diagnostics/phase9a/observe")) {
@@ -955,9 +1148,12 @@ public final class ProbeTransport implements AutoCloseable {
                         context,
                         metadata,
                         path,
-                        ((Phase9AExperimentalService) service).phase9aObserve(jsonBody(request)));
+                        worldReads.internal(
+                                worldReads.category(jsonBody(request)).name(),
+                                () ->
+                                        ((Phase9AExperimentalService) service)
+                                                .phase9aObserve(jsonBody(request))));
             } else if (request.method() == HttpMethod.POST
-                    && service instanceof Phase9AExperimentalService
                     && path.equals("/v0/diagnostics/phase9a/storage/read")) {
                 protocolState.requireScope("storage.read");
                 sendJsonFuture(
@@ -970,7 +1166,11 @@ public final class ProbeTransport implements AutoCloseable {
                         context,
                         metadata,
                         path,
-                        ((Phase9AExperimentalService) service).phase9aKeyframe(jsonBody(request)));
+                        worldReads.internal(
+                                worldReads.category(jsonBody(request)).name(),
+                                () ->
+                                        ((Phase9AExperimentalService) service)
+                                                .phase9aKeyframe(jsonBody(request))));
             } else if (request.method() == HttpMethod.POST
                     && service instanceof Phase9AExperimentalService
                     && path.equals("/v0/diagnostics/phase9a/delta")) {
@@ -980,8 +1180,12 @@ public final class ProbeTransport implements AutoCloseable {
                         context,
                         metadata,
                         path,
-                        ((Phase9AExperimentalService) service)
-                                .phase9aDelta(body.get("baseSnapshotId").getAsString()));
+                        worldReads.internal(
+                                worldReads.category(body).name(),
+                                () ->
+                                        ((Phase9AExperimentalService) service)
+                                                .phase9aDelta(
+                                                        body.get("baseSnapshotId").getAsString())));
             } else if (request.method() == HttpMethod.POST
                     && service instanceof Phase9AExperimentalService
                     && path.equals("/v0/diagnostics/phase9a/reconstruct")) {
@@ -990,8 +1194,11 @@ public final class ProbeTransport implements AutoCloseable {
                         context,
                         metadata,
                         path,
-                        ((Phase9AExperimentalService) service)
-                                .phase9aReconstruct(jsonBody(request)));
+                        worldReads.internal(
+                                worldReads.category(jsonBody(request)).name(),
+                                () ->
+                                        ((Phase9AExperimentalService) service)
+                                                .phase9aReconstruct(jsonBody(request))));
 
             } else if (request.method() == HttpMethod.GET
                     && path.equals("/v0/observe/deep/capabilities")) {
@@ -999,12 +1206,24 @@ public final class ProbeTransport implements AutoCloseable {
                 sendJsonFuture(context, metadata, path, service.formalObservationCapabilities());
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/observe/deep")) {
                 protocolState.requireScope("read");
+                JsonObject deepRequest = jsonBody(request);
+                String deepCategory = worldReads.category(deepRequest).name();
+                if (!deepCategory.equals("DEBUG")) {
+                    throw new ProtocolState.ProtocolException(
+                            "WORLD_USER_PERCEPTION_UNAVAILABLE",
+                            409,
+                            "Deep internal state requires DEBUG; use world/scene or the USER player projection");
+                }
                 DeepObservationRequestContext observationContext =
                         protocolState.deepObservationContext(
                                 metadata, auditConnectionId(context.channel()));
                 protocolState.registerDeepObservation(metadata.requestId(), observationContext);
                 CompletableFuture<JsonObject> source =
-                        service.formalDeepObservation(jsonBody(request), observationContext);
+                        worldReads.internal(
+                                deepCategory,
+                                () ->
+                                        service.formalDeepObservation(
+                                                deepRequest, observationContext));
                 CompletableFuture<JsonObject> guarded =
                         protocolState.applyDeadline(source, metadata.deadlineAtMillis());
                 context.channel()
@@ -1035,21 +1254,39 @@ public final class ProbeTransport implements AutoCloseable {
                         protocolState.cancelDeepObservation(cancelledRequestId));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
-                sendImmediate(context, metadata, path, recording.list());
+                sendImmediate(
+                        context,
+                        metadata,
+                        path,
+                        recording.list(stringQuery(uri, "category", "USER")));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
                 protocolState.requireScope("capture");
                 sendImmediate(context, metadata, path, recording.start(jsonBody(request)));
             } else if (path.startsWith("/v0/recordings/")) {
                 protocolState.requireScope("read");
+                String recordingCategory = stringQuery(uri, "category", "USER");
                 String tail = path.substring("/v0/recordings/".length());
                 if (request.method() == HttpMethod.GET && tail.endsWith("/artifact")) {
                     String recordingId = tail.substring(0, tail.length() - "/artifact".length());
-                    sendArtifactFuture(context, metadata, path, recording.artifact(recordingId));
+                    Runnable publication = worldReads.publicationGuard(recordingCategory);
+                    sendArtifactFuture(
+                            context,
+                            metadata,
+                            path,
+                            worldReads.guarded(
+                                    recordingCategory,
+                                    () -> recording.artifact(recordingId, recordingCategory)),
+                            publication);
                 } else if (request.method() == HttpMethod.GET) {
-                    sendImmediate(context, metadata, path, recording.status(tail));
+                    sendImmediate(
+                            context, metadata, path, recording.status(tail, recordingCategory));
                 } else if (request.method() == HttpMethod.DELETE) {
-                    sendImmediate(context, metadata, path, recording.stop(tail, "client_stop"));
+                    sendImmediate(
+                            context,
+                            metadata,
+                            path,
+                            recording.stop(tail, "client_stop", recordingCategory));
                 } else {
                     throw new ProtocolState.ProtocolException(
                             "METHOD_NOT_ALLOWED", 405, "Unsupported recording method");
@@ -1102,16 +1339,17 @@ public final class ProbeTransport implements AutoCloseable {
                         automation.executePipeline(
                                 body,
                                 () -> protocolState.requireTakeover(metadata.leaseId()),
-                                supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
+                                supplier -> protocolState.admitInput(metadata.leaseId(), supplier),
+                                metadata.expectedMenuRevision() != null,
+                                inputPreflight(metadata));
                 JsonObject operation = protocolState.startOperation(pipeline, true);
                 JsonObject startedEvent = operation.deepCopy();
                 startedEvent.addProperty("type", "event.pipeline.started");
                 broadcast(startedEvent);
-                pipeline.whenComplete(
-                        (result, failure) -> {
-                            JsonObject event =
-                                    protocolState.operationStatus(
-                                            operation.get("operationId").getAsString());
+                protocolState.onOperationTerminal(
+                        operation.get("operationId").getAsString(),
+                        terminal -> {
+                            JsonObject event = terminal.deepCopy();
                             event.addProperty("type", "event.pipeline.terminal");
                             broadcast(event);
                         });
@@ -1136,20 +1374,44 @@ public final class ProbeTransport implements AutoCloseable {
                                         0, operationPath.length() - "/wait".length())
                                 : operationPath;
                 protocolState.requireScope("read");
+                if (request.method() == HttpMethod.DELETE) {
+                    boolean diagnostic =
+                            !protocolState.operationDiagnosticDomains(operationId).isEmpty();
+                    JsonObject cancelled = protocolState.cancelOperation(operationId);
+                    if (diagnostic) {
+                        cancelled.remove("result");
+                        cancelled.remove("error");
+                        cancelled.remove("errorCode");
+                        cancelled.remove("errorDetails");
+                    }
+                    sendImmediate(context, metadata, path, cancelled);
+                    return;
+                }
+                String operationCategory = stringQuery(uri, "category", "USER");
                 if (request.method() == HttpMethod.GET) {
-                    sendImmediate(
-                            context, metadata, path, protocolState.operationStatus(operationId));
-                } else if (request.method() == HttpMethod.DELETE) {
-                    sendImmediate(
-                            context, metadata, path, protocolState.cancelOperation(operationId));
+                    sendJsonFuture(
+                            context,
+                            metadata,
+                            path,
+                            operationRead(
+                                    operationId,
+                                    operationCategory,
+                                    () ->
+                                            CompletableFuture.completedFuture(
+                                                    protocolState.operationStatus(operationId))));
                 } else if (request.method() == HttpMethod.POST && waitRequest) {
                     JsonObject body = jsonBody(request);
                     sendJsonFuture(
                             context,
                             metadata,
                             path,
-                            protocolState.waitOperation(
-                                    operationId, optionalLong(body, "timeoutMs", 60_000L)));
+                            operationRead(
+                                    operationId,
+                                    operationCategory,
+                                    () ->
+                                            protocolState.waitOperation(
+                                                    operationId,
+                                                    optionalLong(body, "timeoutMs", 60_000L))));
                 } else {
                     throw new ProtocolState.ProtocolException(
                             "METHOD_NOT_ALLOWED", 405, "Unsupported operation method");
@@ -1324,7 +1586,9 @@ public final class ProbeTransport implements AutoCloseable {
                                                         supplier ->
                                                                 protocolState.admitInput(
                                                                         metadata.leaseId(),
-                                                                        supplier));
+                                                                        supplier),
+                                                        metadata.expectedMenuRevision() != null,
+                                                        inputPreflight(metadata));
                                             });
 
             String idempotencyKey =
@@ -1345,6 +1609,29 @@ public final class ProbeTransport implements AutoCloseable {
                     protocolState.applyDeadline(future, metadata.deadlineAtMillis()));
         }
 
+        private JsonObject worldQuery(QueryStringDecoder uri) {
+            JsonObject query = new JsonObject();
+            uri.parameters()
+                    .forEach(
+                            (key, values) -> {
+                                if (key.equals("category")) return;
+                                if (values.size() != 1)
+                                    throw new ProtocolState.ProtocolException(
+                                            "INVALID_WORLD_USER_QUERY",
+                                            400,
+                                            "Repeated query parameter");
+                                try {
+                                    query.addProperty(key, new java.math.BigDecimal(values.get(0)));
+                                } catch (NumberFormatException invalid) {
+                                    throw new ProtocolState.ProtocolException(
+                                            "INVALID_WORLD_USER_QUERY",
+                                            400,
+                                            "Numeric world query required");
+                                }
+                            });
+            return query;
+        }
+
         private void worldRead(
                 ChannelHandlerContext context,
                 ProtocolState.RequestMetadata metadata,
@@ -1358,7 +1645,12 @@ public final class ProbeTransport implements AutoCloseable {
                     path,
                     protocolState.applyDeadline(
                             worldReads.read(
-                                    stringQuery(uri, "category", "USER"), userPlayer, action),
+                                    stringQuery(uri, "category", "USER"),
+                                    path.startsWith("/v0/server/")
+                                            ? "server/internal"
+                                            : "client/" + path.substring(path.lastIndexOf('/') + 1),
+                                    worldQuery(uri),
+                                    action),
                             metadata.deadlineAtMillis()));
         }
 
@@ -1377,26 +1669,96 @@ public final class ProbeTransport implements AutoCloseable {
         }
     }
 
-    private CompletableFuture<JsonObject> resyncSnapshot() {
-        CompletableFuture<JsonObject> session = this.service.session();
-        CompletableFuture<JsonObject> capabilities = this.service.capabilities();
-        CompletableFuture<JsonObject> ui = this.service.uiTree();
-        CompletableFuture<JsonObject> player = this.service.playerState();
-        return CompletableFuture.allOf(session, capabilities, ui, player)
-                .thenApply(
-                        ignored -> {
-                            JsonObject snapshot = new JsonObject();
-                            snapshot.addProperty("type", "event.resync");
-                            snapshot.addProperty("resumeCursor", this.eventHub.currentSequence());
-                            snapshot.addProperty(
-                                    "subscriptionCount", this.eventHub.subscriptionCount());
-                            snapshot.add("session", session.join());
-                            snapshot.add("capabilities", capabilities.join());
-                            snapshot.add("ui", ui.join());
-                            snapshot.add("player", player.join());
-                            snapshot.add("operations", this.protocolState.operationSnapshot());
-                            return snapshot;
-                        });
+    private EventHub eventHub(Channel channel) {
+        return "DEBUG".equals(channel.attr(EVENT_READ_CATEGORY).get()) ? debugEventHub : eventHub;
+    }
+
+    private CompletableFuture<JsonObject> connectionSnapshot(
+            CompletableFuture<JsonObject> source, boolean capabilities) {
+        return CancellableWork.map(
+                source,
+                value -> {
+                    JsonObject result = value.deepCopy();
+                    JsonObject connection =
+                            this.endpoint == null ? new JsonObject() : this.endpoint.snapshot();
+                    connection.addProperty("runtimeInstanceId", this.runtimeInstanceId);
+                    result.add("runtimeConnection", connection);
+                    if (capabilities) {
+                        JsonObject contract = new JsonObject();
+                        contract.addProperty("automaticPort", true);
+                        contract.addProperty("instanceDiscovery", this.endpoint != null);
+                        contract.addProperty("instancePinning", RuntimeEndpoint.INSTANCE_HEADER);
+                        contract.addProperty("discoveryRecord", "minecraft-protocol/endpoint.json");
+                        contract.addProperty("fixedPortSupported", true);
+                        contract.addProperty("grantsAuthority", false);
+                        result.add("transportContract", contract);
+                    }
+                    return result;
+                });
+    }
+
+    private CompletableFuture<JsonObject> resyncSnapshot(String category) {
+        return worldReads.guarded(category, () -> captureResync(category));
+    }
+
+    private CompletableFuture<JsonObject> captureResync(String category) {
+        java.util.List<CompletableFuture<?>> owned = new java.util.ArrayList<>();
+        try {
+            CompletableFuture<JsonObject> player =
+                    this.worldReads.read(
+                            category, "client/player", new JsonObject(), this.service::playerState);
+            owned.add(player);
+            CompletableFuture<JsonObject> session = this.service.session();
+            owned.add(session);
+            CompletableFuture<JsonObject> capabilities = this.service.capabilities();
+            owned.add(capabilities);
+            JsonObject unavailableUi = new JsonObject();
+            unavailableUi.addProperty("available", false);
+            unavailableUi.addProperty("reason", "ui_scope_or_mode_unavailable");
+            boolean userUi =
+                    protocolState.hasScope("ui")
+                            && io.github.recrivenvi.minecraftprotocol.safety.UiDataView.allowsRead(
+                                    protocolState.controlSession().snapshot().mode().name(),
+                                    io.github.recrivenvi.minecraftprotocol.safety.UiDataView
+                                            .Category.USER);
+            CompletableFuture<JsonObject> ui =
+                    userUi
+                            ? guardedUiRead("USER", this.service::uiTree)
+                            : CompletableFuture.completedFuture(unavailableUi);
+            owned.add(ui);
+            return CancellableWork.map(
+                    CancellableWork.all(owned),
+                    ignored -> {
+                        JsonObject snapshot = new JsonObject();
+                        snapshot.addProperty("type", "event.resync");
+                        snapshot.addProperty("domain", "WORLD");
+                        snapshot.addProperty("dataCategory", category);
+                        EventHub hub = category.equals("DEBUG") ? debugEventHub : eventHub;
+                        snapshot.addProperty("resumeCursor", hub.currentSequence());
+                        snapshot.addProperty("subscriptionCount", hub.subscriptionCount());
+                        snapshot.add("session", session.join());
+                        snapshot.add("capabilities", capabilities.join());
+                        snapshot.add("ui", ui.join());
+                        snapshot.add("player", player.join());
+                        return snapshot;
+                    });
+        } catch (Throwable failure) {
+            owned.forEach(future -> future.cancel(false));
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    private InputDispatchContext.Preconditions inputPreflight(
+            ProtocolState.RequestMetadata metadata) {
+        if (metadata.expectedScreenRevision() == null && metadata.expectedMenuRevision() == null)
+            return null;
+        return new InputDispatchContext.Preconditions(
+                metadata.expectedScreenRevision(),
+                metadata.expectedMenuRevision(),
+                () ->
+                        service.validatePreconditions(
+                                metadata.expectedScreenRevision(),
+                                metadata.expectedMenuRevision()));
     }
 
     private ProtocolState.RequestMetadata metadata(FullHttpRequest request) {
@@ -1430,6 +1792,16 @@ public final class ProbeTransport implements AutoCloseable {
             ProtocolState.RequestMetadata metadata,
             String path,
             JsonObject json) {
+        if (json.has("domain")
+                && "WORLD".equals(json.get("domain").getAsString())
+                && json.has("dataCategory")) {
+            try {
+                worldReads.authorize(json.get("dataCategory").getAsString());
+            } catch (Throwable denied) {
+                sendError(context, metadata.requestId(), denied);
+                return;
+            }
+        }
         json.addProperty("requestId", metadata.requestId());
         json.addProperty("protocolVersion", metadata.protocolVersion());
         protocolState.audit(
@@ -1498,7 +1870,8 @@ public final class ProbeTransport implements AutoCloseable {
             ChannelHandlerContext context,
             ProtocolState.RequestMetadata metadata,
             String path,
-            CompletableFuture<Path> future) {
+            CompletableFuture<Path> future,
+            Runnable publication) {
         future.whenComplete(
                 (artifact, error) -> {
                     if (error != null) {
@@ -1510,6 +1883,7 @@ public final class ProbeTransport implements AutoCloseable {
                         sendError(context, metadata.requestId(), error);
                     } else {
                         try {
+                            publication.run();
                             long length = Files.size(artifact);
                             FileChannel file = FileChannel.open(artifact, StandardOpenOption.READ);
                             DefaultHttpResponse response =
@@ -1533,7 +1907,14 @@ public final class ProbeTransport implements AutoCloseable {
                             context.write(response);
                             context.writeAndFlush(
                                     new HttpChunkedInput(
-                                            new ChunkedNioFile(file, 0L, length, 8192)));
+                                            new ChunkedNioFile(file, 0L, length, 8192) {
+                                                @Override
+                                                public ByteBuf readChunk(ByteBufAllocator allocator)
+                                                        throws Exception {
+                                                    publication.run();
+                                                    return super.readChunk(allocator);
+                                                }
+                                            }));
                         } catch (Throwable throwable) {
                             protocolState.audit(
                                     metadata.requestId(),
@@ -1628,37 +2009,54 @@ public final class ProbeTransport implements AutoCloseable {
 
     private io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category uiCategory(
             String value) {
-        protocolState.requireScope("ui");
-        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category category;
-        try {
-            category =
-                    io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category.parse(value);
-        } catch (IllegalArgumentException error) {
-            throw new ProtocolState.ProtocolException(
-                    "INVALID_UI_CATEGORY", 400, "UI category must be USER or DEBUG");
+        return protocolState.requireUiCategory(value);
+    }
+
+    private void authorizeInputStep(JsonObject step) {
+        String type = step.get("type").getAsString();
+        AutomationEngine.STEP_ADDITIONAL_SCOPES
+                .getOrDefault(type, List.of())
+                .forEach(protocolState::requireScope);
+        switch (type) {
+            case "wait.until", "assert.that" ->
+                    conditions.authorize(step.getAsJsonObject("condition"));
+            default -> {}
         }
-        io.github.recrivenvi.minecraftprotocol.safety.UiDataView.requireReadScopes(
-                category, protocolState::requireScope);
-        if (!io.github.recrivenvi.minecraftprotocol.safety.UiDataView.allowsRead(
-                protocolState.controlSession().snapshot().mode().name(), category)) {
-            throw new ProtocolState.ProtocolException(
-                    "UI_CATEGORY_MODE_MISMATCH",
-                    409,
-                    "READ supports USER/DEBUG; TAKEOVER only USER; OPERATE only DEBUG");
-        }
-        return category;
     }
 
     private CompletableFuture<JsonObject> uiRead(
             io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category category) {
-        var future =
+        return guardedUiRead(
+                category.name(),
                 category == io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category.DEBUG
-                        ? service.debugUiTree()
-                        : service.uiTree();
-        return future.thenApply(
-                result -> {
-                    uiCategory(category.name());
-                    return result;
+                        ? service::debugUiTree
+                        : service::uiTree);
+    }
+
+    private CompletableFuture<JsonObject> guardedUiRead(
+            String category, Supplier<CompletableFuture<JsonObject>> capture) {
+        Runnable publication = protocolState.uiReadGuard(category);
+        return CancellableWork.handle(
+                capture.get(),
+                (value, failure) -> {
+                    publication.run();
+                    if (failure != null)
+                        throw new java.util.concurrent.CompletionException(failure);
+                    return value;
+                });
+    }
+
+    private CompletableFuture<JsonObject> operationRead(
+            String id, String category, Supplier<CompletableFuture<JsonObject>> capture) {
+        Runnable publication =
+                protocolState.operationReadGuard(id, category, worldReads::authorize);
+        return CancellableWork.handle(
+                capture.get(),
+                (value, failure) -> {
+                    publication.run();
+                    if (failure != null)
+                        throw new java.util.concurrent.CompletionException(failure);
+                    return value;
                 });
     }
 
@@ -1824,10 +2222,32 @@ public final class ProbeTransport implements AutoCloseable {
         } else if (error instanceof TimeoutException) {
             status = 408;
             code = "REQUEST_DEADLINE_EXCEEDED";
+        } else if (error instanceof CancellationException) {
+            boolean closing = this.closed.get();
+            status = closing ? 503 : 409;
+            code = closing ? "RUNTIME_SHUTTING_DOWN" : "REQUEST_CANCELLED";
         }
         JsonObject json = new JsonObject();
         json.addProperty("error", code);
         json.addProperty("message", error.getMessage() == null ? "unknown" : error.getMessage());
+        if (error instanceof ProtocolState.ProtocolException protocolError) {
+            JsonObject details = protocolError.details();
+            for (String key : List.of("retryAfterMillis", "rateLimit")) {
+                if (details.has(key)) json.add(key, details.get(key).deepCopy());
+            }
+            if (code.equals("WORLD_TARGET_NOT_HIT")
+                    && details.has("actualHit")
+                    && details.get("actualHit").isJsonObject())
+                json.add(
+                        "actualHit",
+                        WorldHitEvidence.bounded(details.getAsJsonObject("actualHit")));
+        }
+        if (error instanceof CancellationException) {
+            // A native callback may already have applied its effect, including Quit Game.
+            // Cancellation is not a rollback or a safe reason to replay player input.
+            json.addProperty("executionOutcome", "not_confirmed");
+            json.addProperty("retrySafe", false);
+        }
         if ("USER_MANUALLY_ENDED_CONTROL".equals(code)) {
             json.addProperty("controlState", "MANUALLY_REVOKED");
             json.addProperty("reconsentRequired", true);
