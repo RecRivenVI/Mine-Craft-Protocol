@@ -54,7 +54,7 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
   assert.equal(bootstrap.status,200,'Owned editor web bootstrap');
   ({ browserToken } = await bootstrap.json());
   const publicView=await request('snapshot');assert.equal(publicView.tree.dataCategory,'USER');assert.equal(publicView.ownsLease,false);assert(!('uiContextId'in publicView.tree));
-  for(const node of nodes(publicView.tree))for(const field of ['resourceVersion','debugTextGuardAvailable','nativeTextContentFingerprint','debugToastValue','debugToastGuardAvailable','debugProgress','debugProgressable','debugHideRequested'])assert(!(field in node),'USER web leaked '+field);
+   for(const node of nodes(publicView.tree))for(const field of ['resourceVersion','debugTextGuardAvailable','nativeTextContentFingerprint','debugToastValue','debugToastGuardAvailable','debugProgress','debugProgressable','debugHideRequested','debugPanReady','debugPanValue','debugPanRange'])assert(!(field in node),'USER web leaked '+field);
   if(debugEnabled){
    assert.equal(publicView.session.target,target);
    const native=await connectRuntime(dirname(dirname(tokenFile)),target);
@@ -69,25 +69,35 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
    if(control?.operation==='ui.text.set')assert(original.debugTextGuardAvailable);
    const mutation={operation:control?.operation??'ui.text.set',nodeId:original.nodeId,expectedResourceVersion:original.resourceVersion,expectedValue:expected,value:control?.operation==='ui.text.set'?'MCP':changedValue};
    const before=await input();assert.equal(before.pressedKeyCount,0);assert.equal(before.pressedButtonCount,0);
+   let confirmedChange,mutationFailure;
    try{
     await tool('minecraft_debug',{action:'mutate',mutation},'DEBUG_ARM_REQUIRED');
     await tool('minecraft_debug',{action:'mutate',mutation,debugArmId:'invalid-ui-arm'},'DEBUG_NOT_ARMED');
-    await tool('minecraft_get_ui',{category:'USER'},'UI_CATEGORY_MODE_MISMATCH');
-    const blocked=await fetch(web.url+'/api/snapshot',{headers:{'x-web-ui-token':browserToken}});
-    assert.equal(blocked.status,409);const blockedBody=await blocked.json();assert.equal(blockedBody.error,'UI_CATEGORY_MODE_MISMATCH');assert(!('tree'in blockedBody));
+    const user=await tool('minecraft_get_ui',{category:'USER'});assert.equal(user.dataCategory,'USER');
+    const publicResponse=await fetch(web.url+'/api/snapshot',{headers:{'x-web-ui-token':browserToken}});
+    assert.equal(publicResponse.status,200);const publicBody=await publicResponse.json();assert.equal(publicBody.tree.dataCategory,'USER');assert.equal(publicBody.ownsLease,false);
+    for(const n of nodes(publicBody.tree))assert(!('resourceVersion'in n)&&!('debugFacts'in n),'USER must not disclose DEBUG metadata');
     assert.deepEqual(nodes(await snapshot()).find(n=>n.nodeId===original.nodeId).resourceVersion,original.resourceVersion);
     await tool('minecraft_debug_arm',{action:'arm',uiContextId:tree.uiContextId,namespaces:['ui'],ttlMs:60000});
-    const wrongValue=typeof expected==='boolean'?!expected:typeof expected==='number'?expected+0.123:typeof expected==='object'?{...expected,title:expected.title+' wrong'}:expected+' wrong';
+    const wrongValue=control?.operation==='ui.canvas.pan.set'?{...expected,x:expected.x+0.125}:typeof expected==='boolean'?!expected:typeof expected==='number'?expected+0.123:typeof expected==='object'?{...expected,title:expected.title+' wrong'}:expected+' wrong';
     await tool('minecraft_debug',{action:'mutate',mutation:{...mutation,expectedValue:wrongValue}},'VALUE_PRECONDITION_FAILED');
-    const changed=await tool('minecraft_debug',{action:'mutate',mutation});assert.deepEqual(changed.after[field],mutation.value);assert.equal(changed.dataCategory,'DEBUG');assert.equal(changed.evidenceAuthority,'DEBUG_PRIVILEGED');assert.equal(changed.inputDispatchCount,0);
+    const changed=await tool('minecraft_debug',{action:'mutate',mutation});
+    if(changed.after&&Object.hasOwn(changed.after,field)&&changed.afterResourceVersion)confirmedChange={value:structuredClone(changed.after[field]),resourceVersion:structuredClone(changed.afterResourceVersion)};
+    assert.deepEqual(changed.after[field],mutation.value);assert.equal(changed.dataCategory,'DEBUG');assert.equal(changed.evidenceAuthority,'DEBUG_PRIVILEGED');assert.equal(changed.inputDispatchCount,0);
     await tool('minecraft_debug',{action:'mutate',mutation},'STALE_RESOURCE_REVISION');
+   }catch(error){mutationFailure=error;throw error;
    }finally{
-    const current=nodes(await snapshot()).find(n=>n.nodeId===original.nodeId);assert(current,'Owned editor must remain present for typed recovery');
-    if(!isDeepStrictEqual(current[field],expected)){
-     const restored=await tool('minecraft_debug',{action:'batch',items:[{...mutation,expectedResourceVersion:current.resourceVersion,expectedValue:current[field],value:expected}]});
-     assert.equal(restored.state,'completed');assert.equal(restored.result.succeededItems,1,JSON.stringify(restored));assert.deepEqual(restored.result.items[0].result.after[field],expected);assert.equal(restored.result.items[0].result.evidenceAuthority,'DEBUG_PRIVILEGED');
-     debugOperationId=restored.operationId;
-    }
+    try{
+     const current=nodes(await snapshot()).find(n=>n.nodeId===original.nodeId);assert(current,'Owned editor must remain present for typed recovery');
+     if(!isDeepStrictEqual(current[field],expected)){
+      assert(confirmedChange,'No confirmed owned editor mutation; preserve instead of cleanup');
+      assert.deepEqual(current[field],confirmedChange.value,'Editor value changed externally; preserve instead of cleanup');
+      assert.deepEqual(current.resourceVersion,confirmedChange.resourceVersion,'Editor token changed externally; preserve instead of cleanup');
+      const restored=await tool('minecraft_debug',{action:'batch',items:[{...mutation,expectedResourceVersion:current.resourceVersion,expectedValue:current[field],value:expected}]});
+      assert.equal(restored.state,'completed');assert.equal(restored.result.succeededItems,1,JSON.stringify(restored));assert.deepEqual(restored.result.items[0].result.after[field],expected);assert.equal(restored.result.items[0].result.evidenceAuthority,'DEBUG_PRIVILEGED');
+      debugOperationId=restored.operationId;
+     }
+    }catch(error){if(mutationFailure)mutationFailure.message+=`; cleanup: ${error.message}`;else throw error;}
     await tool('minecraft_debug_arm',{action:'disarm'});
     await tool('minecraft_control',{action:'set_mode',mode:'READ'});
    }
@@ -102,12 +112,12 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
    }
    const after=await input(),mode=await tool('minecraft_control',{action:'status'});
    assert.equal(after.inputDispatchSequence,before.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);assert.equal(mode.mode,'READ');assert.equal(mode.takeoverActive,false);
-   results.push({transport:'mcp_stdio_debug',editor:kind,operation:mutation.operation,status:'PASS',inputDelta:0,playerLeaseAcquired:false,typedRecovery:true,userOperationGetWaitAssertRejected:true,diagnosticCancelRedacted:true,rejections:['DEBUG_ARM_REQUIRED','DEBUG_NOT_ARMED','UI_CATEGORY_MODE_MISMATCH','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION','OPERATION_NOT_FOUND']});
+   results.push({transport:'mcp_stdio_debug',editor:kind,operation:mutation.operation,status:'PASS',inputDelta:0,playerLeaseAcquired:false,typedRecovery:true,userOperationGetWaitAssertRejected:true,diagnosticCancelRedacted:true,rejections:['DEBUG_ARM_REQUIRED','DEBUG_NOT_ARMED','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION','OPERATION_NOT_FOUND']});
    const restoredPublic=await request('snapshot');assert.equal(restoredPublic.tree.dataCategory,'USER');assert.equal(restoredPublic.ownsLease,false);
    const publicField=find(restoredPublic.tree);
    if(control?.privateField){if(publicField)assert.equal(publicField[field],undefined,'Private native display values must not leak into USER');}
    else if(publicField)assert.deepEqual(publicField[field],expected);else assert(control?.expiringPresentation,'A non-expiring restored field disappeared from USER');
-   results.push({transport:'web_user_isolation',editor:kind,status:'PASS',operateSnapshotRejected:true,debugMetadataLeaked:false,automaticLeaseAcquired:false});
+   results.push({transport:'web_user_isolation',editor:kind,status:'PASS',operateUserSnapshotAvailable:true,debugMetadataLeaked:false,automaticLeaseAcquired:false});
   }
   if(control)return results;
   await tool('minecraft_control', { action: 'begin_task', ttlMs: 60000, budgetMs: 120000 }); mcpOwned = true;

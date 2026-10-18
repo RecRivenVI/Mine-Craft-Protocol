@@ -1,1 +1,1 @@
-{"probeOnly":true,"processId":75916,"target":"26.1.2-neoforge","testedAt":"2026-10-17T13:29:41.626085300Z","playerInputUsed":false,"worldMutationUsed":false,"status":"PASS","checks":7}
+{"probeOnly":true,"processId":45664,"target":"26.1.2-neoforge","testedAt":"2026-10-18T03:26:57.065693800Z","playerInputUsed":false,"worldMutationUsed":false,"nativeTickVersionStable":true,"sameValueResetInvalidates":true,"status":"PASS","checks":9,"resetGenerationChecks":2,"resetConsumption":"native_update_on_probe_owned_toast"}

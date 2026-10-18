@@ -5,7 +5,7 @@ $runtimeCore=Join-Path (Resolve-Path (Join-Path $PSScriptRoot '../../../..')) 'c
 function Require([bool]$ok,[string]$reason){if(-not$ok){throw "Control Round 1: $reason"}}
 $schema=Get-Content (Join-Path $root 'components/protocol_schema/src/main/openapi/minecraft-control-v0.json') -Raw|ConvertFrom-Json
 Require ($schema.info.version-eq'0.0.1-ui-m1') 'wrong V0 schema version'
-$policies=@('READ_COMPATIBLE','OPERATE_REQUIRED','TAKEOVER_REQUIRED','MODE_INDEPENDENT')
+$policies=@('READ_COMPATIBLE','OPERATE_OR_TAKEOVER','TAKEOVER_REQUIRED','MODE_INDEPENDENT','COMMAND_ROUTE_DEPENDENT')
 $count=0
 foreach($path in $schema.paths.PSObject.Properties){foreach($operation in $path.Value.PSObject.Properties){
     if($operation.Name-notin@('get','post','put','patch','delete','options','head','trace')-or-not$operation.Value.operationId){continue}

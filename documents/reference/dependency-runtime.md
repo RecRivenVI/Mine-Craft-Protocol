@@ -25,7 +25,9 @@ JUnit Jupiter 与 Platform Launcher 按版本目录匹配，产品组件测试�
 五个 Target 的坐标回归测试使用本端 Minecraft 编译/运行依赖；Fabric 另加入原生 client 输出。
 不以其他版本的 Gson 覆盖旧端 Minecraft 的严格依赖约束，也不将 JUnit 带入产品构件。
 Gson 的独立测试依赖不表示游戏内 Gson 已升级。OpenAPI Generator 负责生成模型，生成输出不手工修改。
-runtime_safety 的 UI 分类投影以 compileOnly 使用版本目录的 Gson，测试使用同一依赖；
+runtime_core 与 runtime_safety 的编译和契约测试使用项目专用 mcp-runtime-gson 别名，固定为最老 Target 实际提供的 Gson 2.10。
+这样编译即拒绝游戏运行库没有的 API（例如 JsonObject.isEmpty），不以新版测试库掩盖旧端链接错误；模板工具 Gson 条目保持不变。
+runtime_safety 的 UI 分类投影以 compileOnly 使用该 API 基线，测试使用同一依赖；
 运行时由 Minecraft 提供 Gson，不嵌入另一份 Gson 或覆盖 Loader 的版本约束。
 
 runtime_core 以 compileOnly 使用 runtime_safety、Gson 和 Netty；独立契约测试使用相应 testImplementation。

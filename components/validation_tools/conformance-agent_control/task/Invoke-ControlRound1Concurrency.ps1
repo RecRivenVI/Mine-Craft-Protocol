@@ -29,7 +29,7 @@ $socket=[Net.WebSockets.ClientWebSocket]::new()
 $socket.Options.SetRequestHeader('Authorization',$auth.Authorization)
 try{
     $before=Json GET '/v0/input/state'
-    $deep=Json POST '/v0/observe/deep' @{perspective='server_authoritative';domains=@('player');includeProviderData=$false}
+    $deep=Json POST '/v0/observe/deep' @{category='DEBUG';perspective='server_authoritative';domains=@('player');includeProviderData=$false}
     Require ($null-ne$deep.server.player) 'READ deep observation'
     $capture=Invoke-WebRequest "$base/v0/capture" -Headers $auth -TimeoutSec 15
     Require ($capture.StatusCode-eq200-and$capture.RawContentLength-gt100) 'READ capture'
@@ -54,10 +54,10 @@ try{
     $rejected=@($responses|Where-Object {-not$_.IsSuccessStatusCode})[0].Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
     Require ($rejected.error-eq'STALE_MODE_REVISION') 'racing transition was not a typed stale-version rejection'
 
-    $fp=Json GET '/v0/world/fingerprint'
+    $fp=Json GET '/v0/world/fingerprint?category=DEBUG'
     $arm=Json POST '/v0/debug/arm' @{worldFingerprint=$fp.worldFingerprint;namespaces=@('player');ttlMs=60000}
     $debug=$auth.Clone();$debug['X-MCP-Debug-Arm']=$arm.debugArmId
-    $snapshot=Json POST '/v0/observe/deep' @{perspective='server_authoritative';domains=@('player');includeProviderData=$false}
+    $snapshot=Json POST '/v0/observe/deep' @{category='DEBUG';perspective='server_authoritative';domains=@('player');includeProviderData=$false}
     $ref=@($snapshot.resourceRevisionRefs|Where-Object resourceType -eq player)[0]
     Require ($null-ne$ref) 'bounded player revision missing'
     # Deliberately wrong value preconditions: exercise an active authorized batch
@@ -65,13 +65,16 @@ try{
     $items=@(1..64|ForEach-Object{@{operation='player.health.set';health=20;expectedHealth=-1;worldFingerprint=$fp.worldFingerprint;expectedResourceVersion=$ref}})
     $batch=Json POST '/v0/debug/batches' @{items=$items;maxPerTickMutations=1;failurePolicy='CONTINUE_ON_FAILURE';maxTotalDurationMs=10000} $debug
     Require ((Get-AgentMode $base $auth).activeOperateRequests-gt0) 'batch was not pending at conflict test'
-    Denied '/v0/control/acquire' @{ttlMs=10000} 'MODE_OPERATION_IN_PROGRESS'
     Denied '/v0/input/key' @{key=87;action=1} 'TAKEOVER_REQUIRED'
     Require ((Json GET '/v0/control/status').status-eq'available') 'Debug batch acquired input Lease'
+    $concurrentLease=Json POST '/v0/control/acquire' @{ttlMs=10000;expectedModeVersion=(Get-AgentMode $base $auth).modeVersion}
+    Require ((Get-AgentMode $base $auth).mode-eq'TAKEOVER') 'explicit TAKEOVER must coexist with independent work'
+    $concurrentHeaders=$auth.Clone();$concurrentHeaders['X-MCP-Control-Lease']=$concurrentLease.leaseId
     Json DELETE "/v0/operations/$($batch.operationId)"|Out-Null
     $until=[DateTime]::UtcNow.AddSeconds(3)
     do{$active=(Get-AgentMode $base $auth).activeOperateRequests;if($active-eq0){break};Start-Sleep -Milliseconds 25}while([DateTime]::UtcNow-lt$until)
     Require ($active-eq0) 'cancelled Debug admission was not retired'
+    Json POST '/v0/control/release' $null $concurrentHeaders|Out-Null
     Json POST '/v0/debug/disarm'|Out-Null
     Set-AgentMode $base $auth READ|Out-Null
 
@@ -92,7 +95,7 @@ try{
     Require ((Json GET '/v0/input/state').inputDispatchSequence-eq$clean.inputDispatchSequence) 'queued input arrived after intent exit'
     Require ((Json GET "/v0/operations/$($pipeline.operationId)").state-eq'cancelled') 'operation cancellation state'
     Set-AgentMode $base $auth READ|Out-Null
-    [pscustomobject]@{Result='PASS';Target=$ExpectedTarget;ReadDeepObserve='PASS';ReadCapture='PASS';ReadEvent='PASS';ReadRecording='PASS';ReadArtifact='PASS';ReadInputEffects=0;RecordingId=$recording.recordingId;ModeCASRace='PASS';DebugVsTakeover='CONTROLLED_REJECTION';DebugBatchCancellation='PASS';CancelVsModeChange='PASS';PostTransitionInput=0;PersistentWriteInvocations=0}
+    [pscustomobject]@{Result='PASS';Target=$ExpectedTarget;ReadDeepObserve='PASS';ReadCapture='PASS';ReadEvent='PASS';ReadRecording='PASS';ReadArtifact='PASS';ReadInputEffects=0;RecordingId=$recording.recordingId;ModeCASRace='PASS';DebugVsTakeover='INDEPENDENT_AUTHORITY';DebugBatchCancellation='PASS';CancelVsModeChange='PASS';PostTransitionInput=0;PersistentWriteInvocations=0}
 }finally{
     $socket.Dispose();$client.Dispose()
     try{Json POST '/v0/control/emergency-release'|Out-Null}catch{}

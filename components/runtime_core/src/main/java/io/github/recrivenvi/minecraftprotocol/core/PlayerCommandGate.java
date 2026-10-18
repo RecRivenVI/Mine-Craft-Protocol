@@ -53,6 +53,19 @@ public final class PlayerCommandGate implements AutoCloseable {
         return result;
     }
 
+    /** Trusted owner-thread scope, never a caller-supplied input-origin flag. */
+    public Dispatch enterNative(String command, Runnable authorization, String requestId) {
+        java.util.Objects.requireNonNull(authorization);
+        java.util.Objects.requireNonNull(requestId);
+        PlayerCommandPolicy.validateText(command);
+        Dispatch result = new Dispatch(control.snapshot(), null, current.get());
+        result.nativeAuthorization = authorization;
+        result.nativeCommand = command;
+        result.nativeRequestId = requestId;
+        current.set(result);
+        return result;
+    }
+
     public boolean requiresInspection(boolean agentRouted) {
         return agentRouted || current.get() != null || control.snapshot().agentControlled();
     }
@@ -86,19 +99,28 @@ public final class PlayerCommandGate implements AutoCloseable {
             if (closed.get() || dispatch == null)
                 throw denied("PLAYER_COMMAND_ORIGIN_UNAVAILABLE", "No active Agent input dispatch");
             if (dispatch.failure != null) return false;
-            if (dispatch.permit == null)
-                throw denied(
-                        "PLAYER_COMMAND_ORIGIN_UNAVAILABLE", "No originating input effect permit");
-            dispatch.permit.check();
-            control.requireVersion(
-                    dispatch.accepted.controlSessionId(), dispatch.accepted.transitionSequence());
-            if (!control.snapshot().agentControlled())
-                throw denied("TAKEOVER_REQUIRED", "Player commands require TAKEOVER");
-            if (!agentRouted)
-                throw denied(
-                        "PLAYER_COMMAND_ORIGIN_UNAVAILABLE",
-                        "Unknown command origin during TAKEOVER");
-            authorize.accept(dispatch.permit.gestureId(), true);
+            if (dispatch.nativeAuthorization != null) {
+                if (configuration != null || !dispatch.nativeCommand.equals(command))
+                    throw denied(
+                            "PLAYER_COMMAND_CONTEXT_CHANGED", "Native command context changed");
+                dispatch.nativeAuthorization.run();
+            } else {
+                if (dispatch.permit == null)
+                    throw denied(
+                            "PLAYER_COMMAND_ORIGIN_UNAVAILABLE",
+                            "No originating input effect permit");
+                dispatch.permit.check();
+                control.requireVersion(
+                        dispatch.accepted.controlSessionId(),
+                        dispatch.accepted.transitionSequence());
+                if (!control.snapshot().agentControlled())
+                    throw denied("TAKEOVER_REQUIRED", "Player commands require TAKEOVER");
+                if (!agentRouted)
+                    throw denied(
+                            "PLAYER_COMMAND_ORIGIN_UNAVAILABLE",
+                            "Unknown command origin during TAKEOVER");
+                authorize.accept(dispatch.permit.gestureId(), true);
+            }
             boolean nativeParameters = configuration != null && configuration.fixedEffect != null;
             if (nativeParameters && !"".equals(command))
                 throw denied(
@@ -114,11 +136,16 @@ public final class PlayerCommandGate implements AutoCloseable {
                         || command.codePoints().anyMatch(Character::isISOControl))
                     throw denied("INVALID_PLAYER_COMMAND", "Invalid bounded command configuration");
             } else PlayerCommandPolicy.validateText(command);
-            String expected = dispatch.permit.expectedPlayerCommand();
+            String expected =
+                    dispatch.nativeAuthorization != null
+                            ? dispatch.nativeCommand
+                            : dispatch.permit.expectedPlayerCommand();
             if (expected != null
                     && (configuration != null
                             || !expected.equals(command)
-                            || (packet && !dispatch.permit.playerCommandSubmissionAllowed())))
+                            || (packet
+                                    && dispatch.nativeAuthorization == null
+                                    && !dispatch.permit.playerCommandSubmissionAllowed())))
                 throw denied(
                         "PLAYER_COMMAND_CONTEXT_CHANGED",
                         "Helper command changed or submitted before native Enter");
@@ -159,21 +186,35 @@ public final class PlayerCommandGate implements AutoCloseable {
             if (packet) {
                 // Native parsing/encoding can be expensive; cancellation and mode loss still win
                 // before publication.
-                dispatch.permit.check();
-                control.requireVersion(
-                        dispatch.accepted.controlSessionId(),
-                        dispatch.accepted.transitionSequence());
-                authorize.accept(dispatch.permit.gestureId(), true);
-                if (++dispatch.packets > 16)
+                if (dispatch.nativeAuthorization != null) dispatch.nativeAuthorization.run();
+                else {
+                    dispatch.permit.check();
+                    control.requireVersion(
+                            dispatch.accepted.controlSessionId(),
+                            dispatch.accepted.transitionSequence());
+                    authorize.accept(dispatch.permit.gestureId(), true);
+                }
+                if (++dispatch.packets > (dispatch.nativeAuthorization != null ? 1 : 16))
                     throw denied(
                             "PLAYER_COMMAND_BUDGET_EXCEEDED",
                             "Too many commands in one native dispatch");
                 JsonObject receipt =
                         configuration == null
                                 ? PlayerCommandEvidence.classified(
-                                        new JsonObject(), effect, "GAME_ROUTED_RAW")
+                                        new JsonObject(),
+                                        effect,
+                                        dispatch.nativeAuthorization != null
+                                                ? "NORMAL_NETWORK"
+                                                : "GAME_ROUTED_RAW")
                                 : PlayerCommandEvidence.configuration(configuration, effect);
-                receipt.addProperty("gestureId", dispatch.permit.gestureId());
+                receipt.addProperty(
+                        "gestureId",
+                        dispatch.nativeAuthorization != null
+                                ? dispatch.nativeRequestId
+                                : dispatch.permit.gestureId());
+                receipt.addProperty(
+                        "route", dispatch.nativeAuthorization != null ? "NATIVE" : "CHAT");
+                receipt.addProperty("dataCategory", "USER");
                 observeSubmission.accept(receipt.deepCopy());
                 dispatch.receipt = receipt;
             }
@@ -210,6 +251,9 @@ public final class PlayerCommandGate implements AutoCloseable {
         private JsonObject receipt;
         private ProtocolState.ProtocolException failure;
         private int packets;
+        private Runnable nativeAuthorization;
+        private String nativeCommand;
+        private String nativeRequestId;
 
         private Dispatch(
                 AgentControlSession.Snapshot accepted,
@@ -233,6 +277,7 @@ public final class PlayerCommandGate implements AutoCloseable {
 
         public void checkEffect() {
             check();
+            if (nativeAuthorization != null) nativeAuthorization.run();
             if (permit != null) permit.check();
         }
 

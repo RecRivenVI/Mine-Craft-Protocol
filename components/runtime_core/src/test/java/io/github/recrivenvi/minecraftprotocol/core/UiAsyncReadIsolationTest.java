@@ -447,7 +447,7 @@ class UiAsyncReadIsolationTest {
     }
 
     @Test
-    void lateUiReadCannotSurviveModeRoundTrip() throws Exception {
+    void authorizedUiReadSurvivesModeRoundTrip() throws Exception {
         try (var f = new Fixture(",ui", true)) {
             var pending = f.request("GET", "/v0/ui/tree", null);
             assertTrue(f.uiStarted.await(2, TimeUnit.SECONDS));
@@ -457,13 +457,13 @@ class UiAsyncReadIsolationTest {
             old.addProperty("label", SECRET);
             f.deferredUi.complete(old);
             var response = pending.get(6, TimeUnit.SECONDS);
-            assertEquals(409, response.statusCode(), response.body());
-            assertFalse(response.body().contains(SECRET));
+            assertEquals(200, response.statusCode(), response.body());
+            assertTrue(response.body().contains(SECRET));
         }
     }
 
     @Test
-    void lateUiResolveCannotSurviveModeRoundTrip() throws Exception {
+    void authorizedUiResolveSurvivesModeRoundTripAndStillChecksTarget() throws Exception {
         try (var f = new Fixture(",ui", true)) {
             var pending = f.request("POST", "/v0/ui/resolve", "{\"labelContains\":\"test\"}");
             assertTrue(f.uiStarted.await(2, TimeUnit.SECONDS));
@@ -471,9 +471,9 @@ class UiAsyncReadIsolationTest {
             f.mode("READ");
             f.deferredUi.complete(new JsonObject());
             var response = pending.get(6, TimeUnit.SECONDS);
-            assertEquals(409, response.statusCode(), response.body());
+            assertEquals(404, response.statusCode(), response.body());
             assertEquals(
-                    "UI_READ_CONTEXT_CHANGED",
+                    "UI_NODE_NOT_FOUND",
                     JsonParser.parseString(response.body())
                             .getAsJsonObject()
                             .get("error")
@@ -482,7 +482,7 @@ class UiAsyncReadIsolationTest {
     }
 
     @Test
-    void lateUiWaitAndAssertCannotSurviveModeRoundTrip() throws Exception {
+    void authorizedUiWaitAndAssertSurviveModeRoundTrip() throws Exception {
         for (String path : new String[] {"/v0/assert", "/v0/wait/until"})
             try (var f = new Fixture(",ui", true)) {
                 var pending =
@@ -498,14 +498,7 @@ class UiAsyncReadIsolationTest {
                 old.addProperty("label", SECRET);
                 f.deferredUi.complete(old);
                 var response = pending.get(6, TimeUnit.SECONDS);
-                assertEquals(409, response.statusCode(), response.body());
-                assertEquals(
-                        "UI_READ_CONTEXT_CHANGED",
-                        JsonParser.parseString(response.body())
-                                .getAsJsonObject()
-                                .get("error")
-                                .getAsString());
-                assertFalse(response.body().contains(SECRET));
+                assertEquals(200, response.statusCode(), response.body());
             }
     }
 }

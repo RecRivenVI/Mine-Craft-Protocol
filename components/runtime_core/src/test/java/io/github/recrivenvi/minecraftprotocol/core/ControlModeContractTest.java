@@ -43,7 +43,7 @@ final class ControlModeContractTest {
                 if (id.startsWith("fixture.")) {
                     assertFalse(descriptor.get("requiresControlLease").getAsBoolean());
                     assertEquals(
-                            "OPERATE_REQUIRED", descriptor.get("modeRequirement").getAsString());
+                            "OPERATE_OR_TAKEOVER", descriptor.get("modeRequirement").getAsString());
                 }
             }
         }
@@ -314,15 +314,11 @@ final class ControlModeContractTest {
                             });
             AgentControlSession.Guard entered = work.get().enter();
             response.cancel(false);
-            assertEquals(
-                    "MODE_OPERATION_IN_PROGRESS",
-                    assertThrows(
-                                    AgentControlSession.ModeException.class,
-                                    () -> state.acquireLease(60000))
-                            .code());
+            state.acquireLease(60000);
+            assertEquals(1, state.controlSession().activeOperateRequests());
             entered.close();
             assertThrows(AgentControlSession.ModeException.class, () -> work.get().call(() -> 1));
-            state.acquireLease(60000);
+            assertEquals(0, state.controlSession().activeOperateRequests());
             assertEquals("TAKEOVER", mode(state));
         }
     }
@@ -365,6 +361,28 @@ final class ControlModeContractTest {
                     AgentControlSession.ModeException.class,
                     () -> state.controlSession().withTakeover(accepted, effects::incrementAndGet));
             assertEquals(1, effects.get());
+        }
+    }
+
+    @Test
+    void inputHandbackDoesNotCancelIndependentWorkOrRevokeItsAuthority() throws Exception {
+        try (ProtocolState state = state()) {
+            state.acquireLease(60000);
+            var work = state.beginOperate();
+            state.revokeHumanControl();
+            assertEquals("READ", mode(state));
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
+            assertEquals(42, work.call(() -> 42));
+            assertThrows(AgentControlSession.ModeException.class, state::beginOperate);
+            select(state, AgentControlSession.Mode.OPERATE);
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
+            assertEquals("available", state.leaseStatus().get("status").getAsString());
+            assertEquals(43, work.call(() -> 43));
+            work.close();
+            assertEquals(
+                    "OPERATE_WORK_CANCELLED",
+                    assertThrows(AgentControlSession.ModeException.class, () -> work.call(() -> 44))
+                            .code());
         }
     }
 

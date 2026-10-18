@@ -62,7 +62,7 @@ if (serialized.includes('expectedWorldRevision')) {
   throw new Error('Companion protocol must not restore global expectedWorldRevision');
 }
 
-const policies = ['READ_COMPATIBLE', 'OPERATE_REQUIRED', 'TAKEOVER_REQUIRED', 'MODE_INDEPENDENT'];
+const policies = ['READ_COMPATIBLE', 'OPERATE_OR_TAKEOVER', 'TAKEOVER_REQUIRED', 'MODE_INDEPENDENT', 'COMMAND_ROUTE_DEPENDENT'];
 for (const [path, methods] of Object.entries(specification.paths)) {
   if (!methods.parameters?.some(parameter => parameter.$ref === '#/components/parameters/RuntimeInstance')) throw new Error(`Missing instance pin on ${path}`);
   for (const [method, operation] of Object.entries(methods)) {

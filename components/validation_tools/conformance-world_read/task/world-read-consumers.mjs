@@ -77,9 +77,9 @@ export async function inputContractConsumers(repo, instanceDirectory, target, le
   try {
     await client.connect(transport);
     if(leaseId){
-      const denied=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{leaseId,steps:[{type:'key',key:87,action:1},{type:'assert.that',condition:{type:'screen',category:'DEBUG'}}]}});
-      assert.equal(denied.isError,true,JSON.stringify(denied));assert.equal(denied.structuredContent.error.code,'UI_CATEGORY_MODE_MISMATCH');
-      return [{name:'MCP typed DEBUG condition denial preserves Native error without authority upgrade',status:'PASS'}];
+      const result=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{leaseId,steps:[{type:'assert.that',condition:{type:'screen',category:'DEBUG'}}],waitForCompletion:true}});
+      assert(!result.isError,JSON.stringify(result));assert.equal(result.structuredContent.data.state,'completed');
+      return [{name:'MCP typed DEBUG condition remains independently authorized during TAKEOVER without input effects',status:'PASS'}];
     }
     for(const category of ['USER','DEBUG']){
       const result=await client.callTool({name:'minecraft_assert',arguments:{condition:{type:'screen',category,classContains:'TitleScreen'}}});

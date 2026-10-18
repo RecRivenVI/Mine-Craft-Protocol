@@ -48,6 +48,7 @@ export async function asToolResult(operation: () => Promise<JsonValue>): Promise
           retryAfterMillis: runtime.retryAfterMillis, rateLimit: runtime.rateLimit
         } : {}),
         ...(runtime?.actualHit ? {actualHit:runtime.actualHit} : {}),
+        ...(runtime?.resourceRevision ?? {}),
         ...(runtime?.requestId ? { requestId: runtime.requestId } : {})
       },
       companion: {

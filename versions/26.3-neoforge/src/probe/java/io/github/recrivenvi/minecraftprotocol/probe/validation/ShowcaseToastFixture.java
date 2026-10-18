@@ -1,6 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.probe.validation;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.FriendToast;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.components.toasts.TutorialToast;
@@ -9,6 +10,18 @@ import net.minecraft.network.chat.Component;
 /** Opt-in presentation fixture; never part of the product JAR or gameplay evidence. */
 public final class ShowcaseToastFixture {
     private ShowcaseToastFixture() {}
+
+    public static void showVisibilityDebug() {
+        Minecraft client = Minecraft.getInstance();
+        var manager = client.gui.toastManager();
+        // The local display fixture never contacts any account/friends service.
+        manager.addToast(
+                new FriendToast(
+                        client.font,
+                        null,
+                        Component.literal("DEBUG local friend display fixture"),
+                        60000));
+    }
 
     public static void showDebug() {
         Minecraft client = Minecraft.getInstance();

@@ -21,7 +21,7 @@ class WorldHitEvidenceTest {
             assertEquals("USER", hit.get("dataCategory").getAsString());
             assertFalse(hit.toString().contains("secret"));
         }
-        assertTrue(WorldHitEvidence.details(null).isEmpty());
+        assertEquals(0, WorldHitEvidence.details(null).size());
     }
 
     @Test

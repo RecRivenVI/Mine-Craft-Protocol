@@ -19,6 +19,7 @@ $receipt.testedAt='2026-10-16T16:40:59Z'
 if(Test-UiReceiptOwner $receipt 5785 44384 $started){throw 'Historical receipt accepted'}
 $runner=Join-Path $PSScriptRoot 'Invoke-VanillaUiSuite.ps1'
 $nativeRunner=Get-Content (Join-Path $PSScriptRoot 'run-vanilla-ui.mjs') -Raw
+if($nativeRunner.IndexOf('await advancementPanActions(')-lt0-or$nativeRunner.IndexOf('await advancementPanActions(')-gt$nativeRunner.IndexOf("await check('pause: Return to Game")){throw 'Advancement canvas diagnostics must execute before Save and Quit removes the player context'}
 if(-not$nativeRunner.Contains("path==='/v0/control/acquire')body=automaticTakeoverRequest(await api('GET','/v0/control/mode'),body)")){throw 'Every automatic acquisition, including Debug cleanup, must reject manual override and pin the checked native mode generation'}
 foreach($name in @('ui','key','command')) {
     if($nativeRunner-notmatch("async function "+$name+'\([^\n]*?\)\{\s*await heartbeatControl\(\);')){throw "Explicit $name work must maintain its existing task and Lease"}
@@ -29,7 +30,7 @@ try { & $runner -Target '26.3-fabric' -RuntimePort 65536; throw 'Invalid Runtime
 catch { if ($_.FullyQualifiedErrorId -notlike 'ParameterArgumentValidationError*') { throw } }
 try { & $runner -All -KeepClient; throw 'Batch KeepClient accepted' }
 catch { if ($_.Exception.Message -ne 'Batch testing requires automatic shutdown and existing immutable baselines') { throw } }
-foreach($scenario in @('editors','hud','hud-vitals','spectator','pointer','special-menus','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-toast')) {
+foreach($scenario in @('editors','hud','hud-vitals','spectator','pointer','special-menus','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-toast','ui-debug-advancement')) {
     try { & $runner -All -Scenario $scenario -DebugUi; throw 'Partial scenarios accepted as full batch evidence' }
     catch { if ($_.Exception.Message -ne 'Batch evidence requires the complete scenario matrix') { throw } }
 }
@@ -58,6 +59,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Editor consumers syntax failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Spectator consumers syntax failed' }
 & node --test (Join-Path $PSScriptRoot 'runner-handoff.test.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'Production editor handoff recovery failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-debug-capability-audit.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'UI typed applicability audit failed' }
+& node --check (Join-Path $PSScriptRoot 'visibility-toast-actions.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'UI visibility Toast syntax failed' }
+& node --check (Join-Path $PSScriptRoot 'ui-debug-advancement-actions.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'UI advancement canvas syntax failed' }
 $catalog = Get-Content (Join-Path $repo 'validations/conformance-vanilla_ui/task/screens.json') -Raw | ConvertFrom-Json
 $names = @($catalog.families | ForEach-Object { $_.name })
 if ($names.Count -lt 10 -or @($names | Sort-Object -Unique).Count -ne $names.Count) { throw 'UI coverage families must be complete and unique' }

@@ -19,6 +19,7 @@ pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-Vanill
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario special-menus
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-toast
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-advancement
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Read-VanillaUiCatalog.ps1 -Target 26.3-neoforge
 ```
 
@@ -43,11 +44,14 @@ DebugRead 仅为该测试子进程显式配置 debug、debug.ui.read，不授予
 不授予世界修改 namespace；READ 类别消费者仍可只用 DebugRead，不能借此执行 UI mutation。
 DebugUi另显式授予fixture，仅用于既有诊断Screen准备probe本地Toast夹具，不扩大产品默认scope或将Fixture算为正常玩法。
 ui-debug-toast固定输出`<target>-ui-debug-toast.json`，覆盖SystemToast双字段reset、TutorialToast显示进度与原生单向hide。
-各端7项同PID/Target/启动时间窗的实际Loader完整样式/尾部/预算守卫，以及Native类型/值/旧版本拒绝和零输入，
+各端9项同PID/Target/启动时间窗的实际Loader完整样式/尾部/预算及reset代次守卫，以及Native类型/值/旧版本拒绝和零输入，
 结合真实MCP DEBUG修改/批次恢复与网页USER私有字段隔离；通知移除后等待实际owner消失，再取新下标目标，不重放旧条件。
 Forge没有SystemToast.forceHide，只验证明确拒绝；probe夹具通过自己的结束按钮恢复正常计时，不作为产品隐藏PASS。
 固定副本和正常退出/端点删除同样必须通过；这一专项不替代完整UI、所有Toast呈现或完整领域验收。
-测试验证 READ 两类、TAKEOVER 仅 USER、OPERATE 仅 DEBUG，并检查拒绝没有输入副作用。
+测试验证三模式独立授权的两类读取；共享玩家输入仍只准 TAKEOVER + Lease，DEBUG 修改独立检查 scope/Arm/条件，并检查拒绝没有输入副作用。
+DEBUG 节点的 `debugMutation` 由实际原生 owner/type 生成，说明合法操作、字段和副作用，不是授权或任意 setter；USER 投影不返回它。
+26.3 两端额外通过 probe 本地 FriendToast 夹具验证原生单向隐藏与 owner 消失，其余版本不伪造适用结果。
+进度画布已支持选中原生Tab的二维typed平移与恢复；聊天建议、旁观菜单和其余HUD/Toast typed修改仍有限制，不因已有呈现读取或能力描述而视为完成。
 pointer 为独立专项，不代表 all：验证窗口状态、原生语言列表/创造物品栏滚动条、
 语义 ui.drag 将一叠石头真实分到九个背包槽位、余量存入及正常退出；不使用截图或手写落点。
 物品由诊断命令准备，Act 走原生玩家输入，结果保留两类来源；core 与各端原生适配均纳入源码哈希。
@@ -61,7 +65,7 @@ ui-debug-editors为M-03b参考端增量：固定世界中书本页/标题、普�
 五端各6项/78份应用或拒绝样本、20次实际应用/恢复及清理均通过；逐文件核对源码工具哈希。
 不将新源码计入3d6e3fca已发布快照或旧五端结果。
 ui-debug-consumers单独验证五类setter及新增编辑器的真实MCP DEBUG mutate/batch恢复、Arm/值/旧版本拒绝及USER读取隔离，
-再通过MCP/隔离网页的真实USER键入恢复原值。网页仍只发布USER图；OPERATE时拒绝快照，不静默改成DEBUG或取得Lease。
+再通过MCP/隔离网页的真实USER键入恢复原值。网页仍只发布USER图，OPERATE时也可只读快照；不静默改成DEBUG、输入或取得Lease。
 当前五端各10项/56份Native样本/26条消费者结果、逐文件源码绑定和正常退出清理通过；不是全部原版UI或最终制品验收。
 旧两端书名的空值替换使用声明的原生退格路径，26.x使用全选；Native/MCP/网页均核对实际清空和恢复。
 Operation的get/wait与Wait/Assert均验证USER拒绝，诊断读取仍可用；取消只返回生命周期。

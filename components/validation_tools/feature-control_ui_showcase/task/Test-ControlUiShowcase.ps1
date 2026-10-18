@@ -51,7 +51,7 @@ function Invoke-ShowcaseApi($Method,$Path,$Body=$null,$Headers=$null){
         '/v0/input/state' {return @{pressedKeyCount=0;pressedButtonCount=0;inputSequenceActive=$false}}
         '/v0/world/fingerprint?category=DEBUG' {return @{worldFingerprint='test-world'}}
         '/v0/observe/deep' {
-            Assert-Showcase ($Body.category-eq'DEBUG'-and$script:fakeMode.mode-ne'TAKEOVER') 'Internal inventory reads must be explicit DEBUG outside TAKEOVER'
+            Assert-Showcase ($Body.category-eq'DEBUG') 'Internal inventory reads require explicit independently authorized DEBUG in every mode'
             return @{server=@{menu=@{menuId=0;carriedStack=@{empty=$true};slots=@(9..12|ForEach-Object {@{slot=$_;id='minecraft:air';empty=$true;count=0}})}};resourceRevisionRefs=@(@{resourceType='menu';resourceKey='test-player';revision=4;sessionEpoch='test-epoch'})}
         }
         '/v0/debug/arm' {return @{debugArmId='test-arm'}}

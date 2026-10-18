@@ -78,7 +78,7 @@ class WorldConsumerLifecycleTest {
     }
 
     @Test
-    void completedInternalProviderCannotPublishAfterTakeoverAndReturnToRead() {
+    void authorizedInternalProviderSurvivesTakeoverAndReturnToRead() {
         var source = new CompletableFuture<JsonObject>();
         ProbeService service = service(() -> source);
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {})) {
@@ -90,29 +90,19 @@ class WorldConsumerLifecycleTest {
             var lease = state.acquireLease(60000);
             state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
             source.complete(json("{\"x\":12345}"));
-            assertTrue(result.isCompletedExceptionally());
-            assertEquals(
-                    "WORLD_READ_CONTEXT_CHANGED",
-                    ((ProtocolState.ProtocolException)
-                                    assertThrows(
-                                                    java.util.concurrent.CompletionException.class,
-                                                    result::join)
-                                            .getCause())
-                            .code());
+            assertTrue(result.join().toString().contains("12345"));
         }
     }
 
     @Test
-    void publicationTicketRejectsModeRoundTripAndShutdown() {
+    void publicationTicketSurvivesModeRoundTripButRejectsShutdown() {
         ProbeService service = service(() -> CompletableFuture.completedFuture(new JsonObject()));
         var state = new ProtocolState(SCOPES, "test", ignored -> {});
         var reads = new WorldReadEngine(service, state);
         Runnable ticket = reads.publicationGuard("DEBUG");
         var lease = state.acquireLease(60000);
         state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
-        assertEquals(
-                "WORLD_READ_CONTEXT_CHANGED",
-                assertThrows(ProtocolState.ProtocolException.class, ticket::run).code());
+        assertDoesNotThrow(ticket::run);
         Runnable closing = reads.publicationGuard("DEBUG");
         state.close();
         assertThrows(ProtocolState.ProtocolException.class, closing::run);
@@ -125,15 +115,14 @@ class WorldConsumerLifecycleTest {
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {})) {
             var reads = new WorldReadEngine(service, state);
             var result = reads.read("DEBUG", "client/player", new JsonObject(), () -> source);
-            state.acquireLease(60000);
+            state.close();
             source.completeExceptionally(
                     new IllegalStateException("hidden world coordinate 12345"));
             var cause =
                     assertThrows(java.util.concurrent.CompletionException.class, result::join)
                             .getCause();
             assertEquals(
-                    "WORLD_CATEGORY_MODE_MISMATCH",
-                    ((ProtocolState.ProtocolException) cause).code());
+                    "CONTROL_SESSION_CLOSED", ((ProtocolState.ProtocolException) cause).code());
             assertFalse(cause.getMessage().contains("12345"));
         }
     }
@@ -151,12 +140,20 @@ class WorldConsumerLifecycleTest {
     }
 
     @Test
-    void waitKeepsItsOriginalModeGenerationAcrossPolling() throws Exception {
-        var source = new CompletableFuture<JsonObject>();
-        ProbeService service = service(() -> source);
+    void waitRemainsAuthorizedAcrossModeChanges() throws Exception {
+        var ready = new java.util.concurrent.atomic.AtomicBoolean();
+        ProbeService service =
+                service(
+                        () ->
+                                CompletableFuture.completedFuture(
+                                        json("{\"available\":" + ready.get() + "}")));
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {});
-                var userEvents = new EventHub("test", () -> source);
-                var debugEvents = new EventHub("test", () -> source);
+                var userEvents =
+                        new EventHub(
+                                "test", () -> CompletableFuture.completedFuture(new JsonObject()));
+                var debugEvents =
+                        new EventHub(
+                                "test", () -> CompletableFuture.completedFuture(new JsonObject()));
                 var conditions =
                         new ConditionEngine(
                                 service,
@@ -171,16 +168,10 @@ class WorldConsumerLifecycleTest {
                             json(
                                     "{\"type\":\"player\",\"category\":\"DEBUG\",\"expected\":{\"available\":true}}"),
                             2000);
-            source.complete(json("{\"available\":false}"));
             var lease = state.acquireLease(60000);
             state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
-            var error =
-                    assertThrows(
-                            java.util.concurrent.ExecutionException.class,
-                            () -> wait.get(2, java.util.concurrent.TimeUnit.SECONDS));
-            assertEquals(
-                    "WORLD_READ_CONTEXT_CHANGED",
-                    ((ProtocolState.ProtocolException) error.getCause()).code());
+            ready.set(true);
+            assertNotNull(wait.get(2, java.util.concurrent.TimeUnit.SECONDS));
         }
     }
 

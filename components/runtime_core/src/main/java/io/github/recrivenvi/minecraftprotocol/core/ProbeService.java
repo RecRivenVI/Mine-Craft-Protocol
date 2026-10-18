@@ -64,6 +64,42 @@ public interface ProbeService {
 
     CompletableFuture<JsonObject> playerCommand(String command, String phase);
 
+    default CompletableFuture<JsonObject> discoverPlayerCommands(
+            String input, int cursor, int maxResults, Runnable authorization) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE", 409, "Native command discovery unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> completePlayerCommands(
+            String input, int cursor, int maxResults, Runnable authorization) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE", 409, "Server command completion unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> nativePlayerCommandBatch(
+            java.util.List<String> commands,
+            AgentControlSession.OperateWork work,
+            Runnable authorization,
+            String requestId) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE", 409, "Native command batch unavailable"));
+    }
+
+    default CompletableFuture<JsonObject> nativePlayerCommand(
+            String command,
+            AgentControlSession.OperateWork work,
+            Runnable authorization,
+            String requestId) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE",
+                        409,
+                        "Native player command route is unavailable"));
+    }
+
     CompletableFuture<JsonObject> playerState();
 
     CompletableFuture<JsonObject> blockState(int x, int y, int z);

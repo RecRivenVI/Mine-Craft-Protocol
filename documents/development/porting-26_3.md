@@ -15,7 +15,7 @@ BlockState 的 DEBUG 属性与 Resource Version 统一使用原生 `Property.get
 例如 NoteBlockInstrument 的内部枚举名称不是可写回的属性值。Native setter 先校验完整映射，再进行一次原版 setBlockAndUpdate；
 同类型更新保留未指定属性，跨类型使用默认状态。各端解析名称/API 自行适配，不共享 Minecraft 类型。
 
-玩家命令 helper 使用各端当前 Chat 绑定及原生字符回调，不直接调用 sendCommand。
+CHAT 玩家命令 helper 使用各端当前 Chat 绑定及原生字符回调，不直接调用 sendCommand；独立 NATIVE 路由见下方原生命令边界。
 26.3 的 SDL 键先转协议键，旧端保留 GLFW keysym/scancode；Forge/NeoForge 的带修饰 Chat 绑定明确拒绝，
 不假装普通 T 键仍有效。聊天框和连接身份在每一阶段复验，原生 256 UTF-16 输入上限包含斜杠。
 各 Target 自己提取 ChatScreen/EditBox 和派发字符，MC 无关的草稿守卫和阶段编排在 runtime_core。
@@ -172,6 +172,12 @@ TAKEOVER 外真人命令不受拦截，异步许可失效后不允许借用另�
 | 26.3 NeoForge/Fabric | sendUnattendedCommand 带 Screen | Packet、ChannelFutureListener、flush | 普通与 Signed 两种 |
 
 1.x 的客户端 Dispatcher 泛型是 SharedSuggestionProvider，26.x 是 ClientSuggestionProvider。
+本地命令发现使用独立ClientSuggestionProvider，不调用真人实例的customSuggestion，避免取消其单一服务器补全future。
+1.x构造器为connection/client，26.x还需原生permissions；旧端玩家名候选方法名为getCustomTabSugggestions，现代端为getCustomTabSuggestions。
+Forge映射构造器的两个参数元数据同名，子类使用显式构造器，不能生成匿名子类的同名参数。
+服务器补全返回明确未实现/需求标记，不发送探测命令或抢占真人聊天请求。
+NATIVE提交调用真实玩家连接的原生命令API，仍经过同一最终方法/包守卫；不构造原始包、不提升console source。
+批次外层owner交接和内层逐项future均保持取消传播，mode handback不取消已独立准入的合法工作。
 每端有界解析实际收到的命令树；别名子上下文可能从参数开始，必须使用 context.getRootNode，
 不能把参数名称误分类成新命令。同一根的别名续段合并为完整 root+arguments，
 避免设置命令被误判为无参数查询，或把查询别名误标为修改；原生上下文预算在合并前计数。

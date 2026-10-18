@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { worldEntityActions } from './world-entity-actions.mjs';
-import { worldUiActions } from './world-ui-actions.mjs';
+import { clearWorldUiFixture, worldUiActions } from './world-ui-actions.mjs';
 
 // All arrangement is confined to the owned disposable world. Administrative player commands
 // are diagnostic setup, not proof of USER input; only the world.action steps are acceptance Act.
@@ -64,6 +64,9 @@ export async function worldHeldActions({api,mode,acquire,release,key,wait,check,
       const result=await act(support,'mine',{holdMs:8000});
       assert.equal(result.clientBreakPredicted,true);assert(result.holdDurationMillis>400,'Must hold through real Survival breaking');
       await poll(()=>block(support),b=>b.block==='minecraft:air','Survival break effect');await zero();
+      // A prior break can leave a delayed pickup that changes the next gesture's held stack.
+      // Stabilize diagnostic Arrange, not the live gesture or its context protection.
+      await clearWorldUiFixture({api,command,poll});
       await arrange(support,'minecraft:obsidian');
       let operation=await start((await block(support)).targetRef,'mine',{holdMs:300});
       let outcome=await finish(operation);assert.equal(outcome.state,'failed');assert.equal(outcome.errorCode,'WORLD_MINE_TIMEOUT',JSON.stringify(outcome));await zero();

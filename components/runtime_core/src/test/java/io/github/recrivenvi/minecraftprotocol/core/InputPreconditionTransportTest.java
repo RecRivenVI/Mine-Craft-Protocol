@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.lang.reflect.Proxy;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,9 +36,6 @@ class InputPreconditionTransportTest {
         }
 
         Fixture(String scopes) throws Exception {
-            try (ServerSocket socket = new ServerSocket(0)) {
-                port = socket.getLocalPort();
-            }
             System.setProperty("minecraft.protocol.scopes", scopes);
             ProbeService delegate = world.service();
             ProbeService service =
@@ -83,8 +79,9 @@ class InputPreconditionTransportTest {
                                             throw error.getCause();
                                         }
                                     });
-            transport = new ProbeTransport(service, "input-precondition-http", port, "test-target");
+            transport = new ProbeTransport(service, "input-precondition-http", 0, "test-target");
             transport.startAsync();
+            port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;
             for (int attempt = 0; attempt < 200; attempt++) {
                 try {
@@ -474,8 +471,7 @@ class InputPreconditionTransportTest {
                                     "{\"condition\":{\"type\":\"screen\"}}",
                                     false)
                             .get(3, TimeUnit.SECONDS);
-            assertEquals(409, response.statusCode(), response.body());
-            assertTrue(response.body().contains("UI_CATEGORY_MODE_MISMATCH"));
+            assertEquals(200, response.statusCode(), response.body());
             response =
                     fixture.request(
                                     "POST",
@@ -489,7 +485,7 @@ class InputPreconditionTransportTest {
     }
 
     @Test
-    void asyncUiConditionsRecheckModeAndCancellationReachesTheNativeRead() throws Exception {
+    void asyncUiConditionsSurviveModeChangesAndCancellationReachesTheNativeRead() throws Exception {
         try (Fixture fixture = new Fixture()) {
             fixture.request("POST", "/v0/control/release", null, false).get(3, TimeUnit.SECONDS);
             fixture.world.blockedUiRead = new CompletableFuture<>();
@@ -505,8 +501,7 @@ class InputPreconditionTransportTest {
             fixture.mode("OPERATE");
             fixture.world.blockedUiRead.complete(fixture.world.tree());
             var response = pending.get(3, TimeUnit.SECONDS);
-            assertEquals(409, response.statusCode(), response.body());
-            assertTrue(response.body().contains("UI_CATEGORY_MODE_MISMATCH"));
+            assertEquals(200, response.statusCode(), response.body());
         }
         try (Fixture fixture = new Fixture()) {
             fixture.world.blockedUiRead = new CompletableFuture<>();

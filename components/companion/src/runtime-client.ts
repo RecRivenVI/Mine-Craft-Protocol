@@ -37,6 +37,7 @@ export class RuntimeError extends Error {
   readonly retryAfterMillis?: number;
   readonly rateLimit?: JsonObject;
   readonly actualHit?: JsonObject;
+  readonly resourceRevision?: JsonObject;
 
   constructor(code: string, status: number, message: string, requestId?: string, details?: JsonObject) {
     super(message);
@@ -44,6 +45,12 @@ export class RuntimeError extends Error {
     this.code = code;
     this.status = status;
     if (requestId !== undefined) this.requestId = requestId;
+    if (code === 'STALE_RESOURCE_REVISION' && details?.reinspectRequired === true && details.retrySafe === false
+        && typeof details.expectedRevision === 'number' && Number.isSafeInteger(details.expectedRevision) && details.expectedRevision >= 0
+        && typeof details.actualRevision === 'number' && Number.isSafeInteger(details.actualRevision) && details.actualRevision >= 0
+        && details.actualRevision !== details.expectedRevision) {
+      this.resourceRevision = { expectedRevision: details.expectedRevision, actualRevision: details.actualRevision, reinspectRequired: true, retrySafe: false };
+    }
     if(code==='WORLD_TARGET_NOT_HIT'){
       const hit=boundedHit(details?.actualHit);if(hit)this.actualHit=hit;
     }
@@ -64,7 +71,7 @@ export class RuntimeError extends Error {
         this.rateLimit = { scope, category, operationCategory, capacity, remaining, refillPerSecond, cost };
       }
     }
-    if (['REQUEST_CANCELLED', 'RUNTIME_SHUTTING_DOWN'].includes(code)
+    if (['REQUEST_CANCELLED', 'RUNTIME_SHUTTING_DOWN', 'REQUEST_DEADLINE_EXCEEDED', 'DEADLINE_EXCEEDED'].includes(code)
         && details?.executionOutcome === 'not_confirmed' && details.retrySafe === false) {
       this.executionOutcome = 'not_confirmed';
       this.retrySafe = false;

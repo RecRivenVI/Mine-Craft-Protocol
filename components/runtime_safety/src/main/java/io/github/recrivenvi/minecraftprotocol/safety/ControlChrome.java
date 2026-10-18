@@ -2,6 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.safety;
 
 /** Small shared pixel geometry and one clock for presence, mode strength, text and pointer Fade. */
 public final class ControlChrome {
+    private static final AgentControlSession.Mode[] MODES = AgentControlSession.Mode.values();
     public static final int ACCENT_RGB = 0x339CFF;
     public static final long FADE_NANOS = 500_000_000L;
     public static final long POINTER_FADE_NANOS = 440_000_000L;
@@ -16,7 +17,9 @@ public final class ControlChrome {
     private final Fade strength = new Fade(0.25F, FADE_NANOS);
     private final Fade pointer = new Fade(0, POINTER_FADE_NANOS);
     private AgentControlSession.Mode mode = AgentControlSession.Mode.READ;
-    private AgentControlSession.Mode previousMode = mode;
+    private final float[] textFrom = {1F, 0F, 0F};
+    private final float[] textWeights = {1F, 0F, 0F};
+    private boolean textTransition;
 
     public float update(boolean controlled, long nowNanos) {
         return update(
@@ -31,10 +34,12 @@ public final class ControlChrome {
         previousNanos = nowNanos;
         if (present && !wasPresent) breathStartedAt = nowNanos;
         wasPresent = present;
+        sampleText(nowNanos);
         if (mode != next) {
-            previousMode = mode;
+            System.arraycopy(textWeights, 0, textFrom, 0, textWeights.length);
             mode = next;
             modeChangedAt = nowNanos;
+            textTransition = true;
         }
         presence.update(present ? 1F : 0F, nowNanos);
         strength.update(
@@ -47,6 +52,59 @@ public final class ControlChrome {
         pointer.update(
                 present && gui && mode == AgentControlSession.Mode.TAKEOVER ? 1F : 0F, nowNanos);
         return alpha();
+    }
+
+    private void sampleText(long nowNanos) {
+        if (!textTransition) return;
+        float mix = transitionMix(nowNanos);
+        for (var candidate : MODES) {
+            int index = candidate.ordinal();
+            float target = candidate == mode ? 1F : 0F;
+            textWeights[index] = textFrom[index] + (target - textFrom[index]) * mix;
+        }
+    }
+
+    private float transitionMix(long nowNanos) {
+        return !textTransition
+                ? 1F
+                : bezier(
+                        Math.max(0, nowNanos - modeChangedAt) / (double) FADE_NANOS, 0, 0, 0.58, 1);
+    }
+
+    public float textWeight(AgentControlSession.Mode candidate) {
+        return textWeights[candidate.ordinal()];
+    }
+
+    /** Measure the same continuous mixture that will actually be drawn in this frame. */
+    public float textWidth(java.util.function.ToIntFunction<String> measure) {
+        float width = 0;
+        for (var candidate : MODES)
+            width += measure.applyAsInt(message(candidate)) * textWeight(candidate);
+        return width;
+    }
+
+    public interface TextRenderer {
+        void enableScissor(int left, int top, int right, int bottom);
+
+        void disableScissor();
+
+        void text(String message, int x, int y, int color);
+    }
+
+    /** Native clipping follows the current panel, never the destination mode's full width. */
+    public void text(TextRenderer renderer, int x, int y, int width, int height, float fade) {
+        int left = x + 10, top = y + 2, right = x + width - 10, bottom = y + height - 2;
+        if (right <= left || bottom <= top || !textVisible(fade)) return;
+        renderer.enableScissor(left, top, right, bottom);
+        try {
+            for (var candidate : MODES) {
+                float opacity = fade * textWeight(candidate);
+                if (textVisible(opacity))
+                    renderer.text(message(candidate), left, y + 8, color(255, 0xFFFFFF, opacity));
+            }
+        } finally {
+            renderer.disableScissor();
+        }
     }
 
     /** Solve x(t) before evaluating y(t); time itself is not the Bezier parameter. */
@@ -117,23 +175,8 @@ public final class ControlChrome {
         return pointer.value;
     }
 
-    public float textMix() {
-        return modeChangedAt == 0
-                ? 1F
-                : bezier(
-                        Math.max(0, previousNanos - modeChangedAt) / (double) FADE_NANOS,
-                        0,
-                        0,
-                        0.58,
-                        1);
-    }
-
     public String message() {
         return message(mode);
-    }
-
-    public String previousMessage() {
-        return message(previousMode);
     }
 
     public static String message(AgentControlSession.Mode mode) {

@@ -8,6 +8,18 @@ import net.minecraft.network.chat.Component;
 public final class ShowcaseToastFixture {
     private ShowcaseToastFixture() {}
 
+    public static void showVisibilityDebug() {
+        Minecraft client = Minecraft.getInstance();
+        var manager = client.gui.toastManager();
+        // The local display fixture never contacts any account/friends service.
+        manager.addToast(
+                new FriendToast(
+                        client.font,
+                        null,
+                        Component.literal("DEBUG local friend display fixture"),
+                        60000));
+    }
+
     public static void showDebug() {
         Minecraft client = Minecraft.getInstance();
         var manager = client.gui.toastManager();

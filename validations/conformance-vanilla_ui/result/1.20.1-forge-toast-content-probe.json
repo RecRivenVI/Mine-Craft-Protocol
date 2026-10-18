@@ -1,1 +1,1 @@
-{"probeOnly":true,"processId":52508,"target":"1.20.1-forge","testedAt":"2026-10-17T13:26:54.483944100Z","playerInputUsed":false,"worldMutationUsed":false,"status":"PASS","checks":7}
+{"probeOnly":true,"processId":27132,"target":"1.20.1-forge","testedAt":"2026-10-18T02:32:06.315452100Z","playerInputUsed":false,"worldMutationUsed":false,"nativeTickVersionStable":true,"sameValueResetInvalidates":true,"status":"PASS","checks":9,"resetGenerationChecks":2,"resetConsumption":"native_render_on_probe_owned_toast_no_pixel_canvas"}

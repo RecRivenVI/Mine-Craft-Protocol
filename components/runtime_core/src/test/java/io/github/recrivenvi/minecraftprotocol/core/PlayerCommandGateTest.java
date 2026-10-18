@@ -58,6 +58,89 @@ class PlayerCommandGateTest {
     }
 
     @Test
+    void nativeCommandUsesIndependentAuthorizationNotInputOrLeaseAndSurvivesEsc() {
+        try (var world = new World()) {
+            world.control.acquire();
+            var work = world.control.beginOperate();
+            world.control.manuallyRevoke();
+            AtomicInteger rechecks = new AtomicInteger();
+            try (var dispatch =
+                    world.gate.enterNative(
+                            "help",
+                            () -> {
+                                rechecks.incrementAndGet();
+                                if (work.isCancelled())
+                                    throw new ProtocolState.ProtocolException(
+                                            "OPERATE_WORK_CANCELLED", 409, "cancelled");
+                            },
+                            "native-request")) {
+                assertTrue(world.gate.allow("help", false, false, () -> world.parse("help")));
+                assertTrue(world.gate.allow("help", false, true, () -> world.parse("help")));
+                assertEquals("NORMAL_NETWORK", dispatch.receipt().get("mechanism").getAsString());
+                assertEquals("NATIVE", dispatch.receipt().get("route").getAsString());
+                assertEquals("USER", dispatch.receipt().get("dataCategory").getAsString());
+                assertFalse(dispatch.receipt().get("gameplayAcceptanceEligible").getAsBoolean());
+                assertTrue(rechecks.get() >= 3);
+                assertTrue(world.control.snapshot().manuallyRevoked());
+                assertFalse(world.control.snapshot().agentControlled());
+                work.close();
+                assertFalse(world.gate.allow("help", false, true, () -> world.parse("help")));
+                assertEquals(
+                        "OPERATE_WORK_CANCELLED",
+                        assertThrows(ProtocolState.ProtocolException.class, dispatch::check)
+                                .code());
+            }
+            assertFalse(
+                    world.gate.requiresInspection(false),
+                    "Native dispatch context must not leak to human callbacks");
+        }
+    }
+
+    @Test
+    void nativeAuthorizationCannotBeReusedForAnotherCommandOrConfigurationOrSecondPacket() {
+        for (String attempt :
+                java.util.List.of(
+                        "changed-command", "configuration", "second-packet", "permission-lost")) {
+            try (var world = new World()) {
+                AtomicInteger checks = new AtomicInteger();
+                try (var dispatch =
+                        world.gate.enterNative(
+                                "help",
+                                () -> {
+                                    if (attempt.equals("permission-lost")
+                                            && checks.incrementAndGet() > 1)
+                                        throw new ProtocolState.ProtocolException(
+                                                "SCOPE_DENIED", 403, "revoked");
+                                },
+                                "request")) {
+                    assertTrue(world.gate.allow("help", false, false, () -> world.parse("help")));
+                    if (attempt.equals("changed-command"))
+                        assertFalse(
+                                world.gate.allow(
+                                        "give @s stone", false, true, () -> world.parse("give")));
+                    else if (attempt.equals("configuration"))
+                        assertFalse(
+                                world.gate.allowConfiguration(
+                                        "help",
+                                        false,
+                                        PlayerCommandGate.ConfigurationKind.COMMAND_BLOCK,
+                                        () -> world.parse("help")));
+                    else if (attempt.equals("second-packet")) {
+                        assertTrue(
+                                world.gate.allow("help", false, true, () -> world.parse("help")));
+                        assertFalse(
+                                world.gate.allow("help", false, true, () -> world.parse("help")));
+                    } else
+                        assertFalse(
+                                world.gate.allow("help", false, true, () -> world.parse("help")));
+                    assertThrows(ProtocolState.ProtocolException.class, dispatch::check);
+                    assertEquals(attempt.equals("second-packet") ? 1 : 0, world.observed.get());
+                }
+            }
+        }
+    }
+
+    @Test
     void humanOutsideTakeoverAndAfterRuntimeCloseIsNotIntercepted() {
         try (var world = new World()) {
             assertTrue(world.gate.allow("stop", false, true, () -> world.parse("stop")));

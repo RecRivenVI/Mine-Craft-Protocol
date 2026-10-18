@@ -84,6 +84,9 @@ val test by tasks.registering {
                 "WorldUserPlayerResponse",
                 "WorldSceneResponse",
                 "RuntimeConnection",
+                "DebugCanvasPanValue",
+                "DebugCanvasPanRange",
+                "DebugCanvasPanAxis",
             )) {
             check(javaRoot.resolve("$model.java").isFile) { "Missing Java model: $model" }
             check(tsRoot.resolve("$model.ts").isFile) { "Missing TypeScript model: $model" }
@@ -148,6 +151,43 @@ val test by tasks.registering {
         logger.lifecycle(
             "PROTOCOL_COMPONENT_TEST: PASS (schema + Java/TypeScript generation + world category preservation)",
         )
+        for ((field, getter) in
+            listOf(
+                "debugPanReady" to "getDebugPanReady()",
+                "debugPanValue" to "getDebugPanValue()",
+                "debugPanRange" to "getDebugPanRange()",
+            )) {
+            check(javaRoot.resolve("UiNode.java").readText().contains(getter)) {
+                "Generated Java UiNode loses native canvas metadata: $field"
+            }
+            val decoder = tsRoot.resolve("UiNode.ts").readText()
+            check(decoder.contains("'$field':") && decoder.contains("json['$field']")) {
+                "Generated TypeScript UiNode loses native canvas metadata: $field"
+            }
+        }
+        for ((model, field, getter) in
+            listOf(
+                Triple("PlayerCommandExecuteRequest", "command", "getCommand()"),
+                Triple("PlayerCommandDiscoveryRequest", "input", "getInput()"),
+                Triple(
+                    "PlayerCommandDiscoveryRequest",
+                    "completionSource",
+                    "getCompletionSource()",
+                ),
+                Triple("PlayerCommandBatchRequest", "commands", "getCommands()"),
+                Triple(
+                    "CapabilitiesResponse",
+                    "playerCommandContract",
+                    "getPlayerCommandContract()",
+                ),
+            )) {
+            check(javaRoot.resolve("$model.java").readText().contains(getter)) {
+                "Generated Java command branch loses payload: $model"
+            }
+            check(tsRoot.resolve("$model.ts").readText().contains("'$field': json['$field']")) {
+                "Generated TypeScript command branch loses payload: $model"
+            }
+        }
     }
 }
 

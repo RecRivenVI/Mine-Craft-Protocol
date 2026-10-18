@@ -5,6 +5,9 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {toastConsumers} from './toast-consumers.mjs';
 import {editorConsumers} from './editor-consumers.mjs';
+import {auditUiDebugCapabilities,auditAppliedUiMutation} from './ui-debug-capability-audit.mjs';
+import {visibilityToastAssertions} from './visibility-toast-actions.mjs';
+import {advancementPanActions} from './ui-debug-advancement-actions.mjs';
 import {spectatorConsumers} from './spectator-consumers.mjs';
 import {specialMenuActions} from './special-menu-actions.mjs';
 import {hudVitalActions} from './hud-vital-actions.mjs';
@@ -21,7 +24,7 @@ const instance=resolve(repo,'validations/conformance-vanilla_ui/instance',target
 const token=(await readFile(resolve(instance,'minecraft-protocol/token'),'utf8')).trim();
 const connection=await connectRuntime(instance,target);
 const uiDebugAuthorized=(await (await connection.fetch('/v0/security/context')).json()).grantedScopes?.includes('debug.ui')===true;
-if(['ui-debug-scroll','ui-debug-hud','ui-debug-toast'].includes(args.scenario))assert(uiDebugAuthorized,args.scenario+' requires actual Runtime DebugUi authorization');
+if(['ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement'].includes(args.scenario))assert(uiDebugAuthorized,args.scenario+' requires actual Runtime DebugUi authorization');
 const port=connection.port,base=connection.base;
 if(args.port)assert.equal(Number(args.port),port,'Runner supplied port does not match owned instance');
 // Keep the failed-server fixture reserved; never ping an unrelated service at RuntimePort+100.
@@ -30,6 +33,7 @@ fixtureServer.listen(0,'127.0.0.1');await once(fixtureServer,'listening');fixtur
 const fixturePort=fixtureServer.address().port;
 process.on('exit',()=>fixtureServer.close());
 async function sourceHashes(){
+ const extraTools=['ui-debug-capability-audit.mjs','visibility-toast-actions.mjs','ui-debug-advancement-actions.mjs'];
  const paths=['components/protocol_schema/src/main/openapi/minecraft-control-v0.json',relative(repo,import.meta.filename),'components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1','components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle','components/validation_tools/InstanceProfiles.ps1','components/validation_tools/Prepare-InstanceProfile.ps1','components/validation_tools/instance-profiles.gradle','build.gradle.kts','components/validation_tools/RuntimeConnection.ps1','components/validation_tools/runtime-connection.mjs','validations/conformance-vanilla_ui/validation.toml'];
  paths.push('gradle.properties','settings.gradle.kts','gradle/libs.versions.toml',`versions/${target}/target.properties`,`versions/${target}/build.gradle.kts`,'components/runtime_core/build.gradle.kts','components/runtime_safety/build.gradle.kts','components/validation_tools/vanilla-command-fixtures.mjs');
  const root=resolve(repo,'versions',target,'src');
@@ -40,6 +44,7 @@ async function sourceHashes(){
  for(const entry of await readdir(core,{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.java$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  paths.push('components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/spectator-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/special-menu-actions.mjs','components/validation_tools/conformance-vanilla_ui/task/hud-vital-actions.mjs','validations/conformance-vanilla_ui/task/screens.json');
  for(const dir of ['src','dist'])for(const entry of await readdir(resolve(repo,'components/companion',dir),{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.(?:ts|js)$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
+ for(const file of extraTools)paths.push('components/validation_tools/conformance-vanilla_ui/task/'+file);
  const hashes={};for(const path of paths.sort())hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');return hashes;
 }
 const startedSources=await sourceHashes();
@@ -48,6 +53,7 @@ const validationStarted=Date.now();
 let taskStarted=validationStarted;
 const checks=[],toastSamples=[],editorSamples=[],effectSamples=[],spectatorSamples=[],specialMenuSamples=[],vitalSamples=[],fixtureReadSamples=[],chatCloseSamples=[],screens=new Set(),pause=()=>new Promise(r=>setTimeout(r,120));
 const worldSelectionSamples=[],uiDebugSamples=[];
+const advancementPanSamples=[];
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]);
 async function api(method,path,body,extraHeaders={}){
  if(method==='POST'&&path==='/v0/control/acquire')body=automaticTakeoverRequest(await api('GET','/v0/control/mode'),body);
@@ -85,6 +91,7 @@ async function closeOwnedChat(prefix){
 }
 async function title(){for(let i=0;i<12;i++){const t=await wait(t=>!t.overlayIdentity,'ready for navigation');if(t.screenClass?.endsWith('TitleScreen'))return t;if(!t.screenClass){await key(256);continue;}const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));if(quit){await ui({nodeId:quit.nodeId});return await wait(t=>t.screenClass?.endsWith('TitleScreen'),'save & quit');}await key(256);}throw new Error('Could not return to title');}
 async function check(name,fn){
+ if(args.scenario==='ui-debug-advancement'&&!/^(title:|world fixture:|typed advancement DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-toast'&&!/^(title:|world fixture:|Toast: native movement tutorial|typed Toast DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-hud'&&!/^(title:|world fixture:|typed HUD DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-scroll'&&!/^(title:|world fixture:|creative: rendered scrollbar|workstations: semantic loom|merchant: native scrollbar|pause:)/.test(name))return;
@@ -171,6 +178,7 @@ async function debugUi(fn){
  await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
  const snapshot=()=>api('GET','/v0/ui/tree?category=DEBUG');
  const t=await snapshot();
+ uiDebugSamples.push({case:'typed_node_applicability',nodes:auditUiDebugCapabilities(t,await api('GET','/v0/ui/tree?category=USER'),target)});
  debugArm=(await api('POST','/v0/debug/arm',{uiContextId:t.uiContextId,namespaces:['ui'],ttlMs:60000})).debugArmId;
  try{await fn(snapshot);}finally{await api('POST','/v0/debug/disarm');debugArm=undefined;lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}
 }
@@ -186,6 +194,7 @@ async function rejectUiMutation(request,code,snapshot,headers={}){
 async function applyUiMutation(request){
  const before=await api('GET','/v0/input/state');
  const result=await api('POST','/v0/debug/mutations',request);
+ auditAppliedUiMutation(result);
  assert.equal(result.inputDispatchCount,0);assert.equal(result.evidenceAuthority,'DEBUG_PRIVILEGED');assert.equal(result.dataCategory,'DEBUG');
  const mode=await api('GET','/v0/control/mode');assert.equal(mode.mode,'OPERATE');assert.equal(mode.reconsentRequired,false);
  const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,before.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);
@@ -247,7 +256,7 @@ async function debugEditorTextFields(keys){
  });
 }
 async function editorHandoff(kind,expected,control){
- const debugEnabled=['ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','all'].includes(args.scenario);
+ const debugEnabled=['ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','all'].includes(args.scenario);
  if(target!=='26.3-fabric'&&!debugEnabled)return;
  await api('POST','/v0/control/release');lease=undefined;
  await api('POST','/v0/control/task',{action:'end',taskId});taskId=undefined;
@@ -276,8 +285,9 @@ try{
  await check('window: final-output title and original icon badge across modes',async()=>{
    const hooks=await api('GET','/v0/diagnostics/hooks');
    // A Hook descriptor may aggregate several injected callbacks, not one row per site.
-   assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?25:target.startsWith('26.')?22:20);
-   for(const id of ['player_command_entry_guard','player_command_packet_guard'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
+   assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
+   for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
+   assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
    assert.equal(hooks.replacementInjectionCount,target.startsWith('26.3-')?9:10);
    assert.equal(hooks.passiveDrawDelegationCount,5);
    assert.equal(hooks.controlFlowPolicy,'operator_control_and_exact_hud_draw_delegation');
@@ -324,16 +334,17 @@ try{
    const caps=await api('GET','/v0/capabilities');assert.equal(caps.uiContract.defaultReadCategory,'USER');assert.equal(caps.uiContract.milestoneComplete,false);
    const context=await api('GET','/v0/security/context');
    const debugAllowed=context.grantedScopes.includes('debug')&&context.grantedScopes.includes('debug.ui.read');
-   const expected=debugAllowed?'UI_CATEGORY_MODE_MISMATCH':'SCOPE_DENIED';
-   await assert.rejects(api('GET','/v0/ui/tree?category=DEBUG'),e=>e.code===expected);
+   if(debugAllowed)assert.equal((await api('GET','/v0/ui/tree?category=DEBUG')).dataCategory,'DEBUG');
+   else await assert.rejects(api('GET','/v0/ui/tree?category=DEBUG'),e=>e.code==='SCOPE_DENIED');
    await assert.rejects(api('GET','/v0/ui/tree?category=unexpected'),e=>e.code==='INVALID_UI_CATEGORY');
    for(const category of [null,[],42])await assert.rejects(api('POST','/v0/ui/resolve',{category,translationKey:'menu.singleplayer'}),e=>e.code==='INVALID_UI_CATEGORY');
-   await assert.rejects(api('POST','/v0/ui/resolve',{category:'DEBUG',translationKey:'menu.singleplayer'}),e=>e.code===expected);
+   if(debugAllowed)assert.equal((await api('POST','/v0/ui/resolve',{category:'DEBUG',translationKey:'menu.singleplayer'})).dataCategory,'DEBUG');
+   else await assert.rejects(api('POST','/v0/ui/resolve',{category:'DEBUG',translationKey:'menu.singleplayer'}),e=>e.code==='SCOPE_DENIED');
    await assert.rejects(api('POST','/v0/ui/action',{category:'DEBUG',action:'click',selector:{translationKey:'menu.singleplayer'}}),e=>e.code==='USER_UI_OPERATION_REQUIRED');
    assert((await tree()).screenClass.endsWith('TitleScreen'));
    const before=await api('GET','/v0/control/mode');
    await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:before.modeVersion});lease=undefined;
-   await assert.rejects(api('GET','/v0/ui/tree'),e=>e.code==='UI_CATEGORY_MODE_MISMATCH');
+   assert.equal((await api('GET','/v0/ui/tree')).dataCategory,'USER');
    if(debugAllowed){const debug=await api('GET','/v0/ui/tree?category=DEBUG');assert.equal(debug.dataCategory,'DEBUG');assert.equal(debug.debugFacts.completeGameData,false);}
    const operate=await api('GET','/v0/control/mode');
    await api('POST','/v0/control/mode',{mode:'READ',expectedModeVersion:operate.modeVersion});
@@ -597,6 +608,14 @@ try{
      assert.equal(editorSamples.filter(s=>s.editor==='debug_'+key.replace('.','_')&&s.transport===channel&&s.status==='PASS').length,1,'Missing actual HUD consumer: '+key+' '+channel);
    }finally{await command('title @s reset');}
   });
+  if(target.startsWith('26.3'))await check('typed Toast DEBUG: local friend visibility owner',async()=>{
+   const state=await api('GET','/v0/control/mode');
+   await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:state.modeVersion});lease=undefined;
+   await api('POST','/v0/diagnostics/ui/test-screen',{});
+   lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
+   await ui({label:'Visibility Toast DEBUG Fixtures'});await ui({label:'Close Probe'});
+   await debugUi(snapshot=>visibilityToastAssertions({target,api,snapshot,applyUiMutation,samples:uiDebugSamples,pause}));
+  });
   await check('typed Toast DEBUG: resident lifecycle, native reset progress and one-way dismissal',async()=>{
    assert(uiDebugAuthorized,'Toast DEBUG must be explicitly authorized');
    const capabilities=await api('GET','/v0/debug/capabilities');
@@ -605,7 +624,8 @@ try{
     assert.equal(entry.authority,'CLIENT_UI');assert.equal(entry.requiredScope,'debug.ui');assert.equal(entry.requiresArm,true);assert.equal(entry.resourceVersionPrecondition,true);
    }
    const proof=JSON.parse(await readFile(resolve(repo,'validations/conformance-vanilla_ui/result',target+'-toast-content-probe.json'),'utf8'));
-   assert.equal(proof.status,'PASS',JSON.stringify(proof));assert.equal(proof.probeOnly,true);assert.equal(proof.target,target);assert.equal(proof.processId,connection.pid);assert.equal(proof.checks,7);
+   assert.equal(proof.status,'PASS',JSON.stringify(proof));assert.equal(proof.probeOnly,true);assert.equal(proof.target,target);assert.equal(proof.processId,connection.pid);assert.equal(proof.checks,9);
+   assert.equal(proof.nativeTickVersionStable,true);assert.equal(proof.sameValueResetInvalidates,true);assert.equal(proof.resetGenerationChecks,2);
    const endpoint=JSON.parse(await readFile(resolve(instance,'minecraft-protocol/endpoint.json'),'utf8'));
    assert.equal(endpoint.pid,connection.pid);assert.equal(proof.playerInputUsed,false);assert.equal(proof.worldMutationUsed,false);
    assert(Date.parse(proof.testedAt)>=Date.parse(endpoint.processStartedAt)&&Date.parse(proof.testedAt)<=Date.now()+1000,'Toast guard proof must belong to this Runtime');
@@ -1083,6 +1103,7 @@ try{
    await wait(t=>/DeathScreen$/.test(t.screenClass)&&nodes(t).some(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false),'death respawn enabled');
    await click('deathScreen.respawn','Respawn');await wait(t=>!t.screenClass,'native respawn');await command('gamemode creative @s');
   });
+  if(uiDebugAuthorized&&['ui-debug-advancement','all'].includes(args.scenario))await advancementPanActions({target,api,command,wait,tree,nodes,ui,key,check,debugUi,applyUiMutation,editorHandoff,samples:advancementPanSamples});
   await check('pause: Return to Game is routed, then Save & Quit',async()=>{await command('clear @s');await key(256);await wait(t=>/PauseScreen$/.test(t.screenClass),'pause');await click('menu.returnToGame','Back to Game');await wait(t=>!t.screenClass,'resume');await title();});
   if(args.scenario==='ui-debug-scroll'){
    const scrolls=uiDebugSamples.filter(s=>s.case==='native_screen_scroll');
@@ -1137,6 +1158,7 @@ finally{
  result.toastSamples=toastSamples;
  result.editorSamples=editorSamples;
  result.uiDebugSamples=uiDebugSamples;
+ result.advancementPanSamples=advancementPanSamples;
  result.effectSamples=effectSamples;
  result.spectatorSamples=spectatorSamples;
  result.specialMenuSamples=specialMenuSamples;

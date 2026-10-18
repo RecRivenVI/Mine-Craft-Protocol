@@ -25,7 +25,7 @@ $results = foreach ($target in $targets) {
     $combined = $texts -join "`n"
 
     Assert-True ($combined -notmatch '@Overwrite') "$($target.Name) must not use Overwrite"
-    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java', 'SDLEventHandlerMixin.java', 'WorldGestureMixin.java', 'PlayerCommandMixin.java', 'ConnectionMixin.java')
+    $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java', 'SDLEventHandlerMixin.java', 'WorldGestureMixin.java', 'PlayerCommandMixin.java', 'ConnectionMixin.java', 'CommandCompletionConnectionMixin.java')
     $drawFiles = @('HudVitalIconsMixin.java')
     if ($target.Name -eq '1.20.1-forge') { $drawFiles += 'ForgeVitalIconsMixin.java' }
     $drawCode = ($files | Where-Object Name -in $drawFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
@@ -37,7 +37,7 @@ $results = foreach ($target in $targets) {
     Assert-True ($combined -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
-    $expectedCancellable=if($target.Name.StartsWith('26.3-')){25}elseif($target.Name.StartsWith('26.')){22}else{20}
+    $expectedCancellable=if($target.Name.StartsWith('26.3-')){26}elseif($target.Name.StartsWith('26.')){23}else{21}
     $expectedRedirect=if($target.Name.StartsWith('26.3-')){9}else{10}
     Assert-True ($cancellableCount -eq $expectedCancellable -and $redirectCount -eq $expectedRedirect) "$($target.Name) must match exclusive input/polling/warp guards and native-ingress/icon/keymapping redirects"
     $runtime=(Get-ChildItem -LiteralPath (Join-Path $mixinDirectory '../runtime') -Filter '*ProbeRuntime.java'|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw}) -join "`n"
@@ -48,6 +48,13 @@ $results = foreach ($target in $targets) {
     Assert-True (([regex]::Matches($commandEntry,'cancellable\s*=\s*true')).Count-eq2-and$commandEntry-match'allowPlayerCommand'-and$commandEntry-notmatch'@Redirect|@Overwrite') "$($target.Name) command entry/link hooks must only admit native submission"
     Assert-True (([regex]::Matches($commandPacket,'cancellable\s*=\s*true')).Count-eq1-and$commandPacket-match'allowPlayerCommandPacket'-and$commandPacket-notmatch'@Redirect|@Overwrite') "$($target.Name) final packet guard must only admit native command packets"
     $commandAdapter=Get-Content -LiteralPath (Join-Path $mixinDirectory '../runtime/NativePlayerCommands.java') -Raw
+    $completionHook=Get-Content -LiteralPath (Join-Path $mixinDirectory 'CommandCompletionConnectionMixin.java') -Raw
+    $completionBridge=Get-Content -LiteralPath (Join-Path $mixinDirectory '../runtime/NativeCommandSuggestions.java') -Raw
+    Assert-True (([regex]::Matches($completionHook,'cancellable\s*=\s*true')).Count-eq1-and$completionHook-match'requests.owns\(packet.(id|getId)\(\)\)'-and$completionHook-match'completeCustomSuggestions'-and$completionHook-notmatch'@Redirect|@Overwrite') "$($target.Name) completion hook may consume only issued Agent responses after native thread routing"
+    Assert-True ($completionBridge-match'requireHumanIdle'-and$completionBridge-match'pendingSuggestions'-and$completionBridge-match'ServerboundCommandSuggestionPacket'-and$completionBridge-notmatch'\.cancel\(|completeCustomSuggestions\(') "$($target.Name) Agent completion cannot own or cancel the human future"
+    $toastReset=Get-Content -LiteralPath (Join-Path $mixinDirectory 'SystemToastResetMixin.java') -Raw
+    Assert-True ($toastReset-match'@Mixin\(SystemToast.class\)'-and$toastReset-match'@Inject'-and$toastReset-match'reset\('-and$toastReset-match'HEAD'-and$toastReset-notmatch'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect|@Overwrite') "$($target.Name) native Toast reset revision must remain passive and cannot suppress or replace game updates"
+    Assert-True ($runtime-match'system_toast_reset_revision'-and$runtime-match'passive_native_reset_revision') "$($target.Name) passive Toast reset Hook must be disclosed independently of cancellable input Hooks"
     Assert-True ($runtime-match'ServerboundChatCommandPacket'-and$runtime-match'NativePlayerCommands.configuration\(packet\)'-and$runtime-match'gate.allowConfiguration\('-and$commandAdapter-match'ServerboundSetCommandBlockPacket'-and$commandAdapter-match'ServerboundSetCommandMinecartPacket') "$($target.Name) final typed chat/block/minecart admission must remain in production adapters"
     Assert-True ($runtime -match 'worldTargeting.holdActive\(\)' -and $runtime -match 'worldTargeting.permit\(kind\)') "$($target.Name) semantic veto must only apply while the Runtime owns a bounded gesture"
     Assert-True ($runtime -match ('"cancellableInjectionCount",\s*'+$cancellableCount+'\)') -and $runtime -match ('"replacementInjectionCount",\s*'+$redirectCount+'\)')) "$($target.Name) production Hook counts must match actual sources"

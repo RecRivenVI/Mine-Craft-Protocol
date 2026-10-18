@@ -96,6 +96,20 @@ function Show-ModeTransitions {
         Start-ShowcaseTakeover;Invoke-ShowcaseSlot 9 hover;Wait-ShowcaseHold
         Set-ShowcaseMode READ|Out-Null;Wait-ShowcaseHold
     }
+    Write-Host '  连续转向：在上一轮半秒动画结束前切换目标，检查动画不中断、文本不越界。'
+    $clock=[Diagnostics.Stopwatch]::StartNew()
+    $transitions=[Collections.Generic.List[object]]::new()
+    for($cycle=1;$cycle-le3;$cycle++) {
+        foreach($next in @('OPERATE','TAKEOVER','READ')) {
+            if($next-eq'TAKEOVER'){Start-ShowcaseTakeover}else{Set-ShowcaseMode $next|Out-Null}
+            $current=Get-ShowcaseMode
+            Assert-Showcase ($current.mode-eq$next) 'Rapid transition did not reach its requested mode'
+            $transitions.Add(@{mode=$current.mode;modeVersion=$current.modeVersion;elapsedMs=$clock.ElapsedMilliseconds})
+            Start-Sleep -Milliseconds 100
+        }
+    }
+    $script:caseEvidence.Add(@{animationRetargetBurst=$transitions;visualAcceptance='NOT_PERFORMED'})
+    Wait-ShowcaseHold
     Start-ShowcaseTakeover;Close-ShowcaseScreen;Set-ShowcaseMode READ|Out-Null
 }
 function Start-ShowcaseToasts {

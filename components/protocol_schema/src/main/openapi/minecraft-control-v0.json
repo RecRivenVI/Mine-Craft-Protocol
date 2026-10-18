@@ -49,7 +49,7 @@
       "post": {
         "operationId": "manageAgentTask",
         "x-agent-mode": "READ_COMPATIBLE",
-        "description": "Explicit begin/heartbeat/end with read scope. TTL 1..60 s, absolute budget 1..300 s. End/expiry drains only the task-bound input Lease; other read/Debug authorization stays independent. Manual Esc interrupts the task without clearing reconsent. After uncertain delivery inspect status, never blindly replay input.",
+        "description": "Explicit begin/heartbeat/end with read scope. TTL 1..60 s, absolute budget 1..300 s. End/expiry drains only the task-bound input Lease; other read/Debug authorization stays independent. Manual Esc ends TAKEOVER input, not the logical task or independent admitted work; reconsent persists. After uncertain delivery inspect status, never blindly replay input.",
         "requestBody": {
           "required": true,
           "content": {
@@ -103,7 +103,7 @@
       "post": {
         "operationId": "setAgentControlMode",
         "x-agent-mode": "MODE_INDEPENDENT",
-        "description": "Compare-and-set READ/OPERATE; same-mode calls do not advance generation. Requires control scope. TAKEOVER exit requires the current Lease and drains input before completion. Active OPERATE work blocks a conflicting transition. Never clears manual reconsent.",
+        "description": "Compare-and-set READ/OPERATE; same-mode calls do not advance generation. Requires control scope. TAKEOVER exit requires the current Lease and drains only shared input before completion. Independent admitted work retains its own cancellation/authority lifecycle; mode changes do not cancel it. READ cannot admit new mutations. Never clears manual reconsent.",
         "parameters": [
           {
             "name": "X-MCP-Control-Lease",
@@ -361,8 +361,8 @@
       ],
       "post": {
         "operationId": "openAutomationProbeScreen",
-        "x-agent-mode": "OPERATE_REQUIRED",
-        "description": "Probe-only Arrange fixture. Results produced after this call are evidence-contaminated until the screen is closed. Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease.",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
+        "description": "Probe-only Arrange fixture. Results produced after this call are evidence-contaminated until the screen is closed. Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease.",
         "parameters": [],
         "responses": {
           "200": {
@@ -440,8 +440,8 @@
       ],
       "post": {
         "operationId": "runBoundedEventStressProbe",
-        "x-agent-mode": "OPERATE_REQUIRED",
-        "description": "Bounded diagnostics-only event publication used to verify filtering, backpressure, gaps and resume. Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease.",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
+        "description": "Bounded diagnostics-only event publication used to verify filtering, backpressure, gaps and resume. Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease.",
         "requestBody": {
           "required": true,
           "content": {
@@ -650,7 +650,7 @@
         },
         "responses": {
           "200": {
-            "description": "Current terminal state or latest state when the bounded wait expires. Debug result read authority and mode generation are rechecked before publication.",
+            "description": "Current terminal state or latest state when the bounded wait expires. Independent Debug result read authority and session lifetime are rechecked before publication.",
             "content": {
               "application/json": {
                 "schema": {
@@ -848,7 +848,7 @@
       "get": {
         "operationId": "getUiTree",
         "x-agent-mode": "READ_COMPATIBLE",
-        "description": "USER (default) returns visible semantic controls, not hidden rows or internal payloads. DEBUG returns the bounded captured UI graph and additionally requires debug and debug.ui.read; no write scope, Arm or input Lease. READ allows both categories, TAKEOVER only USER, OPERATE only DEBUG. Authorization and mode generation are rechecked before publishing; a mode round trip fails with UI_READ_CONTEXT_CHANGED rather than publishing an earlier capture. Neither view proves full Vanilla UI coverage.",
+        "description": "USER (default) returns visible semantic controls, not hidden rows or internal payloads. DEBUG returns the bounded captured UI graph and additionally requires debug and debug.ui.read; no write scope, Arm or input Lease. All three modes allow either independently authorized read category. Authorization and session lifetime are rechecked before publishing; a mode round trip alone does not revoke read authority. Neither view proves full Vanilla UI coverage.",
         "parameters": [
           {
             "name": "category",
@@ -881,7 +881,7 @@
       "post": {
         "operationId": "resolveUiNode",
         "x-agent-mode": "READ_COMPATIBLE",
-        "description": "Resolve only the selected USER/DEBUG view. USER cannot disclose an offscreen or occluded node through resolve. DEBUG has the same independent read authorization and mode-generation publication guard as tree; a mode round trip fails with UI_READ_CONTEXT_CHANGED.",
+        "description": "Resolve only the selected USER/DEBUG view. USER cannot disclose an offscreen or occluded node through resolve. DEBUG has the same independent read authorization and session lifetime guard as tree; a mode round trip alone does not revoke read authority.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1307,7 +1307,7 @@
       ],
       "post": {
         "operationId": "executeCurrentPlayerCommand",
-        "x-agent-mode": "TAKEOVER_REQUIRED",
+        "x-agent-mode": "COMMAND_ROUTE_DEPENDENT",
         "parameters": [
           {
             "$ref": "#/components/parameters/RequestId"
@@ -1334,17 +1334,21 @@
         },
         "responses": {
           "200": {
-            "description": "Classified native Chat submission, not server execution acknowledgement",
+            "description": "Classified current-player command submission, not server execution acknowledgement",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerCommandResponse"
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/PlayerCommandResponse"},
+                    {"$ref": "#/components/schemas/PlayerCommandDiscoveryResponse"},
+                    {"$ref": "#/components/schemas/PlayerCommandBatchResponse"}
+                  ]
                 }
               }
             }
           }
         },
-        "description": "Native Chat key, character callbacks and Enter under TAKEOVER and existing Lease. Requires independent command, control and input scopes. Refuses an existing Screen/draft and commands exceeding the native Chat input capacity before typing. Cancellation may leave a partial draft; never implicitly replay. Final packet is classified and reauthorized."
+        "description": "All commands are USER. action=discover requires read/command scopes in any mode and defaults to bounded CLIENT_LOCAL native roots/completions without packets. Explicit SERVER uses separate transaction IDs and future, human pending completion priority, one request, 250ms minimum interval and 1500ms TTL; server budget remains shared, submitted queries cannot be recalled and cancellation discards results. Neither source proves authorization or execution; it never owns human chat requests. action=batch requires OPERATE/TAKEOVER and command scope, submits 1..32 NATIVE commands sequentially and stops at the first failure; receipts are indexed, not correlated server feedback, atomic or retryable. Default execute: AUTO selects NATIVE in OPERATE, CHAT otherwise; never changes intent. NATIVE uses the actual connected player command API in OPERATE or TAKEOVER with command scope, no input Lease, keyboard, Screen, draft or focus changes. CHAT uses native Chat input under TAKEOVER, command/control/input scopes and existing Lease. Submission is not execution proof; cancellation may leave an already submitted effect. Never grants OP, Debug Arm or missing scopes."
       }
     },
     "/v0/server/peer": {
@@ -2101,7 +2105,7 @@
       "get": {
         "operationId": "queryServerEntities",
         "x-agent-mode": "READ_COMPATIBLE",
-        "description": "Categorized basic WORLD read; explicit DEBUG requires read/debug/debug.world.read in READ/OPERATE. USER is not a server entity scan.",
+        "description": "Categorized basic WORLD read; explicit DEBUG requires read/debug/debug.world.read in READ, OPERATE or TAKEOVER. USER is not a server entity scan.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorldReadCategory"
@@ -2485,7 +2489,7 @@
       ],
       "post": {
         "operationId": "executeTypedDebugMutation",
-        "x-agent-mode": "OPERATE_REQUIRED",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
         "parameters": [
           {
             "$ref": "#/components/parameters/DebugArm"
@@ -2516,7 +2520,7 @@
             "$ref": "#/components/responses/Conflict"
           }
         },
-        "description": "Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
+        "description": "Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
       }
     },
     "/v0/debug/batches": {
@@ -2527,7 +2531,7 @@
       ],
       "post": {
         "operationId": "startTypedDebugBatch",
-        "x-agent-mode": "OPERATE_REQUIRED",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
         "parameters": [
           {
             "$ref": "#/components/parameters/DebugArm"
@@ -2555,7 +2559,7 @@
             }
           }
         },
-        "description": "Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
+        "description": "Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
       }
     },
     "/v0/debug/evidence": {
@@ -2645,7 +2649,7 @@
       ],
       "post": {
         "operationId": "fixtureTeleportPlayer",
-        "x-agent-mode": "OPERATE_REQUIRED",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2669,7 +2673,7 @@
             }
           }
         },
-        "description": "Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
+        "description": "Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
       }
     },
     "/v0/debug/player/health": {
@@ -2680,7 +2684,7 @@
       ],
       "post": {
         "operationId": "debugSetPlayerHealth",
-        "x-agent-mode": "OPERATE_REQUIRED",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
         "parameters": [
           {
             "$ref": "#/components/parameters/DebugArm"
@@ -2711,7 +2715,7 @@
             "$ref": "#/components/responses/Conflict"
           }
         },
-        "description": "Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
+        "description": "Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
       }
     },
     "/v0/debug/world/block": {
@@ -2722,7 +2726,7 @@
       ],
       "post": {
         "operationId": "debugSetBlock",
-        "x-agent-mode": "OPERATE_REQUIRED",
+        "x-agent-mode": "OPERATE_OR_TAKEOVER",
         "parameters": [
           {
             "$ref": "#/components/parameters/DebugArm"
@@ -2753,7 +2757,7 @@
             "$ref": "#/components/responses/Conflict"
           }
         },
-        "description": "Requires explicit OPERATE plus existing operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
+        "description": "Requires explicit OPERATE or TAKEOVER plus existing independent operation-specific scopes/Arm/preconditions. Does not acquire an input Lease."
       }
     },
     "/v0/recordings": {
@@ -3217,14 +3221,14 @@
         "name": "category",
         "in": "query",
         "required": false,
-        "description": "Default USER for player/lifecycle operations. UI/world Debug batch results require explicit DEBUG and their independent ui/debug.ui.read or read/debug.world.read authority plus debug; mixed batches require both. Write scope/Arm grants no read authority. No input Lease is required. TAKEOVER cannot read DEBUG. USER returns OPERATION_NOT_FOUND in a compatible mode; asynchronous publication rechecks mode generation.",
+        "description": "Default USER for player/lifecycle operations. UI/world Debug batch results require explicit DEBUG and their independent ui/debug.ui.read or read/debug.world.read authority plus debug; mixed batches require both. Write scope/Arm grants no read authority. No input Lease is required. All three modes may read independently authorized DEBUG results. USER returns OPERATION_NOT_FOUND; asynchronous publication rechecks category, scopes and session lifetime.",
         "schema": {"type": "string", "enum": ["USER", "DEBUG"], "default": "USER"}
       },
       "WorldReadCategory": {
         "name": "category",
         "in": "query",
         "required": false,
-        "description": "Basic read category, default USER. DEBUG requires read/debug/debug.world.read, no write/Arm/Lease; TAKEOVER permits only USER, OPERATE only DEBUG. USER client player/block/entities use the bounded client-known world model without automatic chunk loading; server/internal USER reads fail before capture.",
+        "description": "Basic read category, default USER. DEBUG requires read/debug/debug.world.read, no write/Arm/Lease; All three modes allow either independently authorized read category. USER client player/block/entities use the bounded client-known world model without automatic chunk loading; server/internal USER reads fail before capture.",
         "schema": {
           "allOf": [
             {
@@ -3453,6 +3457,7 @@
           "reconsentRequired"
         ],
         "properties": {
+          "authorization": {"$ref": "#/components/schemas/ControlAuthorizationStatus"},
           "agentTask": {
             "$ref": "#/components/schemas/AgentTaskResponse"
           },
@@ -5661,6 +5666,7 @@
           "protocolVersion"
         ],
         "properties": {
+          "control": {"$ref": "#/components/schemas/AgentControlModeState"},
           "type": {
             "type": "string"
           },
@@ -5970,6 +5976,10 @@
               },
               "worldContract": {
                 "$ref": "#/components/schemas/WorldReadContract"
+              },
+              "playerCommandContract": {
+                "type": "object",
+                "description": "Typed execute/discover/batch support, bounded budgets and native submission policy. This is capability metadata, not live player availability, server completion or an authorization grant."
               },
               "capabilities": {
                 "type": "object",
@@ -6393,7 +6403,9 @@
                   "type": "string",
                   "description": "For supported Toast text: last_native_toast_render. Native callback evidence, not framebuffer recognition."
                 },
-                "debugToastKind": {"type": "string", "enum": ["system", "tutorial"], "description": "DEBUG only; approved resident native type, not a player action."},
+                "debugMutation": {"$ref": "#/components/schemas/UiMutationSupport"},
+                "debugToastGuardScope": {"type": "string", "enum": ["complete_native_text", "native_visibility"], "description": "Visibility-only guards do not claim complete text identity or a services/music transaction."},
+                "debugToastKind": {"type": "string", "enum": ["system", "tutorial", "friend"], "description": "DEBUG only; approved resident native type, not a player action. Friend exists only in 26.3."},
                 "debugToastGuardAvailable": {"type": "boolean", "description": "DEBUG only; complete bounded native styled content was captured. False refuses mutation, never prefix-only comparison."},
                 "debugToastValue": {"$ref": "#/components/schemas/DebugToastText", "description": "DEBUG only, bounded published plain-text prefixes for SystemToast. ResourceVersion binds full native content; expectedValue compares complete native resolved text, not these possibly truncated prefixes."},
                 "debugProgress": {"type": "number", "description": "DEBUG only; native TutorialToast display progress, not a tutorial completion fact."},
@@ -6715,6 +6727,7 @@
           "pendingClassification"
         ],
         "properties": {
+          "readModeIndependent": {"type":"boolean","enum":[true]},
           "domain": {
             "type": "string",
             "enum": [
@@ -7607,7 +7620,7 @@
           "DEBUG"
         ],
         "default": "USER",
-        "description": "UI data/operation category, independent of mode. READ supports both; TAKEOVER input is USER; OPERATE mutations are DEBUG. This does not grant authority."
+        "description": "UI data/operation category, independent of mode. All three modes may read both categories with independent scopes. Shared TAKEOVER input is USER; typed mutations in OPERATE or TAKEOVER are DEBUG. This does not grant authority."
       },
       "UiReadSelector": {
         "allOf": [
@@ -7627,6 +7640,8 @@
       "UiContract": {
         "type": "object",
         "properties": {
+          "readModeIndependent": {"type": "boolean", "enum": [true]},
+          "legacyCategorySemantics": {"type":"string", "enum":["takeover_input_and_typed_operate_mutation_not_read_restrictions"]},
           "domain": {
             "type": "string",
             "enum": [
@@ -7646,12 +7661,14 @@
             ]
           },
           "takeoverCategory": {
+            "description": "Legacy shared-input category label, not a restriction on reads during TAKEOVER.",
             "type": "string",
             "enum": [
               "USER"
             ]
           },
           "operateCategory": {
+            "description": "Legacy typed-mutation category label, not a restriction on reads or USER native commands in OPERATE.",
             "type": "string",
             "enum": [
               "DEBUG"
@@ -7695,6 +7712,10 @@
             ],
             "description": "DEBUG only: UI node plus Screen/layout context and complete bounded native text content; required by typed UI mutation, not a replacement for player gesture preconditions."
           },
+          "debugMutation": {"$ref": "#/components/schemas/UiMutationSupport"},
+          "debugPanReady": {"type":"boolean","description":"DEBUG only: the actual selected native advancement tab has completed its original render-centering step; false advertises no executable pan or mutation token."},
+          "debugPanValue": {"$ref":"#/components/schemas/DebugCanvasPanValue"},
+          "debugPanRange": {"$ref":"#/components/schemas/DebugCanvasPanRange"},
           "debugTextGuardAvailable": {
             "type": "boolean",
             "description": "DEBUG-only text state: the native owner was found and its complete local UTF-16 value fit the content encoding budget for this resource version. False rejects typed mutation with UI_CONTENT_GUARD_UNAVAILABLE; true grants no scope, mode or Arm. Neither full native text nor its private fingerprint is added to USER output."
@@ -8637,12 +8658,117 @@
           }
         ]
       },
-      "PlayerCommandRequest": {
+      "ControlAuthorizationStatus": {
         "type": "object",
-        "required": [
-          "command"
-        ],
+        "description": "Authenticated session metadata only. No Lease/Arm credentials or world values; contextValidated=false, every owner-thread operation still authorizes independently.",
         "properties": {
+          "principalId": {"type": "string"},
+          "grantedScopes": {"type": "array", "items": {"type": "string"}},
+          "grantsAuthority": {"type": "boolean", "enum": [false]},
+          "sessionOpen": {"type": "boolean"},
+          "inputLease": {"type": "object", "properties": {"held": {"type": "boolean"}, "remainingTtlMs": {"type": "integer", "format": "int64", "minimum": 0}}},
+          "debugArm": {"type": "object", "properties": {"status": {"type": "string", "enum": ["armed", "disarmed"]}, "remainingTtlMs": {"type": "integer", "format": "int64", "minimum": 0}, "namespaces": {"type": "array", "items": {"type": "string"}}, "contextValidated": {"type": "boolean", "enum": [false]}}}
+        }
+      },
+      "PlayerCommandDiscoveryResponse": {
+        "type": "object",
+        "required": ["type", "dataCategory", "source", "roots", "suggestions", "commandExecuted", "serverAcceptanceConfirmed"],
+        "properties": {
+          "type": {"type": "string", "enum": ["command.player.discovery"]},
+          "dataCategory": {"type": "string", "enum": ["USER"]},
+          "source": {"type": "string", "enum": ["current_player_native_command_tree", "current_player_server_command_suggestions"]},
+          "completionSource": {"type": "string", "enum": ["CLIENT_LOCAL", "SERVER"]},
+          "input": {"type": "string"}, "cursor": {"type": "integer", "minimum": 0},
+          "roots": {"type": "array", "maxItems": 128, "items": {"type": "string"}},
+          "rootCount": {"type": "integer", "minimum": 0}, "rootsTruncated": {"type": "boolean"},
+          "suggestions": {"type": "array", "maxItems": 128, "items": {"type": "object", "required": ["start", "end", "text"], "properties": {"start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}, "text": {"type": "string"}, "tooltip": {"type": "string"}}}},
+          "suggestionCount": {"type": "integer", "minimum": 0}, "suggestionsTruncated": {"type": "boolean"},
+          "parsedExecutable": {"type": "boolean"}, "effectPolicyAllowsSubmission": {"type": "boolean"},
+          "submissionRequiresIndependentAuthorization": {"type": "boolean", "enum": [true]},
+          "submissionModeRequirement": {"type": "string", "enum": ["OPERATE_OR_TAKEOVER"]},
+          "completionScope": {"type": "string", "enum": ["client_local_only", "server_current_player"]},
+          "serverCompletionSupported": {"type": "boolean"},
+          "serverCompletionRequested": {"type": "boolean"},
+          "humanFutureModified": {"type": "boolean", "enum": [false]},
+          "humanRequestsHavePriority": {"type": "boolean", "enum": [true]},
+          "serverBudgetShared": {"type": "boolean", "enum": [true]},
+          "nativeServerMayLimitSuggestions": {"type": "boolean", "enum": [true]},
+          "maxAgentCompletionsInFlight": {"type": "integer", "enum": [1]},
+          "completionMinIntervalMillis": {"type": "integer", "enum": [250]},
+          "completionTimeoutMillis": {"type": "integer", "enum": [1500]},
+          "serverCompletionRequired": {"type": "boolean"}, "completionComplete": {"type": "boolean"},
+          "completionUnavailableReason": {"type": "string"},
+          "policyReason": {"type": "string"}, "availabilityMayChange": {"type": "boolean", "enum": [true]},
+          "commandExecuted": {"type": "boolean", "enum": [false]},
+          "serverAcceptanceConfirmed": {"type": "boolean", "enum": [false]}
+        }
+      },
+      "PlayerCommandBatchResponse": {
+        "type": "object",
+        "required": ["type", "route", "dataCategory", "commands", "submittedCount", "effectConfirmed", "atomic", "retrySafe"],
+        "properties": {
+          "type": {"type": "string", "enum": ["command.player.batch"]},
+          "route": {"type": "string", "enum": ["NATIVE"]}, "dataCategory": {"type": "string", "enum": ["USER"]},
+          "commandCount": {"type": "integer", "minimum": 1, "maximum": 32}, "submittedCount": {"type": "integer", "minimum": 0, "maximum": 32},
+          "submissionStatus": {"type": "string", "enum": ["submitted_unconfirmed", "not_confirmed", "rejected", "partial_submission"]},
+          "commands": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "object", "required": ["commandIndex", "status"], "properties": {"commandIndex": {"type": "integer", "minimum": 0, "maximum": 31}, "command": {"type": "string"}, "status": {"type": "string", "enum": ["submitted_unconfirmed", "submission_unconfirmed", "not_submitted", "not_attempted"]}, "receipt": {"$ref": "#/components/schemas/PlayerCommandSubmission"}, "error": {"type": "object", "additionalProperties": true}, "submissionMayHaveOccurred": {"type": "boolean"}}}},
+          "feedbackCorrelation": {"type": "string", "enum": ["submission_request_and_index_only"]},
+          "effectConfirmed": {"type": "boolean", "enum": [false]}, "atomic": {"type": "boolean", "enum": [false]}, "retrySafe": {"type": "boolean", "enum": [false]},
+          "serverFeedbackCorrelated": {"type": "boolean", "enum": [false]}, "rollbackAttempted": {"type": "boolean", "enum": [false]}
+        }
+      },
+      "UiMutationSupport": {
+        "type": "object",
+        "description": "DEBUG-only actual native owner applicability. Not permission, not a mutation or UI input. USER projections omit this field.",
+        "properties": {
+          "supportedOperations": {"type": "array", "items": {"type": "string"}},
+          "operations": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": true}},
+          "blockedOperations": {"type": "object", "additionalProperties": {"type": "string"}},
+          "limitation": {"type": "string"}, "grantsPermission": {"type": "boolean", "enum": [false]},
+          "inputDispatchCount": {"type": "integer", "enum": [0]}, "requiresUiArm": {"type": "boolean", "enum": [true]},
+          "requiresResourceVersion": {"type": "boolean", "enum": [true]}, "requiresInputLease": {"type": "boolean", "enum": [false]}
+        }
+      },
+      "PlayerCommandRequest": {
+        "oneOf": [
+          {"$ref": "#/components/schemas/PlayerCommandExecuteRequest"},
+          {"$ref": "#/components/schemas/PlayerCommandDiscoveryRequest"},
+          {"$ref": "#/components/schemas/PlayerCommandBatchRequest"}
+        ]
+      },
+      "PlayerCommandDiscoveryRequest": {
+        "type": "object",
+        "required": ["action"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {"type": "string", "enum": ["discover"]},
+          "input": {"type": "string", "maxLength": 2048, "default": ""},
+          "cursor": {"type": "integer", "minimum": 0, "description": "UTF-16 insertion boundary in input; defaults to input length, never splits a surrogate pair."},
+          "maxResults": {"type": "integer", "minimum": 1, "maximum": 128, "default": 32},
+          "completionSource": {"type": "string", "enum": ["CLIENT_LOCAL", "SERVER"], "default": "CLIENT_LOCAL", "description": "Explicit bounded server suggestions use independent owned transaction IDs; human pending completion wins, at most one Agent request, 250ms minimum interval, 1500ms TTL. Shares native server completion budget, not execution, authorization or correlated command feedback. Default local discovery sends no server completion packet."}
+        }
+      },
+      "PlayerCommandBatchRequest": {
+        "type": "object",
+        "required": ["action", "commands"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {"type": "string", "enum": ["batch"]},
+          "commands": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string", "minLength": 1, "maxLength": 2048}, "description": "NATIVE-only sequential submissions; first failure stops subsequent commands. Not atomic, no implicit replay or server-feedback correlation."}
+        }
+      },
+      "PlayerCommandExecuteRequest": {
+        "type": "object",
+        "required": ["command"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {"type": "string", "enum": ["execute"], "default": "execute"},
+          "route": {
+            "type": "string",
+            "enum": ["AUTO", "CHAT", "NATIVE"],
+            "default": "AUTO",
+            "description": "AUTO selects NATIVE only in OPERATE, CHAT otherwise; READ never upgrades. NATIVE requires OPERATE or TAKEOVER and command scope. CHAT additionally requires TAKEOVER, input/control scopes and Lease."
+          },
           "command": {
             "type": "string",
             "minLength": 1,
@@ -8813,7 +8939,7 @@
         }
       },
       "PlayerCommandResponse": {
-        "description": "Current-player native Chat GAME_ROUTED_RAW submission receipt, not execution proof or gameplay acceptance. mode is evidence authority, not a granted Debug Arm. State mutation contaminates evidence; information/communication alone do not. Unknown/indirect and host-control commands are rejected before input and again at the final packet boundary.",
+        "description": "Current-player USER submission receipt, not execution proof. CHAT has GAME_ROUTED_RAW provenance; NATIVE has NORMAL_NETWORK provenance and is not gameplay input evidence. mode is evidence authority, not Control Mode or a granted Debug Arm. State mutation contaminates evidence. Unknown/indirect and host-control commands are rejected before submission and at the final packet boundary.",
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseResponse"
@@ -8827,10 +8953,16 @@
               "commandFeedback": {
                 "$ref": "#/components/schemas/PlayerCommandFeedback"
               },
+              "route": { "type": "string", "enum": ["CHAT", "NATIVE"] },
+              "dataCategory": { "type": "string", "enum": ["USER"] },
+              "requiresControlLease": { "type": "boolean" },
+              "inputDispatched": { "type": "boolean" },
+              "feedbackAvailable": { "type": "boolean" },
+              "feedbackReason": { "type": "string" },
               "mechanism": {
                 "type": "string",
                 "enum": [
-                  "GAME_ROUTED_RAW"
+                  "GAME_ROUTED_RAW", "NORMAL_NETWORK"
                 ]
               },
               "evidenceContaminated": {
@@ -8840,6 +8972,7 @@
                 "type": "string",
                 "enum": [
                   "none",
+                  "non_game_routed_player_command",
                   "player_command_state_mutation"
                 ]
               }
@@ -10236,6 +10369,10 @@
           "threadAffinity"
         ],
         "properties": {
+          "modeRequirement": {"type":"string","enum":["READ_COMPATIBLE","OPERATE_OR_TAKEOVER","TAKEOVER_REQUIRED","MODE_INDEPENDENT","COMMAND_ROUTE_DEPENDENT"]},
+          "defaultRoute": {"type":"string","enum":["AUTO"]},
+          "autoRoute": {"type":"string"},
+          "routes": {"type":"object","additionalProperties":{"type":"object","properties":{"modeRequirement":{"type":"string"},"requiresControlLease":{"type":"boolean"},"additionalScopes":{"type":"array","items":{"type":"string"}}}}},
           "id": {
             "type": "string"
           },
@@ -11436,6 +11573,7 @@
           "batch"
         ],
         "properties": {
+          "resourceInspection": {"type": "object", "additionalProperties": true, "description": "Operation-to-formal-deep-selector/resourceVersion mapping. No Arm required to inspect, but write requires its independent scope, Arm and current resource/value preconditions."},
           "type": {
             "type": "string",
             "enum": [
@@ -11888,6 +12026,7 @@
               "ui.widget.visible.set",
               "ui.text.set",
               "ui.scroll.set",
+              "ui.canvas.pan.set",
               "ui.slider.set",
               "ui.toast.reset",
               "ui.toast.hide"
@@ -11914,6 +12053,9 @@
               },
               {
                 "$ref": "#/components/schemas/DebugToastText"
+              },
+              {
+                "$ref": "#/components/schemas/DebugCanvasPanValue"
               }
             ]
           },
@@ -11930,11 +12072,30 @@
               },
               {
                 "$ref": "#/components/schemas/DebugToastText"
+              },
+              {
+                "$ref": "#/components/schemas/DebugCanvasPanValue"
               }
             ]
           }
         },
-        "description": "OPERATE, debug + debug.write + debug.ui, session-bound UI Arm; typed widget/text/list/slider mutation, no input Lease or arbitrary callbacks. Value type must match operation. Native text resource versions bind the complete bounded UTF-16 content, not only the published 2048-character prefix. DEBUG text nodes report debugTextGuardAvailable; missing owner or exhausted encoding budget refuses mutation with UI_CONTENT_GUARD_UNAVAILABLE. Text expectedValue compares the complete native string, not its published prefix; this does not change USER input. ui.text.set rejects TestInstanceBlockEditScreen with UI_DEBUG_UNSUPPORTED before changing client text or invoking its management-packet responder. ui.text.set also supports local hud.title/hud.subtitle/hud.actionbar nodes under presentation.children with a UI session Arm, not a world Arm. The resource binds the actual HUD/world/Component identities and complete native styled content plus resolved UTF-16 text, excluding naturally ticking lifetime counters. It sets bounded plain text through native local HUD setters, never player/server input or world mutation; sideEffects=native_hud_plain_text_and_lifetime explicitly does not promise rich-formatting, color-animation or lifetime rollback. USER still excludes hidden/expired messages. ui.scroll.set uses native pixel bounds for AbstractSelectionList; the creative/loom/stonecutter/merchant.scrollbar.track controls use normalized [0,1] local display offsets (only zero when disabled), synchronizing the native row or visible items without selecting a recipe/trade, acquiring items or dispatching player/server input. ui.slider.set requires a finite normalized number in [0,1], invokes the native setter and its setting callback (which may change/persist client settings), and updates the displayed label; it is not player input."
+        "description": "OPERATE or TAKEOVER, debug + debug.write + debug.ui, session-bound UI Arm; typed widget/text/list/slider/canvas mutation, no input Lease or arbitrary callbacks. Value type must match operation. Native text resource versions bind the complete bounded UTF-16 content, not only the published 2048-character prefix. DEBUG text nodes report debugTextGuardAvailable; missing owner or exhausted encoding budget refuses mutation with UI_CONTENT_GUARD_UNAVAILABLE. Text expectedValue compares the complete native string, not its published prefix; this does not change USER input. ui.text.set rejects TestInstanceBlockEditScreen with UI_DEBUG_UNSUPPORTED before changing client text or invoking its management-packet responder. ui.text.set also supports local hud.title/hud.subtitle/hud.actionbar nodes under presentation.children with a UI session Arm, not a world Arm. The resource binds the actual HUD/world/Component identities and complete native styled content plus resolved UTF-16 text, excluding naturally ticking lifetime counters. It sets bounded plain text through native local HUD setters, never player/server input or world mutation; sideEffects=native_hud_plain_text_and_lifetime explicitly does not promise rich-formatting, color-animation or lifetime rollback. USER still excludes hidden/expired messages. ui.scroll.set uses native pixel bounds for AbstractSelectionList; the creative/loom/stonecutter/merchant.scrollbar.track controls use normalized [0,1] local display offsets (only zero when disabled), synchronizing the native row or visible items without selecting a recipe/trade, acquiring items or dispatching player/server input. ui.slider.set requires a finite normalized number in [0,1], invokes the native setter and its setting callback (which may change/persist client settings), and updates the displayed label; it is not player input."
+      },
+      "DebugCanvasPanValue": {
+        "type":"object",
+        "additionalProperties":false,
+        "required":["x","y"],
+        "properties":{"x":{"type":"number","format":"double"},"y":{"type":"number","format":"double"}},
+        "description":"DEBUG-only absolute native GUI offsets, not screen input coordinates or normalized scroll. ui.canvas.pan.set requires explicit finite x/y, an actual initialized selected advancement tab, UI Arm and the current tab/Screen/content resource version. expectedValue uses the same complete two-axis shape. Each enabled axis is bounded by its reported native clamp range; a disabled axis must keep its current centered offset. The native tab scroll method changes local display only, without selecting/unlocking an advancement, input dispatch, packets or a player Lease. Restore by reinspection and an explicit fresh-token mutation; no transaction or automatic rollback."
+      },
+      "DebugCanvasPanAxis": {
+        "type":"object","required":["enabled","minimum","maximum"],"additionalProperties":false,
+        "properties":{"enabled":{"type":"boolean"},"minimum":{"type":"number","format":"double"},"maximum":{"type":"number","format":"double"}}
+      },
+      "DebugCanvasPanRange": {
+        "type":"object","required":["unit","x","y"],"additionalProperties":false,
+        "properties":{"unit":{"type":"string","enum":["native_gui_pixels"]},"x":{"$ref":"#/components/schemas/DebugCanvasPanAxis"},"y":{"$ref":"#/components/schemas/DebugCanvasPanAxis"}},
+        "description":"DEBUG-only native local canvas clamp ranges; a non-pannable axis has minimum=maximum=current centered offset, which need not be zero. This metadata grants no permission."
       },
       "DebugToastText": {
         "type": "object",
@@ -11944,7 +12105,7 @@
           "title": {"type": "string", "maxLength": 4096},
           "message": {"type": "string", "maxLength": 4096}
         },
-        "description": "ui.toast.reset explicitly replaces both SystemToast fields as plain text through native reset; reflow, formatting and lifetime may change. It does not restore original rich text or timing. ui.toast.hide requires value=true, requests native one-way dismissal and cannot resurrect a toast. TutorialToast also supports ui.slider.set for finite [0,1] display progress only when progressable. These operations require the existing UI Arm, resident instance/content/lifecycle version and OPERATE scopes, never a player Lease or server mutation. Queued/unsupported toast types are not mutation targets; Forge 1.20.1 lacks native SystemToast.forceHide."
+        "description": "ui.toast.reset explicitly replaces both SystemToast fields as plain text through native reset; reflow, formatting and lifetime may change. It does not restore original rich text or timing. ui.toast.hide requires value=true, requests native one-way dismissal and cannot resurrect a toast. TutorialToast also supports ui.slider.set for finite [0,1] display progress only when progressable. These operations require the existing UI Arm, resident instance/content/lifecycle version, independent scopes and OPERATE or TAKEOVER, never a player Lease or server mutation. Queued/unsupported toast types are not mutation targets; Forge 1.20.1 lacks native SystemToast.forceHide."
       },
       "DebugMutationRequest": {
         "oneOf": [
@@ -12772,6 +12933,9 @@
           "protocolVersion"
         ],
         "properties": {
+          "expectedRevision": {"type": "integer", "format": "int64", "minimum": 0},
+          "actualRevision": {"type": "integer", "format": "int64", "minimum": 0, "description": "Only for authorized STALE_RESOURCE_REVISION with the same resource identity. Not a token or permission; reinspect instead of blindly retrying."},
+          "reinspectRequired": {"type": "boolean"},
           "actualHit": {"$ref": "#/components/schemas/WorldActualHit"},
           "error": {
             "type": "string"

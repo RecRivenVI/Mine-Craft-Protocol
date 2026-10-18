@@ -8,6 +8,9 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(AdvancementTab.class)
 public interface AdvancementTabUiAccessor {
+    @Accessor("centered")
+    boolean minecraftProtocolProbe$centered();
+
     @Accessor("minX")
     int minecraftProtocolProbe$minX();
 

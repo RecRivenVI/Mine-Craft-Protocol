@@ -7,7 +7,6 @@ import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import java.lang.reflect.Proxy;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -118,35 +117,37 @@ class WorldReadEngineTest {
             assertFalse(state.hasScope("debug.write"));
             state.acquireLease(60000);
             assertEquals(
-                    "WORLD_CATEGORY_MODE_MISMATCH",
-                    assertThrows(
-                                    ProtocolState.ProtocolException.class,
-                                    () ->
-                                            engine.read(
-                                                    "DEBUG",
-                                                    "client/player",
-                                                    new JsonObject(),
-                                                    () -> CompletableFuture.completedFuture(raw)))
-                            .code());
+                    1.23456789,
+                    engine.read(
+                                    "DEBUG",
+                                    "client/player",
+                                    new JsonObject(),
+                                    () -> CompletableFuture.completedFuture(raw))
+                            .join()
+                            .get("x")
+                            .getAsDouble());
         }
     }
 
     @Test
-    void operateDoesNotGrantUserReadAndInvalidCategoryDoesNotDispatch() {
+    void operateRetainsUserReadAndInvalidCategoryDoesNotDispatch() {
         try (ProtocolState state = state(DEBUG_SCOPES)) {
-            WorldReadEngine engine = new WorldReadEngine(service(null), state);
+            WorldReadEngine engine =
+                    new WorldReadEngine(
+                            service(CompletableFuture.completedFuture(new JsonObject())), state);
             state.controlSession().select(AgentControlSession.Mode.OPERATE, "test");
             assertEquals(
-                    "WORLD_CATEGORY_MODE_MISMATCH",
-                    assertThrows(
-                                    ProtocolState.ProtocolException.class,
-                                    () ->
-                                            engine.read(
-                                                    "USER",
-                                                    "client/player",
-                                                    new JsonObject(),
-                                                    () -> null))
-                            .code());
+                    "USER",
+                    engine.read(
+                                    "USER",
+                                    "client/player",
+                                    new JsonObject(),
+                                    () -> {
+                                        throw new AssertionError("internal fallback");
+                                    })
+                            .join()
+                            .get("dataCategory")
+                            .getAsString());
             assertEquals(
                     "INVALID_WORLD_CATEGORY",
                     assertThrows(
@@ -162,7 +163,7 @@ class WorldReadEngineTest {
     }
 
     @Test
-    void publicationRejectsChangedContextIncludingReadTakeoverRead() {
+    void authorizedReadSurvivesReadTakeoverRead() {
         try (ProtocolState state = state(DEBUG_SCOPES)) {
             CompletableFuture<JsonObject> source = new CompletableFuture<>();
             WorldReadEngine engine = new WorldReadEngine(service(null), state);
@@ -171,9 +172,7 @@ class WorldReadEngineTest {
             JsonObject lease = state.acquireLease(60000);
             state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
             source.complete(new JsonObject());
-            Throwable error = assertThrows(CompletionException.class, result::join).getCause();
-            assertEquals(
-                    "WORLD_READ_CONTEXT_CHANGED", ((ProtocolState.ProtocolException) error).code());
+            assertEquals("DEBUG", result.join().get("dataCategory").getAsString());
         }
     }
 
@@ -195,7 +194,7 @@ class WorldReadEngineTest {
     }
 
     @Test
-    void userModelAlsoPropagatesCancellationAndRejectsModeChangesBeforePublication() {
+    void userModelPropagatesCancellationButDoesNotConfuseModeWithReadAuthority() {
         try (ProtocolState state = state(DEBUG_SCOPES)) {
             var nativeRead = new CompletableFuture<JsonObject>();
             WorldReadEngine reads = new WorldReadEngine(service(nativeRead), state);
@@ -213,7 +212,7 @@ class WorldReadEngineTest {
             var late = new WorldReadEngine(service(lateNative), state).scene("USER");
             state.controlSession().select(AgentControlSession.Mode.OPERATE, "test");
             lateNative.complete(new JsonObject());
-            assertTrue(late.isCompletedExceptionally());
+            assertEquals("USER", late.join().get("dataCategory").getAsString());
         }
     }
 }

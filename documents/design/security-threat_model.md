@@ -4,6 +4,16 @@
 Runtime 使用 loopback-only 暴露；正式 Persistent Write 路由不存在。
 当前验收状态见[状态页](../project/status-milestones.md)。
 
+## 协作控制合同
+
+[控制模型](concept-agent_control.md)以是否接管真人输入区分模式：读取按USER/DEBUG及自身授权，不再要求模式互斥；
+OPERATE/TAKEOVER可做独立授权DEBUG修改，真人Esc只撤销接管及其玩家输入，不连带取消独立DEBUG/Arm。
+OPERATE可与真人并行并覆盖状态，仍须owner thread、实际主体权限及显式资源/值条件；所有命令操作归USER，不按作弊权限转DEBUG。
+命令树可用性不是授权或执行成功，客户端OP不提供服务器内部通道。仅服务端控制台使用独立操作员OPERATE，不伪造玩家TAKEOVER。
+OPERATE可用真实玩家原生命令API，不打开聊天框/修改草稿或注入共享键鼠，无需玩家输入Lease；独立验证主体/连接、command scope、期限与原生权限。
+不能仅删除现有聊天手势门禁或升级console source。物理Esc只撤销接管输入，不连带取消独立命令；连接/授权失效和操作自身取消仍有界清理。
+共享准入及当前玩家命令路径已迁移；完整协作与三部署/Peer接收授权仍待实施，既有证据不证明新模型已完成。发布前继续核对全部消费者、接收端与取消链。
+
 ## 资产与权威边界
 
 多个本机线程以明确的实例目录发现端点，Runtime 的 OS 目录锁先于 token 写入，默认由 OS 分配端口。

@@ -16,7 +16,14 @@ import org.junit.jupiter.api.Test;
 class UiDebugBatchDeadlineTest {
     @Test
     void queuedUiMutationRechecksCancelAndArmAtTheOwnerCommitBarrier() throws Exception {
-        for (String reason : Set.of("cancel", "disarm")) {
+        for (String scenario :
+                Set.of(
+                        "cancel:ui.text.set",
+                        "disarm:ui.text.set",
+                        "cancel:ui.canvas.pan.set",
+                        "disarm:ui.canvas.pan.set")) {
+            String reason = scenario.substring(0, scenario.indexOf(':'));
+            String operation = scenario.substring(scenario.indexOf(':') + 1);
             CompletableFuture<DebugMutationAuthorization> dispatched = new CompletableFuture<>();
             CompletableFuture<JsonObject> child = new CompletableFuture<>();
             AtomicInteger mutations = new AtomicInteger();
@@ -50,7 +57,8 @@ class UiDebugBatchDeadlineTest {
                                 "test", "v0", 0L, null, null, null, null, arm);
                 var request =
                         JsonParser.parseString(
-                                        "{\"items\":[{\"operation\":\"ui.text.set\"}],\"maxTotalDurationMs\":30000}")
+                                        "{\"items\":[{\"operation\":\"%s\"}],\"maxTotalDurationMs\":30000}"
+                                                .formatted(operation))
                                 .getAsJsonObject();
                 var pending = state.operate(work -> batch.start("test", request, metadata, work));
                 var authorization = dispatched.get(2, TimeUnit.SECONDS);

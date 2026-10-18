@@ -72,7 +72,6 @@ public final class AgentControlSession {
     /** Called only after ProtocolState has acquired the existing input Lease. */
     public synchronized Snapshot acquire() {
         requireOpen();
-        requireNoOperateWork();
         String cause = manuallyRevoked ? "agent_control_reacquired" : "agent_control_acquired";
         manuallyRevoked = false;
         return transition(Mode.TAKEOVER, cause);
@@ -100,7 +99,6 @@ public final class AgentControlSession {
                     "CONTROL_INPUT_CLEANUP_PENDING",
                     "Release and drain input before selecting another intent");
         if (mode == next) return snapshot();
-        requireNoOperateWork();
         return transition(next, cause);
     }
 
@@ -114,13 +112,6 @@ public final class AgentControlSession {
             throw new ModeException(
                     "STALE_MODE_REVISION",
                     "Mode generation changed; inspect the current mode before retrying");
-    }
-
-    public synchronized void requireNoOperateWork() {
-        if (!operateWork.isEmpty())
-            throw new ModeException(
-                    "MODE_OPERATION_IN_PROGRESS",
-                    "Finish or cancel active OPERATE work before changing intent");
     }
 
     /** Owner-thread input and intent exit are linearized; body must not acquire ProtocolState. */
@@ -141,12 +132,13 @@ public final class AgentControlSession {
 
     public synchronized OperateWork beginOperate() {
         requireOpen();
-        if (mode != Mode.OPERATE)
-            throw new ModeException("OPERATE_REQUIRED", "Explicit OPERATE intent is required");
+        if (mode == Mode.READ)
+            throw new ModeException(
+                    "OPERATE_REQUIRED", "Explicit OPERATE or TAKEOVER intent is required");
         if (operateWork.size() >= 16)
             throw new ModeException(
                     "TOO_MANY_OPERATE_REQUESTS", "At most 16 OPERATE requests may be retained");
-        OperateWork work = new OperateWork(generation);
+        OperateWork work = new OperateWork();
         operateWork.add(work);
         return work;
     }
@@ -155,23 +147,19 @@ public final class AgentControlSession {
         return operateWork.size();
     }
 
-    /** Cancelled queued callbacks cannot start; active owner work keeps transitions blocked. */
+    /** Input handback does not revoke independent admitted work; close/cancel still fence it. */
     public final class OperateWork implements AutoCloseable {
-        private final long acceptedGeneration;
         private boolean retired;
         private int entered;
 
-        private OperateWork(long acceptedGeneration) {
-            this.acceptedGeneration = acceptedGeneration;
-        }
+        private OperateWork() {}
 
         public Guard enter() {
             synchronized (AgentControlSession.this) {
                 requireOpen();
-                if (retired || mode != Mode.OPERATE || generation != acceptedGeneration)
+                if (retired)
                     throw new ModeException(
-                            "STALE_MODE_REVISION",
-                            "OPERATE work was cancelled or belongs to an earlier intent");
+                            "OPERATE_WORK_CANCELLED", "Independent work was cancelled");
                 entered++;
                 return new Guard(this);
             }
@@ -185,7 +173,7 @@ public final class AgentControlSession {
 
         public boolean isCancelled() {
             synchronized (AgentControlSession.this) {
-                return retired || closed || generation != acceptedGeneration;
+                return retired || closed;
             }
         }
 

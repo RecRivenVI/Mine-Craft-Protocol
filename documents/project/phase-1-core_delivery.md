@@ -1484,3 +1484,113 @@ Schema、Control/Hook、工具与rumdl通过，严格合规零失败零警告。
 不刷新alpha清单、不发布新快照、不以旧0525cef0证明新增操作；latest继续指向20261017-2041-0525cef0。
 按用户明确要求，本轮收尾后暂停任务及Goal，等待项目规划调整，不开始后续功能、游戏或人工验收。
 工作树全部保留且未暂存、未提交、未推送，正式Persistent Write仍为0；本线程游戏已退出，不关闭其他线程实例。
+
+2026-10-18，用户批准协作控制新目标后重定双里程碑规划：各模式独立授权USER/DEBUG读取，
+OPERATE不接管真人、TAKEOVER可做独立DEBUG，人工Esc只撤销接管；完整三部署重新纳入双里程碑。
+既有剩42组的范围改为新规划58组，增加模式生命周期/回读、命令可用性/批次、版本链与完整服务器/消费者覆盖；
+原已关闭分支与证据保留，新增范围不写成旧实现失败。Fake Player自有体系与第二游玩界面只做独立可行性研究。
+本次只更新当前计划、设计与相关说明，不改源码、历史证据、快照或验收结论，不恢复暂停Goal、不启动游戏、不提交或推送。
+同日用户撤回将部分命令划为DEBUG的决定；当前目标中全部命令操作统一USER，原版主体权限、实际效果与证据来源仍独立，不以逐条命令分类扩大实现范围。
+同日进一步批准OPERATE执行获准的非接管原生操作，首批为以真实玩家身份提交命令，不打开聊天框、不改草稿/焦点或借输入Lease；
+现有聊天键入手势仍需TAKEOVER，不直接删门禁。该决策归入01e/07d及相关取消/展示组，不增加完整非接管玩家动作承诺。
+本次仍只更新计划与设计，其他原生动作先审查输入/上下文依赖；未实现、未启动游戏、不提交或推送。
+
+### 2026-10-18 协作控制并行增量与视觉修复
+
+主线程负责共享授权/生命周期、Native/OpenAPI/Companion及串行验收，同模型、同思考等级子代理分别完成UI、世界和命令/部署切片，另设只读审查。
+交付本地命令树发现、最多32条顺序批次、逐项未确认回执；正式资源inspect映射、授权后安全stale计数及方块版本链；
+原生UI节点的typed修改描述和26.3本地FriendToast隐藏。服务器补全、其他资源链及完整真人协作未因此关闭。
+真实HTTP批次deadline测试覆盖首条保留、第二条pending/work取消及无第三条提交；shutdown锁顺序避免在持状态锁时等待独立工作取消。
+
+Forge完整回归发现Gson ABI缺陷：原版2.10没有JsonObject.isEmpty，异步操作完成路径因此未进入终态。
+修改为size检查，产品共享组件编译/测试明确使用2.10 API基线并增加实际测试运行库检查；模板工具Gson版本不变，不向游戏内嵌另一份Gson。
+修复后Forge完整67项/18条MCP通过。另一次持续挖掘报告主手上下文变化，未在有界原样复测中重现，根因未确认；
+固定夹具在破坏木板后复用已有落物/库存清理与独立客户端tick屏障，再开始黑曜石超时断言，未放宽生产保护或替换预期错误。
+参考端官方安装曾发生依赖下载TLS失败，保留原失败，单次全新隔离目录重试后通过；没有改证书、哈希或依赖。
+
+用户随后补充模式快速切换动画及收缩文字越界。共享文字改为从当前三层混合重新定向，宽度与文字使用同一权重；
+五端仅文字绘制使用当前面板内容区的原生scissor并finally恢复，原500ms曲线、Pointer、蓝边、权限和截图隔离顺序不变。
+新增7项生产绘制/时钟确定性测试。参考端真实接口运行9次快速切换，间隔112～155ms，held input=0且正常退出；不作人工视觉结论。
+此后五端移植并移除无消费者的旧双文字接口。静态门禁随生产委托位置更新，继续核验共享零alpha保护及五端native clip接线，不把字符串检查当运行证据。
+视觉修复后的新候选另作最终复验；此前不同指纹的完整套件不拼接成新alpha，不修改已发布快照，不恢复暂停Goal、不提交或推送。
+
+本次显示收尾候选五端各完成mode-transition：每端三轮常规展示后九次快速切换，共45次，实际间隔109～150ms，
+各214～219份源码/工具哈希与本次工作树匹配，held input=0，正常退出且端点/端口释放。
+spotlessApply/check/verifyRelease/verifyCompliance --strict通过，838项产品Java、60项Companion/网页，合规零失败零警告；
+五端发行JAR与对应原生构件一致。该专项不替代新候选完整UI/世界、独立安装或人工观感；新alpha尚未发布。
+
+### 2026-10-18 进度画布、资源版本链与服务器补全
+
+并行推进03c选中原生进度画布的二维平移、06i其余五种既有typed资源链、07c独立服务器补全。
+参考端先完成真实接口，再移植四端；主线程统一合同、构建与隔离实例，产品与工具冻结后逐端复验。
+进度操作使用原生scroll及完整{x,y}、实际Tab/Screen/图边界/GUI版本，首次居中由原生完成，固定轴不强制归零。
+补全使用独立负事务ID与future，保留真人待完成补全优先；单飞、250ms间隔、1500ms期限，原版预算仍共享。
+已提交只读查询不可撤回，取消后不发布结果，不宣称真人并发已实测或零网络影响。
+
+资源链实测发现MAX_HEALTH尚未实例化时缺少正式base读取；五端补原生supplier-backed base/effective值，
+按实际registry ID去重并保留排序，不创建AttributeInstance、不改USER。每端新增2项生产与原生字节码检查。
+后续一次夹具因缺独立debug.entity权限被正常拒绝，仅为资源专项显式配置实体/BE/Menu各自scope，不放宽产品门禁。
+参考端14项、2条真实MCP及safe stale/恢复证明通过。验证器与消费者恢复只接受本次确认的值及token，外部变化或未知回执不猜测覆盖。
+
+进度专项首次位于Save & Quit之后，因玩家上下文已结束而失败；移至退出前并增加脚本顺序检查后，
+参考端固定轴、二维平移/stale/恢复、替换Screen三项typed流程及实际MCP/网页隔离通过，正常退出。
+五端编译/测试、协议生成、Control/工具、发行及严格合规通过：910项产品Java、61项Companion/网页，
+每端213个必需发行条目；自动检查不等同新候选五端Live或人工验收。
+冻结指纹ee01a2218d417b857236226b805fe0dbd6b32401ddb3877c3629f5110eaebc95，589份产品/构建事实，
+随后启动四专项、完整世界/UI与全新单JAR安装的串行矩阵，未拼接实施阶段不同候选证明。
+自动Goal仍暂停，未提交、推送或执行正式Persistent Write。
+
+同批复验期间收包复核发现补全超时依赖tick清理：若迟到回包先于下一tick处理，仍可能发布。
+通过本产品task end正常取消正在执行的参考端UI套件，原始REQUEST_CANCELLED保留；客户端正常退出、端点/端口释放，不将该次写成UI通过。
+随后收包直接校验单调时钟，五端接线和共享测试覆盖未tick时1499ms成功、1500/1501ms超时、零授权发布及迟到结果不能复活。
+因此重新构建与冻结，不复用ee01候选作为修复后证据，也不发布混批alpha。
+
+修复后spotlessApply/check/verifyRelease/verifyCompliance --strict全部通过：911项产品Java、61项Companion/网页，合规零失败零警告。
+新冻结指纹b0a95fd267ae2ecc507c8adb653494c4f25108c6796b334982693e562e801ee8，589份产品/构建事实文件、每端213个必需发行条目。
+随后重新启动五端四专项、完整世界/UI与全新单JAR安装，上一候选记录不作为本批证明。
+
+b0a95fd2参考端四专项8/8/8/14通过后，完整世界套件在握手阶段失败：自动端口6679被Node标准Fetch按WHATWG端口规则拒绝，未开始世界Act。
+Node关闭回退同样被禁止端口阻断；主线程改用PowerShell调用本产品已验证端点的acquire与Quit语义按钮，客户端正常Stopping、Gradle退出0，端点/端口清理。
+此为实际连接缺陷而非世界能力通过；保留失败日志，修复自动端口的有限安全选择后重新冻结和复验，不绕过Fetch限制或发布混批alpha。
+
+自动端口修复使用标准禁止表，最多8次实际bind候选，每次坏候选同步关闭，仅最终安全监听发布；固定禁止端口和绑定异常明确失败。
+新增3项生产选择/耗尽/固定端口负控，既有真实五实例检查最终HTTP可用端口。重建时旧测试夹具曾随机选到5060/5061后作为固定端口而失败；
+普通HTTP测试改用生产自动分配，固定占用测试仅筛选合法测试前提，不放宽产品拒绝规则。本记录保留失败原因，后续完整重跑通过不改写为首次通过。
+spotlessApply/check/verifyRelease/verifyCompliance --strict通过，914项产品Java、61项Companion/网页、合规零失败零警告。
+冻结指纹2a4c09d77956ad3d3a2fb8c73aae5811610fc2c7b74a84393a4fe3ac8f2cf35e，589份产品/构建事实文件，重新执行同候选五端矩阵。
+
+2a4c09d7参考端四专项8/8/8/14及完整世界67项通过；UI完整套件在系统Toast的实际MCP恢复时失败，客户端随后正常退出。
+原生reset同步改文字/重排并置changed=true，下一tick更新lastChanged且清除changed；canonical包含这两个字段，导致同内容6692→6693。
+消费者完整token保护因此拒绝恢复，未以新token盲目覆盖。暂停后续Target和alpha分发，先评估显式reset代次以保留真实同值重设失效，不把正常tick处理当外部修改。
+
+参考端实现被动reset代次、完整canonical共享采样及原生probe后，target编译/测试通过，首次Runtime却捕获IllegalClassLoadError并退出：
+初版标记接口嵌在Mixin包内，游戏类加载器禁止直接引用。该实现未移植或分发；保留09:53:55崩溃记录，改将纯Java标记接口放到runtime_core产品组件后再验证。
+
+共享UiToastResetSource接口修正后，参考端target编译/测试/probe通过，真实ui-debug-toast专项通过并正常退出。
+9项probe使用本线程私有原生ToastManager/真实驻留实例、生产canonical及版本验证器，证明native update消费后token稳定，同值reset使旧token拒绝；
+实际MCP SystemToast reset/完整token恢复、Tutorial进度与原生单向隐藏均通过。随后授权其余四端移植，恢复guard未放宽。
+新Hook是被动reset计数，不取消/替换原生调用；原cancellable/replacement/draw计数不因新增一项passive Inject而误加。
+
+四端移植后统一spotlessApply/check/verifyRelease/verifyCompliance --strict通过：929项产品Java、61项Companion/网页，合规零失败零警告。
+五端发行各214个必需条目及探针排除符合，另逐JAR核实core.UiToastResetSource与SystemToastResetMixin存在、旧Mixin嵌套接口不存在。
+旧双端probe实际调用完整原生render，仅probe私有画布屏蔽绘制，诚实记录no_pixel_canvas；26.x调用真实update。两者都不冒充像素或人工验收。
+冻结指纹07848af56e85782a2ca800848e128bce00ce3770422fda45dba899384b724a78，595份产品/构建事实；先专项复验，再重新执行同候选五端完整矩阵。
+
+随后同候选串行完整矩阵通过，顺序为26.3 NeoForge、1.20.1 Forge、1.21.1 NeoForge、26.1.2 NeoForge、26.3 Fabric；一次一个1920×1080静音4 GiB自有副本。
+按项目Target顺序，完整UI为65/66/66/67/67项，Native诊断样本250/251/251/254/254份、编辑器消费者44/46/46/46/46条；
+各端9项Toast原生守卫、实际MCP完整token恢复及二维画布3分支通过。Forge无SystemToast.forceHide，按原生缺席明确拒绝。
+五端各完成mode-collaboration 8项、command-discovery-batch 8项、server-completion 8项、resource-version 14项；
+资源专项每端含2条真实MCP，实际覆盖六类正式inspect/值与版本/stale/重新读取/安全恢复，DEBUG Act零玩家输入，不取得Lease。
+07c与06i闭合，剩余规划组57→55；03c只完成画布子项，建议列表、旁观及剩余HUD/Toast owner仍未闭合。
+
+世界完整套件五端各67项/18项实际MCP通过；最终发行JAR逐端全新官方Loader目录，仅一份产品JAR，无开发classpath，
+标题、endpoint身份、握手、USER READ及SPI来源均通过。五端自然退出0、端点删除、端口释放，无当前验证客户端残留；不等同最终制品内完整世界/UI或人工验收。
+SERVER补全的真人future优先有生产结构和确定性测试，未做人类并发Live；已提交查询不可撤回，服务器预算仍共享。
+未操作日常实例、Prism或重要存档，不使用Computer Use，不恢复暂停Goal，不暂存/提交/推送，正式Persistent Write仍为0。
+
+最终spotlessApply/check/verifyRelease/verifyCompliance --strict再次通过：929项产品Java零失败/错误/跳过、61项Companion/网页，
+80篇Markdown检查通过，严格合规检查1485份文件、零失败零警告。五端各214个必需发行条目，源码指纹仍为07848af5。
+发布器逐文件复验当前源码、工具、五端完整UI/世界、20项协作专项及全新安装后，生成五端JAR、alpha-manifest.json和AGENT_GUIDE.md，
+发布到D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261018-1221-07848af5/；七文件、清单/手册哈希与latest核验通过，分发无警告。
+保留最近三份及显式登记在用批次；旧20261017-0914-3d6e3fca和替换latest的临时备份移至回收站，可恢复，未永久删除。
+当前两领域与完整Showcase仍IN PROGRESS，不以本次alpha或自动矩阵宣布全目录READY/人工PASS。

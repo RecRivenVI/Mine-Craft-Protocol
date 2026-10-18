@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.lang.reflect.Proxy;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,6 +25,15 @@ class WorldReadTransportTest {
         private final ProbeTransport transport;
         private final AtomicInteger internalReads = new AtomicInteger();
         private final AtomicInteger commandSubmissions = new AtomicInteger();
+        private final AtomicInteger commandDiscoveries = new AtomicInteger();
+        private final AtomicInteger serverCommandCompletions = new AtomicInteger();
+        private CompletableFuture<JsonObject> delayedSecondCommand;
+        private final java.util.concurrent.CountDownLatch secondCommandQueued =
+                new java.util.concurrent.CountDownLatch(1);
+        private volatile io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession
+                        .OperateWork
+                delayedCommandWork;
+        private volatile Runnable delayedCommandGuard;
         private boolean failCommandSubmission;
         private PlayerCommandGate.ConfigurationKind configurationKind;
         private volatile boolean failInputAfterCommand;
@@ -41,9 +49,6 @@ class WorldReadTransportTest {
         }
 
         Fixture(String scopes, CompletableFuture<JsonObject> scene) throws Exception {
-            try (ServerSocket socket = new ServerSocket(0)) {
-                port = socket.getLocalPort();
-            }
             System.setProperty("minecraft.protocol.scopes", scopes);
             ProbeService service =
                     (ProbeService)
@@ -61,6 +66,111 @@ class WorldReadTransportTest {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
                                             return artifacts;
+                                        if (method.getName().equals("discoverPlayerCommands")
+                                                || method.getName()
+                                                        .equals("completePlayerCommands")) {
+                                            ((Runnable) args[3]).run();
+                                            boolean serverCompletion =
+                                                    method.getName()
+                                                            .equals("completePlayerCommands");
+                                            if (serverCompletion)
+                                                serverCommandCompletions.incrementAndGet();
+                                            else commandDiscoveries.incrementAndGet();
+                                            JsonObject discovered =
+                                                    PlayerCommandDiscovery.result(
+                                                            new PlayerCommandDiscovery.Query(
+                                                                    (String) args[0],
+                                                                    (Integer) args[1],
+                                                                    (Integer) args[2]),
+                                                            java.util.List.of("help"),
+                                                            1,
+                                                            java.util.List.of(),
+                                                            0,
+                                                            false,
+                                                            null);
+                                            discovered.addProperty(
+                                                    "completionSource",
+                                                    serverCompletion ? "SERVER" : "CLIENT_LOCAL");
+                                            return CompletableFuture.completedFuture(discovered);
+                                        }
+                                        if (method.getName().equals("nativePlayerCommandBatch")) {
+                                            @SuppressWarnings("unchecked")
+                                            var commands = (java.util.List<String>) args[0];
+                                            var work =
+                                                    (io.github.recrivenvi.minecraftprotocol.safety
+                                                                    .AgentControlSession
+                                                                    .OperateWork)
+                                                            args[1];
+                                            var batch =
+                                                    PlayerCommandBatch.execute(
+                                                            commands,
+                                                            (String) args[3],
+                                                            (Runnable) args[2],
+                                                            (index, command, guard) ->
+                                                                    ((ProbeService) proxy)
+                                                                            .nativePlayerCommand(
+                                                                                    command,
+                                                                                    work,
+                                                                                    guard,
+                                                                                    args[3] + ":"
+                                                                                            + index));
+                                            return io.github.recrivenvi.minecraftprotocol.safety
+                                                    .CancellableWork.compose(
+                                                    CompletableFuture.completedFuture(batch),
+                                                    future -> future);
+                                        }
+                                        if (method.getName().equals("nativePlayerCommand")) {
+                                            var work =
+                                                    (io.github.recrivenvi.minecraftprotocol.safety
+                                                                    .AgentControlSession
+                                                                    .OperateWork)
+                                                            args[1];
+                                            if (delayedSecondCommand != null
+                                                    && ((String) args[3]).endsWith(":1")) {
+                                                delayedCommandWork = work;
+                                                delayedCommandGuard = (Runnable) args[2];
+                                                secondCommandQueued.countDown();
+                                                return delayedSecondCommand;
+                                            }
+                                            return CompletableFuture.completedFuture(
+                                                    work.call(
+                                                            () -> {
+                                                                try (var dispatch =
+                                                                        commandGate.enterNative(
+                                                                                (String) args[0],
+                                                                                (Runnable) args[2],
+                                                                                (String) args[3])) {
+                                                                    commandGate.allow(
+                                                                            (String) args[0],
+                                                                            false,
+                                                                            true,
+                                                                            () ->
+                                                                                    PlayerCommandPolicyTest
+                                                                                            .parsed(
+                                                                                                    PlayerCommandPolicyTest
+                                                                                                            .frame(
+                                                                                                                    "help")));
+                                                                    dispatch.check();
+                                                                    commandSubmissions
+                                                                            .incrementAndGet();
+                                                                    var result = dispatch.receipt();
+                                                                    result.addProperty(
+                                                                            "requiresControlLease",
+                                                                            false);
+                                                                    result.addProperty(
+                                                                            "inputDispatched",
+                                                                            false);
+                                                                    return result;
+                                                                }
+                                                            }));
+                                        }
+                                        if (method.getName().equals("formalDeepObservation")) {
+                                            internalReads.incrementAndGet();
+                                            return CompletableFuture.completedFuture(
+                                                    JsonParser.parseString(
+                                                                    "{\"chunks\":[{\"chunkX\":0,\"chunkZ\":0,\"loaded\":true,\"sections\":[{\"y\":4,\"blockCount\":4096}]}],\"providers\":[],\"chunkLoadRequested\":false}")
+                                                            .getAsJsonObject());
+                                        }
                                         if (method.getName().equals("key")
                                                 && (int) args[0] == 257) {
                                             if ((int) args[2] == 1) {
@@ -230,8 +340,9 @@ class WorldReadTransportTest {
                                         raw.addProperty("x", 1.23456789);
                                         return CompletableFuture.completedFuture(raw);
                                     });
-            transport = new ProbeTransport(service, "world-read-http-test", port, "test-target");
+            transport = new ProbeTransport(service, "world-read-http-test", 0, "test-target");
             transport.startAsync();
+            port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;
             for (int i = 0; i < 200; i++) {
                 try {
@@ -288,6 +399,308 @@ class WorldReadTransportTest {
             transport.close();
             if (oldScopes == null) System.clearProperty("minecraft.protocol.scopes");
             else System.setProperty("minecraft.protocol.scopes", oldScopes);
+        }
+    }
+
+    @Test
+    void sessionAndScopeDenialsExposeStructuredAuthorityWithoutGrantingIt() throws Exception {
+        try (Fixture fixture = new Fixture("read")) {
+            JsonObject session = fixture.value("/v0/session", 200);
+            JsonObject control = session.getAsJsonObject("control");
+            assertEquals("READ", control.get("mode").getAsString());
+            JsonObject authority = control.getAsJsonObject("authorization");
+            assertEquals("read", authority.getAsJsonArray("grantedScopes").get(0).getAsString());
+            assertFalse(authority.get("grantsAuthority").getAsBoolean());
+            assertFalse(authority.getAsJsonObject("inputLease").get("held").getAsBoolean());
+            JsonObject denied = fixture.post("/v0/control/acquire", "{}", 403);
+            assertEquals("SCOPE_DENIED", denied.get("error").getAsString());
+            assertEquals("READ", denied.getAsJsonObject("control").get("mode").getAsString());
+            assertFalse(denied.toString().contains("debugArmId"));
+            var unauthenticated = fixture.get("/v0/session", "wrong-token");
+            assertEquals(401, unauthenticated.statusCode());
+            assertFalse(
+                    JsonParser.parseString(unauthenticated.body())
+                            .getAsJsonObject()
+                            .has("control"));
+        }
+    }
+
+    @Test
+    void commandCompletionSourceRoutesTheRealServiceWithoutLeasesArmsOrModeChanges()
+            throws Exception {
+        try (Fixture fixture = new Fixture("read,command")) {
+            JsonObject before = fixture.value("/v0/control/mode", 200);
+            JsonObject local =
+                    fixture.post(
+                            "/v0/command/player",
+                            "{\"action\":\"discover\",\"input\":\"he\",\"cursor\":2,\"maxResults\":4}",
+                            200);
+            assertEquals("CLIENT_LOCAL", local.get("completionSource").getAsString());
+            assertEquals("he", local.get("input").getAsString());
+            assertEquals(2, local.get("cursor").getAsInt());
+            assertEquals(4, local.get("maxResults").getAsInt());
+            assertEquals(1, fixture.commandDiscoveries.get());
+            assertEquals(0, fixture.serverCommandCompletions.get());
+            fixture.post(
+                    "/v0/command/player",
+                    "{\"action\":\"discover\",\"completionSource\":\"CLIENT_LOCAL\"}",
+                    200);
+            JsonObject server =
+                    fixture.post(
+                            "/v0/command/player",
+                            "{\"action\":\"discover\",\"input\":\"tp @s \",\"cursor\":6,\"maxResults\":8,\"completionSource\":\"SERVER\"}",
+                            200);
+            assertEquals("SERVER", server.get("completionSource").getAsString());
+            assertEquals("tp @s ", server.get("input").getAsString());
+            assertEquals(6, server.get("cursor").getAsInt());
+            assertEquals(8, server.get("maxResults").getAsInt());
+            assertEquals(2, fixture.commandDiscoveries.get());
+            assertEquals(1, fixture.serverCommandCompletions.get());
+            assertEquals(0, fixture.commandSubmissions.get());
+            assertFalse(server.get("commandExecuted").getAsBoolean());
+            assertFalse(server.get("requiresControlLease").getAsBoolean());
+            JsonObject after = fixture.value("/v0/control/mode", 200);
+            assertEquals("READ", after.get("mode").getAsString());
+            assertEquals(before.get("modeVersion"), after.get("modeVersion"));
+            assertFalse(
+                    after.getAsJsonObject("authorization")
+                            .getAsJsonObject("inputLease")
+                            .get("held")
+                            .getAsBoolean());
+            assertEquals(
+                    "disarmed",
+                    after.getAsJsonObject("authorization")
+                            .getAsJsonObject("debugArm")
+                            .get("status")
+                            .getAsString());
+        }
+    }
+
+    @Test
+    void unknownCompletionSourcesAreRejectedBeforeEitherDiscoveryService() throws Exception {
+        try (Fixture fixture = new Fixture("read,command")) {
+            for (String source : java.util.List.of("REMOTE", "server", "AUTO")) {
+                JsonObject denied =
+                        fixture.post(
+                                "/v0/command/player",
+                                "{\"action\":\"discover\",\"completionSource\":\"" + source + "\"}",
+                                400);
+                assertEquals("INVALID_COMMAND_DISCOVERY", denied.get("error").getAsString());
+            }
+            for (String source : java.util.List.of("null", "{}", "[]", "3", "false"))
+                fixture.post(
+                        "/v0/command/player",
+                        "{\"action\":\"discover\",\"completionSource\":" + source + "}",
+                        400);
+            assertEquals(0, fixture.commandDiscoveries.get());
+            assertEquals(0, fixture.serverCommandCompletions.get());
+            assertEquals(0, fixture.commandSubmissions.get());
+        }
+    }
+
+    @Test
+    void completionReadAndCommandScopesAreBothRequiredBeforeDispatchOrSourceValidation()
+            throws Exception {
+        for (String scopes : java.util.List.of("read", "command", "diagnostics")) {
+            try (Fixture fixture = new Fixture(scopes)) {
+                for (String source : java.util.List.of("CLIENT_LOCAL", "SERVER", "UNKNOWN")) {
+                    JsonObject denied =
+                            fixture.post(
+                                    "/v0/command/player",
+                                    "{\"action\":\"discover\",\"completionSource\":\""
+                                            + source
+                                            + "\"}",
+                                    403);
+                    assertEquals("SCOPE_DENIED", denied.get("error").getAsString());
+                }
+                assertEquals(0, fixture.commandDiscoveries.get());
+                assertEquals(0, fixture.serverCommandCompletions.get());
+                assertEquals(0, fixture.commandSubmissions.get());
+            }
+        }
+    }
+
+    @Test
+    void commandTypedActionsAuthorizeIndependentlyAndBatchNeverAcquiresInput() throws Exception {
+        try (Fixture fixture = new Fixture("read,command,control")) {
+            JsonObject found =
+                    fixture.post(
+                            "/v0/command/player", "{\"action\":\"discover\",\"input\":\"\"}", 200);
+            assertEquals("command.player.discovery", found.get("type").getAsString());
+            assertEquals(1, fixture.commandDiscoveries.get());
+            assertEquals(0, fixture.commandSubmissions.get());
+            fixture.post("/v0/command/player", "{\"action\":\"discover\",\"input\":3}", 400);
+            fixture.post("/v0/command/player", "{\"action\":\"discover\",\"cursor\":0.5}", 400);
+            fixture.post(
+                    "/v0/command/player", "{\"action\":\"discover\",\"route\":\"NATIVE\"}", 400);
+            JsonObject denied =
+                    fixture.post(
+                            "/v0/command/player",
+                            "{\"action\":\"batch\",\"commands\":[\"help\"]}",
+                            409);
+            assertEquals("OPERATE_REQUIRED", denied.get("error").getAsString());
+            JsonObject version =
+                    fixture.value("/v0/control/mode", 200).getAsJsonObject("modeVersion");
+            fixture.post(
+                    "/v0/control/mode",
+                    "{\"mode\":\"OPERATE\",\"expectedModeVersion\":" + version + "}",
+                    200);
+            JsonObject batch =
+                    fixture.post(
+                            "/v0/command/player",
+                            "{\"action\":\"batch\",\"commands\":[\"help\",\"help\"]}",
+                            200);
+            assertEquals("command.player.batch", batch.get("type").getAsString());
+            assertEquals(2, batch.get("submittedCount").getAsInt());
+            assertEquals(2, fixture.commandSubmissions.get());
+            assertFalse(batch.get("effectConfirmed").getAsBoolean());
+            assertFalse(
+                    fixture.value("/v0/control/mode", 200).get("takeoverActive").getAsBoolean());
+        }
+        try (Fixture fixture = new Fixture("command")) {
+            assertEquals(
+                    "SCOPE_DENIED",
+                    fixture.post("/v0/command/player", "{\"action\":\"discover\"}", 403)
+                            .get("error")
+                            .getAsString());
+            assertEquals(0, fixture.commandDiscoveries.get());
+        }
+    }
+
+    @Test
+    void batchHttpDeadlineCancelsPendingNativeWorkWithoutReplayingSubmittedCommand()
+            throws Exception {
+        try (Fixture fixture = new Fixture("read,command,control")) {
+            JsonObject version =
+                    fixture.value("/v0/control/mode", 200).getAsJsonObject("modeVersion");
+            fixture.post(
+                    "/v0/control/mode",
+                    "{\"mode\":\"OPERATE\",\"expectedModeVersion\":" + version + "}",
+                    200);
+            var pending = new CompletableFuture<JsonObject>();
+            fixture.delayedSecondCommand = pending;
+            var response =
+                    fixture.http.sendAsync(
+                            HttpRequest.newBuilder(
+                                            URI.create(
+                                                    "http://127.0.0.1:"
+                                                            + fixture.port
+                                                            + "/v0/command/player"))
+                                    .timeout(Duration.ofSeconds(4))
+                                    .header("Authorization", "Bearer world-read-http-test")
+                                    .header("Content-Type", "application/json")
+                                    .header(
+                                            ProtocolState.REQUEST_ID_HEADER,
+                                            "partial-batch-deadline")
+                                    .header(ProtocolState.DEADLINE_HEADER, "1000")
+                                    .POST(
+                                            HttpRequest.BodyPublishers.ofString(
+                                                    "{\"action\":\"batch\",\"commands\":[\"help\",\"help\",\"help\"]}"))
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString());
+            assertTrue(fixture.secondCommandQueued.await(2, TimeUnit.SECONDS));
+            assertEquals(
+                    1, fixture.commandSubmissions.get(), "First native receipt already exists");
+            var terminal = response.get(4, TimeUnit.SECONDS);
+            assertEquals(408, terminal.statusCode(), terminal.body());
+            var error = JsonParser.parseString(terminal.body()).getAsJsonObject();
+            assertEquals("REQUEST_DEADLINE_EXCEEDED", error.get("error").getAsString());
+            assertEquals("partial-batch-deadline", error.get("requestId").getAsString());
+            assertEquals("not_confirmed", error.get("executionOutcome").getAsString());
+            assertFalse(error.get("retrySafe").getAsBoolean());
+            assertThrows(
+                    java.util.concurrent.CancellationException.class,
+                    () -> pending.get(2, TimeUnit.SECONDS));
+            assertTrue(fixture.delayedCommandWork.isCancelled());
+            assertThrows(
+                    RuntimeException.class,
+                    () ->
+                            fixture.delayedCommandWork.call(
+                                    () -> {
+                                        fixture.delayedCommandGuard.run();
+                                        fixture.commandSubmissions.incrementAndGet();
+                                        return null;
+                                    }));
+            assertFalse(pending.complete(new JsonObject()));
+            assertEquals(
+                    1,
+                    fixture.commandSubmissions.get(),
+                    "No late second/third submission or rollback");
+        }
+    }
+
+    @Test
+    void takeoverDeepChunkReadPreservesTheSameAuthorizedPayloadAndScopes() throws Exception {
+        try (Fixture fixture = new Fixture("read,debug,debug.world.read,control")) {
+            String query =
+                    "{\"category\":\"DEBUG\",\"perspective\":\"client_known\",\"domains\":[\"chunks\"]}";
+            var read = fixture.post("/v0/observe/deep", query, 200);
+            fixture.post("/v0/control/acquire", "{\"ttlMs\":15000}", 200);
+            var takeover = fixture.post("/v0/observe/deep", query, 200);
+            assertEquals(read.get("chunks"), takeover.get("chunks"));
+            assertEquals("DEBUG", takeover.get("dataCategory").getAsString());
+            assertFalse(takeover.get("chunkLoadRequested").getAsBoolean());
+            assertEquals(2, fixture.internalReads.get());
+        }
+        try (Fixture fixture = new Fixture("read,control")) {
+            fixture.post("/v0/control/acquire", "{\"ttlMs\":15000}", 200);
+            assertEquals(
+                    "SCOPE_DENIED",
+                    fixture.post(
+                                    "/v0/observe/deep",
+                                    "{\"category\":\"DEBUG\",\"domains\":[\"chunks\"]}",
+                                    403)
+                            .get("error")
+                            .getAsString());
+            assertEquals(0, fixture.internalReads.get());
+        }
+    }
+
+    @Test
+    void nativeCommandInOperateRequiresOnlyItsOwnAuthorityAndDoesNotAcquireInput()
+            throws Exception {
+        try (Fixture fixture = new Fixture("read,command,control")) {
+            fixture.post("/v0/command/player", "{\"command\":\"help\",\"route\":\"NATIVE\"}", 409);
+            var version = fixture.value("/v0/control/mode", 200).get("modeVersion");
+            fixture.post(
+                    "/v0/control/mode",
+                    "{\"mode\":\"OPERATE\",\"expectedModeVersion\":" + version + "}",
+                    200);
+            var receipt = fixture.post("/v0/command/player", "{\"command\":\"help\"}", 200);
+            assertEquals("NATIVE", receipt.get("route").getAsString());
+            assertEquals("USER", receipt.get("dataCategory").getAsString());
+            assertEquals("NORMAL_NETWORK", receipt.get("mechanism").getAsString());
+            assertFalse(receipt.get("inputDispatched").getAsBoolean());
+            assertFalse(receipt.get("requiresControlLease").getAsBoolean());
+            assertEquals(
+                    "OPERATE", fixture.value("/v0/control/mode", 200).get("mode").getAsString());
+            assertFalse(fixture.commandControl.snapshot().agentControlled());
+            assertEquals(
+                    "SCOPE_DENIED",
+                    fixture.post(
+                                    "/v0/command/player",
+                                    "{\"command\":\"help\",\"route\":\"CHAT\"}",
+                                    403)
+                            .get("error")
+                            .getAsString());
+            fixture.post("/v0/command/player", "{\"command\":\"help\",\"route\":\"invalid\"}", 400);
+            assertEquals(1, fixture.commandSubmissions.get());
+        }
+        try (Fixture fixture = new Fixture("read,control")) {
+            var version = fixture.value("/v0/control/mode", 200).get("modeVersion");
+            fixture.post(
+                    "/v0/control/mode",
+                    "{\"mode\":\"OPERATE\",\"expectedModeVersion\":" + version + "}",
+                    200);
+            assertEquals(
+                    "SCOPE_DENIED",
+                    fixture.post(
+                                    "/v0/command/player",
+                                    "{\"command\":\"help\",\"route\":\"NATIVE\"}",
+                                    403)
+                            .get("error")
+                            .getAsString());
+            assertEquals(0, fixture.commandSubmissions.get());
         }
     }
 

@@ -15,6 +15,7 @@ gson = "2.14.0"
 mixin = "0.8.7"
 openapi = "7.26.0"
 mcp-netty = "4.1.82.Final"
+mcp-runtime-gson = "2.10"
 
 [libraries]
 foojay-plugin = { module = "org.gradle.toolchains:foojay-resolver", version.ref = "foojay" }
@@ -31,6 +32,7 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 mixin-processor = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 mcp-netty-http = { module = "io.netty:netty-codec-http", version.ref = "mcp-netty" }
 mcp-netty-handler = { module = "io.netty:netty-handler", version.ref = "mcp-netty" }
+mcp-runtime-gson = { module = "com.google.code.gson:gson", version.ref = "mcp-runtime-gson" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

@@ -62,11 +62,10 @@ final class AgentTaskContractTest {
             state.revokeHumanControl();
             assertEquals("READ", state.modeStatus().get("mode").getAsString());
             assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
-            assertEquals("INTERRUPTED", state.taskStatus().get("status").getAsString());
-            String oldId = id;
-            assertThrows(
-                    AgentControlSession.ModeException.class,
-                    () -> state.heartbeatTask(oldId, 60000));
+            assertEquals("ACTIVE", state.taskStatus().get("status").getAsString());
+            state.heartbeatTask(id, 60000);
+            assertEquals("READ", state.modeStatus().get("mode").getAsString());
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
             state.endTask(id).get(1, TimeUnit.SECONDS);
             assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
             assertEquals(2, cleanup.get());

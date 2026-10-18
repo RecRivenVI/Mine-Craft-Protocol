@@ -26,6 +26,252 @@ final class NativePlayerCommands {
 
     record Configuration(PlayerCommandGate.ConfigurationKind kind, String command) {}
 
+    static Runnable contextGuard(Minecraft client, Runnable authorization) {
+        authorization.run();
+        var player = client.player;
+        var level = client.level;
+        var connection = client.getConnection();
+        if (player == null
+                || level == null
+                || connection == null
+                || !connection.getConnection().isConnected())
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_COMMAND_CONTEXT_UNAVAILABLE",
+                    409,
+                    "A connected current player is required");
+        var dispatcher = connection.getCommands();
+        return () -> {
+            authorization.run();
+            if (client.player != player
+                    || client.level != level
+                    || client.getConnection() != connection
+                    || !connection.getConnection().isConnected()
+                    || connection.getCommands() != dispatcher)
+                throw new ProtocolState.ProtocolException(
+                        "PLAYER_COMMAND_CONTEXT_CHANGED",
+                        409,
+                        "Player, world, connection or native command tree changed");
+        };
+    }
+
+    static java.util.concurrent.CompletableFuture<com.google.gson.JsonObject> discover(
+            Minecraft client,
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query query,
+            Runnable authorization) {
+        var guard = contextGuard(client, authorization);
+        var connection = client.getConnection();
+        var dispatcher = connection.getCommands();
+        var serverRequired = new java.util.concurrent.atomic.AtomicBoolean();
+        var source =
+                localSuggestionSource(
+                        connection, client, connection.getSuggestionsProvider(), serverRequired);
+        return discover(dispatcher, source, query, guard, client::execute, serverRequired::get);
+    }
+
+    static ClientSuggestionProvider localSuggestionSource(
+            net.minecraft.client.multiplayer.ClientPacketListener connection,
+            Minecraft client,
+            ClientSuggestionProvider original,
+            java.util.concurrent.atomic.AtomicBoolean serverRequired) {
+        // Vanilla's server-completion slot belongs to the human Chat UI; never cancel or reuse it.
+        return new ClientSuggestionProvider(connection, client, original.permissions()) {
+            @Override
+            public java.util.Collection<String> getCustomTabSuggestions() {
+                return original.getCustomTabSuggestions();
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<
+                            com.mojang.brigadier.suggestion.Suggestions>
+                    customSuggestion(com.mojang.brigadier.context.CommandContext<?> context) {
+                serverRequired.set(true);
+                return com.mojang.brigadier.suggestion.Suggestions.empty();
+            }
+        };
+    }
+
+    static java.util.concurrent.CompletableFuture<com.google.gson.JsonObject> complete(
+            Minecraft client,
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query query,
+            Runnable authorization) {
+        Runnable guard = contextGuard(client, authorization);
+        var connection = client.getConnection();
+        var dispatcher = connection.getCommands();
+        var source = connection.getSuggestionsProvider();
+        var route = route(dispatcher.parse(query.commandInput(), source), dispatcher);
+        var effect = route.complete() ? PlayerCommandPolicy.classify(route) : null;
+        var roots =
+                dispatcher.getRoot().getChildren().stream()
+                        .filter(node -> node.canUse(source))
+                        .map(CommandNode::getName)
+                        .sorted()
+                        .toList();
+        String prefix = query.commandInput().substring(0, query.commandCursor());
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.map(
+                NativeCommandSuggestions.request(client, prefix, guard),
+                values -> {
+                    guard.run();
+                    if (values.getRange().getStart() < 0
+                            || values.getRange().getEnd() > prefix.length())
+                        throw new ProtocolState.ProtocolException(
+                                "PLAYER_COMMAND_CONTEXT_UNAVAILABLE",
+                                409,
+                                "Server suggestion range is outside the queried prefix");
+                    var suggestions =
+                            values.getList().stream()
+                                    .limit(query.maxResults())
+                                    .map(
+                                            value ->
+                                                    new io.github.recrivenvi.minecraftprotocol.core
+                                                            .PlayerCommandDiscovery.Suggestion(
+                                                            value.getRange().getStart()
+                                                                    + query.inputOffset(),
+                                                            value.getRange().getEnd()
+                                                                    + query.inputOffset(),
+                                                            value.getText(),
+                                                            value.getTooltip() == null
+                                                                    ? null
+                                                                    : value.getTooltip()
+                                                                            .getString()))
+                                    .toList();
+                    var response =
+                            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery
+                                    .result(
+                                            query,
+                                            roots,
+                                            roots.size(),
+                                            suggestions,
+                                            values.getList().size(),
+                                            route.complete(),
+                                            effect);
+                    response.addProperty("source", "current_player_server_command_suggestions");
+                    response.addProperty(
+                            "availability", "client_received_tree_and_native_server_suggestions");
+                    response.addProperty("completionSource", "SERVER");
+                    response.addProperty("completionScope", "server_current_player");
+                    response.addProperty("serverCompletionSupported", true);
+                    response.addProperty("serverCompletionRequested", true);
+                    response.addProperty("serverCompletionRequired", false);
+                    response.addProperty(
+                            "completionComplete", values.getList().size() <= query.maxResults());
+                    response.addProperty("humanFutureModified", false);
+                    response.addProperty("humanRequestsHavePriority", true);
+                    response.addProperty("serverBudgetShared", true);
+                    response.addProperty("maxAgentCompletionsInFlight", 1);
+                    response.addProperty(
+                            "completionMinIntervalMillis",
+                            io.github.recrivenvi.minecraftprotocol.core
+                                    .PlayerCommandSuggestionRequests.MIN_INTERVAL_MILLIS);
+                    response.addProperty(
+                            "completionTimeoutMillis",
+                            io.github.recrivenvi.minecraftprotocol.core
+                                    .PlayerCommandSuggestionRequests.TIMEOUT_MILLIS);
+                    response.addProperty("nativeServerMayLimitSuggestions", true);
+                    return response;
+                });
+    }
+
+    static java.util.concurrent.CompletableFuture<com.google.gson.JsonObject> discover(
+            com.mojang.brigadier.CommandDispatcher<ClientSuggestionProvider> dispatcher,
+            ClientSuggestionProvider source,
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query query,
+            Runnable guard,
+            java.util.function.Consumer<Runnable> ownerThread) {
+        return discover(dispatcher, source, query, guard, ownerThread, () -> false);
+    }
+
+    static java.util.concurrent.CompletableFuture<com.google.gson.JsonObject> discover(
+            com.mojang.brigadier.CommandDispatcher<ClientSuggestionProvider> dispatcher,
+            ClientSuggestionProvider source,
+            io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query query,
+            Runnable guard,
+            java.util.function.Consumer<Runnable> ownerThread,
+            java.util.function.BooleanSupplier serverRequired) {
+        guard.run();
+        var parsed = dispatcher.parse(query.commandInput(), source);
+        var route = route(parsed, dispatcher);
+        var effect = route.complete() ? PlayerCommandPolicy.classify(route) : null;
+        var roots =
+                dispatcher.getRoot().getChildren().stream()
+                        .filter(node -> node.canUse(source))
+                        .map(CommandNode::getName)
+                        .sorted()
+                        .toList();
+        var result = new java.util.concurrent.CompletableFuture<com.google.gson.JsonObject>();
+        var pending = dispatcher.getCompletionSuggestions(parsed, query.commandCursor());
+        result.whenComplete(
+                (value, error) -> {
+                    if (result.isCancelled()) pending.cancel(false);
+                });
+        pending.whenComplete(
+                (values, error) ->
+                        ownerThread.accept(
+                                () -> {
+                                    if (result.isDone()) return;
+                                    try {
+                                        guard.run();
+                                        if (error != null) {
+                                            result.completeExceptionally(error);
+                                            return;
+                                        }
+                                        var suggestions =
+                                                values.getList().stream()
+                                                        .limit(query.maxResults())
+                                                        .map(
+                                                                value ->
+                                                                        new io.github.recrivenvi
+                                                                                .minecraftprotocol
+                                                                                .core
+                                                                                .PlayerCommandDiscovery
+                                                                                .Suggestion(
+                                                                                value.getRange()
+                                                                                                .getStart()
+                                                                                        + query
+                                                                                                .inputOffset(),
+                                                                                value.getRange()
+                                                                                                .getEnd()
+                                                                                        + query
+                                                                                                .inputOffset(),
+                                                                                value.getText(),
+                                                                                value.getTooltip()
+                                                                                                == null
+                                                                                        ? null
+                                                                                        : value.getTooltip()
+                                                                                                .getString()))
+                                                        .toList();
+                                        var response =
+                                                io.github.recrivenvi.minecraftprotocol.core
+                                                        .PlayerCommandDiscovery.result(
+                                                        query,
+                                                        roots,
+                                                        roots.size(),
+                                                        suggestions,
+                                                        values.getList().size(),
+                                                        route.complete(),
+                                                        effect);
+                                        response.addProperty(
+                                                "completionScope", "client_local_only");
+                                        response.addProperty("completionSource", "CLIENT_LOCAL");
+                                        response.addProperty("serverCompletionSupported", true);
+                                        response.addProperty("serverCompletionRequested", false);
+                                        response.addProperty(
+                                                "serverCompletionRequired",
+                                                serverRequired.getAsBoolean());
+                                        response.addProperty(
+                                                "completionComplete",
+                                                !serverRequired.getAsBoolean());
+                                        if (serverRequired.getAsBoolean())
+                                            response.addProperty(
+                                                    "completionUnavailableReason",
+                                                    "server_completion_requires_independent_request_ownership");
+                                        result.complete(response);
+                                    } catch (Throwable failure) {
+                                        result.completeExceptionally(failure);
+                                    }
+                                }));
+        return result;
+    }
+
     static Configuration configuration(Packet<?> packet) {
         if (packet
                 instanceof net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket)

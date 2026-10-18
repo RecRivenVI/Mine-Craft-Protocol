@@ -247,6 +247,10 @@ final class DebugBatchEngine implements AutoCloseable {
             JsonObject itemResult = itemResult(itemIndex, "failed", item, itemStarted);
             if (cause instanceof ProtocolState.ProtocolException protocolException) {
                 itemResult.addProperty("error", protocolException.code());
+                JsonObject stale =
+                        ResourceVersionVerifier.staleMetadata(
+                                protocolException.code(), protocolException.details());
+                if (stale.size() > 0) itemResult.add("errorDetails", stale);
             } else if (cause instanceof CancellationException) {
                 itemResult.addProperty("error", "DEBUG_OPERATION_CANCELLED");
             } else {
@@ -356,11 +360,11 @@ final class DebugBatchEngine implements AutoCloseable {
                 if (this.cancelled.get() || this.terminal.get()) {
                     throw new CancellationException("debug_batch_cancelled");
                 }
-                if ("ui".equals(domain) && System.currentTimeMillis() >= this.deadlineAtMillis)
+                if (System.currentTimeMillis() >= this.deadlineAtMillis)
                     throw new ProtocolState.ProtocolException(
                             "DEADLINE_EXCEEDED",
                             408,
-                            "UI Debug batch deadline exceeded before mutation");
+                            "Debug batch deadline exceeded before mutation");
                 protocolState.requireDebugAuthorization(
                         this.metadata.debugArmId(),
                         currentWorldFingerprint,

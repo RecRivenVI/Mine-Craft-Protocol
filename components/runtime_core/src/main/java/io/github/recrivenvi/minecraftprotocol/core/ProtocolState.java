@@ -45,7 +45,7 @@ public final class ProtocolState implements AutoCloseable {
     private CompletableFuture<JsonObject> inputCleanupBarrier =
             CompletableFuture.completedFuture(new JsonObject());
     private boolean modeTransitionPending;
-    private boolean closed;
+    private volatile boolean closed;
     private final ScheduledExecutorService scheduler;
     private final Map<String, CompletableFuture<JsonObject>> idempotentResults =
             new ConcurrentHashMap<>();
@@ -205,7 +205,14 @@ public final class ProtocolState implements AutoCloseable {
         return scopes;
     }
 
+    void requireSessionOpen() {
+        if (this.closed)
+            throw new ProtocolException(
+                    "CONTROL_SESSION_CLOSED", 409, "Runtime control session is closed");
+    }
+
     void requireScope(String scope) {
+        requireSessionOpen();
         if (!this.scopes.contains(scope)) {
             throw new ProtocolException(
                     "SCOPE_DENIED", 403, "Required scope is not granted: " + scope);
@@ -242,7 +249,7 @@ public final class ProtocolState implements AutoCloseable {
             throw new ProtocolException(
                     "UI_CATEGORY_MODE_MISMATCH",
                     409,
-                    "READ supports USER/DEBUG; TAKEOVER only USER; OPERATE only DEBUG");
+                    "UI reads require a valid control session and independent category scopes");
         return category;
     }
 
@@ -252,15 +259,7 @@ public final class ProtocolState implements AutoCloseable {
 
     Runnable uiReadGuard(String category) {
         requireUiCategory(category);
-        long generation = controlSession().snapshot().transitionSequence();
-        return () -> {
-            requireUiCategory(category);
-            if (generation != controlSession().snapshot().transitionSequence())
-                throw new ProtocolException(
-                        "UI_READ_CONTEXT_CHANGED",
-                        409,
-                        "Control context changed before UI read publication");
-        };
+        return () -> requireUiCategory(category);
     }
 
     static boolean uiDiagnosticOperation(String operation) {
@@ -346,7 +345,6 @@ public final class ProtocolState implements AutoCloseable {
         long now = System.currentTimeMillis();
         this.expireLeaseIfNeeded(now);
         this.requireModeChangeReady();
-        this.controlSession.requireNoOperateWork();
         if (this.lease != null) {
             throw new ProtocolException(
                     "CONTROL_LEASE_CONFLICT", 409, "An input control lease is already active");
@@ -451,10 +449,6 @@ public final class ProtocolState implements AutoCloseable {
         String leaseId = this.lease.id();
         this.lease = null;
         this.controlSession.manuallyRevoke();
-        if (this.agentTask.snapshot().active()) {
-            this.agentTask.interrupt();
-            this.publishTask();
-        }
         this.cancelLeaseBoundOperations("human_manual_revocation");
         this.cleanupInput("human_manual_revocation");
         this.audit(
@@ -531,14 +525,14 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     synchronized void requireOperateIntent() {
-        this.requireModeChangeReady();
-        if (this.controlSession.snapshot().mode() != AgentControlSession.Mode.OPERATE)
+        this.requireSessionOpen();
+        if (this.controlSession.snapshot().mode() == AgentControlSession.Mode.READ)
             throw new ProtocolException(
-                    "OPERATE_REQUIRED", 409, "Explicit OPERATE intent is required");
+                    "OPERATE_REQUIRED", 409, "Explicit OPERATE or TAKEOVER intent is required");
     }
 
     synchronized AgentControlSession.OperateWork beginOperate() {
-        this.requireModeChangeReady();
+        this.requireSessionOpen();
         return this.controlSession.beginOperate();
     }
 
@@ -584,12 +578,12 @@ public final class ProtocolState implements AutoCloseable {
         json.addProperty("inputCleanupPending", !this.inputCleanupBarrier.isDone());
         json.addProperty("modeTransitionPending", this.modeTransitionPending);
         json.addProperty("activeOperateRequests", this.controlSession.activeOperateRequests());
+        json.add("authorization", this.authorizationStatus());
         JsonArray transitions = new JsonArray();
         if (!this.closed
                 && !this.modeTransitionPending
                 && this.inputCleanupBarrier.isDone()
-                && !this.inputCleanupBarrier.isCompletedExceptionally()
-                && this.controlSession.activeOperateRequests() == 0) {
+                && !this.inputCleanupBarrier.isCompletedExceptionally()) {
             for (AgentControlSession.Mode mode : AgentControlSession.Mode.values()) {
                 if (mode == AgentControlSession.Mode.TAKEOVER && this.lease != null) continue;
                 JsonObject transition = new JsonObject();
@@ -609,6 +603,37 @@ public final class ProtocolState implements AutoCloseable {
             }
         }
         json.add("availableTransitions", transitions);
+        return json;
+    }
+
+    private JsonObject authorizationStatus() {
+        long now = System.currentTimeMillis();
+        this.expireDebugIfNeeded(now);
+        JsonObject json = new JsonObject();
+        json.addProperty("principalId", this.principalId);
+        JsonArray granted = new JsonArray();
+        this.scopes.stream().sorted().forEach(granted::add);
+        json.add("grantedScopes", granted);
+        json.addProperty("grantsAuthority", false);
+        json.addProperty("sessionOpen", !this.closed);
+        JsonObject input = new JsonObject();
+        input.addProperty("held", this.lease != null);
+        input.addProperty(
+                "remainingTtlMs",
+                this.lease == null ? 0L : Math.max(0L, this.lease.expiresAtMillis() - now));
+        json.add("inputLease", input);
+        JsonObject arm = new JsonObject();
+        arm.addProperty("status", this.debugArm == null ? "disarmed" : "armed");
+        arm.addProperty(
+                "remainingTtlMs",
+                this.debugArm == null ? 0L : Math.max(0L, this.debugArm.expiresAtMillis() - now));
+        JsonArray namespaces = new JsonArray();
+        if (this.debugArm != null)
+            this.debugArm.namespaces().stream().sorted().forEach(namespaces::add);
+        arm.add("namespaces", namespaces);
+        // This is a session summary, not a world/owner-thread authorization or an Arm credential.
+        arm.addProperty("contextValidated", false);
+        json.add("debugArm", arm);
         return json;
     }
 
@@ -649,8 +674,6 @@ public final class ProtocolState implements AutoCloseable {
                     "TAKEOVER_REQUIRES_LEASE_ACQUIRE",
                     409,
                     "Use Control Lease acquire for TAKEOVER");
-        if (requested != this.controlSession.snapshot().mode())
-            this.controlSession.requireNoOperateWork();
         if (this.lease == null) {
             this.controlSession.select(requested, "explicit_mode_transition");
             this.audit(
@@ -968,15 +991,7 @@ public final class ProtocolState implements AutoCloseable {
                                 "OPERATION_NOT_FOUND", 404, "Unknown operation");
                 };
         authorize.run();
-        long generation = controlSession().snapshot().transitionSequence();
-        return () -> {
-            authorize.run();
-            if (generation != controlSession().snapshot().transitionSequence())
-                throw new ProtocolException(
-                        "DEBUG_READ_CONTEXT_CHANGED",
-                        409,
-                        "Control context changed before Debug operation publication");
-        };
+        return authorize;
     }
 
     JsonObject operationSnapshot() {
@@ -1175,19 +1190,31 @@ public final class ProtocolState implements AutoCloseable {
                 descriptor(
                         "command.player.execute",
                         "command",
-                        true,
+                        false,
                         false,
                         false,
                         "currentPlayerPermissions",
-                        "nativeChatInput",
+                        "nativePlayerCommandTree",
                         "serverValidation"));
+        JsonObject commandDescriptor = operations.get(operations.size() - 1).getAsJsonObject();
+        commandDescriptor.addProperty("modeRequirement", "COMMAND_ROUTE_DEPENDENT");
+        JsonObject commandRoutes = new JsonObject();
+        JsonObject chat = new JsonObject();
+        chat.addProperty("modeRequirement", "TAKEOVER_REQUIRED");
+        chat.addProperty("requiresControlLease", true);
         JsonArray commandScopes = new JsonArray();
         commandScopes.add("control");
         commandScopes.add("input");
-        operations
-                .get(operations.size() - 1)
-                .getAsJsonObject()
-                .add("additionalScopes", commandScopes);
+        chat.add("additionalScopes", commandScopes);
+        commandRoutes.add("CHAT", chat);
+        JsonObject nativeRoute = new JsonObject();
+        nativeRoute.addProperty("modeRequirement", "OPERATE_OR_TAKEOVER");
+        nativeRoute.addProperty("requiresControlLease", false);
+        nativeRoute.add("additionalScopes", new JsonArray());
+        commandRoutes.add("NATIVE", nativeRoute);
+        commandDescriptor.add("routes", commandRoutes);
+        commandDescriptor.addProperty("defaultRoute", "AUTO");
+        commandDescriptor.addProperty("autoRoute", "OPERATE:NATIVE;READ/TAKEOVER:CHAT");
         operations.add(descriptor("capture.composite", "capture", false, false, true));
         operations.add(descriptor("wait.screen", "read", false, false, true));
         operations.add(descriptor("wait.until", "read", false, false, true));
@@ -1293,29 +1320,36 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     @Override
-    public synchronized void close() {
-        if (this.closed) return;
-        this.closed = true;
-        this.modeTransitionPending = false;
-        boolean hadLease = this.lease != null;
-        this.lease = null;
-        this.debugArm = null;
-        this.controlSession.close();
-        this.agentTask.close();
-        this.cleanupInput("transport_close");
-
-        if (hadLease)
-            this.audit(
-                    UUID.randomUUID().toString(),
-                    "control",
-                    "/v0/control/transport-close",
-                    "control_released");
-        for (Operation operation : this.operations.values()) operation.cancel("transport_close");
-        for (DeepObservationRequestContext requestContext : this.deepObservations.values()) {
+    public void close() {
+        List<Operation> pendingOperations;
+        List<DeepObservationRequestContext> pendingReads;
+        synchronized (this) {
+            if (this.closed) return;
+            this.closed = true;
+            this.modeTransitionPending = false;
+            boolean hadLease = this.lease != null;
+            this.lease = null;
+            this.debugArm = null;
+            this.controlSession.close();
+            this.agentTask.close();
+            this.cleanupInput("transport_close");
+            if (hadLease)
+                this.audit(
+                        UUID.randomUUID().toString(),
+                        "control",
+                        "/v0/control/transport-close",
+                        "control_released");
+            pendingOperations = List.copyOf(this.operations.values());
+            pendingReads = List.copyOf(this.deepObservations.values());
+            this.deepObservations.clear();
+            this.gameplayActs.clear();
+        }
+        // Native cancellation barriers may be held by an owner waiting to reauthorize here.
+        // Never wait for those barriers while holding the ProtocolState monitor.
+        for (Operation operation : pendingOperations) operation.cancel("transport_close");
+        for (DeepObservationRequestContext requestContext : pendingReads) {
             requestContext.cancel("transport_close");
         }
-        this.deepObservations.clear();
-        this.gameplayActs.clear();
         this.scheduler.shutdownNow();
     }
 
@@ -1456,7 +1490,7 @@ public final class ProtocolState implements AutoCloseable {
                         : id.startsWith("fixture.")
                                         || id.startsWith("debug.")
                                                 && !id.startsWith("debug.evidence.")
-                                ? "OPERATE_REQUIRED"
+                                ? "OPERATE_OR_TAKEOVER"
                                 : "READ_COMPATIBLE");
         json.addProperty("supportsIdempotency", idempotency);
         json.addProperty("supportsCancellation", cancellation);
@@ -1665,6 +1699,9 @@ public final class ProtocolState implements AutoCloseable {
                     if (cause instanceof ProtocolException protocolException) {
                         this.errorCode = protocolException.code();
                         JsonObject details = protocolException.details();
+                        JsonObject stale =
+                                ResourceVersionVerifier.staleMetadata(this.errorCode, details);
+                        if (stale.size() > 0) this.errorDetails = stale;
                         if (this.errorCode.equals("WORLD_TARGET_NOT_HIT")
                                 && details.has("actualHit")
                                 && details.get("actualHit").isJsonObject())

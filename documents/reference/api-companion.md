@@ -5,6 +5,16 @@ Companion 是独立 Node/TypeScript 工具组件，不内嵌 MCP server 到 Mine
 工具描述/Prompt 固定，不来自 Runtime 文本；大型 PNG/ZIP 用 minecraft:// Resources。
 Wire Protocol v1 未冻结。
 
+minecraft_execute_player_command保留一个工具，action=execute（默认）/discover/batch显式区分：
+discover在三模式均按自身read+command授权可用，completionSource默认CLIENT_LOCAL，不发送服务器补全包。
+显式SERVER读取真实当前玩家服务器补全，独立事务/future、真人待完成请求优先；不修改Chat草稿或焦点，不获取Lease。
+每连接最多1个Agent请求，间隔250ms、TTL1500ms；原版预算仍共享，取消不能撤回已提交查询但不会发布其结果。
+本地/服务器来源和完整性字段原样保留，候选不等于执行授权、全局完整列表或服务器执行成功。
+batch最多32条，仅NATIVE且要求OPERATE/TAKEOVER和command授权，无输入Lease或聊天副作用；逐项提交不等于执行成功，不保证原子或服务器反馈关联。
+过期资源错误仅在完整授权且资源身份一致后保留expectedRevision/actualRevision、reinspectRequired=true与retrySafe=false；
+不提供替代token，不自动重试，错误Arm、身份或scope不泄露当前revision。
+Session/Capabilities.control及mode状态提供自身authorization摘要：scope、Lease/Arm状态和TTL，无凭据；contextValidated=false，实际操作仍独立授权。
+
 Native的REQUEST_CANCELLED(409)及RUNTIME_SHUTTING_DOWN(503)按结构化错误保留，包含executionOutcome=not_confirmed和retrySafe=false。
 取消或退出中断不代表原生操作未发生；Agent须核对实例生命周期/效果，不能自动重新接管或重放。网络先断时保留连接错误，不猜测成功。
 
@@ -18,9 +28,12 @@ UI 条件明确 USER/DEBUG，异步结果保留 UI 类别标记，DEBUG 不再�
 
 minecraft_execute_player_command 原样保留 Native 的提交与证据字段；accepted=true 不是执行成功。
 原生命令树分类为 COMMUNICATION/INFORMATION/STATE_MUTATION，classificationSource=native_player_command_tree。
-helper 走真实 Chat/字符/Enter，要求 command/control/input、TAKEOVER 和已有 Lease，拒绝已有 Screen/草稿及原版输入超限。
+route=CHAT 走真实 Chat/字符/Enter，要求 command/control/input、TAKEOVER 和已有 Lease，拒绝已有 Screen/草稿及原版输入超限。
+route=NATIVE 要求 OPERATE 或 TAKEOVER 与独立 command scope，使用当前玩家原生命令 API，不需要输入 Lease 或 Debug Arm，不改变 Screen、聊天草稿/焦点和键鼠；保留原生可用树、长度与服务器权限。
+默认 AUTO 在 OPERATE 选 NATIVE，其余模式选 CHAT；READ 不自动升级。Companion 原样传递 route，不凭字符串错误猜测路径。
+NATIVE 回执为 USER/NORMAL_NETWORK、requiresControlLease=false、inputDispatched=false；feedbackAvailable=false，不提供时间关联聊天采样。全部提交均不等于实际执行确认，不能盲重放。
 GAME_ROUTED_RAW 是来源；gameplayAcceptanceEligible=false、effectConfirmed/serverValidationObserved=false。
-evidenceContaminated 由状态修改决定，不再因 helper 本身固定污染；mode=PLAYTEST/DEBUG_PRIVILEGED 仅为证据来源，
+CHAT 的 evidenceContaminated 由状态修改决定；NATIVE 另标非 GAME_ROUTED 来源，不作为纯 gameplay 输入。mode=PLAYTEST/DEBUG_PRIVILEGED 仅为证据来源，
 不据此生成干净 gameplay 结论，不自动改用 Debug 或授予权限。
 未知/未决函数与宿主管理请求原样保留 Native 稳定错误；聊天输入的最终检查和 commandSubmissions 也不由 Companion 绕过。
 原生命令方块/矿车/Jigsaw/Structure 更新及扫描同样出现在输入 Operation 的 commandSubmissions；get/wait/cancel 原样保留
@@ -58,8 +71,9 @@ UI Arm 的 uiContextId 不触发世界指纹查询。两种 Arm 不混用。
 读取不会自动切换模式、清除人工撤销或获得权限。
 
 minecraft_get_ui 的 tree view 默认 USER，可显式请求 DEBUG；返回结构保留 domain、dataCategory。
-DEBUG 读取由 Runtime 独立检查 ui、debug、debug.ui.read。READ 可选两类，TAKEOVER 仅 USER，
-OPERATE 仅 DEBUG；不自动补权限或变更模式。vision/render_facts 尚未提供 DEBUG 类别查询，
+以下描述当前生产接口；[控制模型](../design/concept-agent_control.md)的共享读取/独立修改、原生命令、本地/显式服务器补全与有界命令批次已接入并完成五端专项。完整真人协作及三部署等剩余目标仍未实现，不能据设计提前调用。
+DEBUG 读取由 Runtime 独立检查 ui、debug、debug.ui.read；READ/OPERATE/TAKEOVER 均可选择独立授权的两类，不自动补权限或变更模式。
+vision/render_facts 尚未提供 DEBUG 类别查询，
 显式请求时拒绝 UI_CATEGORY_UNSUPPORTED，不回退。网页游戏窗口只展示明确标记的 USER 图；
 旧 Runtime 未提供类别标记时拒绝 WEB_UI_CATEGORY_MISMATCH，不猜测为 USER，也不在网页隐藏 DEBUG 字段。
 minecraft_interact_ui 只接受 USER 类别。minecraft_debug 的 mutate/batch 支持七种 UI 专用操作：

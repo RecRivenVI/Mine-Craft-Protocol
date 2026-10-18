@@ -52,7 +52,7 @@ foreach ($jar in $manifest.artifacts) {
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 
 `world.block.set` 支持有界 `properties`/`expectedProperties` 字符串映射，使用实际原生属性名和值；不接受 NBT。
-同类型只更新指定属性；替换类型从默认状态开始。仍需 OPERATE、世界 Arm、独立 scope、当前世界与方块 Resource Version。
+同类型只更新指定属性；替换类型从默认状态开始。仍需 OPERATE/TAKEOVER、世界 Arm、独立 scope、当前世界与方块 Resource Version。
 先读后写并在结束后恢复；邻居更新、方块实体替换和可能的次生效果照常发生，不是可回滚事务或 gameplay evidence。
 
 核对同一固定快照中的 JAR、生成手册与 alpha-manifest.json；安装与 Minecraft/Loader 完全匹配的一个 JAR。
@@ -72,6 +72,7 @@ dirty=true 表示包含未提交源码，不能仅凭 HEAD 判断构建相同；
 
 每个线程使用独立 checkout/worktree、实例目录、测试世界与 Companion。worktree 只隔离文件，不隔离 TCP 端口。
 Runtime 默认请求端口 0，由操作系统在实际 bind 时选择空闲 loopback 端口，不预扫描或“检查后再抢占”。
+自动分配遇到[标准Fetch禁止端口](https://fetch.spec.whatwg.org/#port-blocking)时关闭该监听并有限重选，只有可连接的最终监听才发布；不会绕过Node或浏览器的端口限制。
 五个 Target 使用同一合同，端口和启动身份写入本实例的 minecraft-protocol/endpoint.json；记录不包含 token。
 
 同一个 game directory 使用 OS 文件锁拒绝第二个 Runtime，且在生成/写入 token 之前取得锁。
@@ -91,7 +92,7 @@ Runtime 默认请求端口 0，由操作系统在实际 bind 时选择空闲 loo
 ### 固定端口与其他服务
 
 确有需要时仍支持 Minecraft JVM 属性 -Dminecraft.protocol.probe.port=28631；0 表示自动，1–65535 表示固定。
-固定端口被占用时拒绝启动 Runtime，不静默改端口，也不接管已有监听。
+固定端口被占用或属于标准Fetch禁止端口时拒绝启动 Runtime，不静默改端口，也不接管已有监听。
 日常实例可在自己 local.toml 对应 Target/variant 的 jvm-args 中合并该参数；数组整体替换，保留未知参数。
 不要把参数只传给 Gradle 守护进程，以为它必然会传给游戏。
 验证实例来自 validation.toml，不继承 local.toml 的日常实例配置。
@@ -222,11 +223,14 @@ Companion 先安全读取 Session 验证身份，随后固定绑定该 UUID；�
 
 ## 模式、类别和权限
 
+本节描述当前候选的[协作模型](../design/concept-agent_control.md)，仅在本手册所附同批清单验证后用于该快照。
+不可变旧快照仍按其自带手册使用，不从仓库新文档推断其已有新增能力。
+
 | 模式 | 允许用途 | 不会自动得到的能力 |
 | --- | --- | --- |
 | READ | USER 观察，或独立授权的 DEBUG 读取 | 玩家输入、Debug mutation、Control Lease |
-| TAKEOVER | 仅 USER，GAME_ROUTED 玩家输入与语义 UI 操作 | 内部世界读取和 Debug mutation |
-| OPERATE | 仅 DEBUG，受控 Fixture/typed mutation及合法诊断读取 | 代替玩家点击、移动、视角或攻击 |
+| TAKEOVER | 两类独立授权读取；GAME_ROUTED 玩家输入与语义 UI；独立获准 DEBUG | 缺失 scope、Arm、版本或服务器权限 |
+| OPERATE | 两类独立授权读取；Fixture/typed mutation；获准的 USER 原生命令 | 共享玩家键鼠、焦点、移动、视角或攻击 |
 
 UI presentation的生命类图标是last_completed_native_hud_draw的有界原生绘制顺序，不是精确健康统计。
 读取时检查hudIconSampleStatus；过期、上下文变化或遮挡时不以世界内部读数补空。不需要玩家Lease或改变模式。
@@ -237,8 +241,8 @@ UI presentation的生命类图标是last_completed_native_hud_draw的有界原�
 仅在得到所有者授权后加入所需权限，不能为了错误消失而自动开放所有 scope。
 
 世界内部读取需要 read/debug/debug.world.read；UI DEBUG 图需要 ui/debug/debug.ui.read。
-两者允许 READ 或 OPERATE，不要求写 Arm/输入 Lease；TAKEOVER 不允许 DEBUG 读取。
-Fixture/typed mutation 必须显式 OPERATE，并满足各自 scope、Arm 与前置条件；不借用输入 Lease。
+两者允许三模式独立读取，不要求写 Arm/输入 Lease；模式不是读取授权。
+Fixture/typed mutation 必须 OPERATE/TAKEOVER，并满足各自 scope、Arm 与前置条件；不借用输入 Lease。
 UI typed mutation只允许已批准的五类通用原生setter及驻留Toast操作，不调用任意按钮业务。文本资源版本绑定完整本地内容，公开value仍可能只有2048字符前缀；
 ui.scroll.set的AbstractSelectionList值是像素量，creative/loom/stonecutter/merchant.scrollbar.track则是0～1本地卷轴比例；
 后者无滚动范围时只允许0，不选择配方/交易或发送玩家输入。不得用列表像素量替代比例；新增能力以所复制快照附带的手册为准。
@@ -249,7 +253,9 @@ ui.text.set的expectedValue必须等于完整原生字符串，不能用公开�
 本地HUD文字也使用ui.text.set：从DEBUG树的presentation.children选择hud.title/hud.subtitle/hud.actionbar及其新鲜resourceVersion。
 驻留SystemToast可用ui.toast.reset显式设置value={title,message}两段有界纯文字；TutorialToast在debugProgressable时以ui.slider.set修改0～1显示进度。
 ui.toast.hide只接受true，是单向原生隐藏，不代表教学完成、不会复活已移除通知；Forge 1.20.1的SystemToast没有此原生入口，必须接受UI_DEBUG_UNSUPPORTED。
-Toast同样要求OPERATE、独立UI scope/Arm和实际实例/完整内容/生命周期版本，不获取玩家Lease。debugToastValue仅为有界发布值，expectedValue比较完整原生文字；不掌握完整值时不得猜测前缀。
+Toast同样要求OPERATE/TAKEOVER、独立UI scope/Arm和实际实例/完整内容/生命周期版本，不获取玩家Lease。debugToastValue仅为有界发布值，expectedValue比较完整原生文字；不掌握完整值时不得猜测前缀。
+26.3的FriendToast另支持本地单向ui.toast.hide，不代表删除朋友或账户数据；NowPlaying尚无正式隐藏入口。
+DEBUG节点的debugMutation说明实际原生类型支持的操作、参数与副作用，不授予权限，USER投影没有此字段。
 恢复文字/进度不是恢复原有富文本或计时，隐藏不能回滚；USER网页没有这些私有字段或调试动作。具体能力先核对所用固定快照的实际Runtime声明，不用更新后的仓库文档推定旧快照已有新增操作。
 该分支只调用本地原生纯文字消息setter，不发送玩家命令、不修改服务器/世界状态，也不获取玩家Lease。
 sideEffects=native_hud_plain_text_and_lifetime表示可能重置原生命期/颜色动画；恢复文字不保证富文本样式或计时回滚。
@@ -259,7 +265,7 @@ native_editor_draft_may_submit_on_close表示草稿可能随原生关闭提交�
 UI/世界Debug批次的Operation读取和operation条件都必须显式category=DEBUG，纯UI仅要求UI读权限，混合批次要求两领域读权限。
 Companion自动等待明确使用DEBUG；提交不附诊断结果，取消只返回生命周期。写授权不授予读取权限，不回退USER重取。
 UI事件/录制的诊断详情独立检查UI读权限；写授权不授予额外读权限，污染标记不因详情拒绝被清除。
-异步UI树、解析与UI条件绑定读取开始时的mode generation，模式往返后也拒绝旧结果；录制排队发布前再次复验读取授权。
+异步UI树、解析与UI条件在发布时复验会话存活及独立类别授权；模式往返本身不撤销仍合法的读取，录制排队发布前也再次复验读取授权。
 这些合同按本手册所附清单的源码、五端接口回归和独立安装证据核验，不将其他批次的结果视为本批证明。
 USER的type_text(replace=true)会先按节点textReplaceStrategy发送原生全选或有界退格，并读取实际清空状态后才键入。
 backspace_from_end必须有valueComplete=true；未完整读取或未知策略拒绝，清空失败返回UI_TEXT_REPLACEMENT_FAILED，不自动重放。
@@ -269,6 +275,47 @@ backspace_from_end必须有valueComplete=true；未完整读取或未知策略�
 
 玩家输入的明确顺序是 READ → acquire → TAKEOVER + Lease → release → READ。
 不要用 set_mode 直接进入 TAKEOVER；它会要求正式 Lease acquire。人工撤销后，先在当前对话重新获得同意，再显式reacquire；不伪造聊天同意字段。
+真人Esc只终止TAKEOVER及玩家输入队列，退回READ并保留reconsentRequired；不结束逻辑任务、独立DEBUG或Arm。
+先告知模型用户决定，再由模型决定是否显式继续OPERATE工作；不得以此绕过重新接管同意。
+
+### 命令发现、批次和资源版本
+
+既有minecraft_execute_player_command按action区分execute/discover/batch；省略action仍为execute，命令均为USER。
+新typed action需使用同批已构建的Companion；安装Runtime JAR不会自动升级其他线程正在运行的旧Companion。
+discover可在三模式中以read/command scope读取当前主体的服务器下发树和本地补全，不执行探测、不占Lease。
+query最多2048个UTF-16单位，cursor不得切开代理对，maxResults为1～128。
+completionScope=client_local_only；serverCompletionRequired=true时本地结果不完整，不从缓存推定服务器参数或权限。
+它不借用真人聊天的待完成请求。effectPolicyAllowsSubmission仅是效果守卫判断，提交仍须独立检查模式、scope和实际服务器权限。
+需要服务器候选时显式提供completionSource=SERVER；使用独立事务和future，真人待完成补全优先。
+每连接最多1项，间隔250ms、TTL1500ms，忙/限流/上下文变化错误不自动重试；原版预算仍共享，不承诺全局完整或执行成功。
+取消只丢弃Agent结果，不能撤回已提交的只读查询，不会因此模拟键鼠或获取Lease。
+
+```json
+{"action":"discover","input":"time ","maxResults":16}
+```
+
+OPERATE的execute默认NATIVE，直接走当前真实玩家的原生命令API，不打开聊天、不改草稿/焦点、不取得输入Lease。
+TAKEOVER的AUTO保留原生聊天输入路径，CHAT仍需输入Lease；显式NATIVE也可用于TAKEOVER。
+batch只走NATIVE，需要OPERATE/TAKEOVER和command scope，1～32条、合计最多32768个UTF-16单位。
+
+```json
+{"action":"batch","commands":["help","list"]}
+```
+
+批次顺序执行，每项保留index/状态和实际提交回执，首次失败后余项not_attempted；上下文替换、撤权或取消后不继续提交。
+不是原子事务，不自动重试，不承诺服务器执行成功、逐条聊天回执或回滚。超时/退出的executionOutcome=not_confirmed必须独立核对世界。
+Session/control状态的authorization给出scope、Lease和Arm剩余时间摘要，不包含凭据；contextValidated=false表示仍须实际请求校验世界和资源。
+
+正式debug capabilities的resourceInspection列出六类既有修改的deep selector与resourceRevisionRefs映射。
+supportedAttribute是setter接受的语义名，不保证等于原生读取名：旧版最大生命属性可能读为minecraft:generic.max_health，
+写入仍只接受minecraft:max_health。按实际返回值匹配，保留原token，不能修改token身份或用猜测计数补偿。
+DEBUG玩家属性列表包含原生supplier提供的最大生命base与有效值，即使该属性尚未实例化；只读不会创建实例。
+以DEBUG/server_authoritative执行inspect，选择同一资源、scope=resource且mutationPreconditionEligible=true的token，
+连同当前worldFingerprint和显式值条件提交；读取不授予写scope/Arm，不自动加载区块。
+已充分授权但过期的请求可返回expectedRevision/actualRevision及reinspectRequired=true、retrySafe=false，
+这些计数不是新token；应重新inspect并重新判断任务，不能修改计数重放。缺scope/Arm或错误资源身份不返回当前revision。
+UI进度画布另用ui.canvas.pan.set和完整有限{x,y}、UI Arm及当前Canvas版本；读取debugPanRange后保留固定轴原生居中值，
+不把它当归一化卷轴或世界坐标。只恢复本次明确修改且版本仍匹配的状态，外部变化或未知结果先重新判断，不盲目覆盖。
 
 ### 第三方界面与内容覆盖
 
@@ -287,7 +334,8 @@ Mod若绕过Vanilla回调或自行处理原生输入，此回退也可能无效�
 
 ## 推荐的最小任务闭环
 
-minecraft_execute_player_command 通过真实 Chat 绑定、字符输入与 Enter，返回 GAME_ROUTED_RAW 来源；accepted/serverValidation 不是实际执行回执。
+TAKEOVER的CHAT/AUTO通过真实 Chat 绑定、字符输入与 Enter，返回 GAME_ROUTED_RAW 来源；NATIVE保留独立原生提交来源。
+accepted/serverValidation不是实际执行回执，两条路径均不把命令统一USER误写成纯PLAYTEST。
 commandFeedback返回Enter后500ms内最多16条客户端聊天消息，每条最多512个Unicode码点；association=temporal_not_guaranteed。
 它可能包含无关系统/玩家消息，也可能漏掉延迟或被关闭的反馈；complete不表示执行成功，messages为空也不表示失败。
 普通跨维度等上下文切换可提前结束反馈，terminationReason=client_context_changed；observedMillis因此可小于500。
@@ -414,7 +462,7 @@ scene.aimPresentation 为可选原生准星提示，不是可执行世界 target
 ## 发现目标、瞄准与真实玩家交互
 
 USER block、scene.blocks 与 entities 中的可操作候选会附带 world: 前缀 targetRef，最长 15 秒。
-先读模型选目标，再显式取得 TAKEOVER/Control Lease，通过原有输入管线操作；READ/OPERATE 不允许玩家输入。
+先读模型选目标，再显式取得 TAKEOVER/Control Lease，通过原有输入管线操作；READ/OPERATE 不允许共享玩家键鼠输入。
 引用不保证可达或无遮挡，也不授予权限。空气、自身、不可选或死亡实体没有可执行引用；死亡动画仍可能出现在客户端实体摘要中。
 
 ```json
@@ -507,7 +555,7 @@ Debug/Fixture 只用于经授权的 Arrange、诊断和恢复，不冒充正常�
 PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 证据不可混淆；控制 Chrome 和虚拟指针默认不属于 Capture/Recording 内容。
 
 Provider V2的内部读取仍需显式DEBUG及对应scope，不要求玩家Lease或写Arm；注册扩展是可信JVM代码，不是由本平台沙箱化的脚本。
-server_thread typed mutation需OPERATE、debug.provider等各自权限、provider Arm、世界身份及新鲜Resource Version，不自动授予玩家接管。
+server_thread typed mutation需OPERATE/TAKEOVER、debug.provider等各自权限、provider Arm、世界身份及新鲜Resource Version，不自动授予玩家接管。
 当前client/render mutation dispatcher未实现；集成服中的受控future/队列桥接不等于跨进程或独立服务端可用。
 扩展目前没有正式Arm/Lease/Human Override撤销通知API；这些通知及client/render调度器仅登记为未来扩展工作。
 Provider的1000ms等待上限不是原生操作可取消或可回滚的承诺，不能靠延长HTTP等待把它升级为无限任务。
@@ -566,7 +614,7 @@ pwsh -NoProfile -File $showcase -Target 26.3-fabric -Case wait-evidence -HoldSec
 ## 人工撤销和故障收尾
 
 真人物理 Esc 结束 TAKEOVER、取消玩家输入、退回 READ，并保留 USER_MANUALLY_ENDED_CONTROL/reconsentRequired。
-READ 可继续；OPERATE 仍按自身独立权限，不能作为替代玩家控制或清除人工撤销的旁路。
+READ 可继续；OPERATE 仍按自身独立权限执行非接管操作，不能借共享键鼠模拟玩家或清除人工撤销。
 重新接管前，Agent 必须在当前对话获得用户明确同意；Runtime 不验证聊天，不传伪造 userConsent=true。
 Agent Routed Esc 仅为正常游戏按键，不视为人类撤销。
 

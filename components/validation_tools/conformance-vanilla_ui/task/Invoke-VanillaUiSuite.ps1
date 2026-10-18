@@ -4,14 +4,14 @@ param(
     [Parameter(Mandatory,ParameterSetName='Batch')][switch]$All,
     [ValidateRange(0,65535)][int]$RuntimePort=0,
     [string]$BatchId,
-    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast')][string]$Scenario='all',
+    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement')][string]$Scenario='all',
     [switch]$KeepClient,
     [switch]$DebugRead,
     [switch]$DebugUi,
     [switch]$CaptureBaseline
 )
 $ErrorActionPreference='Stop'
-if($Scenario-in@('ui-debug-scroll','ui-debug-hud','ui-debug-toast')-and-not$DebugUi){throw "$Scenario requires explicit -DebugUi authorization"}
+if($Scenario-in@('ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement')-and-not$DebugUi){throw "$Scenario requires explicit -DebugUi authorization"}
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
 . (Join-Path $PSScriptRoot '../../InstanceProfiles.ps1')

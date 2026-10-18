@@ -19,7 +19,11 @@ export const TOOL_MODE_POLICY = {
     "default": "READ_COMPATIBLE"
   },
   "minecraft_execute_player_command": {
-    "default": "TAKEOVER_REQUIRED"
+    "default": "COMMAND_ROUTE_DEPENDENT",
+    "discriminator": "route",
+    "actions": { "AUTO": "COMMAND_ROUTE_DEPENDENT", "CHAT": "TAKEOVER_REQUIRED", "NATIVE": "OPERATE_OR_TAKEOVER" },
+    "typedActions": { "execute": "COMMAND_ROUTE_DEPENDENT", "discover": "READ_COMPATIBLE", "batch": "OPERATE_OR_TAKEOVER" },
+    "note": "action defaults to execute; AUTO chooses NATIVE in OPERATE, CHAT otherwise. Discovery is read+command and never executes; batch is bounded NATIVE only. Never changes intent or permissions."
   },
   "minecraft_control": {
     "discriminator": "action",
@@ -76,7 +80,7 @@ export const TOOL_MODE_POLICY = {
     "default": "READ_COMPATIBLE"
   },
   "minecraft_fixture": {
-    "default": "OPERATE_REQUIRED"
+    "default": "OPERATE_OR_TAKEOVER"
   },
   "minecraft_debug_arm": {
     "default": "MODE_INDEPENDENT",
@@ -86,8 +90,8 @@ export const TOOL_MODE_POLICY = {
     "discriminator": "action",
     "actions": {
       "capabilities": "READ_COMPATIBLE",
-      "mutate": "OPERATE_REQUIRED",
-      "batch": "OPERATE_REQUIRED",
+      "mutate": "OPERATE_OR_TAKEOVER",
+      "batch": "OPERATE_OR_TAKEOVER",
       "act_start": "READ_COMPATIBLE",
       "act_finish": "READ_COMPATIBLE"
     }

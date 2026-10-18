@@ -30,9 +30,9 @@ public final class WorldDataView {
     }
 
     public static boolean allowsRead(String mode, Category category) {
-        return "READ".equals(mode)
-                || ("TAKEOVER".equals(mode) && category == Category.USER)
-                || ("OPERATE".equals(mode) && category == Category.DEBUG);
+        return mode != null
+                && category != null
+                && Set.of("READ", "OPERATE", "TAKEOVER").contains(mode);
     }
 
     /** Unknown/native/internal events never enter the USER ring or its counters. */
@@ -127,6 +127,9 @@ public final class WorldDataView {
                         "button",
                         "modifiers",
                         "mechanism",
+                        "route",
+                        "requiresControlLease",
+                        "inputDispatched",
                         "targetingSource",
                         "inputSource")) {
             if (source.has(key) && source.get(key).isJsonPrimitive())
@@ -200,6 +203,7 @@ public final class WorldDataView {
         result.addProperty("domain", "WORLD");
         result.addProperty("implementationStage", "bounded_client_world_model");
         result.addProperty("defaultReadCategory", "USER");
+        result.addProperty("readModeIndependent", true);
         result.addProperty("debugReadScope", "debug.world.read");
         result.addProperty("debugReadRequiresArm", false);
         result.addProperty("userPlayerCoverage", "client_player_state");

@@ -7,21 +7,22 @@
 ## 支持范围
 
 首个里程碑为 UI 三模式二类别完整交付，尚未完成。
-首个里程碑部署部分只交付设计/主体/安装合同和现有Peer范围的双端联动，见[部署设计](../design/concept-deployment_scenarios.md)。
-完整仅服务端的非图形控制台和独立Runtime属于下一里程碑，不伪造Screen/HUD/截图，也不作为本轮未实现功能冒充通过。
-客户端 USER/DEBUG 和真实语义输入保持现有合同，联动不能用服务器权限代替玩家 GUI 输入。
-各端在当前Peer范围补普通/管理权限与动态撤权、断开及真实消费者；完整单端/零玩家矩阵延期。
+已批准目标包含完整[三部署](../design/concept-deployment_scenarios.md)：客户端图形UI及仅服务端原生控制台适用表面。
+服务器控制台提供有界输出/补全和授权原生命令操作，不伪造Screen/HUD/截图；零玩家服务器没有真人玩家输入端时不提供假TAKEOVER。
+客户端 USER 真实语义输入仍需TAKEOVER/Lease，DEBUG读取不再因接管互斥，typed DEBUG可在OPERATE/TAKEOVER独立授权。
+共享读取/修改准入已接入新合同；完整原版目录、协作与单端/零玩家矩阵仍未覆盖，不把专项运行当作完整里程碑。
 下方历史客户端矩阵不证明新增部署目标，当前mod_side=both安装要求不变；当前进度见[状态页](../project/status-milestones.md)。
 当前树读取默认 USER；隐藏/遮挡节点及内部字段不进入用户视图，技术身份/版本/边界保留用于安全定位。
 显式 category=DEBUG 要求 ui、debug、debug.ui.read，返回受预算限制的已捕获图，不自动取得输入 Lease 或 Arm。
 resolve 使用相同类别，USER 无法解析并读出隐藏内容；真实输入仅接受 USER，不静默降级为 Debug。
 Recording、Event resync、Wait/Assert 等既有 uiTree 消费路径默认使用 USER，不另开隐藏数据旁路。
-UI树/resolve及UI条件的异步发布固定mode generation；模式往返不重新认可旧捕获。
+UI树/resolve及UI条件在异步发布时复验独立类别权限与会话存活；模式往返本身不撤销合法读取。
 UI调试事件与录制的修改详情独立检查debug.ui.read；世界DEBUG读权限不能替代它。
-录制UI上下文维持USER类别，缺ui或OPERATE时不调用UI owner并标记不可用；诊断详情省略不清除证据污染。
-共享生产HTTP回归覆盖缺scope、世界事件仍可读、录制详情/污染、无UI读取和模式往返迟到拒绝；不代替五端游戏与最终JAR验证。
+录制UI上下文维持USER类别，缺ui时不调用UI owner并标记不可用；诊断详情省略不清除证据污染。
+共享生产HTTP回归覆盖缺scope、世界事件仍可读、录制详情/污染、无UI读取、模式往返仍授权与取消/关闭阻止迟到发布；不代替五端游戏与最终JAR验证。
 Screen 静态目录已生成；UI DEBUG 已提供控件启用/显隐、EditBox 文本、列表滚动和滑块设值五类操作。
-须独立 OPERATE、debug/debug.write/debug.ui、客户端 session Arm 和节点版本/可选值前置条件；不使用输入 Lease。
+须 OPERATE 或 TAKEOVER、独立 debug/debug.write/debug.ui、客户端 session Arm 和节点版本/可选值前置条件；不使用输入 Lease。
+TAKEOVER不省略任何scope/Arm/条件；真人Esc不连带取消独立DEBUG，USER失败不得自动改走setter。
 非 Screen 的 presentation 为USER提供只读HUD标题/副标题/动作栏与System/Tutorial/Advancement/Recipe Toast；
 独立授权的DEBUG本地HUD文字修改见下方typed目录，不把USER呈现改成可操作节点。
 USER 不含隐藏/排队内容，HUD 有 Screen/Overlay 时保守不发布；Toast 文字来自原生渲染回调，
@@ -100,6 +101,7 @@ Forge 1.20.1 原生没有自动合成器；其余端是否通过本轮运行以�
 | ui.slider.set（Toast） | progressable的TutorialToast；0～1有限数字 | 原生updateProgress只改变本地显示，不推进教学事实；不支持无进度条类型 |
 | ui.toast.reset | 驻留SystemToast；显式title/message两段，各最多4096字符 | 原生reset重设纯文字、重排及生命期；恢复文字不承诺格式/计时回滚，不隐式丢弃另一字段 |
 | ui.toast.hide | 驻留TutorialToast及原生支持forceHide的SystemToast；仅true | 原生单向隐藏，不创建/复活通知、不作为自然完成；Forge 1.20.1的SystemToast明确不支持 |
+| ui.canvas.pan.set | 当前原生首次居中后的选中AdvancementTab；完整有限{x,y} | 绝对GUI偏移，按debugPanRange限制可动轴、保留固定轴原生值；只调用本地scroll，不发送输入或解锁进度 |
 
 版本/值条件在实际修改前复验；取消、过期节点、Screen/布局变化、错误Arm或不适用类型均不得静默转成其他操作。
 原生文本token按完整UTF-16内容采样，公开value仍有2048字符边界；不同尾段或孤立代理单元不得复用同一修改条件。
@@ -131,6 +133,15 @@ SystemToast的forceHide在1.20.1构件不存在，其余四端存在；不借其
 进度、文字重设与隐藏是不同原生副作用，不用任意setter兜底；完整编码超预算拒绝，未知/排队类型仍不提供修改入口。
 ui-debug-toast专项验证实际Loader完整样式/截断尾部/预算守卫、Native修改与旧版本/值/类型拒绝、真实MCP和网页USER隔离、零玩家输入及退出清理。
 Fixture仅在probe中显式启用，通过既有Fixture Screen准备本地通知；Forge用probe结束自身夹具生命期，不伪装成产品强制隐藏能力。
+
+### 进度画布原生平移
+
+ui.canvas.pan.set使用选中AdvancementTab的原生scroll入口，以完整有限{x,y}设置绝对GUI偏移，不复用单轴归一化卷轴合同。
+debugPanValue/debugPanRange只在DEBUG图中描述实际值、轴是否可动及原生范围；固定轴保留首次原生居中的值。
+初次绘制尚未完成时拒绝可执行版本，不手动更改centered；切页、Tab替换、图边界或GUI变化都使旧token失效。
+ui-debug-advancement专项验证固定轴、可平移/恢复、旧值/版本/Screen拒绝及真实MCP和网页USER隔离，不取得玩家Lease或发送输入。
+仅恢复本次回执确认的改值和token，外部未知变化或响应丢失时保留现场并报告，不猜测恢复。
+该分支不代表建议弹层、旁观菜单和全部HUD/Toast目录已完成，M-03继续按状态页逐项关闭。
 
 ## HUD / Toast 必需目录
 
@@ -367,3 +378,17 @@ node components/companion/scripts/live-vanilla-ui.mjs
 构建、单元测试与 Live 结果由当次执行报告负责；历史证据不证明新候选。
 继续完善 UI 时补清单中的自绘交互适配和实际场景；世界桥接复用既有 world.action 与 UI 输入，不另造菜单操作系统。
 正式 Persistent Write、统一人工 UX 和其他 Phase/Extension 不属于本轮。
+
+## 新合同待实现的验收增量
+
+本节定义下一实现的要求，不表示现有工具已经运行或通过。
+
+- READ、OPERATE、TAKEOVER下的USER/DEBUG tree、resolve、条件、Event、Recording与网页/MCP均保留类别权限，不用切模式取回读。
+- TAKEOVER内正常语义点击和独立DEBUG读/写分别记来源；OPERATE不得获取真人输入Lease或偷偷点击GUI。
+- 真人Esc仅停止active/queued玩家输入，held=0/post-revoke input=0；独立已授权DEBUG可继续，模型持续收到用户决定与reconsent状态。
+- OPERATE与真人并行修改按owner thread及显式资源/值条件处理，允许覆盖用户状态但不跳过stale条件；Agent Routed Esc不人工撤销。
+- OPERATE原生命令保持当前Screen、焦点/聊天草稿及held input，不申请输入Lease或临时切TAKEOVER；命令统一USER，缺command scope/真实玩家权限仍拒绝。命令自身原生效果与输入通道干扰分开断言。
+- 物理Esc仅取消依赖接管的聊天键入，独立原生命令/DEBUG按各自生命周期处理；reconsent latch持续且不被OPERATE命令清除，自身取消或连接失效后无迟到提交。
+- 五端分别验证仅客户端接无模组服务器、仅服务端零玩家/原版客户端及双端Peer；服务器原生控制台USER输出与DEBUG诊断不混入玩家UI。
+- 控制台以独立操作员授权的OPERATE提交命令，不接管宿主终端；批次/取消/不保证关联及实际效果分别记录。
+- 新模式与部署的完整消费者/最终制品证据必须同候选；截图/录制仍排除Operator UI，人工观感不由自动检查推定。

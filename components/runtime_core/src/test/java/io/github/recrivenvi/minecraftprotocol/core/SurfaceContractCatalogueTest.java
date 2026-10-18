@@ -17,7 +17,12 @@ import org.junit.jupiter.api.Test;
 /** Cross-checks the formal catalogue and the production authorization/descriptor paths. */
 class SurfaceContractCatalogueTest {
     private static final Set<String> POLICIES =
-            Set.of("READ_COMPATIBLE", "OPERATE_REQUIRED", "TAKEOVER_REQUIRED", "MODE_INDEPENDENT");
+            Set.of(
+                    "READ_COMPATIBLE",
+                    "OPERATE_OR_TAKEOVER",
+                    "TAKEOVER_REQUIRED",
+                    "MODE_INDEPENDENT",
+                    "COMMAND_ROUTE_DEPENDENT");
     private static final Set<String> UI_CONDITIONS =
             Set.of("screen", "ui.exists", "menu", "inventory");
     private static final Set<String> WORLD_CONDITIONS =
@@ -97,7 +102,7 @@ class SurfaceContractCatalogueTest {
                     declared,
                     path + " must describe actual registered route availability, not old versions");
             assertEquals(
-                    path.startsWith("/v0/debug/") ? "OPERATE_REQUIRED" : "READ_COMPATIBLE",
+                    path.startsWith("/v0/debug/") ? "OPERATE_OR_TAKEOVER" : "READ_COMPATIBLE",
                     row.get("modeRequirement").getAsString());
         }
     }
@@ -251,7 +256,7 @@ class SurfaceContractCatalogueTest {
                 if (value.get("requiresControlLease").getAsBoolean())
                     assertEquals("TAKEOVER_REQUIRED", policy, id);
                 if (value.get("requiresDebugArm").getAsBoolean())
-                    assertEquals("OPERATE_REQUIRED", policy, id);
+                    assertEquals("OPERATE_OR_TAKEOVER", policy, id);
                 if (id.startsWith("fixture.") || value.get("requiresDebugArm").getAsBoolean())
                     assertFalse(value.get("requiresControlLease").getAsBoolean(), id);
                 if (id.startsWith("debug.evidence.")) {

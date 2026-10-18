@@ -133,9 +133,9 @@ public final class UiDataView {
     }
 
     public static boolean allowsRead(String mode, Category category) {
-        return "READ".equals(mode)
-                || ("TAKEOVER".equals(mode) && category == Category.USER)
-                || ("OPERATE".equals(mode) && category == Category.DEBUG);
+        return mode != null
+                && category != null
+                && Set.of("READ", "OPERATE", "TAKEOVER").contains(mode);
     }
 
     public static JsonObject tree(JsonObject captured, Category category) {
@@ -229,6 +229,10 @@ public final class UiDataView {
         reads.add("DEBUG");
         result.add("readCategories", reads);
         result.addProperty("defaultReadCategory", "USER");
+        result.addProperty("readModeIndependent", true);
+        result.addProperty(
+                "legacyCategorySemantics",
+                "takeover_input_and_typed_operate_mutation_not_read_restrictions");
         result.addProperty("takeoverCategory", "USER");
         result.addProperty("operateCategory", "DEBUG");
         result.addProperty("debugReadScope", "debug.ui.read");

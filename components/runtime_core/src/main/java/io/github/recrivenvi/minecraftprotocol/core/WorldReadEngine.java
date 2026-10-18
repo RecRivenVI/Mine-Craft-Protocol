@@ -1,7 +1,6 @@
 package io.github.recrivenvi.minecraftprotocol.core;
 
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import io.github.recrivenvi.minecraftprotocol.safety.CancellableWork;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldClientModel;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldDataView;
@@ -28,18 +27,11 @@ final class WorldReadEngine {
                     "INVALID_WORLD_CATEGORY", 400, "World category must be USER or DEBUG");
         }
         WorldDataView.requireReadScopes(category, state::requireScope);
-        var snapshot = state.controlSession().snapshot();
-        try {
-            state.controlSession()
-                    .requireVersion(snapshot.controlSessionId(), snapshot.transitionSequence());
-        } catch (AgentControlSession.ModeException error) {
-            throw new ProtocolState.ProtocolException(error.code(), 409, error.getMessage());
-        }
         if (!WorldDataView.allowsRead(state.controlSession().snapshot().mode().name(), category)) {
             throw new ProtocolState.ProtocolException(
                     "WORLD_CATEGORY_MODE_MISMATCH",
                     409,
-                    "READ supports USER/DEBUG; TAKEOVER only USER; OPERATE only DEBUG");
+                    "World reads require a valid control session and independent category scopes");
         }
         return category;
     }
@@ -81,16 +73,7 @@ final class WorldReadEngine {
 
     Runnable publicationGuard(String category) {
         authorize(category);
-        long generation = state.controlSession().snapshot().transitionSequence();
-        return () -> {
-            authorize(category);
-            if (generation != state.controlSession().snapshot().transitionSequence()) {
-                throw new ProtocolState.ProtocolException(
-                        "WORLD_READ_CONTEXT_CHANGED",
-                        409,
-                        "Control context changed before world read publication");
-            }
-        };
+        return () -> authorize(category);
     }
 
     CompletableFuture<JsonObject> internal(

@@ -5,6 +5,8 @@ import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
 import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
+import io.github.recrivenvi.minecraftprotocol.core.UiMutationSupport;
+import io.github.recrivenvi.minecraftprotocol.core.UiToastResetSource;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.*;
 import io.netty.buffer.ByteBuf;
 import java.util.List;
@@ -38,8 +40,15 @@ final class UiToastDebug {
                         lines(
                                 buffer,
                                 ((TutorialToastUiAccessor) toast).minecraftProtocolProbe$lines());
+                    } else if (visibilityOnly(toast)) {
+                        buffer.writeByte(4);
+                        buffer.writeBoolean(toast.getWantedVisibility() == Toast.Visibility.HIDE);
                     } else throw new IllegalArgumentException("Unsupported native Toast type");
                 });
+    }
+
+    static boolean visibilityOnly(Toast toast) {
+        return toast instanceof FriendToast;
     }
 
     private static void lines(ByteBuf buffer, List<FormattedCharSequence> lines) {
@@ -77,46 +86,87 @@ final class UiToastDebug {
             if (index >= 8) break;
             String key = "toast." + index++;
             Toast toast = ((ToastInstanceUiAccessor) instance).minecraftProtocolProbe$toast();
-            if (!(toast instanceof SystemToast) && !(toast instanceof TutorialToast)) continue;
+            if (!(toast instanceof SystemToast)
+                    && !(toast instanceof TutorialToast)
+                    && !visibilityOnly(toast)) continue;
             JsonObject node = UiDebugEngine.findNode(tree, key);
             if (node == null) continue;
             var encoded = content(guard, budget, toast);
             node.addProperty("debugToastGuardAvailable", encoded.available());
             node.addProperty(
-                    "debugToastKind", toast instanceof SystemToast ? "system" : "tutorial");
-            JsonObject state = new JsonObject();
-            state.addProperty("manager", identity.applyAsLong(manager));
-            state.addProperty("instance", identity.applyAsLong(instance));
-            state.addProperty("toast", identity.applyAsLong(toast));
-            state.addProperty("guardAvailable", encoded.available());
-            if (encoded.available()) state.addProperty("content", encoded.fingerprint());
-            if (toast instanceof SystemToast) {
-                var system = (SystemToastUiAccessor) toast;
-                JsonObject value = systemValue(system, false);
-                node.add("debugToastValue", value);
-                node.addProperty("debugHideRequested", system.minecraftProtocolProbe$forceHide());
-                state.addProperty("lastChanged", system.minecraftProtocolProbe$lastChanged());
-                state.addProperty("changed", system.minecraftProtocolProbe$changed());
-                state.add("hideRequested", node.get("debugHideRequested"));
-            } else {
-                var tutorial = (TutorialToastUiAccessor) toast;
-                node.addProperty(
-                        "debugProgressable", tutorial.minecraftProtocolProbe$progressable());
-                node.addProperty("debugProgress", tutorial.minecraftProtocolProbe$progress());
-                node.addProperty(
-                        "debugHideRequested",
-                        tutorial.minecraftProtocolProbe$visibility() == Toast.Visibility.HIDE);
-                state.add("progressable", node.get("debugProgressable"));
-                state.add("progress", node.get("debugProgress"));
-                state.add("hideRequested", node.get("debugHideRequested"));
-            }
-            for (String field :
-                    Set.of("screenIdentity", "overlayIdentity", "width", "height", "guiScale"))
-                state.add(field, tree.get(field));
+                    "debugToastGuardScope",
+                    visibilityOnly(toast) ? "native_visibility" : "complete_native_text");
+            node.addProperty(
+                    "debugToastKind",
+                    toast instanceof SystemToast
+                            ? "system"
+                            : toast instanceof TutorialToast ? "tutorial" : "friend");
+            JsonObject state =
+                    canonicalState(tree, manager, instance, toast, encoded, identity, node);
             node.add(
                     "resourceVersion",
                     revisions.uiRevision("toast:" + identity.applyAsLong(instance), state));
+            var facets = java.util.EnumSet.noneOf(UiMutationSupport.Facet.class);
+            if (toast instanceof SystemToast) {
+                facets.add(UiMutationSupport.Facet.SYSTEM_TOAST_RESET);
+                facets.add(UiMutationSupport.Facet.SYSTEM_TOAST_HIDE);
+            } else if (toast instanceof TutorialToast) {
+                facets.add(UiMutationSupport.Facet.TUTORIAL_TOAST_HIDE);
+                if (node.get("debugProgressable").getAsBoolean())
+                    facets.add(UiMutationSupport.Facet.TUTORIAL_TOAST_PROGRESS);
+            } else {
+                facets.add(UiMutationSupport.Facet.LOCAL_TOAST_HIDE);
+            }
+            UiMutationSupport.describe(
+                    node, facets, "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION");
         }
+    }
+
+    static JsonObject canonicalState(
+            JsonObject tree,
+            Object manager,
+            Object instance,
+            Toast toast,
+            UiItemDataGuard.Content encoded,
+            ToLongFunction<Object> identity,
+            JsonObject node) {
+        JsonObject state = new JsonObject();
+        state.addProperty("manager", identity.applyAsLong(manager));
+        state.addProperty("instance", identity.applyAsLong(instance));
+        state.addProperty("toast", identity.applyAsLong(toast));
+        state.addProperty("guardAvailable", encoded.available());
+        if (encoded.available()) state.addProperty("content", encoded.fingerprint());
+        if (toast instanceof SystemToast) {
+            var system = (SystemToastUiAccessor) toast;
+            JsonObject value = systemValue(system, false);
+            node.add("debugToastValue", value);
+            node.addProperty("debugHideRequested", system.minecraftProtocolProbe$forceHide());
+            systemResetState(state, (UiToastResetSource) system);
+            state.add("hideRequested", node.get("debugHideRequested"));
+        } else if (toast instanceof TutorialToast) {
+            var tutorial = (TutorialToastUiAccessor) toast;
+            node.addProperty("debugProgressable", tutorial.minecraftProtocolProbe$progressable());
+            node.addProperty("debugProgress", tutorial.minecraftProtocolProbe$progress());
+            node.addProperty(
+                    "debugHideRequested",
+                    tutorial.minecraftProtocolProbe$visibility() == Toast.Visibility.HIDE);
+            state.add("progressable", node.get("debugProgressable"));
+            state.add("progress", node.get("debugProgress"));
+            state.add("hideRequested", node.get("debugHideRequested"));
+        } else {
+            node.addProperty(
+                    "debugHideRequested", toast.getWantedVisibility() == Toast.Visibility.HIDE);
+            state.add("hideRequested", node.get("debugHideRequested"));
+        }
+        for (String field :
+                Set.of("screenIdentity", "overlayIdentity", "width", "height", "guiScale"))
+            state.add(field, tree.get(field));
+        return state;
+    }
+
+    static void systemResetState(JsonObject state, UiToastResetSource source) {
+        // A reset's native lifecycle consumes changed/lastChanged after its mutation receipt.
+        state.addProperty("resetGeneration", source.minecraftProtocolProbe$resetGeneration());
     }
 
     private static JsonObject systemValue(SystemToastUiAccessor system, boolean full) {
@@ -192,7 +242,7 @@ final class UiToastDebug {
         if (!node.get("debugToastGuardAvailable").getAsBoolean())
             throw error(
                     "UI_CONTENT_GUARD_UNAVAILABLE",
-                    "Complete Toast content exceeded its capture budget");
+                    "Required native Toast state exceeded its capture budget");
         Toast toast = null;
         int index = 0;
         for (Object instance :
@@ -231,6 +281,7 @@ final class UiToastDebug {
             before = node.get("debugHideRequested");
             if (toast instanceof TutorialToast tutorial) apply = tutorial::hide;
             else if (toast instanceof SystemToast system) apply = system::forceHide;
+            else if (toast instanceof FriendToast friend) apply = friend::hide;
             else throw error("UI_DEBUG_UNSUPPORTED", "Unsupported native Toast type");
             sideEffects = "native_toast_hide_requested_not_reversible";
         } else

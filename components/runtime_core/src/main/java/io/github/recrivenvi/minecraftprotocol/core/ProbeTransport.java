@@ -126,7 +126,7 @@ public final class ProbeTransport implements AutoCloseable {
             RuntimeEndpoint endpoint) {
         this.service = service;
         this.token = token;
-        this.port = port;
+        this.port = RuntimeEndpoint.requireHttpBindPort(port);
         this.endpoint = endpoint;
         this.runtimeInstanceId =
                 endpoint == null ? UUID.randomUUID().toString() : endpoint.instanceId();
@@ -158,7 +158,9 @@ public final class ProbeTransport implements AutoCloseable {
                             this.automation.requireCommandDispatch(gestureId);
                         },
                         receipt -> {
-                            this.automation.noteCommandSubmission(receipt);
+                            if (!receipt.has("route")
+                                    || !receipt.get("route").getAsString().equals("NATIVE"))
+                                this.automation.noteCommandSubmission(receipt);
                             String event =
                                     receipt.has("configurationKind")
                                             ? "command.player.configuration"
@@ -211,7 +213,7 @@ public final class ProbeTransport implements AutoCloseable {
             this.workerGroup =
                     new NioEventLoopGroup(1, new DefaultThreadFactory("mcp-worker", true));
             try {
-                this.serverChannel =
+                var bootstrap =
                         new ServerBootstrap()
                                 .group(this.bossGroup, this.workerGroup)
                                 .channel(NioServerSocketChannel.class)
@@ -259,11 +261,25 @@ public final class ProbeTransport implements AutoCloseable {
                                                                         "/v0/events", null, true));
                                                 channel.pipeline().addLast(new RequestHandler());
                                             }
-                                        })
-                                .bind(new InetSocketAddress("127.0.0.1", this.port))
-                                .syncUninterruptibly()
-                                .channel();
-                int actualPort = ((InetSocketAddress) this.serverChannel.localAddress()).getPort();
+                                        });
+                int actualPort =
+                        RuntimeEndpoint.bindHttpCompatiblePort(
+                                this.port,
+                                () -> {
+                                    this.serverChannel =
+                                            bootstrap
+                                                    .bind(
+                                                            new InetSocketAddress(
+                                                                    "127.0.0.1", this.port))
+                                                    .syncUninterruptibly()
+                                                    .channel();
+                                    return ((InetSocketAddress) this.serverChannel.localAddress())
+                                            .getPort();
+                                },
+                                () -> {
+                                    this.serverChannel.close().syncUninterruptibly();
+                                    this.serverChannel = null;
+                                });
                 if (this.endpoint != null) this.endpoint.publish(actualPort);
                 this.ready.complete(actualPort);
             } catch (Throwable throwable) {
@@ -667,19 +683,149 @@ public final class ProbeTransport implements AutoCloseable {
                 worldRead(context, metadata, uri, path, true, service::playerState);
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/command/player")) {
                 protocolState.requireScope("command");
-                protocolState.requireScope("control");
-                protocolState.requireScope("input");
-                protocolState.requireTakeover(metadata.leaseId());
                 JsonObject body = jsonBody(request);
-                if (!body.has("command")) {
+                String action = body.has("action") ? requiredString(body, "action") : "execute";
+                if (!Set.of("execute", "discover", "batch").contains(action))
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_PLAYER_COMMAND",
+                            400,
+                            "Command action must be execute, discover or batch");
+                Set<String> fields =
+                        switch (action) {
+                            case "discover" ->
+                                    Set.of(
+                                            "action",
+                                            "input",
+                                            "cursor",
+                                            "maxResults",
+                                            "completionSource");
+                            case "batch" -> Set.of("action", "commands");
+                            default -> Set.of("action", "command", "route");
+                        };
+                for (String field : body.keySet())
+                    if (!fields.contains(field))
+                        throw new ProtocolState.ProtocolException(
+                                "INVALID_PLAYER_COMMAND",
+                                400,
+                                "Unexpected command field: " + field);
+                if (action.equals("discover")) {
+                    protocolState.requireScope("read");
+                    if (body.has("input")
+                            && (!body.get("input").isJsonPrimitive()
+                                    || !body.getAsJsonPrimitive("input").isString()))
+                        throw new ProtocolState.ProtocolException(
+                                "INVALID_COMMAND_DISCOVERY", 400, "input must be text");
+                    String input = body.has("input") ? body.get("input").getAsString() : "";
+                    int cursor = commandInteger(body, "cursor", input.length());
+                    int maxResults = commandInteger(body, "maxResults", 32);
+                    new PlayerCommandDiscovery.Query(input, cursor, maxResults);
+                    String completionSource =
+                            body.has("completionSource")
+                                    ? requiredString(body, "completionSource")
+                                    : "CLIENT_LOCAL";
+                    if (!Set.of("CLIENT_LOCAL", "SERVER").contains(completionSource))
+                        throw new ProtocolState.ProtocolException(
+                                "INVALID_COMMAND_DISCOVERY",
+                                400,
+                                "completionSource must be CLIENT_LOCAL or SERVER");
+                    Runnable authorization = commandAuthorization(metadata, true);
+                    sendJsonFuture(
+                            context,
+                            metadata,
+                            path,
+                            protocolState.applyDeadline(
+                                    completionSource.equals("SERVER")
+                                            ? service.completePlayerCommands(
+                                                    input, cursor, maxResults, authorization)
+                                            : service.discoverPlayerCommands(
+                                                    input, cursor, maxResults, authorization),
+                                    metadata.deadlineAtMillis()));
+                    return;
+                }
+                if (action.equals("batch")) {
+                    if (!body.has("commands")
+                            || !body.get("commands").isJsonArray()
+                            || body.getAsJsonArray("commands").isEmpty()
+                            || body.getAsJsonArray("commands").size() > 32)
+                        throw new ProtocolState.ProtocolException(
+                                "PLAYER_COMMAND_BATCH_BUDGET_EXCEEDED",
+                                413,
+                                "Batch requires 1..32 commands");
+                    List<String> commands = new java.util.ArrayList<>();
+                    for (var item : body.getAsJsonArray("commands")) {
+                        if (!item.isJsonPrimitive() || !item.getAsJsonPrimitive().isString())
+                            throw new ProtocolState.ProtocolException(
+                                    "INVALID_PLAYER_COMMAND_BATCH",
+                                    400,
+                                    "Every command must be text");
+                        commands.add(PlayerCommandPolicy.normalize(item.getAsString()));
+                    }
+                    sendJsonFuture(
+                            context,
+                            metadata,
+                            path,
+                            protocolState.applyDeadline(
+                                    protocolState.operate(
+                                            work ->
+                                                    service.nativePlayerCommandBatch(
+                                                            commands,
+                                                            work,
+                                                            commandAuthorization(metadata, false),
+                                                            metadata.requestId())),
+                                    metadata.deadlineAtMillis()));
+                    return;
+                }
+                if (!body.has("command")
+                        || !body.get("command").isJsonPrimitive()
+                        || !body.getAsJsonPrimitive("command").isString()) {
                     throw new ProtocolState.ProtocolException(
                             "INVALID_PLAYER_COMMAND", 400, "Missing command");
                 }
-                CompletableFuture<JsonObject> command =
-                        automation.playerCommand(
-                                body.get("command").getAsString(),
-                                () -> protocolState.requireTakeover(metadata.leaseId()),
-                                supplier -> protocolState.admitInput(metadata.leaseId(), supplier));
+                String route = body.has("route") ? requiredString(body, "route") : "AUTO";
+                if (!Set.of("AUTO", "CHAT", "NATIVE").contains(route))
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_COMMAND_ROUTE",
+                            400,
+                            "Command route must be AUTO, CHAT or NATIVE");
+                boolean nativeRoute =
+                        route.equals("NATIVE")
+                                || route.equals("AUTO")
+                                        && protocolState.controlPresence().mode()
+                                                == AgentControlSession.Mode.OPERATE;
+                CompletableFuture<JsonObject> command;
+                if (nativeRoute) {
+                    String normalized =
+                            PlayerCommandPolicy.normalize(body.get("command").getAsString());
+                    Runnable authorization =
+                            () -> {
+                                protocolState.requireScope("command");
+                                if (metadata.deadlineAtMillis() > 0
+                                        && System.currentTimeMillis()
+                                                >= metadata.deadlineAtMillis())
+                                    throw new ProtocolState.ProtocolException(
+                                            "DEADLINE_EXCEEDED",
+                                            408,
+                                            "Command deadline exceeded before native submission");
+                            };
+                    command =
+                            protocolState.operate(
+                                    work ->
+                                            service.nativePlayerCommand(
+                                                    normalized,
+                                                    work,
+                                                    authorization,
+                                                    metadata.requestId()));
+                } else {
+                    protocolState.requireScope("control");
+                    protocolState.requireScope("input");
+                    protocolState.requireTakeover(metadata.leaseId());
+                    command =
+                            automation.playerCommand(
+                                    body.get("command").getAsString(),
+                                    () -> protocolState.requireTakeover(metadata.leaseId()),
+                                    supplier ->
+                                            protocolState.admitInput(metadata.leaseId(), supplier));
+                }
                 sendJsonFuture(
                         context,
                         metadata,
@@ -1683,7 +1829,9 @@ public final class ProbeTransport implements AutoCloseable {
                             this.endpoint == null ? new JsonObject() : this.endpoint.snapshot();
                     connection.addProperty("runtimeInstanceId", this.runtimeInstanceId);
                     result.add("runtimeConnection", connection);
+                    result.add("control", this.protocolState.modeStatus());
                     if (capabilities) {
+                        result.add("playerCommandContract", PlayerCommandDiscovery.contract());
                         JsonObject contract = new JsonObject();
                         contract.addProperty("automaticPort", true);
                         contract.addProperty("instanceDiscovery", this.endpoint != null);
@@ -1759,6 +1907,29 @@ public final class ProbeTransport implements AutoCloseable {
                         service.validatePreconditions(
                                 metadata.expectedScreenRevision(),
                                 metadata.expectedMenuRevision()));
+    }
+
+    private Runnable commandAuthorization(ProtocolState.RequestMetadata metadata, boolean reading) {
+        return () -> {
+            protocolState.requireScope("command");
+            if (reading) protocolState.requireScope("read");
+            if (metadata.deadlineAtMillis() > 0
+                    && System.currentTimeMillis() >= metadata.deadlineAtMillis())
+                throw new ProtocolState.ProtocolException(
+                        "DEADLINE_EXCEEDED", 408, "Command request deadline exceeded");
+        };
+    }
+
+    private static int commandInteger(JsonObject body, String field, int fallback) {
+        if (!body.has(field)) return fallback;
+        try {
+            if (body.get(field).isJsonPrimitive() && body.getAsJsonPrimitive(field).isNumber())
+                return body.get(field).getAsBigDecimal().intValueExact();
+        } catch (ArithmeticException | NumberFormatException invalid) {
+            // All malformed typed numbers use the same bounded public error.
+        }
+        throw new ProtocolState.ProtocolException(
+                "INVALID_COMMAND_DISCOVERY", 400, field + " must be an integer");
     }
 
     private ProtocolState.RequestMetadata metadata(FullHttpRequest request) {
@@ -2078,11 +2249,10 @@ public final class ProbeTransport implements AutoCloseable {
                     String sessionEpoch,
                     String domain,
                     String namespace) {
-                if ("ui".equals(domain)
-                        && metadata.deadlineAtMillis() > 0
+                if (metadata.deadlineAtMillis() > 0
                         && System.currentTimeMillis() >= metadata.deadlineAtMillis())
                     throw new ProtocolState.ProtocolException(
-                            "DEADLINE_EXCEEDED", 408, "UI Debug deadline exceeded before mutation");
+                            "DEADLINE_EXCEEDED", 408, "Debug deadline exceeded before mutation");
                 protocolState.requireDebugAuthorization(
                         metadata.debugArmId(),
                         currentWorldFingerprint,
@@ -2232,6 +2402,9 @@ public final class ProbeTransport implements AutoCloseable {
         json.addProperty("message", error.getMessage() == null ? "unknown" : error.getMessage());
         if (error instanceof ProtocolState.ProtocolException protocolError) {
             JsonObject details = protocolError.details();
+            ResourceVersionVerifier.staleMetadata(code, details)
+                    .entrySet()
+                    .forEach(entry -> json.add(entry.getKey(), entry.getValue()));
             for (String key : List.of("retryAfterMillis", "rateLimit")) {
                 if (details.has(key)) json.add(key, details.get(key).deepCopy());
             }
@@ -2242,7 +2415,10 @@ public final class ProbeTransport implements AutoCloseable {
                         "actualHit",
                         WorldHitEvidence.bounded(details.getAsJsonObject("actualHit")));
         }
-        if (error instanceof CancellationException) {
+        if (error instanceof CancellationException
+                || error instanceof TimeoutException
+                || code.equals("REQUEST_DEADLINE_EXCEEDED")
+                || code.equals("DEADLINE_EXCEEDED")) {
             // A native callback may already have applied its effect, including Quit Game.
             // Cancellation is not a rollback or a safe reason to replay player input.
             json.addProperty("executionOutcome", "not_confirmed");
@@ -2259,6 +2435,8 @@ public final class ProbeTransport implements AutoCloseable {
                 || code.startsWith("TAKEOVER_")
                 || code.equals("OPERATE_REQUIRED")
                 || code.equals("USER_MANUALLY_ENDED_CONTROL")
+                || code.equals("SCOPE_DENIED")
+                || code.startsWith("DEBUG_")
                 || code.startsWith("CONTROL_")) {
             json.add("control", this.protocolState.modeStatus());
         }

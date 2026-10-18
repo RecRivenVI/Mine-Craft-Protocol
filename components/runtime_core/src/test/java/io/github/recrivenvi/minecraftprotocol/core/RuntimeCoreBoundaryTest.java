@@ -7,7 +7,6 @@ import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeEchoReadProvid
 import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeV2Providers;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import java.lang.reflect.Proxy;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -20,6 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 final class RuntimeCoreBoundaryTest {
+    @Test
+    void sharedContractTestsCannotSilentlyUpgradeTheOldestGameGsonApi() {
+        // A newer test runtime masked a Forge linkage failure in operation completion.
+        assertThrows(
+                NoSuchMethodException.class,
+                () -> JsonObject.class.getMethod("isEmpty"),
+                "Shared contract tests must retain the Forge 1.20.1 Gson API floor");
+    }
+
     @Test
     void sharedCoreRunsWithoutMinecraftOrLoaderClasses() {
         assertThrows(
@@ -87,17 +95,14 @@ final class RuntimeCoreBoundaryTest {
                                             }
                                             return CompletableFuture.completedFuture(result);
                                         });
-                int port;
-                try (var socket = new ServerSocket(0)) {
-                    port = socket.getLocalPort();
-                }
                 String previous = System.getProperty("minecraft.protocol.scopes");
                 System.setProperty(
                         "minecraft.protocol.scopes",
                         authorized ? "storage.read" : "read,debug,debug.world.read");
                 try (var transport =
-                        new ProbeTransport(service, "storage-token", port, "boundary-target")) {
+                        new ProbeTransport(service, "storage-token", 0, "boundary-target")) {
                     transport.startAsync();
+                    int port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
                     var client = HttpClient.newHttpClient();
                     var uri =
                             URI.create(
@@ -166,15 +171,11 @@ final class RuntimeCoreBoundaryTest {
                                         calls.incrementAndGet();
                                     return CompletableFuture.completedFuture(new JsonObject());
                                 });
-        int port;
-        try (var socket = new ServerSocket(0)) {
-            port = socket.getLocalPort();
-        }
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.setProperty("minecraft.protocol.scopes", "read,debug,debug.world.read");
-        try (var transport =
-                new ProbeTransport(service, "boundary-token", port, "boundary-target")) {
+        try (var transport = new ProbeTransport(service, "boundary-token", 0, "boundary-target")) {
             transport.startAsync();
+            int port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
             var client = HttpClient.newHttpClient();
             URI uri = URI.create("http://127.0.0.1:" + port + "/v0/diagnostics/phase9a/observe");
             var request =

@@ -771,34 +771,35 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                 this.operatorChrome.edgeAlpha(),
                 this.operatorChrome.edgeWidth(),
                 this.minecraft.getWindow().getGuiScale());
-        String message = this.operatorChrome.message();
-        String previous = this.operatorChrome.previousMessage();
-        float mix = this.operatorChrome.textMix();
-        int textWidth =
-                Math.round(
-                        this.minecraft.font.width(previous) * (1F - mix)
-                                + this.minecraft.font.width(message) * mix);
+        int textWidth = Math.round(this.operatorChrome.textWidth(this.minecraft.font::width));
         int barWidth = textWidth + 20, barHeight = 23;
         int left = Math.max(4, (width - barWidth) / 2), top = 8;
         io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.panel(
                 graphics::fill, left, top, barWidth, barHeight, alpha);
-        if (io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.textVisible(
-                alpha * (1F - mix)))
-            graphics.text(
-                    this.minecraft.font,
-                    Component.literal(previous),
-                    left + 10,
-                    top + 8,
-                    io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.color(
-                            255, 0xFFFFFF, alpha * (1F - mix)));
-        if (io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.textVisible(alpha * mix))
-            graphics.text(
-                    this.minecraft.font,
-                    Component.literal(message),
-                    left + 10,
-                    top + 8,
-                    io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.color(
-                            255, 0xFFFFFF, alpha * mix));
+        this.operatorChrome.text(
+                new io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.TextRenderer() {
+                    public void enableScissor(int x0, int y0, int x1, int y1) {
+                        graphics.enableScissor(x0, y0, x1, y1);
+                    }
+
+                    public void disableScissor() {
+                        graphics.disableScissor();
+                    }
+
+                    public void text(String message, int x, int y, int color) {
+                        graphics.text(
+                                NeoForgeProbeRuntime.this.minecraft.font,
+                                Component.literal(message),
+                                x,
+                                y,
+                                color);
+                    }
+                },
+                left,
+                top,
+                barWidth,
+                barHeight,
+                alpha);
         if (this.operatorChrome.pointerAlpha() > 0.01F && this.logicalPointer.hasVisualPosition()) {
             var windowState = this.minecraft.gameRenderer.gameRenderState().windowRenderState;
             io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.pointer(
@@ -940,6 +941,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
         this.enforceAgentMousePolicy(minecraft);
         this.applyControlPresentation(minecraft);
         DedicatedPeerClient.tick(minecraft);
+        NativeCommandSuggestions.tick(minecraft);
         this.clientTick++;
         if (Boolean.getBoolean("minecraft.protocol.probe.disablePauseOnLostFocus")) {
             minecraft.options.pauseOnLostFocus = false;
@@ -980,6 +982,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
 
     private void shutdown() {
         if (!this.shutdownStarted.compareAndSet(false, true)) return;
+        NativeCommandSuggestions.close(this.minecraft);
         this.evidenceCaptures.close();
         this.phase9a.observeStorageShutdown();
         ProbeTransport current = this.transport;
@@ -1056,6 +1059,8 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                     capabilities.addProperty("input.drag_scroll", "runtime_verified");
                     capabilities.addProperty(
                             "command.player.execute", "normal_network_current_permissions");
+                    capabilities.addProperty(
+                            "command.player.native", "native_current_player_without_input_lease");
                     capabilities.addProperty(
                             "command.player.configuration",
                             "native_command_blocks_and_jigsaw_final_state");
@@ -1406,7 +1411,23 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                     true,
                                     false,
                                     "configured_pending_unified_acceptance"));
-                    json.addProperty("cancellableInjectionCount", 25);
+                    json.addProperty("cancellableInjectionCount", 26);
+                    hooks.add(
+                            operatorHook(
+                                    "owned_server_command_completion",
+                                    "ClientPacketListener.handleCommandSuggestions",
+                                    true,
+                                    false,
+                                    "configured_owned_transaction_ids_human_priority"));
+                    hooks.add(
+                            hook(
+                                    "system_toast_reset_revision",
+                                    "MIXIN_INJECT",
+                                    "SystemToast.reset",
+                                    "HEAD",
+                                    "passive_native_reset_revision",
+                                    "configured_pending_native_reset",
+                                    "debug.typed_ui_mutation"));
                     hooks.add(
                             operatorHook(
                                     "player_command_entry_guard",
@@ -2235,6 +2256,119 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     }
 
     @Override
+    public CompletableFuture<JsonObject> discoverPlayerCommands(
+            String input, int cursor, int maxResults, Runnable authorization) {
+        var query =
+                new io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query(
+                        input, cursor, maxResults);
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                this.onClient(
+                        () -> NativePlayerCommands.discover(requireClient(), query, authorization)),
+                future -> future);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> completePlayerCommands(
+            String input, int cursor, int maxResults, Runnable authorization) {
+        var query =
+                new io.github.recrivenvi.minecraftprotocol.core.PlayerCommandDiscovery.Query(
+                        input, cursor, maxResults);
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                this.onClient(
+                        () -> NativePlayerCommands.complete(requireClient(), query, authorization)),
+                future -> future);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> nativePlayerCommandBatch(
+            java.util.List<String> commands,
+            AgentControlSession.OperateWork work,
+            Runnable authorization,
+            String requestId) {
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                this.onOperatingClient(
+                        work,
+                        () -> {
+                            Runnable bound =
+                                    NativePlayerCommands.contextGuard(
+                                            requireClient(), authorization);
+                            return io.github.recrivenvi.minecraftprotocol.core.PlayerCommandBatch
+                                    .execute(
+                                            commands,
+                                            requestId,
+                                            bound,
+                                            (index, command, guard) ->
+                                                    this.nativePlayerCommand(
+                                                            command,
+                                                            work,
+                                                            guard,
+                                                            requestId + ":" + index));
+                        }),
+                future -> future);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> nativePlayerCommand(
+            String command,
+            AgentControlSession.OperateWork work,
+            Runnable authorization,
+            String requestId) {
+        return this.onOperatingClient(
+                work,
+                () -> {
+                    authorization.run();
+                    Minecraft client = requireClient();
+                    var player = client.player;
+                    var level = client.level;
+                    var connection = client.getConnection();
+                    if (player == null
+                            || level == null
+                            || connection == null
+                            || !connection.getConnection().isConnected())
+                        throw new ProtocolState.ProtocolException(
+                                "PLAYER_COMMAND_CONTEXT_UNAVAILABLE",
+                                409,
+                                "A connected current player is required");
+                    if (command.length() + 1 > net.minecraft.SharedConstants.MAX_CHAT_LENGTH)
+                        throw new ProtocolState.ProtocolException(
+                                "PLAYER_COMMAND_TOO_LONG",
+                                400,
+                                "Command exceeds the current native command length budget");
+                    Runnable guard =
+                            () -> {
+                                authorization.run();
+                                if (work.isCancelled())
+                                    throw new ProtocolState.ProtocolException(
+                                            "OPERATE_WORK_CANCELLED",
+                                            409,
+                                            "Native command was cancelled");
+                                if (client.player != player
+                                        || client.level != level
+                                        || client.getConnection() != connection
+                                        || !connection.getConnection().isConnected())
+                                    throw new ProtocolState.ProtocolException(
+                                            "PLAYER_COMMAND_CONTEXT_CHANGED",
+                                            409,
+                                            "Player or connection changed before native command submission");
+                            };
+                    try (var dispatch = this.commandGate.enterNative(command, guard, requestId)) {
+                        guard.run();
+                        connection.sendCommand(command);
+                        JsonObject result = base("command.player.execute");
+                        dispatch.receipt()
+                                .entrySet()
+                                .forEach(entry -> result.add(entry.getKey(), entry.getValue()));
+                        result.addProperty("requiresControlLease", false);
+                        result.addProperty("inputDispatched", false);
+                        result.addProperty("feedbackAvailable", false);
+                        result.addProperty(
+                                "feedbackReason", "native_submission_without_chat_sampling");
+                        return result;
+                    }
+                });
+    }
+
+    @Override
     public CompletableFuture<JsonObject> playerCommand(String command, String phase) {
         return this.onControlledClient(
                 () -> {
@@ -2814,6 +2948,9 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     @Override
     public CompletableFuture<JsonObject> phase9cDebugCapabilities() {
         JsonObject result = this.phase9a.formalDebugCapabilities();
+        result.add(
+                "resourceInspection",
+                io.github.recrivenvi.minecraftprotocol.core.WorldDebugInspection.contract());
         for (String operation : UiDebugEngine.OPERATIONS) {
             JsonObject entry = new JsonObject();
             entry.addProperty("operation", operation);

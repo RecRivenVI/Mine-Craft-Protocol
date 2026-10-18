@@ -64,17 +64,18 @@ try{
       assert.equal(Boolean(result.evidence.debugFacts),category==='DEBUG');
     }
     let current=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:current.modeVersion});
-    await api('POST','/v0/assert',{condition:{type:'screen',category:'USER'}},{},'UI_CATEGORY_MODE_MISMATCH');
+    assert.equal((await api('POST','/v0/assert',{condition:{type:'screen',category:'USER'}})).dataCategory,'USER');
     assert.equal((await api('POST','/v0/assert',{condition:{type:'screen',category:'DEBUG',classContains:'TitleScreen'}})).dataCategory,'DEBUG');
     current=await api('GET','/v0/control/mode');assert.equal(current.mode,'OPERATE');assert.equal(current.takeoverActive,false);
     await api('POST','/v0/control/mode',{mode:'READ',expectedModeVersion:current.modeVersion});await clean();
   });
   const control=await api('GET','/v0/control/mode');assert.equal(control.reconsentRequired,false,'No automatic reconsent');
   lease=(await api('POST','/v0/control/acquire',{ttlMs:60000})).leaseId;
-  await check('TAKEOVER condition plans cannot borrow DEBUG authority or dispatch earlier input',async()=>{
+  await check('TAKEOVER condition plans retain independently granted DEBUG reads without input effects',async()=>{
     const before=await clean();
-    for(const [condition,error] of [[{type:'screen',category:'DEBUG'},'UI_CATEGORY_MODE_MISMATCH'],[{type:'player',category:'DEBUG'},'WORLD_CATEGORY_MODE_MISMATCH']]){
-      await api('POST','/v0/pipelines',{steps:[{type:'key',key:87,action:1},{type:'assert.that',condition}]},{},error);
+    for(const condition of [{type:'screen',category:'DEBUG'},{type:'player',category:'DEBUG',expected:{available:false}}]){
+      const operation=await api('POST','/v0/pipelines',{steps:[{type:'assert.that',condition}]});
+      const outcome=await api('POST',`/v0/operations/${operation.operationId}/wait`,{timeoutMs:5000});assert.equal(outcome.state,'completed',JSON.stringify(outcome));
     }
     consumerChecks.push(...await inputContractConsumers(repo,instance,target,lease));
     const after=await clean();assert.equal(after.inputDispatchSequence,before.inputDispatchSequence);

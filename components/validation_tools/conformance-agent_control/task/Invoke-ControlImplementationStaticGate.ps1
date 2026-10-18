@@ -31,7 +31,7 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  Require ($runtime-match'logicalPointer.gameCapture\('-and$runtime-match'logicalPointer.gameRequest\('-and$runtime-match'logicalPointer.gameCursorVisible\('-and$constants-match'onGameCursorRequest') "$target effective game positioning/visibility path missing"
  Require ($runtime-match'Game cursor changed during pointer dispatch'-and$engine-match'"gameCursorRevision"') "$target stale game cursor gesture guard missing"
  if($target.StartsWith('26.3-')){Require ($mouse-match'method = "resyncMousePosition"'-and$runtime-match'handleMouseResync'-and$runtime-match'restoreAgentPointer\(client\)') "$target host resync must not overwrite Agent coordinates"}
- Require ($runtime-match'ControlChrome.textVisible\(\s*alpha \* \(1F - mix\)\)'-and$runtime-match'ControlChrome.textVisible\(alpha \* mix\)') "$target zero-alpha Vanilla text flash guard missing"
+ Require ($runtime-match'operatorChrome.textWidth\(this.minecraft.font::width\)'-and$runtime-match'operatorChrome.text\('-and$runtime-match'graphics.enableScissor\('-and$runtime-match'graphics.disableScissor\(') "$target continuous shared text weights/native dynamic clip missing"
  Require ($keyboard-match'AgentInputContext.consume'-and$keyboard-match'charTyped') "$target keyboard/character origin missing"
  if($target.StartsWith('26.3-')){
   $sdl=Get-Content (Join-Path $directory 'mixin/SDLEventHandlerMixin.java') -Raw
@@ -69,5 +69,6 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  Require ($runtime-match'logicalPointer.button\('-and$runtime-match'logicalPointer.pressScale\(System.nanoTime\(\)\)'-and$runtime-match'logicalPointer.releaseButtons\(\)') "$target delivered-button visual feedback/cleanup missing"
 }
 $chrome=Get-Content (Join-Path $root 'components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java') -Raw
+Require ($chrome-match'!textVisible\(fade\)'-and$chrome-match'if \(textVisible\(opacity\)\)'-and$chrome-match'(?s)finally\s*\{\s*renderer.disableScissor\(\)') 'shared zero-alpha Vanilla text flash guard/native clip restoration missing'
 foreach($message in @('智能体正在读取您的实例','智能体正在操控您的实例','智能体已接管您的实例 · Esc 以退出')){Require ($chrome.Contains($message)) 'mode copy mismatch'}
 [pscustomobject]@{Result='PASS';Targets=5;HttpOperations=$mode.ClassifiedHttpOperations;McpTools=$mode.ClassifiedMcpTools;ImplementationScope='EXCLUSIVE_INPUT_LOGICAL_POINTER_PIXEL_CHROME';UnifiedAcceptance='PENDING';HumanDesktopEvents='NOT_SIMULATED';WireProtocolV1='NOT_FROZEN'}

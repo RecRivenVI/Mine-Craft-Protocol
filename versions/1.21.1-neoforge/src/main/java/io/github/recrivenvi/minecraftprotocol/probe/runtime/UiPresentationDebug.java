@@ -5,6 +5,7 @@ import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
 import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
+import io.github.recrivenvi.minecraftprotocol.core.UiMutationSupport;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.HudUiAccessor;
 import java.util.List;
 import java.util.Objects;
@@ -85,6 +86,10 @@ final class UiPresentationDebug {
                     "resourceVersion",
                     revisions.uiRevision(
                             "presentation:" + identity.applyAsLong(client.gui) + ":" + key, state));
+            UiMutationSupport.describe(
+                    node,
+                    Set.of(UiMutationSupport.Facet.HUD_TEXT),
+                    "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME");
         }
     }
 

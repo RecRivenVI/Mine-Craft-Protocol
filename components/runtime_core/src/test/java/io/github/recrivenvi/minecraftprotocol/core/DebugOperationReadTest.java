@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.lang.reflect.Proxy;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,9 +29,6 @@ class DebugOperationReadTest {
 
         Fixture(String readScopes, CompletableFuture<JsonObject> mutation) throws Exception {
             this.mutation = mutation;
-            try (ServerSocket socket = new ServerSocket(0)) {
-                port = socket.getLocalPort();
-            }
             System.setProperty(
                     "minecraft.protocol.scopes",
                     "read,ui,control,debug,debug.write,debug.ui,debug.world" + readScopes);
@@ -57,8 +53,9 @@ class DebugOperationReadTest {
                                         }
                                         return CompletableFuture.completedFuture(value);
                                     });
-            transport = new ProbeTransport(service, "debug-operation-test", port, "test-target");
+            transport = new ProbeTransport(service, "debug-operation-test", 0, "test-target");
             transport.startAsync();
+            port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;
             for (int i = 0; i < 100; i++) {
                 try {
@@ -215,7 +212,7 @@ class DebugOperationReadTest {
     }
 
     @Test
-    void diagnosticReadPublicationPinsModeGenerationWithoutWorldAuthorityForUi() {
+    void diagnosticReadPublicationKeepsIndependentUiAuthorityAcrossModeChanges() {
         try (var state =
                 new ProtocolState(
                         java.util.Set.of("ui", "debug", "debug.ui.read"), "test", ignored -> {})) {
@@ -239,8 +236,10 @@ class DebugOperationReadTest {
                             io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession.Mode
                                     .OPERATE,
                             "test");
+            assertDoesNotThrow(guard::run);
+            state.close();
             assertEquals(
-                    "DEBUG_READ_CONTEXT_CHANGED",
+                    "CONTROL_SESSION_CLOSED",
                     assertThrows(ProtocolState.ProtocolException.class, guard::run).code());
             assertFalse(state.controlSession().snapshot().agentControlled());
         }
@@ -282,7 +281,7 @@ class DebugOperationReadTest {
             Thread.sleep(100);
             assertFalse(waiting.isDone());
             assertEquals(
-                    "MODE_OPERATION_IN_PROGRESS",
+                    "READ",
                     f.value(
                                     "POST",
                                     "/v0/control/mode",
@@ -290,8 +289,8 @@ class DebugOperationReadTest {
                                             + f.value("GET", "/v0/control/mode", null, 200)
                                                     .get("modeVersion")
                                             + "}",
-                                    409)
-                            .get("error")
+                                    200)
+                            .get("mode")
                             .getAsString());
             var cancelled = f.value("DELETE", path, null, 200);
             assertFalse(cancelled.has("result"));

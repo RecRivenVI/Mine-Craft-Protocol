@@ -321,10 +321,11 @@ class UiDataViewTest {
         for (UiDataView.Category category : UiDataView.Category.values())
             assertTrue(UiDataView.allowsRead("READ", category));
         assertTrue(UiDataView.allowsRead("TAKEOVER", UiDataView.Category.USER));
-        assertFalse(UiDataView.allowsRead("TAKEOVER", UiDataView.Category.DEBUG));
+        assertTrue(UiDataView.allowsRead("TAKEOVER", UiDataView.Category.DEBUG));
         assertTrue(UiDataView.allowsRead("OPERATE", UiDataView.Category.DEBUG));
-        assertFalse(UiDataView.allowsRead("OPERATE", UiDataView.Category.USER));
+        assertTrue(UiDataView.allowsRead("OPERATE", UiDataView.Category.USER));
         assertFalse(UiDataView.allowsRead("unknown", UiDataView.Category.USER));
+        assertFalse(UiDataView.allowsRead(null, UiDataView.Category.USER));
     }
 
     @Test

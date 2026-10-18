@@ -5,9 +5,9 @@ V0 是未冻结的产品原生合同，Wire Protocol v1 NOT FROZEN。
 机器权威为[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)；
 字段、typed discriminator、错误和 schema 从此生成，本文不维护第二份协议。
 
-UI树、resolve及UI Wait/Assert在捕获和发布之间绑定mode generation；即使模式切出再切回，也以UI_READ_CONTEXT_CHANGED拒绝旧结果。
+UI树、resolve及UI Wait/Assert在捕获和发布时独立复验类别/scope与会话存活；模式往返本身不撤销仍合法读取。
 UI调试事件还需独立UI DEBUG读授权，世界DEBUG事件权限不授予UI详情；缺少UI读权限时不向诊断ring发布该UI事件。
-录制的UI上下文仍是USER快照，缺ui或模式不允许USER时不调用UI owner，记录不可用；不会自动回退成DEBUG UI。
+录制的UI上下文仍是USER快照，缺ui时不调用UI owner，记录不可用；不会自动回退成DEBUG UI。
 UI修改的录制诊断详情另需debug.ui.read，在异步写入前复验；权限不足或上下文改变时省略详情，但保留证据污染标记。
 同步mutation回执继续按既有写合同返回本次修改的before/after；这不授予历史查询或其他资源的读取权限，独立消费须重新授权。
 模式、Lease、Arm和修改权限不因这些读取检查而改变；V0消费者需处理409，不自动重放先前操作。
@@ -35,7 +35,7 @@ GET /v0/ui/vision/context是需ui/capture的技术校准信息，不返回语义
 
 `world.block.set` 可带 `properties` 与 `expectedProperties` 字符串映射，各最多64项；实际名称/值须属于目标方块的原生状态定义。
 同类型只覆盖给出的属性，其余保持；替换类型从新类型默认状态开始。省略属性保持原有调用语义，同类型无变化仍拒绝。
-`expectedProperties` 为子集值条件，不替代必需的 Resource Version、世界身份、OPERATE、独立 scope 和 Arm。
+`expectedProperties` 为子集值条件，不替代必需的 Resource Version、世界身份、OPERATE或TAKEOVER、独立 scope 和 Arm。
 非法/未知属性和值在原生写入前拒绝。只操作已加载 LIVE 方块；原版邻居更新、BE 替换及可能的次生效果/掉落照常发生，不承诺多方块回滚。
 返回仍为 DEBUG_PRIVILEGED/diagnostic，不成为 PLAYTEST 或 Persistent Write。
 
@@ -79,8 +79,22 @@ pipeline 的 input 是基础 scope，不代替步骤权限。ui.action/ui.drag �
 GET /v0/operations 保留基础 scope，并增加可选 additionalScopes / additionalScopesByStep；后者是执行同源的公开步骤目录。
 这些声明不授予权限；受限客户端不能再借 pipeline 绕过 ui/read/event，也不能自动补权限或切换模式。
 
-POST /v0/command/player 使用当前 Chat 绑定、原生字符回调与 Enter，要求独立 command、control、input scope、TAKEOVER 与现有 Lease。
-不调用 sendCommand 作为 helper 捷径，不静默关闭已有 Screen/覆盖草稿；不支持的绑定明确拒绝。
+POST /v0/command/player 接受 route=AUTO（默认）/CHAT/NATIVE，所有命令统一 USER，不改变玩家原版权限。
+action缺省为execute。discover在三模式均按read+command授权读取，不执行命令、不取Lease。
+completionSource默认CLIENT_LOCAL，仅读取真实当前玩家收到的命令树和本地原生补全，不发送服务器补全包；
+client_local_only、serverCompletionRequired和completionComplete如实记录本地边界。
+显式SERVER使用当前玩家连接的独立负事务ID，不复用、取消或修改真人Chat补全future；真人待完成请求优先拒绝Agent发送。
+每连接最多一个Agent请求、最小间隔250ms、TTL1500ms，身份/世界/连接/命令树及权限变化、退出或超时后不发布结果。
+服务器来源为current_player_server_command_suggestions及server_current_player；补全只证明当前返回候选，不证明全局完整、授权或执行成功。
+已提交只读查询不可撤回，取消丢弃结果；原版服务器预算仍共享，真人后来的请求可令Agent请求超时，不承诺零预算竞争或零网络发包。
+effectPolicyAllowsSubmission仅说明解析和效果策略，不代表当前模式/权限允许提交或服务器已接受。
+batch仅使用NATIVE，要求OPERATE或TAKEOVER与command授权，最多32条、总32768个UTF-16单元；文本整体预检后逐条复验实际玩家/连接/世界/命令树、期限和取消。
+响应逐项commandIndex/提交回执，首个失败停止并将余项标为not_attempted；不是事务、回滚或服务器反馈关联，已发效果仍未确认，禁止盲重试。
+AUTO 在 OPERATE 使用 NATIVE，READ/TAKEOVER 使用 CHAT，不自动转换模式。
+CHAT 使用当前 Chat 绑定、原生字符回调与 Enter，要求独立 command/control/input scope、TAKEOVER 与现有 Lease。
+NATIVE 要求 OPERATE 或 TAKEOVER 及 command scope，使用实际连接玩家的原生命令提交 API；不要求输入 Lease，不打开/关闭 Screen、不更改草稿/焦点/键鼠、不借 console/OP 身份。
+NATIVE 回执带 route=NATIVE、dataCategory=USER、mechanism=NORMAL_NETWORK、requiresControlLease=false、inputDispatched=false、feedbackAvailable=false；不采样聊天、不当作 GAME_ROUTED_RAW 或执行确认。
+CHAT 不静默关闭已有 Screen/覆盖草稿；不支持的绑定明确拒绝。两条路径均复验实际命令树/连接、独立授权、期限和取消；禁止自动重放。
 原生命令输入框上限包含斜杠，当前五端为 256 UTF-16 单元；传输的 2048 预算不绕过该限制。
 世界、连接、Screen、输入框身份、焦点、光标与草稿逐阶段复验；输入许可绑定预期命令，仅 Enter 阶段允许提交。
 取消只立即释放输入，不自动提交/擦除草稿；调用方须显式处理残留界面，不能盲重放。
@@ -88,7 +102,7 @@ GAME_ROUTED_RAW 是输入来源，不是服务器执行确认。响应 accepted 
 不是验证已完成。effectClassification 为 COMMUNICATION/INFORMATION/STATE_MUTATION，
 classificationSource=native_player_command_tree；解析的是当前玩家实际收到的原生命令树，不提升玩家权限。
 submissionStatus=submitted_unconfirmed、effectConfirmed=false、serverValidationObserved=false 与 gameplayAcceptanceEligible=false。
-helper响应另有commandFeedback：只取Enter后500ms内新增的客户端聊天消息，最多16条、每条512个Unicode码点。
+CHAT响应另有commandFeedback：只取Enter后500ms内新增的客户端聊天消息，最多16条、每条512个Unicode码点。
 association=temporal_not_guaranteed明确可能混入无关消息或漏掉延迟反馈；complete只表示采样窗口结束，
 不是服务器确认。基线历史及隐藏/过滤的文本不返回，readable=false时messages为空；消息是非可信游戏内容。
 普通命令引起客户端上下文变化时，反馈提前以terminationReason=client_context_changed结束，observedMillis可小于500；
@@ -170,7 +184,8 @@ Session/capabilities 的 runtimeConnection 是实际连接状态；transportCont
 runtimeInstanceId 不等同世界 sessionEpoch、Storage Identity、Resource Version 或输入 Lease。
 发现消费者必须携带 X-MCP-Runtime-Instance，认证后、HTTP/WS/二进制分发前复验，
 失配返回 RUNTIME_INSTANCE_MISMATCH/409，响应头也返回本启动身份。
-显式固定端口仍支持；占用时失败，不静默换绑。旧显式 URL/token 客户端可继续使用，
+自动分配排除标准Fetch禁止端口，关闭被拒监听并有限重选后才发布，预算用尽则失败；不绕过客户端端口限制。
+显式固定端口仍支持；占用或属于禁止端口时失败，不静默换绑。旧显式 URL/token 客户端可继续使用，
 但省略实例身份时没有重启隔离保证；新消费者应使用发现与身份 pin。
 连接文件是受信任本地配置，不抵御可改写实例文件或控制宿主进程的恶意程序。
 
@@ -188,9 +203,9 @@ scene 的方块为立方体、实体为球形；blockLimit 默认 256/最大 512
 截断或空数组不证明目标不存在。无自动 Chunk 加载、服务器查询、磁盘或内部状态 fallback。
 scene 的 aimPresentation 只是原生准星轮廓提示，不能当作新世界语义动作；Screen/HUD/F3 不影响缓存模型可用性。
 
-服务器入口和内部 Deep/Provider 仍要求显式 DEBUG，read/debug/debug.world.read 与 READ/OPERATE；
-TAKEOVER 下 DEBUG、OPERATE 下 USER 返回 WORLD_CATEGORY_MODE_MISMATCH，不要求只读 Arm/Lease。
-异步发布复验权限与 mode generation，变化返回 WORLD_READ_CONTEXT_CHANGED，取消传播到原生子工作。
+服务器入口和内部 Deep/Provider 仍要求显式 DEBUG 与 read/debug/debug.world.read，READ/OPERATE/TAKEOVER 均可按同一独立授权读取，不要求只读 Arm/Lease。
+相同 DEBUG 请求不因 TAKEOVER 剥减字段；USER 不自动升级 DEBUG，预算/投影/未加载状态仍可能使区块响应有界或不完整。
+异步发布复验权限与会话存活，取消传播到原生子工作；模式往返本身不撤销合法读取。
 USER 玩家坐标/生命条件与客户端 block/entities Provider、Frame、Recording 使用相同有界入口；
 服务器/未知内部 Provider 先拒绝再捕获，Frame/Recording 先整体预检且不同类别不能混用。
 实体 UUID、生命、AI、NBT/库存不进入 USER；玩家本人的客户端生命字段不等于开放所有实体内部状态。
@@ -203,10 +218,10 @@ WS /v0/events 和 GET /v0/events/resync 的 category 默认 USER；DEBUG 独立�
 resync 不附带其他权限域的 Operation 结果；UI 仅在 ui scope 与 USER 兼容模式下提供。
 每个 WS 订阅最多一个待完成 resync，关闭连接会取消；排队发送时再次校验授权。
 录制请求保存 category；列表、状态、停止、Artifact 的 query category 必须匹配，默认 USER。
-DEBUG 录制不进入 USER 列表，错类 ID 与不存在相同返回 RECORDING_NOT_FOUND；下载逐块复验授权与 mode generation。
+DEBUG 录制不进入 USER 列表，错类 ID 与不存在相同返回 RECORDING_NOT_FOUND；下载逐块复验授权与会话存活。
 UI/世界Debug batch的operation get/wait、Wait/Assert operation条件均显式category=DEBUG，不能从USER入口重取诊断结果。
 创建时固定记录批次所属UI/世界领域；纯UI只要求UI诊断读权限，混合批次同时要求两个领域的读取权限。
-写scope或Arm不授予读权限；异步返回前复验类别、权限与模式generation，变化后拒绝DEBUG_READ_CONTEXT_CHANGED。
+写scope或Arm不授予读权限；异步返回前复验类别、权限与会话存活，不因模式变化抹掉合法诊断结果。
 批次提交回执只返回Operation生命周期，即使原生任务已完成也不附结果；结果通过显式DEBUG读取取得。
 此类内部诊断Operation的取消仍沿用既有控制面授权，不新增诊断读取门槛；取消响应只报告生命周期，不返回内部result/error/errorDetails。
 普通输入 Operation 的命令来源是当前玩家提交的元数据，不包含诊断步骤内容，按上方 commandSubmissions 合同保留。
@@ -224,11 +239,11 @@ windowDecorationError 为空表示没有记录到后端装饰错误；这些字�
 originalWindowIconCount 包含各个原生尺寸；模式切换不改变图标来源。
 
 UI 领域采用 USER/DEBUG 两类，独立于 READ/TAKEOVER/OPERATE 模式。
+本节说明当前生产准入；[控制模型](../design/concept-agent_control.md)同时区分已实现的共享合同与尚未完成的协作/部署能力。
 GET /v0/ui/tree 的 category 默认 USER，可显式指定 DEBUG；POST /v0/ui/resolve 接受同名类别字段。
 USER 图只发布确认可见且未遮挡的节点与受限字段，树/解析都不泄露屏幕外节点。
 DEBUG 图要求 ui、debug、debug.ui.read，不要求 write/Arm/Lease；debugFacts 明确已捕获节点数量与有界范围。
-READ 可选两类读取，TAKEOVER 仅 USER，OPERATE 仅 DEBUG；先认证并解析合法类别，再检查对应 scope 和模式，
-发布异步结果前再次校验当前权限和模式，拒绝 UI_CATEGORY_MODE_MISMATCH，不自动切换。
+READ/OPERATE/TAKEOVER 均可选择两类读取；先认证并解析合法类别，再检查对应 scope，发布异步结果前复验权限与会话，不自动切模式或授予另一类别数据。
 tree/resolve 返回 domain=UI、dataCategory；capabilities.uiContract 声明类别合同及里程碑未完成状态。
 ui/action 请求与 pipeline 各输入 step 的 category 仅接受 USER；DEBUG 不能作为替代玩家输入。
 原有节点身份与版本保留用于定位，但未知内部字段与隐藏数据不进入 USER 读取或 resolvedNode 结果。
@@ -238,13 +253,17 @@ Wait/Assert 在异步发布前复查权限/模式，结果标记 domain=UI 与 d
 旧 wait/screen 仅等待 session.screenClass 并返回会话状态，不返回 UI 树，继续按 read scope 使用；
 不能把这条状态等待接口当作语义 UI 条件或 DEBUG 树读取。
 UI DEBUG mutation 复用 debug/arm、debug/mutations 和 bounded batch，当前仅支持
-ui.widget.active.set、ui.widget.visible.set、ui.text.set、ui.scroll.set、ui.slider.set、ui.toast.reset、ui.toast.hide。
+ui.widget.active.set、ui.widget.visible.set、ui.text.set、ui.scroll.set、ui.slider.set、ui.toast.reset、ui.toast.hide、ui.canvas.pan.set。
+ui.canvas.pan.set只针对当前已完成原生首次居中的真实选中进度Tab，以完整有限{x,y}设置绝对原生GUI偏移；
+DEBUG的debugPanValue/debugPanRange标明轴范围，不可移动轴须保留原生居中值，不可把正偏移强制归零。
+版本同时绑定真实Tab/Screen/内容边界、当前偏移、GUI布局和原生范围；未就绪不发可用token，失效不调用原生scroll。
+只改变本地画布显示，不解锁进度、不发送输入或服务器包；恢复仍需重新读取和显式新版本，不是事务。
 ui.scroll.set对AbstractSelectionList使用当前像素范围；对creative/loom/stonecutter/merchant.scrollbar.track使用0～1归一化位置，
 无滚动范围时只允许0。Screen本地滚动同步原生行/可见物品，不选择配方或交易、不取得物品、不发送玩家输入或服务器包；单位不可混用。
 滑块值为有限的 0–1 归一化数字；调用原生 setter，同步设置与文案，可能触发原生设置保存。
 结果 sideEffects=native_slider_setting_callback；不承诺取消已应用的设置，调用者用新版本条件恢复。
 请求要求 nodeId、expectedResourceVersion、typed value，可附 expectedValue；
-debug/debug.write/debug.ui、OPERATE、deadline 与有效 Arm 在 owner-thread mutation 前校验。
+debug/debug.write/debug.ui、OPERATE或TAKEOVER、deadline 与有效 Arm 在 owner-thread mutation 前校验。
 UI Arm 明确传 uiContextId 与 namespaces=[ui]，不得混用 worldFingerprint，不向服务端 Peer 路由。
 DEBUG tree 的 uiContextId/resourceVersion 为安全元数据，USER 不发布这些 Debug 授权依据。
 结果为 CLIENT_UI、DEBUG_PRIVILEGED、inputDispatchCount=0；不直接执行按钮回调或替代玩家。
@@ -265,6 +284,7 @@ sideEffects=native_hud_plain_text_and_lifetime明确纯文字会替代富文本�
 Toast操作只接受当前manager内驻留的SystemToast/TutorialToast，不允许排队对象、任意类型或创建通知。
 ui.toast.reset要求value={title:string,message:string}，两段各最多4096字符，显式重置SystemToast的两段纯文字；
 sideEffects=native_toast_plain_text_reflow_and_lifetime，不承诺恢复格式/计时。expectedValue可比较完整原生两段解析文字，不接受截断前缀冒充相等。
+SystemToast版本绑定完整原生内容、真实owner和被动观察的reset代次；正常tick消费重设标志/计时不另制造版本，外部同值reset仍使旧条件失效。恢复仍需本次确认的完整token，不自动接受未知版本变化。
 TutorialToast在debugProgressable=true时接受ui.slider.set的有限0～1显示进度，sideEffects=native_tutorial_display_progress_only，不推进教学事实。
 ui.toast.hide只接受value=true，可附expectedValue比较debugHideRequested；sideEffects=native_toast_hide_requested_not_reversible，不能反向显示或复活通知。
 Forge 1.20.1的SystemToast没有forceHide，返回UI_DEBUG_UNSUPPORTED；该端TutorialToast及其他四端这两类的原生隐藏可用。
@@ -294,6 +314,7 @@ valueSemantics=ordered_native_glyph_composition_not_raw_statistics。样本绑�
 hudIconSampleStatus区分CURRENT、UNOBSERVED、STALE、CONTEXT_CHANGED、BUDGET_EXCEEDED与OCCLUDED；
 不完整、超预算或被普通Screen/Overlay遮挡的样本不进入USER。此为原生绘制参数观察，不保证第三方最终像素遮挡。
 Hook manifest单独公开passiveDrawDelegationCount=5，同时计入replacementInjectionCount；它不是玩家输入许可。
+HookDescriptor.failureCapability是受影响功能的诊断标签，不是capabilities表的外键或授权scope；判断支持情况、当前就绪状态和调用权限时，分别使用能力声明、readiness及操作本身的准入结果。
 这些只读委托先原样调用原生绘制一次，再记录参数；逐Target字节码测试约束调用次数、参数顺序及观察前无分支。
 命令效果分类将function/schedule、clone/place/loot及item的from/modify保守拒绝为PLAYER_COMMAND_UNCLASSIFIED；
 不读取服务器模板、战利品表、修饰器或源物品来推测影响。data modify的from/string来源同样拒绝。
@@ -334,7 +355,7 @@ requestId、deadline、Control Lease、Debug Arm、world/resource/value precondi
 `GET /v0/control/task` 查询逻辑任务，`POST` 显式 begin/heartbeat/end；需要 read scope，
 不授予模式、Lease 或 Debug 权限。TTL 为 1–60 秒，总预算为 1–300 秒，心跳不能延长总预算。
 显式任务期间 acquire 带 taskId，结束/超时清理其绑定的既有输入 Lease并等待清理完成；
-真人 Esc 中断任务，不清除人工撤销提示。短 HTTP 连接结束不是任务结束。
+真人 Esc 只终止任务内TAKEOVER及其输入，不中断逻辑任务、独立DEBUG或已准入的原生命令工作，不清除人工撤销提示。短 HTTP 连接结束不是任务结束。
 任务状态也包含在 control/mode 的 agentTask 中。结果不确定时先查状态，不盲目重放输入。
 
 正式表面包含 session/auth/capabilities、UI Tree/action、control mode/lease、
@@ -351,10 +372,11 @@ Provider、Fixture/typed Debug/batch、Event、capture/recording/artifact、Pers
 | --- | --- | --- |
 | Session/能力、readiness/trace/Hook/audit、操作描述、Peer状态/协商 | READ compatible；控制面元数据 | 各自read/diagnostics/Peer门禁；查询不授予模式、玩家或服务器权限，POST协商不等于世界mutation |
 | task begin/heartbeat/end、显式mode/Lease管理、Arm管理、取消 | 任务为READ compatible；其余按MODE_INDEPENDENT声明 | read/control/Debug等实际scope及主体约束仍在；结束/取消可清理输入但不读取诊断载荷或伪造用户重新同意 |
-| UI tree/resolve与screen/ui.exists/menu/inventory条件 | UI；READ两类、TAKEOVER USER、OPERATE DEBUG | USER仅实际呈现；DEBUG另需debug/debug.ui.read；条件含read及ui，授权/异步发布沿用相同投影，不能凭节点ID取隐藏数据 |
+| UI tree/resolve与screen/ui.exists/menu/inventory条件 | UI；三模式均可独立授权两类 | USER仅实际呈现；DEBUG另需debug/debug.ui.read；条件含read及ui，授权/异步发布沿用相同投影，不能凭节点ID取隐藏数据 |
 | 客户端模型、服务器/内部世界、Deep Observation、Provider/Frame及相关条件 | WORLD；按实际USER/DEBUG能力 | 客户端有界USER不加载区块；内部/服务器、第三方Provider及保留实验读取只接受DEBUG和独立世界读取scope，不回退LIVE/PERSISTED |
-| UI action、键鼠/文本/输入pipeline、世界语义gesture、玩家命令 | TAKEOVER USER输入路径 | 原Control Lease、input/command/额外步骤scope和原生验证；诊断命令仍可污染为DEBUG_PRIVILEGED，不以输入机制洗白effects |
-| Fixture、UI/世界typed Debug和batch、诊断事件压力发布 | OPERATE；各自FIXTURE/DEBUG操作 | Fixture自己的scope，Debug另需Arm/namespace/版本/值/deadline；不获得玩家Lease；批次逐项结果而非多资源事务 |
+| UI action、键鼠/文本/输入pipeline、世界语义gesture、CHAT命令 | TAKEOVER USER输入路径 | 原Control Lease、input/command/额外步骤scope和原生验证；命令仍可污染为DEBUG_PRIVILEGED，不以输入机制洗白effects |
+| NATIVE当前玩家命令 | OPERATE或TAKEOVER；USER非输入路径 | 独立command scope与实际玩家命令树/服务器权限，不取得输入Lease，不证明执行成功或gameplay验收 |
+| Fixture、UI/世界typed Debug和batch、诊断事件压力发布 | OPERATE或TAKEOVER；各自FIXTURE/DEBUG操作 | Fixture自己的scope，Debug另需Arm/namespace/版本/值/deadline；不获得玩家Lease；批次逐项结果而非多资源事务 |
 | Capture、Recording/Artifact及事件流 | READ compatible，显式记录/读取类别与资源权威 | capture/event/类别及独立UI诊断读取门禁；像素截图不是内部状态或第三方渲染收敛oracle；不混读诊断录制或丢失污染标记 |
 | Persistent Read | READ compatible，PERSISTED/last_saved_state | 独立storage.read与实际存储上下文，不借LIVE类别提升权限，不自动加载/写入；当前无正式Persistent Write |
 

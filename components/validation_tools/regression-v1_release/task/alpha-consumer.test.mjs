@@ -1,6 +1,107 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {consumerPriorityProof,consumerFeedbackProof,uiRegressionProof} from './alpha-evidence.mjs';
+import {consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof} from './alpha-evidence.mjs';
+
+test('alpha collaboration proof requires actual per-item/MCP samples and rejects partial or dirty runs',()=>{
+ const result={target:'fixture',scenario:'command-discovery-batch',status:'PASS',cleanShutdown:true,sourceChangedDuringRun:false,persistentWriteCalls:0,fixturePolicy:'immutable_baseline_restored',checks:Array.from({length:8},()=>({status:'PASS'})),actionSamples:[
+  {case:'native_command_batch',batch:{submittedCount:3,requiresControlLease:false,inputDispatched:false,effectConfirmed:false,serverFeedbackCorrelated:false}},
+  {case:'native_batch_boundary',boundary:{commandCount:32,submittedCount:32}},
+  {case:'native_batch_stops_on_first_error',result:{commands:[{}, {}, {status:'not_attempted'}]}},
+  {case:'mcp_command_discovery_batch'}
+ ]};
+ assert.equal(collaborationIncrementProof(result,'fixture','command-discovery-batch').checks,8);
+ for(const change of [{status:'FAIL'},{sourceChangedDuringRun:true},{cleanShutdown:false},{actionSamples:result.actionSamples.slice(0,-1)}])
+  assert.throws(()=>collaborationIncrementProof({...result,...change},'fixture','command-discovery-batch'));
+ const boundary=structuredClone(result);boundary.actionSamples[1].boundary.submittedCount=31;
+ assert.throws(()=>collaborationIncrementProof(boundary,'fixture','command-discovery-batch'));
+});
+
+function validServerCompletion(){
+ const server=()=>({source:'current_player_server_command_suggestions',completionSource:'SERVER',completionScope:'server_current_player',dataCategory:'USER',serverCompletionRequested:true,serverCompletionSupported:true,serverAcceptanceConfirmed:false,commandExecuted:false,inputDispatched:false,requiresControlLease:false,humanFutureModified:false,humanRequestsHavePriority:true,serverBudgetShared:true,maxAgentCompletionsInFlight:1,suggestions:[{text:'help',start:0,end:2}]});
+ return{target:'fixture-target',scenario:'server-completion',status:'PASS',cleanShutdown:true,sourceChangedDuringRun:false,persistentWriteCalls:0,fixturePolicy:'immutable_baseline_restored',checks:Array.from({length:8},()=>({status:'PASS'})),actionSamples:[
+  {case:'server_completion_local_default',local:{source:'current_player_native_command_tree',completionScope:'client_local_only',serverCompletionRequested:false,commandExecuted:false,inputDispatched:false,requiresControlLease:false,suggestions:[{text:'help',start:0,end:2}]}},
+  {case:'server_completion_actual_reply',result:server()},
+  {case:'server_completion_bounded',result:{...server(),suggestionCount:12,suggestions:[{text:'advancement',start:0,end:0}],suggestionsTruncated:true,completionComplete:false,nativeServerMayLimitSuggestions:true}},
+  {case:'server_completion_concurrency',values:[{status:200,data:server()},{status:409,data:{error:'PLAYER_COMMAND_COMPLETION_BUSY'}}]},
+  {case:'server_completion_preserves_chat',result:server(),before:[{value:'server completion unsent draft',focused:true}],after:[{value:'server completion unsent draft',focused:true}]},
+  {case:'mcp_server_completion',target:'fixture-target',result:server()}
+ ]};
+}
+
+test('server completion alpha requires all six Native and actual MCP samples and retains shared-budget limitations',()=>{
+ const proof=collaborationIncrementProof(validServerCompletion(),'fixture-target','server-completion');
+ assert.equal(proof.checks,8);assert.equal(proof.serverCompletion,true);assert.equal(proof.serverBudgetShared,true);assert.equal(proof.humanCompletionConcurrentLiveTested,false);assert.equal(proof.physicalEscTested,false);
+ for(const sample of validServerCompletion().actionSamples){const result=validServerCompletion();result.actionSamples=result.actionSamples.filter(row=>row.case!==sample.case);assert.throws(()=>collaborationIncrementProof(result,'fixture-target','server-completion'),sample.case);}
+ const limited=validServerCompletion();limited.actionSamples.find(row=>row.case==='server_completion_concurrency').values[1]={status:429,data:{error:'PLAYER_COMMAND_COMPLETION_RATE_LIMITED'}};assert.equal(collaborationIncrementProof(limited,'fixture-target','server-completion').checks,8);
+ for(const patch of [{checks:[]},{checks:Array.from({length:7},()=>({status:'PASS'}))},{cleanShutdown:false},{sourceChangedDuringRun:true},{persistentWriteCalls:1},{fixturePolicy:'unrestored'}])assert.throws(()=>collaborationIncrementProof({...validServerCompletion(),...patch},'fixture-target','server-completion'));
+});
+
+test('server completion alpha refuses false source authority no-input budgets and Chat-preservation claims',()=>{
+ for(const name of ['server_completion_actual_reply','server_completion_bounded','server_completion_preserves_chat','mcp_server_completion'])for(const [field,value]of [
+  ['source','current_player_native_command_tree'],['completionSource','CLIENT_LOCAL'],['completionScope','server_internal'],['dataCategory','DEBUG'],
+  ['serverCompletionRequested',false],['serverCompletionSupported',false],['serverAcceptanceConfirmed',true],['commandExecuted',true],['inputDispatched',true],['requiresControlLease',true],
+  ['humanFutureModified',true],['humanRequestsHavePriority',false],['serverBudgetShared',false],['maxAgentCompletionsInFlight',2]
+ ]){const result=validServerCompletion();result.actionSamples.find(row=>row.case===name).result[field]=value;assert.throws(()=>collaborationIncrementProof(result,'fixture-target','server-completion'),name+' '+field);}
+ for(const [name,change]of [
+  ['server_completion_local_default',row=>{row.local.completionScope='server_current_player';}],['server_completion_local_default',row=>{row.local.serverCompletionRequested=true;}],
+  ['server_completion_local_default',row=>{row.local.inputDispatched=true;}],['server_completion_local_default',row=>{row.local.suggestions=[];}],
+  ['server_completion_actual_reply',row=>{row.result.suggestions[0].end=3;}],
+  ['server_completion_bounded',row=>{row.result.suggestionCount=1;}],['server_completion_bounded',row=>{row.result.suggestions.push({text:'help'});}],
+  ['server_completion_bounded',row=>{row.result.suggestionsTruncated=false;}],['server_completion_bounded',row=>{row.result.completionComplete=true;}],['server_completion_bounded',row=>{row.result.nativeServerMayLimitSuggestions=false;}],
+  ['server_completion_concurrency',row=>{row.values[1]=structuredClone(row.values[0]);}],['server_completion_concurrency',row=>{row.values[1].data.error='RATE_LIMITED';}],
+  ['server_completion_concurrency',row=>{row.values[1].status=429;}],['server_completion_concurrency',row=>{row.values[0].data.requiresControlLease=true;}],
+  ['server_completion_preserves_chat',row=>{row.after[0].value='lost draft';}],['server_completion_preserves_chat',row=>{row.after[0].focused=false;}],
+  ['server_completion_preserves_chat',row=>{row.before=[];row.after=[];}],['server_completion_preserves_chat',row=>{row.before[0].value='';row.after[0].value='';}],
+  ['mcp_server_completion',row=>{row.target='other-target';}],['mcp_server_completion',row=>{row.result.suggestions=[];}]
+ ]){const result=validServerCompletion();change(result.actionSamples.find(row=>row.case===name));assert.throws(()=>collaborationIncrementProof(result,'fixture-target','server-completion'),name);}
+ const duplicate=validServerCompletion();duplicate.actionSamples.push(structuredClone(duplicate.actionSamples[0]));assert.throws(()=>collaborationIncrementProof(duplicate,'fixture-target','server-completion'));
+});
+
+function validResourceVersion(){
+ const operations=['player.health.set','player.attribute.set','entity.no_gravity.set','block_entity.custom_name.set','menu.slot.set'];
+ const input={inputDispatchSequence:10,pressedKeyCount:0,pressedButtonCount:0};
+ const chain=(operation,consumer='native_http')=>({case:'resource_version_typed_chain',operation,consumer,authority:'DEBUG_PRIVILEGED',inspectionSource:'formal_deep_observation',original:{revision:1},applied:{beforeResourceVersion:{revision:1},afterResourceVersion:{revision:2},gameplayEvidence:false,evidenceContaminated:true,storageAccessed:false},stale:{[consumer==='native_http'?'error':'code']:'STALE_RESOURCE_REVISION',expectedRevision:1,actualRevision:2,reinspectRequired:true,retrySafe:false},reinspected:{revision:2},restored:{beforeResourceVersion:{revision:2},afterResourceVersion:{revision:3}},inputBefore:{...input},inputAfter:{...input},actInputDelta:0});
+ return{target:'fixture-target',scenario:'resource-version',status:'PASS',cleanShutdown:true,sourceChangedDuringRun:false,persistentWriteCalls:0,fixturePolicy:'immutable_baseline_restored',checks:Array.from({length:14},()=>({status:'PASS'})),actionSamples:[
+  {case:'resource_inspection_contract',contract:{operations:[...operations,'world.block.set'].map(operation=>({operation})),grantsMutationPermission:false}},
+  {case:'resource_version_actual_mcp',error:{code:'STALE_RESOURCE_REVISION',actualRevision:2,expectedRevision:1,reinspectRequired:true,retrySafe:false}},
+  {case:'safe_stale_reinspect'},
+  {case:'resource_version_fixture_arrange',nativePauseObserved:true,ownerThreadReadsWhilePaused:true},
+  ...operations.map(operation=>chain(operation)),
+  {...chain('menu.slot.set','mcp_stdio'),case:'resource_version_menu_actual_mcp'},
+  {case:'resource_version_extended_cleanup',entityRemoved:true,restoredReadMode:true,persistentWriteCalls:0,cleanupErrors:[]}
+ ]};
+}
+
+test('resource alpha requires fourteen checks and all five formal typed chains plus the actual MCP Menu consumer',()=>{
+ assert.equal(collaborationIncrementProof(validResourceVersion(),'fixture-target','resource-version').checks,14);
+ for(const sample of validResourceVersion().actionSamples){
+  const result=validResourceVersion();result.actionSamples=result.actionSamples.filter(row=>row.case!==sample.case||(row.case==='resource_version_typed_chain'&&row.operation!==sample.operation));
+  assert.throws(()=>collaborationIncrementProof(result,'fixture-target','resource-version'),sample.operation??sample.case);
+ }
+ for(const patch of [{checks:Array.from({length:8},()=>({status:'PASS'}))},{checks:[]},{cleanShutdown:false},{sourceChangedDuringRun:true},{persistentWriteCalls:1}])assert.throws(()=>collaborationIncrementProof({...validResourceVersion(),...patch},'fixture-target','resource-version'));
+});
+
+test('resource alpha rejects forged recovery, stale counters, authority and input-cleanup summaries',()=>{
+ for(const name of ['resource_version_typed_chain','resource_version_menu_actual_mcp'])for(const change of [
+  row=>{row.consumer='invented_consumer';},row=>{row.authority='PLAYTEST';},row=>{row.actInputDelta=1;},
+  row=>{row.inputBefore.pressedKeyCount=1;},row=>{row.inputAfter.pressedButtonCount=1;},row=>{row.inputAfter.inputDispatchSequence++;},
+  row=>{row.applied.beforeResourceVersion.revision=0;},row=>{row.applied.afterResourceVersion.revision=1;},
+  row=>{row.applied.gameplayEvidence=true;},row=>{row.applied.evidenceContaminated=false;},row=>{row.applied.storageAccessed=true;},
+  row=>{row.stale.expectedRevision=0;},row=>{row.stale.actualRevision=3;},row=>{row.stale.reinspectRequired=false;},row=>{row.stale.retrySafe=true;},
+  row=>{row.reinspected.revision='2';},row=>{row.restored.beforeResourceVersion.revision=0;},row=>{row.restored.afterResourceVersion.revision=2;},
+  row=>{delete row.stale.error;delete row.stale.code;},row=>{delete row.inputAfter;},row=>{delete row.restored;}
+ ]){const result=validResourceVersion();change(result.actionSamples.find(row=>row.case===name));assert.throws(()=>collaborationIncrementProof(result,'fixture-target','resource-version'),name);}
+ for(const [name,change]of [
+  ['resource_version_typed_chain',row=>{row.inspectionSource='legacy_direct_read';}],
+  ['resource_version_typed_chain',row=>{row.operation='world.block.set';}],
+  ['resource_version_menu_actual_mcp',row=>{row.operation='player.health.set';}],
+  ['resource_version_fixture_arrange',row=>{row.nativePauseObserved=false;}],
+  ['resource_version_extended_cleanup',row=>{row.entityRemoved=false;}],
+  ['resource_version_extended_cleanup',row=>{row.restoredReadMode=false;}],
+  ['resource_version_extended_cleanup',row=>{row.cleanupErrors=['unknown external state'];}],
+  ['resource_version_extended_cleanup',row=>{row.persistentWriteCalls=1;}]
+ ]){const result=validResourceVersion();change(result.actionSamples.find(row=>row.case===name));assert.throws(()=>collaborationIncrementProof(result,'fixture-target','resource-version'),name);}
+});
 
 function valid(){
  const player={dataCategory:'USER',authority:'CLIENT_KNOWN',x:0,y:80,z:0,yaw:0};
@@ -79,24 +180,30 @@ test('full alpha refuses targeted UI, stale sources or unverified process cleanu
    ...['INVALID_UI_DEBUG_VALUE','INVALID_UI_DEBUG_VALUE','INVALID_UI_DEBUG_VALUE','INVALID_UI_DEBUG_VALUE','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION'].map(code=>({case:'hud_message_rejected',field,code,inputDelta:0}))
   ]),{case:'native_hud_content_guard_probe',probeOnly:true,processId:42,target:r.target,testedAt:'2026-10-17T00:01:00Z',playerInputUsed:false,worldMutationUsed:false,status:'PASS',checks:10}];
  r.uiDebugSamples.push(
-  {case:'native_toast_content_guard_probe',probeOnly:true,processId:42,target:r.target,processStartedAt:'2026-10-16T23:59:55Z',testedAt:'2026-10-17T00:00:01Z',playerInputUsed:false,worldMutationUsed:false,status:'PASS',checks:7},
+  {case:'native_toast_content_guard_probe',probeOnly:true,processId:42,target:r.target,processStartedAt:'2026-10-16T23:59:55Z',testedAt:'2026-10-17T00:00:01Z',playerInputUsed:false,worldMutationUsed:false,status:'PASS',checks:9,nativeTickVersionStable:true,sameValueResetInvalidates:true,resetGenerationChecks:2,resetConsumption:'native_update_on_probe_owned_toast'},
   {case:'native_tutorial_progress',restored:true,inputDelta:0,worldMutation:false},
   {case:'native_system_toast_reset',restoredText:true,inputDelta:0,worldMutation:false,lifetimeRestored:false,richFormattingRestored:false},
   ...['progress','static','system'].map(kind=>({case:'native_toast_hide',kind,oneWay:true,inputDelta:0,worldMutation:false})),
   ...['ui.slider.set','ui.toast.reset'].flatMap(operation=>['INVALID_UI_DEBUG_VALUE','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION'].map(code=>({case:'native_toast_rejected',operation,code,inputDelta:0})))
  );
- r.editorSamples=['widget_active','widget_visible','native_list','native_slider','native_editbox','book','book_title','sign','hanging_sign',...scrolls.map(key=>'debug_screen_scroll_'+key.split('.')[0]),...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast'].flatMap(editor=>[
+ r.advancementPanSamples=[
+  {case:'native_advancement_pan_fixed_axes',attemptedRoots:['story'],centeredByNativeRenderer:true,original:{x:103,y:42},bothFixed:true,unrequestedZeroing:false,inputDelta:0},
+  {case:'native_advancement_pan_ranged',original:{x:-20,y:42},value:{x:-60,y:42},restored:true,centeredByNativeRenderer:true,staleRejected:true,inputDelta:0,playerLeaseRequired:false},
+  {case:'native_advancement_pan_screen_replaced',rejected:true,inputDelta:0}
+ ];
+ r.editorSamples=['widget_active','widget_visible','native_list','native_slider','native_editbox','book','book_title','sign','hanging_sign',...scrolls.map(key=>'debug_screen_scroll_'+key.split('.')[0]),...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast','debug_advancement_canvas'].flatMap(editor=>[
   {editor,transport:'mcp_stdio_debug',status:'PASS',inputDelta:0,playerLeaseAcquired:false,typedRecovery:true,userOperationGetWaitAssertRejected:true,diagnosticCancelRedacted:true},
-  {editor,transport:'web_user_isolation',status:'PASS',operateSnapshotRejected:true,debugMetadataLeaked:false,automaticLeaseAcquired:false}
+  {editor,transport:'web_user_isolation',status:'PASS',operateUserSnapshotAvailable:true,debugMetadataLeaked:false,automaticLeaseAcquired:false}
  ]);
  r.editorSamples.push(...['book','book_title','sign','hanging_sign'].flatMap(editor=>['mcp_stdio','web_http'].map(transport=>({editor,transport,status:'PASS',emptyRestoreVerified:editor==='book_title',textReplaceStrategy:'select_all'}))));
  assert.equal(uiRegressionProof(r,'fixture-target').checks,60);
  for(const patch of [{scenario:'hud-vitals'},{cleanShutdown:false},{processExitCode:1},{endpointRemoved:false},{sourceChangedDuringRun:true},{worldSelectionSamples:[]},{vitalSamples:[]},{editorSamples:[]},{uiDebugSamples:Array(56).fill({})}])assert.throws(()=>uiRegressionProof({...r,...patch},'fixture-target'));
- for(const [transport,field,value]of [['mcp_stdio_debug','userOperationGetWaitAssertRejected',false],['mcp_stdio_debug','inputDelta',1],['mcp_stdio_debug','typedRecovery',false],['web_user_isolation','debugMetadataLeaked',true],['web_user_isolation','automaticLeaseAcquired',true]]){
+ for(const [transport,field,value]of [['mcp_stdio_debug','userOperationGetWaitAssertRejected',false],['mcp_stdio_debug','inputDelta',1],['mcp_stdio_debug','typedRecovery',false],['web_user_isolation','operateUserSnapshotAvailable',false],['web_user_isolation','debugMetadataLeaked',true],['web_user_isolation','automaticLeaseAcquired',true]]){
   const changed=structuredClone(r);changed.editorSamples.find(s=>s.transport===transport)[field]=value;assert.throws(()=>uiRegressionProof(changed,'fixture-target'));
  }
  for(const target of ['1.20.1-forge','1.21.1-neoforge']){
   const old=structuredClone(r);old.target=target;old.uiDebugSamples.find(s=>s.case==='native_hud_content_guard_probe').target=target;old.uiDebugSamples.find(s=>s.case==='native_toast_content_guard_probe').target=target;
+  old.uiDebugSamples.find(s=>s.case==='native_toast_content_guard_probe').resetConsumption='native_render_on_probe_owned_toast_no_pixel_canvas';
   if(target==='1.20.1-forge'){
    old.uiDebugSamples=old.uiDebugSamples.filter(s=>!(s.case==='native_toast_hide'&&s.kind==='system'));
    old.uiDebugSamples.push({case:'native_system_toast_hide_absent',nativeMethodAbsent:true,inputDelta:0},{case:'legacy_system_toast_fixture_cleanup',probeOnly:true,notAProductHideCapability:true});
@@ -112,19 +219,30 @@ test('full alpha refuses targeted UI, stale sources or unverified process cleanu
   ['native_hud_text',{worldMutation:true}],['native_hud_text',{lifetimeRestored:true}],['native_hud_text',{richFormattingRestored:true}],
   ['native_hud_content_guard_probe',{processId:43}],['native_hud_content_guard_probe',{target:'other-target'}],['native_hud_content_guard_probe',{testedAt:'2026-10-16T00:00:00Z'}],
   ['native_hud_content_guard_probe',{testedAt:'2026-10-18T00:00:00Z'}],['native_hud_content_guard_probe',{checks:9}],['native_hud_content_guard_probe',{probeOnly:false}],
-  ['native_toast_content_guard_probe',{processId:43}],['native_toast_content_guard_probe',{target:'other-target'}],['native_toast_content_guard_probe',{checks:6}],['native_toast_content_guard_probe',{processStartedAt:'invalid'}],['native_toast_content_guard_probe',{testedAt:'2026-10-18T00:00:00Z'}],['native_toast_content_guard_probe',{probeOnly:false}],
+  ['native_toast_content_guard_probe',{processId:43}],['native_toast_content_guard_probe',{target:'other-target'}],['native_toast_content_guard_probe',{checks:6}],['native_toast_content_guard_probe',{processStartedAt:'invalid'}],['native_toast_content_guard_probe',{testedAt:'2026-10-18T00:00:00Z'}],['native_toast_content_guard_probe',{probeOnly:false}],['native_toast_content_guard_probe',{nativeTickVersionStable:false}],['native_toast_content_guard_probe',{sameValueResetInvalidates:false}],['native_toast_content_guard_probe',{resetGenerationChecks:0}],
   ['native_tutorial_progress',{restored:false}],['native_system_toast_reset',{richFormattingRestored:true}],['native_system_toast_reset',{lifetimeRestored:true}],['native_toast_hide',{oneWay:false}],['native_toast_hide',{inputDelta:1}]
  ]){const changed=structuredClone(r);Object.assign(changed.uiDebugSamples.find(s=>s.case===name),patch);assert.throws(()=>uiRegressionProof(changed,r.target),name);}
- for(const editor of [...scrolls.map(key=>'debug_screen_scroll_'+key.split('.')[0]),...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast'])for(const transport of ['mcp_stdio_debug','web_user_isolation']){
+ for(const editor of [...scrolls.map(key=>'debug_screen_scroll_'+key.split('.')[0]),...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast','debug_advancement_canvas'])for(const transport of ['mcp_stdio_debug','web_user_isolation']){
   const changed=structuredClone(r);changed.editorSamples=changed.editorSamples.filter(s=>s.editor!==editor||s.transport!==transport);assert.throws(()=>uiRegressionProof(changed,r.target),editor+' '+transport);
  }
+ for(const sample of r.advancementPanSamples){const changed=structuredClone(r);changed.advancementPanSamples=changed.advancementPanSamples.filter(row=>row.case!==sample.case);assert.throws(()=>uiRegressionProof(changed,r.target),sample.case);}
+ for(const [name,change]of [
+  ['native_advancement_pan_fixed_axes',row=>{row.centeredByNativeRenderer=false;}],['native_advancement_pan_fixed_axes',row=>{row.bothFixed=false;}],['native_advancement_pan_fixed_axes',row=>{row.unrequestedZeroing=true;}],
+  ['native_advancement_pan_fixed_axes',row=>{row.original.x=NaN;}],['native_advancement_pan_fixed_axes',row=>{row.inputDelta=1;}],
+  ['native_advancement_pan_ranged',row=>{row.centeredByNativeRenderer=false;}],['native_advancement_pan_ranged',row=>{row.restored=false;}],['native_advancement_pan_ranged',row=>{row.staleRejected=false;}],
+  ['native_advancement_pan_ranged',row=>{row.playerLeaseRequired=true;}],['native_advancement_pan_ranged',row=>{row.value={...row.original};}],['native_advancement_pan_ranged',row=>{row.value.y=Infinity;}],
+  ['native_advancement_pan_ranged',row=>{row.original.z=0;}],['native_advancement_pan_ranged',row=>{row.inputDelta=1;}],
+  ['native_advancement_pan_screen_replaced',row=>{row.rejected=false;}],['native_advancement_pan_screen_replaced',row=>{row.inputDelta=1;}]
+ ]){const changed=structuredClone(r);change(changed.advancementPanSamples.find(row=>row.case===name));assert.throws(()=>uiRegressionProof(changed,r.target),name);}
+ const duplicate=structuredClone(r);duplicate.advancementPanSamples[2]=structuredClone(duplicate.advancementPanSamples[0]);assert.throws(()=>uiRegressionProof(duplicate,r.target));
  const forge=structuredClone(r);forge.target='1.20.1-forge';forge.uiDebugSamples.find(s=>s.case==='native_hud_content_guard_probe').target=forge.target;
  forge.uiDebugSamples.find(s=>s.case==='native_toast_content_guard_probe').target=forge.target;
+ forge.uiDebugSamples.find(s=>s.case==='native_toast_content_guard_probe').resetConsumption='native_render_on_probe_owned_toast_no_pixel_canvas';
  forge.uiDebugSamples=forge.uiDebugSamples.filter(s=>!(s.case==='native_toast_hide'&&s.kind==='system'));
  forge.uiDebugSamples.push({case:'native_system_toast_hide_absent',nativeMethodAbsent:true,inputDelta:0},{case:'legacy_system_toast_fixture_cleanup',probeOnly:true,notAProductHideCapability:true});
  forge.editorSamples.find(s=>s.editor==='book_title'&&s.transport==='mcp_stdio').textReplaceStrategy='backspace_from_end';
  forge.uiDebugSamples.find(s=>s.controlKey==='stonecutter.scrollbar').enabled=false;
  forge.editorSamples=forge.editorSamples.filter(s=>s.editor!=='debug_screen_scroll_stonecutter');
- assert.equal(uiRegressionProof(forge,forge.target).uiDiagnosticConsumers,17);
+ assert.equal(uiRegressionProof(forge,forge.target).uiDiagnosticConsumers,18);
  const invented=structuredClone(forge);invented.uiDebugSamples.push({case:'native_toast_hide',kind:'system',oneWay:true,inputDelta:0,worldMutation:false});assert.throws(()=>uiRegressionProof(invented,forge.target));
 });

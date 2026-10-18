@@ -20,7 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 final class RecordingEngineTest {
     @Test
-    void eventCannotEnterDiagnosticRecordingAfterModeAuthorityLoss(@TempDir Path artifactRoot)
+    void diagnosticRecordingRetainsAuthorizedEventsDuringTakeover(@TempDir Path artifactRoot)
             throws Exception {
         CountDownLatch sampleStarted = new CountDownLatch(1);
         ProbeService service =
@@ -59,7 +59,7 @@ final class RecordingEngineTest {
                 var lease = state.acquireLease(60000);
                 var payload = new JsonObject();
                 payload.addProperty("type", "world.internal");
-                payload.addProperty("secret", "forbidden_after_takeover");
+                payload.addProperty("secret", "authorized_during_takeover");
                 engine.recordEvent("world", payload);
                 state.releaseLease(lease.get("leaseId").getAsString(), "test_release");
                 engine.stop(id, "test_stop", "DEBUG");
@@ -67,8 +67,10 @@ final class RecordingEngineTest {
                 engine.close();
             }
             try (var files = Files.walk(artifactRoot)) {
+                boolean retained = false;
                 for (Path file : files.filter(path -> path.toString().endsWith(".ndjson")).toList())
-                    assertTrue(!Files.readString(file).contains("forbidden_after_takeover"));
+                    retained |= Files.readString(file).contains("authorized_during_takeover");
+                assertTrue(retained);
             }
         }
     }

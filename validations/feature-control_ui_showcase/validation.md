@@ -55,7 +55,7 @@ Forge 使用同一入口的 `-Target 1.20.1-forge`。
 | `takeover-gameplay` | 短按 W/S、Vanilla 相对视角；第一人称隐藏 GUI 圆球 |
 | `pointer-move` | 长短距离移动、轻微回弹、Slot 悬停与物品提示 |
 | `takeover-gui` | 8 块石头的点击收缩、拿起/放下、格子间移动、真实拖拽 |
-| `mode-transition` | 同一背包界面内三轮 READ → OPERATE → TAKEOVER → READ |
+| `mode-transition` | 同一背包界面内三轮常规切换，再执行三轮100ms间隔的连续转向并记录实际模式/时间 |
 | `ui-overlay` | 明确标记的 Fixture Tutorial/System Toast 与背包/暂停界面叠层 |
 | `gui-scenes` | 标题页、背包、暂停、设置、仅滚动不改语言的语言列表 |
 | `chrome-spring` | 只在主菜单/设置：#339CFF 三种模式、3 秒蓝边呼吸、长短弹簧运动、点击缩放与 Fade；不进入世界 |
@@ -157,7 +157,9 @@ TAKEOVER 中的物品移动和鼠标所持断言只读取 USER UI Tree，不混�
 工具单元/静态检查通过；代表端真实 Smoke 能执行点击、物品移动、拖拽、Toast 与菜单，
 收尾到 READ / 主菜单、held keys/buttons 为 0、无遗留 gesture。
 执行记录写入 `result/<target>.json` 的固定位置，标记当前提交、dirty 状态与开发 Runtime。
-当前工具有85项入口检查与51项Core生产函数/实际ZIP数据检查；五端完整17项自动案例均已执行并通过。
+当前工具有85项入口检查与51项Core生产函数/实际ZIP数据检查；当前候选的执行范围见[状态页](../../documents/project/status-milestones.md)。
+`mode-transition`在常规展示后记录九次短间隔模式切换的实际modeVersion和经过时间；它只证明接口执行、版本递进与清理，
+连续动画和文字动态裁切另由共享生产绘制/时钟确定性测试覆盖，不把执行记录当人工视觉或截图像素结论。
 结果要求sourceChangedDuringRun=false、201～206份实际源码/工具哈希匹配、自动1920×1080静音、实际最大堆4GiB、
 held keys/buttons=0、端点移除、进程正常退出及Runtime端口释放。
 每端两次读取Tutorial/System原生Toast绘制文本；语义拖动后槽位和所持石头总量为8，再清理已知夹具。

@@ -13,6 +13,10 @@ import { consumerCommandFeedback } from './consumer-command-feedback.mjs';
 import { consumerTitleReadiness, consumerWorldReadiness } from './consumer-readiness-actions.mjs';
 import { consumerPlayerTitle, consumerPlayerFlags } from './consumer-player-feedback.mjs';
 import { consumerHitFeedback } from './consumer-hit-feedback.mjs';
+import { modeCollaborationActions } from './mode-collaboration-actions.mjs';
+import { resourceVersionActions } from './resource-version-actions.mjs';
+import { commandDiscoveryBatchActions } from './command-discovery-batch-actions.mjs';
+import { serverCompletionActions } from './server-completion-actions.mjs';
 import { connectRuntime, automaticTakeoverRequest } from '../../runtime-connection.mjs';
 
 const repo = resolve(import.meta.dirname, '../../../..');
@@ -46,7 +50,7 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
@@ -148,12 +152,23 @@ for(const path of ['components/protocol_schema/src/main/openapi/minecraft-contro
   hashes[playerFeedback]=createHash('sha256').update(await readFile(resolve(repo,playerFeedback))).digest('hex');
   const hitFeedback='components/validation_tools/conformance-world_read/task/consumer-hit-feedback.mjs';
   hashes[hitFeedback]=createHash('sha256').update(await readFile(resolve(repo,hitFeedback))).digest('hex');
+  const collaboration='components/validation_tools/conformance-world_read/task/mode-collaboration-actions.mjs';
+  hashes[collaboration]=createHash('sha256').update(await readFile(resolve(repo,collaboration))).digest('hex');
+  for(const path of ['components/validation_tools/conformance-world_read/task/resource-version-actions.mjs','components/validation_tools/conformance-world_read/task/command-discovery-batch-actions.mjs','components/validation_tools/conformance-world_read/task/server-completion-actions.mjs'])hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   return hashes;
 }
 const before=await sources();
 async function check(name, run) {await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}
 try {
-  if(scenario==='rate-limit') {
+  if(scenario==='server-completion') {
+    await serverCompletionActions({api,connection,repo,instance,target,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='resource-version') {
+    await resourceVersionActions({api,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;},repo,instance,target,enterWorld:true});
+  } else if(scenario==='command-discovery-batch') {
+    await commandDiscoveryBatchActions({api,repo,instance,target,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='mode-collaboration') {
+    await modeCollaborationActions({api,connection,repo,instance,target,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='rate-limit') {
     await consumerRateActions({api,connection,repo,instance,acquire,release,leaseHeaders:()=>({'x-mcp-control-lease':lease}),check,actionSamples});
   } else if(scenario==='command-feedback') {
     await consumerTitleReadiness({api,check,actionSamples});
@@ -180,8 +195,9 @@ try {
   assert.equal((await api('GET','/v0/session')).target,target);
   await check('capability truth and unavailable client world at title',async()=>{
     const capability=await api('GET','/v0/capabilities');assert.equal(capability.worldContract.implementationStage,'bounded_client_world_model');assert.deepEqual(capability.worldContract.userSemanticActions,['aim','attack','use','mine','use_hold','place']);assert.equal(capability.worldContract.userMaxHoldMs,10000);assert.equal(capability.worldContract.userHeldHands,'main_hand_or_off_hand_empty_main');assert.equal(capability.worldContract.userMiningCompletion,'bounded_synchronous_native_destroy_including_fluid');assert.equal(capability.worldContract.readConsumerIsolationComplete,true);assert.equal(capability.worldContract.consumerIsolationComplete,false);assert.equal(capability.worldContract.milestoneComplete,false);
-    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?25:target.startsWith('26.')?22:20);
-    for(const id of ['player_command_entry_guard','player_command_packet_guard'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true),'Actual Hook manifest must include '+id);
+    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
+    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true),'Actual Hook manifest must include '+id);
+    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'),'Native reset generation is passive observation, not an input cancellation Hook');
     const player=await api('GET','/v0/player');validateModel(player,'player');assert.equal(player.dataCategory,'USER');assert.equal(player.domain,'WORLD');for(const field of ['uuid','serverTick','nbt'])assert(!(field in player));assert.equal(player.available,false);
   });
   await check('server USER and invalid category fail before internal capture',async()=>{
@@ -191,11 +207,11 @@ try {
   await check('READ debug independent of write Arm and Lease',async()=>{
     const player=await api('GET','/v0/player?category=DEBUG');assert.equal(player.dataCategory,'DEBUG');assert.equal(player.perceptionFiltered,false);assert.equal(player.available,false);assert.equal((await api('GET','/v0/control/mode')).mode,'READ');
   });
-  await check('OPERATE rejects USER but accepts diagnostic read without Lease',async()=>{
-    await mode('OPERATE');await api('GET','/v0/player',undefined,'WORLD_CATEGORY_MODE_MISMATCH');assert.equal((await api('GET','/v0/player?category=DEBUG')).dataCategory,'DEBUG');await mode('READ');
+  await check('OPERATE accepts both independently authorized categories without Lease',async()=>{
+    await mode('OPERATE');assert.equal((await api('GET','/v0/player')).dataCategory,'USER');assert.equal((await api('GET','/v0/player?category=DEBUG')).dataCategory,'DEBUG');await mode('READ');
   });
   await acquire();
-  await check('TAKEOVER rejects diagnostic read',()=>api('GET','/v0/player?category=DEBUG',undefined,'WORLD_CATEGORY_MODE_MISMATCH'));
+  await check('TAKEOVER retains authorized diagnostic read',async()=>assert.equal((await api('GET','/v0/player?category=DEBUG')).dataCategory,'DEBUG'));
   await check('existing semantic GUI enters dedicated creative flat world',async()=>{
     await click('menu.singleplayer','Singleplayer');
     let tree=await wait(tree=>/SelectWorldScreen$|CreateWorldScreen$/.test(tree.screenClass),'select world');

@@ -1163,7 +1163,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private static void verifyExpected(JsonObject request, JsonObject current) {
-        ResourceVersionVerifier.verify(request.getAsJsonObject("expectedResourceVersion"), current);
+        ResourceVersionVerifier.verifyAuthorized(
+                request.getAsJsonObject("expectedResourceVersion"), current);
     }
 
     private JsonObject blockSnapshot(ServerLevel level, BlockPos position) {
@@ -1830,6 +1831,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                             .orElse("unregistered"));
             attribute.addProperty("base", instance.getBaseValue());
             attribute.addProperty("value", instance.getValue());
+            normalizedAttributes.add(attribute);
+        }
+        // Supplier-backed defaults need not have an AttributeInstance; observing must not create
+        // one.
+        String maxHealthId = Attributes.MAX_HEALTH.unwrapKey().orElseThrow().location().toString();
+        if (normalizedAttributes.stream()
+                .noneMatch(attribute -> maxHealthId.equals(attribute.get("id").getAsString()))) {
+            JsonObject attribute = new JsonObject();
+            attribute.addProperty("id", maxHealthId);
+            attribute.addProperty(
+                    "base", player.getAttributes().getBaseValue(Attributes.MAX_HEALTH));
+            attribute.addProperty("value", player.getAttributes().getValue(Attributes.MAX_HEALTH));
             normalizedAttributes.add(attribute);
         }
         normalizedAttributes.sort(Comparator.comparing(value -> value.get("id").getAsString()));

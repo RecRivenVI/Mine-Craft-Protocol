@@ -1,6 +1,62 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 
+export function collaborationIncrementProof(result,target,scenario){
+ assert.equal(result.target,target);assert.equal(result.scenario,scenario);assert.equal(result.status,'PASS');
+ assert.equal(result.cleanShutdown,true);assert.equal(result.sourceChangedDuringRun,false);assert.equal(result.persistentWriteCalls,0);
+ const checks=scenario==='resource-version'?14:8;
+ assert.equal(result.fixturePolicy,'immutable_baseline_restored');assert.equal(result.checks.length,checks);assert(result.checks.every(row=>row.status==='PASS'));
+ const samples=result.actionSamples??[],find=name=>{const value=samples.find(row=>row.case===name);assert(value,'Missing actual collaboration sample '+name);return value;};
+ if(scenario==='mode-collaboration'){
+  assert.equal(find('native_operate').receipt.route,'NATIVE');
+  const chunks=find('takeover_chunk_fields');assert.deepEqual(Object.keys(chunks.takeover).sort(),Object.keys(chunks.read).sort());
+  assert.equal(chunks.takeover.loaded,true);assert.equal(chunks.takeover.loadRequested,false);assert(Array.isArray(chunks.takeover.scheduledBlockTicks));assert.equal(chunks.remote.available,false);
+  assert.equal(find('input_handback').physicalEscTested,false);
+ }else if(scenario==='command-discovery-batch'){
+  const batch=find('native_command_batch').batch;assert.equal(batch.submittedCount,3);assert.equal(batch.requiresControlLease,false);assert.equal(batch.inputDispatched,false);
+  assert.equal(batch.effectConfirmed,false);assert.equal(batch.serverFeedbackCorrelated,false);
+  const boundary=find('native_batch_boundary').boundary;assert.equal(boundary.commandCount,32);assert.equal(boundary.submittedCount,32);
+  assert.equal(find('native_batch_stops_on_first_error').result.commands[2].status,'not_attempted');find('mcp_command_discovery_batch');
+ }else if(scenario==='server-completion'){
+  const sample=name=>{const rows=samples.filter(row=>row.case===name);assert.equal(rows.length,1,name);return rows[0];};
+  const server=value=>{
+   assert.equal(value.source,'current_player_server_command_suggestions');assert.equal(value.completionSource,'SERVER');assert.equal(value.completionScope,'server_current_player');assert.equal(value.dataCategory,'USER');
+   assert.equal(value.serverCompletionRequested,true);assert.equal(value.serverCompletionSupported,true);assert.equal(value.serverAcceptanceConfirmed,false);assert.equal(value.commandExecuted,false);assert.equal(value.inputDispatched,false);assert.equal(value.requiresControlLease,false);
+   assert.equal(value.humanFutureModified,false);assert.equal(value.humanRequestsHavePriority,true);assert.equal(value.serverBudgetShared,true);assert.equal(value.maxAgentCompletionsInFlight,1);
+   assert(Array.isArray(value.suggestions));
+  };
+  const help=value=>{const found=value.suggestions.find(row=>row.text==='help');assert(found);assert.equal(found.start,0);assert.equal(found.end,2);};
+  const local=sample('server_completion_local_default').local;assert.equal(local.source,'current_player_native_command_tree');assert.equal(local.completionScope,'client_local_only');assert.equal(local.serverCompletionRequested,false);assert.equal(local.commandExecuted,false);assert.equal(local.inputDispatched,false);assert.equal(local.requiresControlLease,false);help(local);
+  const actual=sample('server_completion_actual_reply').result;server(actual);help(actual);
+  const bounded=sample('server_completion_bounded').result;server(bounded);assert(bounded.suggestionCount>1);assert.equal(bounded.suggestions.length,1);assert.equal(bounded.suggestionsTruncated,true);assert.equal(bounded.completionComplete,false);assert.equal(bounded.nativeServerMayLimitSuggestions,true);
+  const concurrent=sample('server_completion_concurrency').values;assert.equal(concurrent.length,2);assert.equal(concurrent.filter(row=>row.status===200).length,1);server(concurrent.find(row=>row.status===200).data);
+  const denied=concurrent.find(row=>row.status!==200);assert.equal(denied.status,denied.data.error==='PLAYER_COMMAND_COMPLETION_BUSY'?409:429);assert(['PLAYER_COMMAND_COMPLETION_BUSY','PLAYER_COMMAND_COMPLETION_RATE_LIMITED'].includes(denied.data.error));
+  const chat=sample('server_completion_preserves_chat');server(chat.result);assert(Array.isArray(chat.before)&&chat.before.length>0);assert.deepEqual(chat.after,chat.before);assert(chat.before.some(row=>typeof row.value==='string'&&row.value.length>0));assert(chat.before.every(row=>typeof row.focused==='boolean'));
+  const mcp=sample('mcp_server_completion');assert.equal(mcp.target,target);server(mcp.result);help(mcp.result);
+ }else if(scenario==='resource-version'){
+  const contract=find('resource_inspection_contract').contract;assert.equal(contract.operations.length,6);assert.equal(contract.grantsMutationPermission,false);
+  const error=find('resource_version_actual_mcp').error;assert.equal(error.code,'STALE_RESOURCE_REVISION');assert.equal(error.reinspectRequired,true);assert.equal(error.retrySafe,false);
+  assert(Number.isSafeInteger(error.actualRevision));assert.notEqual(error.actualRevision,error.expectedRevision);find('safe_stale_reinspect');
+  const arrange=find('resource_version_fixture_arrange');assert.equal(arrange.nativePauseObserved,true);assert.equal(arrange.ownerThreadReadsWhilePaused,true);
+  const chains=samples.filter(row=>row.case==='resource_version_typed_chain');
+  assert.deepEqual(chains.map(row=>row.operation).sort(),['player.health.set','player.attribute.set','entity.no_gravity.set','block_entity.custom_name.set','menu.slot.set'].sort());
+  const chainProof=(chain,consumer)=>{
+   assert.equal(chain.consumer,consumer);assert.equal(chain.authority,'DEBUG_PRIVILEGED');assert.equal(chain.actInputDelta,0);
+   for(const input of [chain.inputBefore,chain.inputAfter]){assert(Number.isSafeInteger(input.inputDispatchSequence)&&input.inputDispatchSequence>=0);assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);}
+   assert.equal(chain.inputBefore.inputDispatchSequence,chain.inputAfter.inputDispatchSequence);
+   for(const ref of [chain.original,chain.applied.beforeResourceVersion,chain.applied.afterResourceVersion,chain.reinspected,chain.restored.beforeResourceVersion,chain.restored.afterResourceVersion])assert(Number.isSafeInteger(ref.revision)&&ref.revision>=0);
+   assert.equal(chain.applied.beforeResourceVersion.revision,chain.original.revision);assert(chain.applied.afterResourceVersion.revision>chain.original.revision);
+   assert.equal(chain.applied.gameplayEvidence,false);assert.equal(chain.applied.evidenceContaminated,true);assert.equal(chain.applied.storageAccessed,false);
+   assert.equal(chain.stale[consumer==='native_http'?'error':'code'],'STALE_RESOURCE_REVISION');assert.equal(chain.stale.expectedRevision,chain.original.revision);assert.equal(chain.stale.actualRevision,chain.reinspected.revision);assert.equal(chain.stale.reinspectRequired,true);assert.equal(chain.stale.retrySafe,false);
+   assert.equal(chain.restored.beforeResourceVersion.revision,chain.reinspected.revision);assert(chain.restored.afterResourceVersion.revision>chain.reinspected.revision);
+  };
+  for(const chain of chains){assert.equal(chain.inspectionSource,'formal_deep_observation');chainProof(chain,'native_http');}
+  const mcp=find('resource_version_menu_actual_mcp');assert.equal(mcp.operation,'menu.slot.set');chainProof(mcp,'mcp_stdio');
+  const clean=find('resource_version_extended_cleanup');assert.equal(clean.entityRemoved,true);assert.equal(clean.restoredReadMode,true);assert.equal(clean.persistentWriteCalls,0);assert.deepEqual(clean.cleanupErrors,[]);
+ }else throw new Error('Unsupported collaboration scenario');
+ return{scenario,checks,evidence:'development_runtime_native_and_mcp',cleanShutdown:true,physicalEscTested:false,...(scenario==='server-completion'?{serverCompletion:true,serverBudgetShared:true,humanCompletionConcurrentLiveTested:false}:{})};
+}
+
 export function uiRegressionProof(result,target){
   assert.equal(result.target,target);assert.equal(result.status,'PASS');assert.equal(result.scenario,'all');assert.equal(result.phase,'test');
   assert.equal(result.runtime,'development_native');assert.equal(result.cleanShutdown,true);assert.equal(result.processExitCode,0);assert.equal(result.endpointRemoved,true);assert.equal(result.sourceChangedDuringRun,false);assert.equal(result.persistentWriteCalls,0);
@@ -31,7 +87,9 @@ export function uiRegressionProof(result,target){
   assert.equal(guard.processId,result.launchAttestation?.processId);
   assert(Date.parse(guard.testedAt)>=Date.parse(result.launchAttestation?.titleReadyAt)&&Date.parse(guard.testedAt)<=Date.parse(result.testedAt),'HUD guard must belong to this actual Loader run');
   const toastGuards=native.filter(s=>s.case==='native_toast_content_guard_probe');assert.equal(toastGuards.length,1);
-  const toastGuard=toastGuards[0];assert.equal(toastGuard.status,'PASS');assert.equal(toastGuard.target,target);assert.equal(toastGuard.probeOnly,true);assert.equal(toastGuard.checks,7);
+  const toastGuard=toastGuards[0];assert.equal(toastGuard.status,'PASS');assert.equal(toastGuard.target,target);assert.equal(toastGuard.probeOnly,true);assert.equal(toastGuard.checks,9);
+  assert.equal(toastGuard.nativeTickVersionStable,true);assert.equal(toastGuard.sameValueResetInvalidates,true);assert.equal(toastGuard.resetGenerationChecks,2);
+  assert.equal(toastGuard.resetConsumption,['1.20.1-forge','1.21.1-neoforge'].includes(target)?'native_render_on_probe_owned_toast_no_pixel_canvas':'native_update_on_probe_owned_toast');
   assert.equal(toastGuard.playerInputUsed,false);assert.equal(toastGuard.worldMutationUsed,false);assert.equal(toastGuard.processId,result.launchAttestation?.processId);
   assert(Date.parse(toastGuard.processStartedAt)<=Date.parse(toastGuard.testedAt)&&Date.parse(toastGuard.testedAt)<=Date.parse(result.testedAt),'Toast guard must belong to this Loader process lifetime');
   for(const name of ['native_tutorial_progress','native_system_toast_reset']){
@@ -49,13 +107,20 @@ export function uiRegressionProof(result,target){
   }
   for(const operation of ['ui.slider.set','ui.toast.reset'])for(const code of ['INVALID_UI_DEBUG_VALUE','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION'])
     assert(native.some(s=>s.case==='native_toast_rejected'&&s.operation===operation&&s.code===code&&s.inputDelta===0),operation+' '+code);
-  const kinds=['widget_active','widget_visible','native_list','native_slider','native_editbox','book','book_title','sign','hanging_sign',...scrollKinds,...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast'];
+  const pans=result.advancementPanSamples??[];
+  assert.equal(pans.length,3,'All native advancement canvas branches are required');
+  const pan=name=>{const rows=pans.filter(s=>s.case===name);assert.equal(rows.length,1,name);assert.equal(rows[0].inputDelta,0);return rows[0];};
+  const point=value=>{assert.deepEqual(Object.keys(value).sort(),['x','y']);for(const axis of ['x','y'])assert.equal(Number.isFinite(value[axis]),true);};
+  const fixed=pan('native_advancement_pan_fixed_axes');point(fixed.original);assert.equal(fixed.centeredByNativeRenderer,true);assert.equal(fixed.bothFixed,true);assert.equal(fixed.unrequestedZeroing,false);
+  const ranged=pan('native_advancement_pan_ranged');point(ranged.original);point(ranged.value);assert.notDeepEqual(ranged.value,ranged.original);assert.equal(ranged.centeredByNativeRenderer,true);assert.equal(ranged.restored,true);assert.equal(ranged.staleRejected,true);assert.equal(ranged.playerLeaseRequired,false);
+  assert.equal(pan('native_advancement_pan_screen_replaced').rejected,true);
+  const kinds=['widget_active','widget_visible','native_list','native_slider','native_editbox','book','book_title','sign','hanging_sign',...scrollKinds,...hud.map(key=>'debug_'+key.replace('.','_')),'debug_tutorial_progress','debug_system_toast','debug_advancement_canvas'];
   const samples=result.editorSamples??[];
   for(const kind of kinds){
     const mcp=samples.filter(s=>s.editor===kind&&s.transport==='mcp_stdio_debug');assert.equal(mcp.length,1,kind);
     assert.equal(mcp[0].status,'PASS');assert.equal(mcp[0].inputDelta,0);assert.equal(mcp[0].playerLeaseAcquired,false);assert.equal(mcp[0].typedRecovery,true);assert.equal(mcp[0].userOperationGetWaitAssertRejected,true);assert.equal(mcp[0].diagnosticCancelRedacted,true);
     const web=samples.filter(s=>s.editor===kind&&s.transport==='web_user_isolation');assert.equal(web.length,1,kind);
-    assert.equal(web[0].status,'PASS');assert.equal(web[0].operateSnapshotRejected,true);assert.equal(web[0].debugMetadataLeaked,false);assert.equal(web[0].automaticLeaseAcquired,false);
+    assert.equal(web[0].status,'PASS');assert.equal(web[0].operateUserSnapshotAvailable,true);assert.equal(web[0].debugMetadataLeaked,false);assert.equal(web[0].automaticLeaseAcquired,false);
   }
   for(const kind of ['book','book_title','sign','hanging_sign'])for(const transport of ['mcp_stdio','web_http']){
     const user=samples.filter(s=>s.editor===kind&&s.transport===transport);assert.equal(user.length,1);assert.equal(user[0].status,'PASS');
@@ -65,7 +130,7 @@ export function uiRegressionProof(result,target){
     }
   }
   assert(result.uiDebugSamples?.length>=134,'Native widget and full editor guard matrix is required');
-  return{status:'PASS',checks:result.checks.length,scope:'existing_full_ui_suite_not_all_vanilla',semanticUnselectedWorldDoubleClick:true,uiDiagnosticConsumers:kinds.length,webUserIsolation:kinds.length,nativeScreenScrolls:scrolls.length,nativeHudMessages:hud.length,nativeHudGuardChecks:guard.checks,nativeToastGuardChecks:toastGuard.checks,nativeToastReset:true,nativeTutorialProgress:true,nativeToastHideCount:target==='1.20.1-forge'?2:3,cleanShutdown:true};
+  return{status:'PASS',checks:result.checks.length,scope:'existing_full_ui_suite_not_all_vanilla',semanticUnselectedWorldDoubleClick:true,uiDiagnosticConsumers:kinds.length,webUserIsolation:kinds.length,nativeScreenScrolls:scrolls.length,nativeHudMessages:hud.length,nativeHudGuardChecks:guard.checks,nativeToastGuardChecks:toastGuard.checks,nativeToastReset:true,nativeTutorialProgress:true,nativeToastHideCount:target==='1.20.1-forge'?2:3,nativeAdvancementCanvas:true,cleanShutdown:true};
 }
 
 export function consumerPriorityProof(result,target){

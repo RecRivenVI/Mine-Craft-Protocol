@@ -29,7 +29,7 @@
 
 - **X-01** [判断] 通过本产品的 Runtime HTTP/WebSocket 或 MCP Companion 操作 Minecraft；禁止 Computer Use、CUA、桌面自动化或宿主输入注入。真人 Esc、Alt+Tab、点击与焦点验收必须由用户执行，结合 Runtime/Event/Audit 和用户反馈判断。
 - **X-02** [判断] Core 是 Autonomous Testing Platform；E1/E2/E3 为可选扩展，不隐式阻塞首个 Developer Preview。
-- **X-03** [判断] UI/游戏世界两个领域采用 READ/TAKEOVER/OPERATE 三模式、USER/DEBUG 二类别；READ 可提供两类独立读取，TAKEOVER 仅 USER，OPERATE 仅 DEBUG。模式分层但不自动继承或授予权限；scope、Lease、Debug Arm、Human Override 和 Evidence 独立。PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 证据不得混淆。两个领域各自设首个里程碑，恢复开发先读[当前状态](project/status-milestones.md)；[执行计划](project/plan-execution.md)只描述当前计划，历史归入阶段、研究等相应记录。研究建议不视为已经实现或获准实施的合同。
+- **X-03** [判断] UI/世界采用 USER/DEBUG；[控制模型](design/concept-agent_control.md)：READ 只读，OPERATE 不接管键鼠（首批原生命令），TAKEOVER 持 Lease 接管。各模式可独立授权读取两类，DEBUG 修改另需授权；命令统一 USER。模式不授予权限；scope、Lease、Debug Arm、Human Override、Evidence 正交。Esc 仅撤销接管，由模型决定是否继续合法非接管工作；PLAYTEST/FIXTURE/DEBUG_PRIVILEGED 不混淆。两领域各设首个里程碑，实现与目标见[状态页](project/status-milestones.md)，[执行计划](project/plan-execution.md)只描述当前计划。Fake Player/第二界面只研究，不自动实施。
 - **X-04** [判断] 构建、启动、功能与人工验收分别报告。历史绑定提交的结果不证明当前候选；正式 Persistent Write 尚未实现。
 - **X-05** [判断] 未经用户明确授权不提交、推送、建分支、标签或改写历史；删除使用回收站。普通验收一次只运行一个客户端。
 - **X-06** [判断] Runtime 调用的诊断、统计与 Provider 入口属于正式产品，保留在产品源码；开发运行不得以复制发行 JAR 替代 Loader 原生 source-set。

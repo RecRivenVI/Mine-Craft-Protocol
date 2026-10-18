@@ -6,6 +6,11 @@
 不加载区块、不读取服务器/Peer/存档或完整内部对象。UI USER 与既有输入/权限/证据合同保持不变。
 同时验证 Provider/State Frame、Deep、Wait/Assert、Event/resync、Recording/Artifact 的
 USER/DEBUG 分类、独立授权、异步发布、取消与诚实能力声明。
+mode-collaboration专项验证三模式的独立类别读取、TAKEOVER同请求区块字段保留、OPERATE原生命令零输入/保留聊天草稿、接管内typed Debug及模式退出取消玩家队列；包含真实MCP消费者，不模拟物理Esc。
+server-completion专项验证显式服务器补全、独立事务/真人future隔离、单飞/预算、草稿焦点保留、实际MCP与退出失效。
+这不是命令执行、真人并发Live或零服务器预算影响证明；已提交查询不可撤回，取消后不发布结果。
+resource-version专项覆盖六个已批准typed操作的正式inspect、原值/版本条件、safe stale、回读与受控恢复；
+本地隔离夹具通过原生暂停稳定动态资源，Arrange输入与零输入DEBUG Act分别计数，未知外部改值/版本不覆盖。
 本增量增加 USER 语义目标、原版相对输入瞄准、实际键位 attack/use 短按、持续 mine/use_hold、六面精确 place 与独立效果观察。
 新增含水方块、双格植物连锁破坏、副手盾牌持续使用/取消与手冲突拒绝、喂食和原版乘坐/潜行退出。
 实体增量通过普通 use 驯服狼、喂食两只成年牛自然产生幼体、拴绳绑定玩家/栅栏及普通攻击绳结释放，
@@ -47,7 +52,34 @@ Forge 另外使用真实 ComponentArgument 覆盖有效 JSON、损坏 JSON 与�
 
 ## 运行
 
-共享读边界的HTTP回归不启动游戏：验证世界DEBUG事件权限不授予UI单次/批次详情、录制独立UI读取及mode generation往返拒绝。
+模式协作专项使用同一已建立的不可变世界副本；先在参考端运行，再逐端验证，不模拟真人 Esc：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario mode-collaboration
+```
+
+命令发现/批次和正式资源版本链复用同一不可变副本，各端独立运行；不以参考端或构建替代其余端结果。
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario command-discovery-batch
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario resource-version
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario server-completion
+```
+
+命令专项要求 READ 原生树/本地补全零输入、OPERATE 无 Lease 的3条及32条批次、逐项提交/未尝试状态、
+中途拒绝停止和真实 MCP。补全不复用真人聊天请求的单一 future，不向服务器发送补全请求；
+`serverCompletionRequired=true` 表示仍需独立服务器补全通道，不把本地候选或效果策略当作权限和执行确认。
+批次不是事务，取消/超时不承诺回滚；只有实际提交回执，聊天反馈仍只是时间关联。
+WorldReadTransportTest的真实HTTP回归另外覆盖首条已有回执、第二条pending时deadline返回408，
+要求保留requestId及not_confirmed/retrySafe=false，并取消native future/work、阻止第二/三条迟到提交。
+资源版本专项要求六类既有typed操作完成正式 DEBUG deep inspect → 当前 token → 合法 LIVE 修改 → 旧 token 拒绝 → 重新 inspect → 恢复，
+并通过实际 MCP 核对方块及Menu的安全 stale 计数。错误世界/资源/epoch、非法 token、缺 scope/Arm 不返回当前数据或可复用 token。
+最大生命base从原生supplier或实例读取，不能用有效maxHealth替代；Arrange使用原生暂停稳定动态资源，Act各自要求零输入、无Lease。
+这些专项不执行 Persistent Write，不代表WD完整字段目录已交付。
+结果按场景固定写入 `result/<target>-<scenario>.json`；服务器补全为server-completion，资源版本为resource-version。
+必须源码/工具未变化、完整通过并干净退出。alpha full 发布要求五端四项专项、完整领域及独立安装均匹配同一候选。
+
+共享读边界的HTTP回归不启动游戏：验证世界DEBUG事件权限不授予UI单次/批次详情、录制独立UI读取及会话关闭拒绝迟到结果；模式往返本身不撤销合法读取。
 录制拒绝诊断详情时仍保留污染标记；有权限的正向事件和世界事件同时核对，不以字符串扫描代替实际HTTP响应。
 
 ```powershell
@@ -63,8 +95,8 @@ Forge 另外使用真实 ComponentArgument 覆盖有效 JSON、损坏 JSON 与�
 
 | 消费路径 | 必须保持的边界 | 已有可执行证明 |
 | --- | --- | --- |
-| Native UI tree/resolve | USER投影不含隐藏详情；DEBUG独立UI读取授权；模式往返不得认可旧异步结果 | UiReadAuthorizationTest及UiAsyncReadIsolationTest的真实HTTP迟到tree/resolve用例，五端UI类别场景 |
-| UI Wait/Assert | 条件类别显式，缺UI读取权限不得从世界DEBUG事件取得UI详情；UI捕获发布固定mode generation | UiAsyncReadIsolationTest的事件/迟到Wait与Assert正负例；实际MCP条件/Operation消费者 |
+| Native UI tree/resolve | USER投影不含隐藏详情；DEBUG独立UI读取授权；模式往返不取消合法读取，关闭/撤权拒绝迟到发布 | UiReadAuthorizationTest及UiAsyncReadIsolationTest的真实HTTP迟到tree/resolve用例，五端UI类别场景 |
+| UI Wait/Assert | 条件类别显式，缺UI读取权限不得从世界DEBUG事件取得UI详情；UI捕获发布重查会话/类别授权 | UiAsyncReadIsolationTest的事件/迟到Wait与Assert正负例；实际MCP条件/Operation消费者 |
 | Operation get/wait/cancel | USER不能重取UI诊断结果；纯UI读取不额外要求世界权限，混合批次要求两个领域；cancel不回传诊断细节 | DebugOperationReadTest的5项生产HTTP/生命周期检查；五端MCP单次/批次结果和网页USER隔离 |
 | Event/WebSocket | 通用诊断流自身的世界读取授权不能替代UI详情读取；世界事件仍可用，USER流不获得诊断详情 | UiAsyncReadIsolationTest的HTTP事件及实际WebSocket正负例，以同步修改之后的有序世界事件标记检查，不靠sleep推定没有泄漏；WorldReadTransportTest的USER流/游标检查 |
 | Recording/Artifact | 缺ui不调用UI owner；缺debug.ui.read不录UI修改详情但保留污染；DEBUG录制不经USER列表/下载公开 | UiAsyncReadIsolationTest的单次/批次及真实HTTP ZIP下载；WorldReadTransportTest的录制类别/Artifact检查 |

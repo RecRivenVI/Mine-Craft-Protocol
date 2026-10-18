@@ -56,6 +56,8 @@ export type UiDataCategory = 'USER' | 'DEBUG';
 export interface UiContract {
   domain: 'UI';
   readCategories: UiDataCategory[];
+  readModeIndependent: true;
+  legacyCategorySemantics: 'takeover_input_and_typed_operate_mutation_not_read_restrictions';
   defaultReadCategory: 'USER';
   takeoverCategory: 'USER';
   operateCategory: 'DEBUG';
@@ -65,6 +67,14 @@ export interface UiContract {
 }
 export interface ModeVersion { controlSessionId: string; generation: number }
 export interface ControlModeState {
+  authorization?: {
+    principalId: string;
+    grantedScopes: string[];
+    grantsAuthority: false;
+    sessionOpen: boolean;
+    inputLease: { held: boolean; remainingTtlMs: number };
+    debugArm: { status: 'armed' | 'disarmed'; remainingTtlMs: number; namespaces: string[]; contextValidated: false };
+  };
   agentTask?: AgentTaskState;
   mode: AgentMode;
   takeoverActive: boolean;

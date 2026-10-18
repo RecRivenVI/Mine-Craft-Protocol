@@ -2,7 +2,7 @@ import { readFile, readdir, writeFile, stat } from 'node:fs/promises';
 import { resolve, relative, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof} from './alpha-evidence.mjs';
+import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof} from './alpha-evidence.mjs';
 import {candidateSource} from './alpha-candidate.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
 
@@ -71,6 +71,16 @@ const contract=JSON.parse(await readFile(resolve(repo,'components/protocol_schem
 const report={type:'internal_alpha_build',preparedAt:new Date().toISOString(),commit:head,dirty,sourceFingerprint:digest(JSON.stringify(sourceHashes)),sourceHashes,modVersion:facts.mod_version,worldStage:contract.implementationStage.enum[0],fullWorldMilestone:contract.milestoneComplete.enum[0],readConsumerIsolationComplete:contract.readConsumerIsolationComplete.enum[0],consumerIsolationComplete:contract.consumerIsolationComplete.enum[0],artifactCheck:'collected_matches_native',runtimeAcceptance:'selected development scenario plus separately bound installed title/READ smoke; not full packaged gameplay or human acceptance',nativeSmokeScope:scenario,fullNativeSmoke:scenario==='full',nativeSmoke,artifacts};
 report.packagedRuntimeVerified=true;report.packagedRuntime=packagedRuntime;
 if(scenario==='full')report.uiRegression=uiRegression;
+if(scenario==='full'){
+ report.controlCollaboration=[];
+ for(const target of targets)for(const increment of ['mode-collaboration','command-discovery-batch','resource-version','server-completion']){
+  const path=`validations/conformance-world_read/result/${target}-${increment}.json`,bytes=await readFile(resolve(repo,path)),result=JSON.parse(bytes.toString('utf8'));
+  const proof=collaborationIncrementProof(result,target,increment);
+  if(Object.keys(result.sourceHashes??{}).length<100)throw new Error('Missing collaboration production/tool bindings: '+target+' '+increment);
+  for(const [source,hash]of Object.entries(result.sourceHashes))if(digest(await readFile(resolve(repo,source)))!==hash)throw new Error('Stale collaboration increment: '+target+' '+increment+' '+source);
+  report.controlCollaboration.push({target,...proof,sourceMatchesCurrent:true,result:path,resultSha256:digest(bytes)});
+ }
+}
 if(scenario==='packaged-runtime')report.runtimeAcceptance='installed Loader / single release JAR / title + USER READ / clean shutdown; not full UI/world or human acceptance';
 const output=resolve(repo,'build/alpha-manifest.json');
 const alphaRoot=resolve(process.env.MCP_ALPHA_ROOT??'D:/Workspaces/Artifacts/MineCraftProtocol/Alpha');

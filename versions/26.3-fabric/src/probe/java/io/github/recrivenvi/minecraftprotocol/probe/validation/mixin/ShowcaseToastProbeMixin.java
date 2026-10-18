@@ -21,6 +21,12 @@ public abstract class ShowcaseToastProbeMixin extends Screen {
         if (!Boolean.getBoolean("minecraft.protocol.toastDebugFixture")) return;
         addRenderableWidget(
                 Button.builder(
+                                Component.literal("Visibility Toast DEBUG Fixtures"),
+                                button -> ShowcaseToastFixture.showVisibilityDebug())
+                        .bounds(width / 2 - 100, height / 2 + 104, 200, 20)
+                        .build());
+        addRenderableWidget(
+                Button.builder(
                                 Component.literal("Toast DEBUG Fixtures"),
                                 button -> ShowcaseToastFixture.showDebug())
                         .bounds(width / 2 - 100, height / 2 + 80, 200, 20)

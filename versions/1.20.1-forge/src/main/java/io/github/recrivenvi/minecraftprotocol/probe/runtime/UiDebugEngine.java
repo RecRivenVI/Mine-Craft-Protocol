@@ -5,6 +5,8 @@ import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
 import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
+import io.github.recrivenvi.minecraftprotocol.core.UiMutationSupport;
+import io.github.recrivenvi.minecraftprotocol.core.UiMutationSupport.Facet;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.BookUiAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.CreativeUiAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.LoomUiAccessor;
@@ -37,7 +39,8 @@ final class UiDebugEngine {
                     "ui.scroll.set",
                     "ui.slider.set",
                     "ui.toast.reset",
-                    "ui.toast.hide");
+                    "ui.toast.hide",
+                    "ui.canvas.pan.set");
 
     static void describe(
             JsonObject root,
@@ -46,6 +49,7 @@ final class UiDebugEngine {
             ToLongFunction<Object> identity,
             UiItemDataGuard contentGuard) {
         Map<Long, UiItemDataGuard.Content> textContent = new HashMap<>();
+        Map<Long, GuiEventListener> nativeOwners = new HashMap<>();
         if (screen != null) {
             var pending = new ArrayDeque<GuiEventListener>(screen.children());
             Set<GuiEventListener> visited = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -67,6 +71,7 @@ final class UiDebugEngine {
             while (!pending.isEmpty() && visited.size() < 2048) {
                 var item = pending.removeFirst();
                 if (!visited.add(item)) continue;
+                nativeOwners.put(identity.applyAsLong(item), item);
                 String fullValue =
                         item instanceof EditBox edit
                                 ? edit.getValue()
@@ -83,6 +88,7 @@ final class UiDebugEngine {
             }
         }
         describe(root, revisions, textContent);
+        UiAdvancementPanDebug.describe(root, revisions, screen, identity);
         UiPresentationDebug.describe(
                 root,
                 revisions,
@@ -95,6 +101,64 @@ final class UiDebugEngine {
                 net.minecraft.client.Minecraft.getInstance(),
                 identity,
                 contentGuard);
+        describeMutationSupport(root, screen, nativeOwners, identity);
+    }
+
+    static void describeMutationSupport(
+            JsonObject tree,
+            Screen screen,
+            Map<Long, GuiEventListener> owners,
+            ToLongFunction<Object> identity) {
+        describeNodeSupport(tree.getAsJsonArray("children"), screen, owners, identity);
+        if (tree.has("presentation"))
+            describeNodeSupport(
+                    tree.getAsJsonObject("presentation").getAsJsonArray("children"),
+                    screen,
+                    owners,
+                    identity);
+    }
+
+    private static void describeNodeSupport(
+            JsonArray nodes,
+            Screen screen,
+            Map<Long, GuiEventListener> owners,
+            ToLongFunction<Object> identity) {
+        if (nodes == null) return;
+        for (JsonElement value : nodes) {
+            JsonObject node = value.getAsJsonObject();
+            if (!node.has("debugMutation")) {
+                GuiEventListener owner =
+                        node.has("elementIdentity")
+                                ? owners.get(node.get("elementIdentity").getAsLong())
+                                : null;
+                EnumSet<Facet> facets = EnumSet.noneOf(Facet.class);
+                String limitation = null;
+                if (owner instanceof AbstractWidget) facets.add(Facet.WIDGET_FLAGS);
+                if (owner instanceof EditBox || owner instanceof MultiLineEditBox)
+                    facets.add(Facet.EDITOR_TEXT);
+                if (owner instanceof AbstractSliderButton) facets.add(Facet.SLIDER_VALUE);
+                if (owner instanceof AbstractSelectionList<?>) facets.add(Facet.LIST_SCROLL);
+                if (screen != null && nativeScreenScroller(screen, node, identity))
+                    facets.add(Facet.NORMALIZED_SCROLL);
+                if (screen != null
+                        && node.has("elementIdentity")
+                        && signLine(screen, node, identity) >= 0) facets.add(Facet.EDITOR_TEXT);
+                if (screen != null
+                        && node.has("elementIdentity")
+                        && bookEditor(screen, node, identity)) facets.add(Facet.EDITOR_TEXT);
+                if (facets.isEmpty() && limitation == null) {
+                    String role = node.has("role") ? node.get("role").getAsString() : "";
+                    limitation =
+                            "slot".equals(role)
+                                    ? "MENU_ITEM_REQUIRES_WORLD_RESOURCE_AUTHORIZATION"
+                                    : owner != null
+                                            ? "NATIVE_LISTENER_HAS_NO_APPROVED_UI_STATE_SETTER"
+                                            : "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER";
+                }
+                UiMutationSupport.describe(node, facets, limitation);
+            }
+            describeNodeSupport(node.getAsJsonArray("children"), screen, owners, identity);
+        }
     }
 
     static UiItemDataGuard.Content textContent(
@@ -158,6 +222,7 @@ final class UiDebugEngine {
                 if (text && content != null && content.available())
                     state.addProperty("nativeTextContentFingerprint", content.fingerprint());
                 state.remove("resourceVersion");
+                state.remove("debugMutation");
                 state.remove("hovered");
                 // A container token describes the container, not its separately versioned children.
                 state.remove("children");
@@ -207,6 +272,13 @@ final class UiDebugEngine {
         if (authorization.isCancelled())
             throw error("OPERATION_CANCELLED", "UI mutation cancelled");
         JsonObject node = find(tree.getAsJsonArray("children"), string(request, "nodeId"));
+        if (node != null
+                && operation.equals(UiAdvancementPanDebug.OPERATION)
+                && node.has("debugPanReady")
+                && !node.get("debugPanReady").getAsBoolean())
+            throw error(
+                    "UI_CONTEXT_NOT_READY",
+                    "The native advancement renderer has not centered its canvas");
         if (node == null || !node.has("resourceVersion"))
             throw error("UI_NODE_NOT_FOUND", "Native UI node no longer exists");
         if (!request.has("expectedResourceVersion")
@@ -219,8 +291,9 @@ final class UiDebugEngine {
         GuiEventListener target = locate(screen, node.get("elementIdentity").getAsLong(), identity);
         int signLine = signLine(screen, node, identity);
         boolean screenScroll = nativeScreenScroller(screen, node, identity);
+        var panTarget = UiAdvancementPanDebug.target(screen, node, identity);
         boolean bookEditor = bookEditor(screen, node, identity);
-        if (target == null && signLine < 0 && !bookEditor && !screenScroll)
+        if (target == null && signLine < 0 && !bookEditor && !screenScroll && panTarget == null)
             throw error(
                     "UI_DEBUG_UNSUPPORTED",
                     "This rendered node has no supported typed native mutation");
@@ -234,15 +307,19 @@ final class UiDebugEngine {
                                                 .minecraftProtocolProbe$messages()[signLine]
                                         : bookEditor ? bookText((BookUiAccessor) screen) : null;
         JsonElement current =
-                operation.equals("ui.text.set") && nativeText != null
-                        ? new JsonPrimitive(nativeText)
-                        : currentValue(operation, node);
+                operation.equals(UiAdvancementPanDebug.OPERATION)
+                        ? node.get("debugPanValue")
+                        : operation.equals("ui.text.set") && nativeText != null
+                                ? new JsonPrimitive(nativeText)
+                                : currentValue(operation, node);
         if (request.has("expectedValue") && !Objects.equals(request.get("expectedValue"), current))
             throw error("VALUE_PRECONDITION_FAILED", "UI value changed");
         JsonElement value = request.get("value");
         // Validate the full request and native type before obtaining the mutation permit.
         Runnable apply =
                 switch (operation) {
+                    case "ui.canvas.pan.set" ->
+                            UiAdvancementPanDebug.prepare(panTarget, value, identity);
                     case "ui.widget.active.set", "ui.widget.visible.set" -> {
                         if (!(target instanceof AbstractWidget widget)
                                 || value == null
@@ -350,7 +427,7 @@ final class UiDebugEngine {
         result.addProperty("mechanism", "typed_native_ui_state");
         result.addProperty(
                 "invariants",
-                "bounded native widget types; no arbitrary callbacks or player input");
+                "bounded native UI state owners; no arbitrary callbacks or player input");
         result.addProperty("synchronization", "client_owner_thread");
         result.addProperty("gameplayEvidence", false);
         result.add("preconditions", request.get("expectedResourceVersion").deepCopy());
@@ -365,6 +442,8 @@ final class UiDebugEngine {
         result.addProperty("inputDispatchCount", 0);
         if (operation.equals("ui.slider.set"))
             result.addProperty("sideEffects", "native_slider_setting_callback");
+        if (operation.equals(UiAdvancementPanDebug.OPERATION))
+            result.addProperty("sideEffects", "native_advancement_display_pan_only");
         if (operation.equals("ui.text.set")
                 && (signLine >= 0 || bookEditor || target instanceof MultiLineEditBox))
             result.addProperty("sideEffects", "native_editor_draft_may_submit_on_close");

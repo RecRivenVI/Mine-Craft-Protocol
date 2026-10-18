@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,6 +76,7 @@ final class RuntimeDiscoveryTest {
             }
             for (int i = 0; i < 5; i++) {
                 int port = transports.get(i).boundPort().get(5, TimeUnit.SECONDS);
+                assertTrue(RuntimeEndpoint.httpCompatiblePort(port));
                 JsonObject record = record(root.resolve("instance" + i));
                 String id = record.get("runtimeInstanceId").getAsString();
                 assertTrue(ports.add(port));
@@ -200,7 +202,7 @@ final class RuntimeDiscoveryTest {
 
     @Test
     void explicitOccupiedPortFailsWithoutFallbackOrPublishedRecord() throws Exception {
-        try (var socket = new ServerSocket(0)) {
+        try (var socket = compatibleOccupiedSocket()) {
             System.setProperty(
                     "minecraft.protocol.probe.port", Integer.toString(socket.getLocalPort()));
             try (var transport =
@@ -216,11 +218,129 @@ final class RuntimeDiscoveryTest {
         }
     }
 
+    private static ServerSocket compatibleOccupiedSocket() throws java.io.IOException {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            var socket = new ServerSocket(0);
+            if (RuntimeEndpoint.httpCompatiblePort(socket.getLocalPort())) return socket;
+            socket.close();
+        }
+        throw new java.io.IOException("Unable to prepare an HTTP-compatible occupied test port");
+    }
+
+    @Test
+    void automaticBindingClosesBlockedCandidatesBeforePublishingOnlyTheSafePort() throws Exception {
+        var candidates = List.of(6679, 10080, 25581);
+        var binds = new AtomicInteger();
+        var closes = new AtomicInteger();
+        var active = new AtomicInteger();
+        try (var endpoint = RuntimeEndpoint.acquire(root, "test-target")) {
+            assertThrows(java.io.IOException.class, () -> endpoint.publish(6679));
+            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+            int port =
+                    RuntimeEndpoint.bindHttpCompatiblePort(
+                            0,
+                            () -> {
+                                assertEquals(
+                                        0,
+                                        active.get(),
+                                        "The previous candidate must be closed first");
+                                assertFalse(
+                                        Files.exists(
+                                                root.resolve("minecraft-protocol/endpoint.json")));
+                                int candidate = candidates.get(binds.getAndIncrement());
+                                active.set(candidate);
+                                return candidate;
+                            },
+                            () -> {
+                                assertFalse(RuntimeEndpoint.httpCompatiblePort(active.get()));
+                                active.set(0);
+                                closes.incrementAndGet();
+                            });
+            assertEquals(25581, port);
+            assertEquals(3, binds.get());
+            assertEquals(2, closes.get());
+            assertEquals(port, active.get());
+            endpoint.publish(port);
+            assertEquals(port, record(root).get("port").getAsInt());
+        }
+        awaitNoEndpoint(root);
+    }
+
+    @Test
+    void automaticBindingStopsAfterEightBlockedCandidatesAndDoesNotRetryBindFailures() {
+        var binds = new AtomicInteger();
+        var closes = new AtomicInteger();
+        var failure =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                RuntimeEndpoint.bindHttpCompatiblePort(
+                                        0,
+                                        () -> {
+                                            binds.incrementAndGet();
+                                            return 6679;
+                                        },
+                                        closes::incrementAndGet));
+        assertTrue(failure.getMessage().contains("8 bind candidates"));
+        assertEquals(8, binds.get());
+        assertEquals(8, closes.get());
+        binds.set(0);
+        closes.set(0);
+        var bindFailure = new IllegalStateException("native bind failed");
+        assertSame(
+                bindFailure,
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                RuntimeEndpoint.bindHttpCompatiblePort(
+                                        0,
+                                        () -> {
+                                            binds.incrementAndGet();
+                                            throw bindFailure;
+                                        },
+                                        closes::incrementAndGet)));
+        assertEquals(1, binds.get());
+        assertEquals(0, closes.get());
+    }
+
+    @Test
+    void blockedFixedPortIsRejectedByConfigurationAndDirectTransportWithoutFallback() {
+        var binds = new AtomicInteger();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        RuntimeEndpoint.bindHttpCompatiblePort(
+                                6679,
+                                () -> {
+                                    binds.incrementAndGet();
+                                    return 25581;
+                                },
+                                () -> fail("No channel exists")));
+        assertEquals(0, binds.get());
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new ProbeTransport(
+                                service(new AtomicInteger()), "test-token", 6679, "test-target"));
+        try {
+            System.setProperty("minecraft.protocol.probe.port", "6679");
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () ->
+                            ProbeTransport.forInstance(
+                                    service(new AtomicInteger()), root, "test-target"));
+            assertFalse(Files.exists(root.resolve("minecraft-protocol/token")));
+            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+        } finally {
+            System.clearProperty("minecraft.protocol.probe.port");
+        }
+    }
+
     @Test
     void configuredPortRejectsInvalidValuesAndHonorsExplicitPort() {
         try {
             assertEquals(0, RuntimeEndpoint.configuredPort());
-            for (String invalid : new String[] {"bad", "-1", "65536", ""}) {
+            for (String invalid : new String[] {"bad", "-1", "65536", "", "6679", "10080"}) {
                 System.setProperty("minecraft.protocol.probe.port", invalid);
                 assertThrows(IllegalArgumentException.class, RuntimeEndpoint::configuredPort);
             }

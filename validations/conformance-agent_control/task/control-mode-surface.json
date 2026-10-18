@@ -72,7 +72,7 @@
       "method": "POST",
       "path": "/v0/diagnostics/ui/test-screen",
       "operationId": "openAutomationProbeScreen",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "GET",
@@ -90,7 +90,7 @@
       "method": "POST",
       "path": "/v0/diagnostics/events/stress",
       "operationId": "runBoundedEventStressProbe",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "GET",
@@ -228,7 +228,7 @@
       "method": "POST",
       "path": "/v0/command/player",
       "operationId": "executeCurrentPlayerCommand",
-      "modeRequirement": "TAKEOVER_REQUIRED"
+      "modeRequirement": "COMMAND_ROUTE_DEPENDENT"
     },
     {
       "method": "GET",
@@ -342,13 +342,13 @@
       "method": "POST",
       "path": "/v0/debug/mutations",
       "operationId": "executeTypedDebugMutation",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "POST",
       "path": "/v0/debug/batches",
       "operationId": "startTypedDebugBatch",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "GET",
@@ -372,19 +372,19 @@
       "method": "POST",
       "path": "/v0/fixture/player/teleport",
       "operationId": "fixtureTeleportPlayer",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "POST",
       "path": "/v0/debug/player/health",
       "operationId": "debugSetPlayerHealth",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "POST",
       "path": "/v0/debug/world/block",
       "operationId": "debugSetBlock",
-      "modeRequirement": "OPERATE_REQUIRED"
+      "modeRequirement": "OPERATE_OR_TAKEOVER"
     },
     {
       "method": "GET",
@@ -467,7 +467,7 @@
         "26.3-neoforge",
         "26.3-fabric"
       ],
-      "modeRequirement": "OPERATE_REQUIRED",
+      "modeRequirement": "OPERATE_OR_TAKEOVER",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
     },
     {
@@ -477,7 +477,7 @@
         "26.3-neoforge",
         "26.3-fabric"
       ],
-      "modeRequirement": "OPERATE_REQUIRED",
+      "modeRequirement": "OPERATE_OR_TAKEOVER",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
     },
     {
@@ -489,7 +489,7 @@
         "26.3-neoforge",
         "26.3-fabric"
       ],
-      "modeRequirement": "OPERATE_REQUIRED",
+      "modeRequirement": "OPERATE_OR_TAKEOVER",
       "stability": "EXISTING_DIAGNOSTIC_NOT_A_NEW_PUBLIC_DOMAIN"
     },
     {
@@ -575,7 +575,11 @@
       "default": "READ_COMPATIBLE"
     },
     "minecraft_execute_player_command": {
-      "default": "TAKEOVER_REQUIRED"
+      "default": "COMMAND_ROUTE_DEPENDENT",
+      "discriminator": "route",
+      "actions": {"AUTO":"COMMAND_ROUTE_DEPENDENT","CHAT":"TAKEOVER_REQUIRED","NATIVE":"OPERATE_OR_TAKEOVER"},
+      "typedActions": {"execute": "COMMAND_ROUTE_DEPENDENT", "discover": "READ_COMPATIBLE", "batch": "OPERATE_OR_TAKEOVER"},
+      "note": "action defaults to execute; AUTO chooses NATIVE in OPERATE, CHAT otherwise. Discovery is read+command and never executes; batch is bounded NATIVE only. Never changes intent or permissions."
     },
     "minecraft_control": {
       "discriminator": "action",
@@ -632,7 +636,7 @@
       "default": "READ_COMPATIBLE"
     },
     "minecraft_fixture": {
-      "default": "OPERATE_REQUIRED"
+      "default": "OPERATE_OR_TAKEOVER"
     },
     "minecraft_debug_arm": {
       "default": "MODE_INDEPENDENT",
@@ -642,8 +646,8 @@
       "discriminator": "action",
       "actions": {
         "capabilities": "READ_COMPATIBLE",
-        "mutate": "OPERATE_REQUIRED",
-        "batch": "OPERATE_REQUIRED",
+        "mutate": "OPERATE_OR_TAKEOVER",
+        "batch": "OPERATE_OR_TAKEOVER",
         "act_start": "READ_COMPATIBLE",
         "act_finish": "READ_COMPATIBLE"
       }
