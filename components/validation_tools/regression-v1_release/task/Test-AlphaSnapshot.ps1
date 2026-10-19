@@ -119,6 +119,17 @@ try{
     $tool=Join-Path $repo 'components/validation_tools/conformance-world_read/task/mcp-world-baseline.mjs';$originalTool=Get-Content $tool -Raw
     try{Write-Text $tool 'modified bound MCP consumer';Rejected {Run-Publisher} 'direct publisher rejects changed proof tools even when they are not candidate product files'}finally{Write-Text $tool $originalTool}
     Write-Text (Join-Path $repo 'build/alpha-manifest.json') $candidateJson
+    $dependency=$candidateJson|ConvertFrom-Json
+    $dependency.publicationProfile='dependency_update_trial_v1'
+    $dependency.nativeSmokeScope='packaged-runtime'
+    $dependency.fullNativeSmoke=$false
+    $dependency|Add-Member -NotePropertyName runtimeAcceptance -NotePropertyValue 'dependency_update_installed_world_smoke' -Force
+    Write-Text (Join-Path $repo 'build/alpha-manifest.json') ($dependency|ConvertTo-Json -Depth 100)
+    $missingWorldRejected=$false
+    try{Run-Publisher|Out-Null}catch{$missingWorldRejected=$_.Exception.Message.Contains('require new installed-world Runtime proof')}
+    Require $missingWorldRejected 'a dependency profile cannot publish the title-only installed proof'
+    Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$latestBefore) 'missing dependency world proof must not change latest'
+    Write-Text (Join-Path $repo 'build/alpha-manifest.json') $candidateJson
     $pin=Run-Publisher 'Pin' $first.directory 'voxy'
     Require $pin.inUse 'explicit use protects the old snapshot even after source changes'
     Run-Publisher 'Pin' $first.directory 'voxy'|Out-Null

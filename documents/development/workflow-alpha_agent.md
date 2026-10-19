@@ -49,6 +49,9 @@ foreach ($jar in $manifest.artifacts) {
 它们不进入纯净自动基线，不是产品依赖，也不能用来补齐发行包缺失依赖。
 
 每份快照只包含已绑定验证的候选；后续开发不会改写它。新快照必须重新通过同一候选五端独立发行安装门禁。
+清单的publicationProfile区分完整连续游玩试用与依赖更新：后者须逐文件确认产品实现未改变，引用已封存试用基线，
+并重新完成当前五端单发行JAR的安装、进入固定世界、USER读取与正常退出。
+旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；两种profile均不宣称完整领域里程碑完成。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 
 `world.block.set` 支持有界 `properties`/`expectedProperties` 字符串映射，使用实际原生属性名和值；不接受 NBT。

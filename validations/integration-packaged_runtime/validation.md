@@ -41,7 +41,7 @@ Get-Help ./components/validation_tools/integration-packaged_runtime/task/Invoke-
 ./gradlew.bat :validation_tools:check
 pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-Phase9D21PackagingGate.ps1 -SkipBuild
 foreach ($target in @('26.3-neoforge','1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-fabric')) {
-    pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1 -Target $target
+    pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1 -Target $target -EnterWorld
     if ($LASTEXITCODE -ne 0) { throw "全新安装失败：$target" }
 }
 ```
@@ -56,6 +56,12 @@ foreach ($target in @('26.3-neoforge','1.20.1-forge','1.21.1-neoforge','26.1.2-n
 清理阶段异常写为FAIL及具体stage，不遗留可误读的IN_PROGRESS。组件check包含实际长路径回收、锁/身份拒绝和故障保留测试。
 当前结果固定写到result/Target.json，包含源码、实际JAR、工具、Java/Loader、类加载来源和清理结果，不按运行次数新建结果目录。
 
+EnterWorld显式扩展原标题页检查：只从本验证体系既有的World-Read-Alpha基准复制世界，先核对原清单及全部文件哈希；
+该隔离测试额外显式授予diagnostics以读取held/cleanup状态，不授予DEBUG修改或绕过Runtime权限检查；默认标题检查的scope不变。
+Minecraft与Target不变时允许编译Loader更新，保留原清单与原Target事实哈希，另记当前事实，不重建或修改基准。
+进入世界使用正式GUI语义输入，同一Lease按需续期；独立确认USER玩家、世界就绪和held=0，再正常保存退出至标题页。
+未传EnterWorld仍只证明原标题页范围；未提供有效固定基准则该扩展明确失败，不自动新建测试地图。
+
 ## 通过标准
 
 五端各自status=PASS，发行JAR与当前源码匹配，freshGameDirectory=true、externalModCount=1、developmentClasspath=false；
@@ -67,3 +73,5 @@ foreach ($target in @('26.3-neoforge','1.20.1-forge','1.21.1-neoforge','26.1.2-n
 保留原始结果，不盲重放，不将其称为成功RPC，不能接受内部HTTP500代替明确关闭状态；实际自然退出与响应分别判断。
 打包结构、独立安装结果及源码/JAR绑定均通过后，才可刷新alpha清单与固定分发快照；发布工具再次校验结果哈希。
 这不代表完整UI/世界目录、MCP全部功能、Peer或人工验收完成。
+传EnterWorld时还须enteredWorld=true、USER客户端世界读取成功、独立确认Save & Quit完成及held=0；
+原title读取样本仍保留，不将进入世界证明混写为默认标题检查或完整游戏验收。

@@ -10,7 +10,7 @@ Node 版本要求、直接依赖版本及开发/生产分类以
 `@modelcontextprotocol/client` 是开发/测试依赖，用于 Companion 单元测试和 Live conformance。
 现有客户端通过 `StdioClientTransport` 与 Companion 通信，不使用 HTTP OAuth。
 生产入口使用 `@modelcontextprotocol/server`；客户端与服务端分别声明版本，升级后须验证实际 stdio 互通。
-当前两者固定为 2.3.1，Zod 固定为 4.6.5；Node 类型使用 24 LTS 代际，运行环境优先 Node 24 LTS。
+当前两者固定为 2.3.1，Zod 固定为 4.6.7；Node 类型使用 24 LTS 代际，运行环境优先 Node 24 LTS。
 这些 Node 依赖属于独立工具组件，不嵌入 Minecraft Mod JAR。
 客户端及其新版 Core 的许可为 Apache-2.0，原文由 npm 软件包提供；不改变项目自身的许可。
 
@@ -20,6 +20,10 @@ Node 版本要求、直接依赖版本及开发/生产分类以
 不能仅凭升级依赖推定任意 OAuth 配置安全。
 
 ## 验证与审计
+
+2026-10-20按[npm官方发布](https://registry.npmjs.org/zod/latest)将Zod从4.6.5更新至4.6.7；
+MCP服务端/客户端2.3.1、TypeScript7.0.2与Node24分支类型24.19.2已是适用的最新稳定版，保持不变。
+锁文件随精确依赖更新生成，不改变Runtime协议或权限合同。
 
 ```powershell
 npm --prefix components/companion ci --include=dev

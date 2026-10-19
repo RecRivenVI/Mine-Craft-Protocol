@@ -1,5 +1,6 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target)
+param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
+    [switch]$EnterWorld)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
@@ -19,7 +20,9 @@ try{
     $stage='official_installation'
     [IO.Directory]::CreateDirectory($root)|Out-Null
     [IO.File]::WriteAllText((Join-Path $root 'owner.json'),(@{owner='packaged-runtime-clean-install';target=$Target}|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
-    & node (Join-Path $PSScriptRoot 'installed-launcher.mjs') "--target=$Target"
+    $launcherArgs=@("--target=$Target")
+    if($EnterWorld){$launcherArgs+='--enter-world'}
+    & node (Join-Path $PSScriptRoot 'installed-launcher.mjs') @launcherArgs
     if($LASTEXITCODE-ne0){
         $result=Join-Path $resultRoot ($Target+'.json')
         if((Get-Content $result -Raw|ConvertFrom-Json).status-eq'IN_PROGRESS'){

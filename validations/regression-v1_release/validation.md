@@ -58,8 +58,20 @@ pwsh -NoProfile -File components/validation_tools/regression-v1_release/task/Tes
 node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --scenario=full --profile=continuous_gameplay_trial_v1
 ```
 
-此命令在校验后直接调用固定快照发布器，不是只生成文件。新发布仅接受上述完整回归和连续游玩试用profile；
-专项结果单独保留，不能据其刷新alpha。历史快照保持原样，不按新profile回写。
+此命令在校验后直接调用固定快照发布器，不是只生成文件。上述profile要求完整连续游玩试用回归；
+历史快照保持原样，不按新profile回写。普通专项结果不能据其刷新alpha。
+
+本轮依赖更新使用单独、显式的有界profile。先完成当前五端单发行JAR安装入世界smoke，再执行：
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --profile=dependency_update_trial_v1 --scenario=packaged-runtime --dependency-baseline=D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261020-0337-f2dc15c9
+```
+
+该profile严格绑定已封存基线的七文件与612份产品/构建事实，只允许本轮三个NeoForge、Fabric API、Loom事实及Zod包/锁变化。
+产品Java、资源、协议、游戏版本与最低Loader要求均须不变；任何行为源码变化均拒绝，不以此绕过相应回归。
+五端安装必须重新绑定当前源码/JAR、USER入世界、同Lease与干净退出，标题页证明不足以发布。
+历史65场景只作基线范围索引，清单明确fullNativeSmoke=false、fullMilestonesComplete=false；
+NOT_MET仅为历史测量，本轮无新性能测量，不宣称新候选完整Native/MCP或人工验收。
 
 ## 通过标准
 

@@ -1,6 +1,6 @@
 # Mine-Craft-Protocol 当前执行计划
 
-执行40号指令第一至五节及“六、Mine-Craft-Protocol”：先交付冻结候选的批次A～D试用alpha，再修复Linux测试、提交唯一检查点，最后更新兼容依赖并发布更新快照。
+执行40号指令第一至五节及“六、Mine-Craft-Protocol”：试用alpha、Linux修复、唯一检查点、兼容依赖更新、五端独立安装进入世界smoke、最后仓库检查及更新快照发布均已完成；交用户试用后停止。
 当前UI、世界与完整Showcase均未READY；本次试用交付不表示完整领域READY或人工PASS。
 恢复工作先读[当前状态页](status-milestones.md)，从该页取得候选、有效矩阵、剩余组数和下三步，不在计划中累积运行日志。
 
@@ -29,11 +29,11 @@
 
 1. 完成：冻结候选f2dc15c9的65场景位齐备；63份原矩阵PASS，一份Fabric九项功能证明覆盖原performance/baseline两个场景位，性能DEFERRED，不称65份性能PASS。
 2. 完成：发布20261020-0337-f2dc15c9同批五份JAR、alpha-manifest.json、AGENT_GUIDE.md及连续游玩试用说明，七文件和latest独立审计PASS。
-3. 完成：Linux清理测试已按平台分支修复并补单测，本机局部及统一离线检查通过；真实Linux CI等待检查点推送，不将本机验证冒充Linux运行结果。
-4. 待办：在试用版交付、Linux修复完成且依赖更新前，审查暂存范围，创建唯一标题为Update、无正文的SSH签名检查点，commitdate=authordate，正常推送当前跟踪分支并核对同步；不强推、不建tag。
-5. 待办：核对当前Minecraft版本对应的最新兼容稳定Loader、Fabric API、第三方模组与库，记录每项旧版本、新版本和上游来源，只修改实际事实来源并同步依赖说明。
-6. 待办：执行更新后的构建、单元/组件测试，以及五Target各一次独立安装进入世界smoke；发生回归先修，无法当轮修复则仅回退该依赖并记录原因，不因依赖更新重跑完整矩阵。
-7. 待办：核验并发布更新后的同批七文件固定快照，更新latest；若实际阻塞则写明不发布的原因，汇报已完成/未完成后停止，不自动开始E/F或人工验收。
+3. 完成：Linux清理测试已按平台分支修复并补单测，本机局部/统一检查及检查点的真实Linux CI通过，具体Actions见状态页。
+4. 完成：唯一Update检查点已SSH签名、commitdate=authordate，正常推送develop并同步；源码/测试/工具/文档入提交，raw results排除。此后不再提交或推送，不强推、不建tag。
+5. 完成：六项兼容稳定依赖已应用，五Target构建、三产品组件及Companion检查通过，npm审计0；具体版本及新旧/来源记录由状态页和依赖说明负责，不冒充Live。
+6. 完成：更新候选52bc024f的五端独立安装进入世界smoke均PASS，绑定同一最终版工具；CLIENT_KNOWN USER、同Lease、held=0、正常保存退出、exit0及endpoint移除已确认，未重跑旧65矩阵或性能测量。
+7. 完成：最后仓库检查通过，20261020-0422-52bc024f同批七文件固定快照已发布，latest与载荷哈希独立审计PASS；旧矩阵仅作为历史基线，依赖更新后的改动保持未提交，汇报后停止，不自动开始E/F或人工验收。
 
 ### 冻结试用交付
 
@@ -46,11 +46,9 @@
 
 ### 依赖更新边界
 
-1. 待办：保持五Target的Minecraft版本不变，选择与其兼容的最新稳定Forge/NeoForge/Fabric Loader、Fabric API及项目依赖；本次不沿用可用Beta就升级的选择。
-2. 待办：将Target特定版本写入target.properties，共享依赖保留其真实唯一来源；同步项目Target表、README、元数据和[Runtime依赖说明](../reference/dependency-runtime.md)、[Companion依赖说明](../reference/dependency-companion.md)的受影响项。
-3. 待办：固定模板2.0.2，不修改模板文件或模板工具版本；某项升级若必须改模板则跳过该项并登记模板需求，不为升级擅自改规范。
-4. 待办：保持地图、夹具、光影等对照输入及已落实的实例预设不变；不通过替换基准掩盖回归。
-5. 待办：在参考端完成受影响功能检查后按真实API差异移植；每端独立安装smoke须证明仅最终产品JAR经Loader进入固定测试世界、Runtime就绪和正常退出，不能以开发classpath、编译、标题或旧结果代替。
+1. 完成：保持Minecraft版本不变，已应用六项兼容稳定依赖；具体新旧版本与上游来源见[Runtime依赖说明](../reference/dependency-runtime.md)及[Companion依赖说明](../reference/dependency-companion.md)。
+2. 完成：版本保留在Target/共享依赖事实来源，模板2.0.2及模板工具不升级；依赖更新不改变地图、夹具、光影等对照输入及已落实的实例预设。
+3. 完成：参考端及其余四端串行独立安装smoke全部PASS，仅最终产品JAR经Loader进入固定测试世界、Runtime就绪和正常退出；每次一个低优先级4逻辑核客户端，不以开发classpath、编译或旧结果代替。
 
 ### 后续Goal边界
 
@@ -69,13 +67,13 @@
 6. 主线程统一共享授权/生命周期和接口接线、格式化、构建、运行与分发；UI、世界、命令/部署子代理继承相同模型与思考等级，在明确文件所有权内并行，只读审查线独立复核。
 7. 一次只运行一个本线程隔离客户端，沿用1920×1080静音4GiB；运行有deadline，仅清理已确认归属的进程，不使用Computer-Use、宿主输入或外部Prism。
 8. 按40号资源安排使用低优先级和4个逻辑核；不反复重做已落实的分辨率、声音或验收模组设置。
-9. 除步骤4唯一检查点外不暂存、提交、推送或建tag；排除世界、大体积证据、构建产物、本机配置及临时运行数据，不因ignore遗漏而纳入提交。
+9. 唯一检查点已完成，此后不暂存、提交、推送或建tag；世界、大体积证据、构建产物、本机配置及临时运行数据继续排除，不因ignore遗漏而纳入提交。
 
 ## 结果
 
 当前有效矩阵、快照、剩余验收组与估算只在[状态页](status-milestones.md)维护；本计划不累积逐次运行记录。
 两领域及完整Showcase未READY；f2dc试用快照与说明已发布，历史攻击比值仍NOT_MET，性能检测本轮暂缓，不作为完成门槛。
-Linux清理修复及本机验证已通过；唯一检查点、真实Linux CI、兼容稳定依赖、五端独立安装进入世界smoke和更新快照仍须按顺序取得真实结果。
-达到本Goal完成条件后交用户试用，汇报并停止；Persistent Write调用保持0，统一人工验收尚未执行。
+唯一检查点、真实Linux CI、依赖更新后的构建/组件检查、五端独立安装进入世界smoke及最后严格合规已通过；更新快照已发布，latest及七文件独立审计PASS。
+本Goal完成条件已达到，交用户试用，汇报并停止；Persistent Write调用保持0，统一人工验收尚未执行，E/F另开Goal。
 
 历史实现、使用方分诊与测量归入[阶段记录](phase-1-core_delivery.md)，调查与失败证据见[验证调查](../research/incident-milestone_validation.md)；不改历史正文和绑定证据以迁就当前计划。

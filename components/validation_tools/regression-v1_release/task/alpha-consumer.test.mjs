@@ -1,7 +1,7 @@
 import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {resolve,relative,dirname,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
@@ -11,10 +11,74 @@ import {validatePlayerStream,decodeRegionPage} from '../../conformance-world_rea
 import {placementReceiptCases} from '../../conformance-world_read/task/world-placement-receipts-actions.mjs';
 import {performanceAttackSteps,performanceAttackComparison} from '../../conformance-world_read/task/continuous-performance-actions.mjs';
 import {verifyEvidenceSources,candidateBindingRequired} from './alpha-evidence.mjs';
+import {DEPENDENCY_PROFILE,DEPENDENCY_SCOPE,readDependencyBaseline,dependencySourceProof,dependencyPerformance} from './dependency-proof.mjs';
 
 const publicationFixtureMode=process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)&&process.argv[2]==='--write-publication-fixture';
 // The explicit fixture CLI does not register tests or emit TAP. Production never imports this file.
 const test=publicationFixtureMode?()=>{}:nodeTest;
+
+async function dependencyFixture(){
+ const root=resolve(import.meta.dirname,'../../build/test/dependency-proof-'+randomUUID()),repo=resolve(root,'repository');
+ const digest=value=>createHash('sha256').update(value).digest('hex'),write=async(path,bytes)=>{await mkdir(dirname(path),{recursive:true});await writeFile(path,bytes);};
+ const targets=['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-fabric','26.3-neoforge'];
+ const originals={
+  'versions/1.20.1-forge/target.properties':'loader_version=47.4.28\njava_version=17\n',
+  'versions/1.21.1-neoforge/target.properties':'loader_version=21.1.259\nloader_minimum=21.1.248\njava_version=21\n',
+  'versions/26.1.2-neoforge/target.properties':'loader_version=26.1.2.117\nloader_minimum=26.1.2.97\njava_version=25\n',
+  'versions/26.3-neoforge/target.properties':'loader_version=26.3.0.77\njava_version=25\n',
+  'versions/26.3-fabric/target.properties':'loader_version=0.19.5\nloader_minimum=0.19.3\njava_version=25\nfabric_api_version=0.162.0+26.3\n',
+  'gradle/libs.versions.toml':'[versions]\nloom = "1.18.3"\nmoddev = "2.0.148"\n',
+  'components/runtime_core/src/main/java/Example.java':'class Example {}\n'
+ };
+ const replacements={'21.1.259':'21.1.264','26.1.2.117':'26.1.2.122','26.3.0.77':'26.3.0.94','0.162.0+26.3':'0.164.0+26.3','1.18.3':'1.19.1'},sourceHashes={},currentSources={};
+ for(const path of Object.keys(originals).sort()){const before=originals[path];let after=before;for(const[from,to]of Object.entries(replacements))after=after.replace(from,to);sourceHashes[path]=digest(before);currentSources[path]=digest(after);await write(resolve(repo,path),after);}
+ const packageBefore={name:'synthetic-companion',version:'test',dependencies:{zod:'4.6.5',unchanged:'1.0.0'}},packageAfter=structuredClone(packageBefore);packageAfter.dependencies.zod='4.6.7';
+ const lockBefore={lockfileVersion:3,packages:{'':{dependencies:{zod:'4.6.5'}},'node_modules/zod':{version:'4.6.5',resolved:'https://registry.npmjs.org/zod/-/zod-4.6.5.tgz',integrity:'sha512-b2xk',license:'MIT'}}},lockAfter=structuredClone(lockBefore);lockAfter.packages[''].dependencies.zod='4.6.7';Object.assign(lockAfter.packages['node_modules/zod'],{version:'4.6.7',resolved:'https://registry.npmjs.org/zod/-/zod-4.6.7.tgz',integrity:'sha512-bmV3'});
+ for(const[name,before,after]of [['package.json',packageBefore,packageAfter],['package-lock.json',lockBefore,lockAfter]]){const path='components/companion/'+name;originals[path]=JSON.stringify(before);await write(resolve(repo,path),JSON.stringify(after));}
+ const fingerprint=digest(JSON.stringify(sourceHashes)),name='20261020-0337-'+fingerprint.slice(0,8),directory=resolve(root,name),proof=target=>({target,resultSha256:'a'.repeat(64)});
+ const artifacts=targets.map(target=>({target,fileName:'product-'+target+'.jar',sha256:digest('synthetic Jar '+target)}));
+ const report={type:'internal_alpha_build',publicationProfile:'continuous_gameplay_trial_v1',sourceFingerprint:fingerprint,sourceHashes,commit:'synthetic-baseline',nativeSmokeScope:'full',fullNativeSmoke:true,fullMilestonesComplete:false,
+  artifacts,nativeSmoke:targets.map(proof),uiRegression:targets.map(proof),continuousInput:targets.map(proof),packagedRuntime:artifacts.map(row=>({...proof(row.target),artifactSha256:row.sha256,sourceFingerprint:fingerprint})),
+  controlCollaboration:targets.flatMap(target=>['mode-collaboration','command-discovery-batch','resource-version','server-completion'].map(scenario=>({...proof(target),scenario}))),
+  continuousGameplay:{readyFor:'trial_not_goal_acceptance',proofs:targets.flatMap(target=>['input-context','region-stream','world-placement-receipts','continuous-performance','interaction-baseline'].map(scenario=>({...proof(target),scenario})))},
+  performanceAcceptance:{status:'NOT_MET',goalPerformancePass:false,targets:targets.map(target=>({target,targetResult:'NOT_MET'}))},agentGuide:{fileName:'AGENT_GUIDE.md',sha256:digest('synthetic guide')}};
+ for(const row of artifacts)await write(resolve(directory,row.fileName),'synthetic Jar '+row.target);await write(resolve(directory,'AGENT_GUIDE.md'),'synthetic guide');
+ const bytes=JSON.stringify(report);await write(resolve(directory,'alpha-manifest.json'),bytes);const identity={name,sourceFingerprint:fingerprint,manifestSha256:digest(bytes)},baseline=await readDependencyBaseline(directory,identity);
+ return{repo,directory,identity,baseline,currentSources,originals,write,digest,readOriginal:async path=>Buffer.from(originals[path])};
+}
+
+test('dependency profile binds an immutable seven-file baseline and only five declared facts plus the Zod pair',async()=>{
+ const f=await dependencyFixture(),original=await readFile(resolve(f.directory,'alpha-manifest.json'));
+ const proof=await dependencySourceProof(f.repo,f.baseline,f.currentSources,f.readOriginal);
+ assert.equal(DEPENDENCY_PROFILE,'dependency_update_trial_v1');assert.equal(DEPENDENCY_SCOPE,'dependency_update_installed_world_smoke');assert.equal(proof.changes.length,5);assert.equal(proof.historicalLogicalSlots,65);assert.equal(proof.historicalOnly,true);assert.equal(proof.currentFullMatrixClaimed,false);assert.equal(proof.companion.files.length,2);assert.equal(proof.companion.liveMcpAcceptanceClaimed,false);
+ const performance=dependencyPerformance(f.baseline);assert.equal(performance.status,'NOT_MET');assert.equal(performance.newMeasurements,false);assert.equal(performance.goalPerformancePass,false);assert.deepEqual(performance.historical,f.baseline.report.performanceAcceptance);assert.deepEqual(await readFile(resolve(f.directory,'alpha-manifest.json')),original);
+ await assert.rejects(readDependencyBaseline(f.directory),/Unexpected dependency baseline/,'Production must not accept the synthetic baseline identity');
+});
+
+test('dependency baseline refuses changed manifest, guide, every Jar or an extra file without rewriting any source',async()=>{
+ for(const kind of ['alpha-manifest.json','AGENT_GUIDE.md','product-1.20.1-forge.jar','product-1.21.1-neoforge.jar','product-26.1.2-neoforge.jar','product-26.3-fabric.jar','product-26.3-neoforge.jar','unexpected.txt']){
+  const f=await dependencyFixture();await f.write(resolve(f.directory,kind),'tampered');await assert.rejects(readDependencyBaseline(f.directory,f.identity),undefined,kind);
+ }
+});
+
+test('dependency-only acceptance rejects product edits, changed identity, Java or minimum Loader and unrelated catalog changes',async()=>{
+ for(const[path,edit]of [
+  ['components/runtime_core/src/main/java/Example.java',value=>value+'class Changed {}\n'],
+  ['versions/26.3-fabric/target.properties',value=>value.replace('java_version=25','java_version=26')],
+  ['versions/26.3-fabric/target.properties',value=>value.replace('loader_minimum=0.19.3','loader_minimum=0.19.4')],
+  ['versions/1.20.1-forge/target.properties',value=>value.replace('47.4.28','47.4.29')],
+  ['gradle/libs.versions.toml',value=>value.replace('moddev = "2.0.148"','moddev = "2.0.149"')]
+ ]){const f=await dependencyFixture(),bytes=edit(await readFile(resolve(f.repo,path),'utf8'));await f.write(resolve(f.repo,path),bytes);f.currentSources[path]=f.digest(bytes);await assert.rejects(dependencySourceProof(f.repo,f.baseline,f.currentSources,f.readOriginal),undefined,path);}
+ const f=await dependencyFixture();f.currentSources['versions/new-target/src/main/Changed.java']='a'.repeat(64);await assert.rejects(dependencySourceProof(f.repo,f.baseline,f.currentSources,f.readOriginal),/Product source set changed/);
+ const wrong=await dependencyFixture();await assert.rejects(dependencySourceProof(wrong.repo,wrong.baseline,wrong.currentSources,async path=>Buffer.from(wrong.originals[path]+'\n')),/Baseline Git facts differ/);
+});
+
+test('Companion dependency proof refuses unrelated package or lockfile edits and records actual current digests',async()=>{
+ for(const path of ['components/companion/package.json','components/companion/package-lock.json']){
+  const f=await dependencyFixture(),value=JSON.parse(await readFile(resolve(f.repo,path)));value.unrelated='not a Zod update';await f.write(resolve(f.repo,path),JSON.stringify(value));await assert.rejects(dependencySourceProof(f.repo,f.baseline,f.currentSources,f.readOriginal),/limited to Zod/);
+ }
+ const f=await dependencyFixture(),proof=await dependencySourceProof(f.repo,f.baseline,f.currentSources,f.readOriginal);for(const file of proof.companion.files)assert.equal(file.sha256,f.digest(await readFile(resolve(f.repo,file.source))));
+});
 
 test('publication checks actual production and shared runner bytes, excluding only an unexecuted placement branch',async()=>{
  const repo=resolve(import.meta.dirname,'../../../..');

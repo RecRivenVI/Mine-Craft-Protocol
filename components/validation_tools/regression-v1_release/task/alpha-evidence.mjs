@@ -8,6 +8,7 @@ import {decodeRegionPage,validatePlayerStream} from '../../conformance-world_rea
 import {placementReceiptCases,stateFromUserPoint,validatePlacementReceipt,validatePlacementCompanion} from '../../conformance-world_read/task/world-placement-receipts-actions.mjs';
 import {performanceAttackComparison} from '../../conformance-world_read/task/continuous-performance-actions.mjs';
 import {validateFunctionalAttack} from '../../conformance-world_read/task/continuous-functional-actions.mjs';
+import {DEPENDENCY_PROFILE,verifyDependencyPublication} from './dependency-proof.mjs';
 
 export const CONTINUOUS_PROFILE='continuous_gameplay_trial_v1';
 export const DEFERRED_PERFORMANCE='DEFERRED_BY_USER_2026_10_20';
@@ -519,7 +520,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  try{
   assert.equal(process.argv[2],'--verify-continuous-publication');assert.equal(process.argv[4],'--repository-root');assert.equal(process.argv.length,6);
   const repo=resolve(process.argv[5]),manifest=resolve(process.argv[3]);assert.equal(relative(repo,manifest).replaceAll('\\','/'),'build/alpha-manifest.json');
-  const proof=await verifyContinuousPublication(JSON.parse(await readFile(manifest,'utf8')),repo);
-  console.log('Continuous-gameplay trial publication gate: PASS; measured performance '+proof.performanceAcceptance.status+'; full Goal acceptance not claimed');
+  const report=JSON.parse(await readFile(manifest,'utf8'));
+  const proof=report.publicationProfile===DEPENDENCY_PROFILE?await verifyDependencyPublication(report,repo):await verifyContinuousPublication(report,repo);
+  console.log('Trial publication gate: PASS; profile '+report.publicationProfile+'; performance '+proof.performanceAcceptance.status+'; full Goal acceptance not claimed');
  }catch(error){console.error('Continuous-gameplay alpha refused: '+error.message);process.exitCode=1;}
 }

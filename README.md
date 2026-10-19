@@ -9,9 +9,9 @@
 | Target | 编译加载器 | Java |
 | --- | --- | --- |
 | `1.20.1-forge` | Forge 47.4.28 | 17 |
-| `1.21.1-neoforge` | NeoForge 21.1.259 | 21 |
-| `26.1.2-neoforge` | NeoForge 26.1.2.117 | 25 |
-| `26.3-neoforge` | NeoForge 26.3.0.77 | 25 |
+| `1.21.1-neoforge` | NeoForge 21.1.264 | 21 |
+| `26.1.2-neoforge` | NeoForge 26.1.2.122 | 25 |
+| `26.3-neoforge` | NeoForge 26.3.0.94 | 25 |
 | `26.3-fabric` | Fabric Loader 0.19.5 | 25 |
 
 ## 快速开始

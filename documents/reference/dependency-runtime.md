@@ -10,7 +10,21 @@ Companion 的 Node 依赖单独见[Companion 依赖](dependency-companion.md)。
 Loader 可以采用已发布的 Beta，但版本必须固定，不能使用动态版本。
 Fabric API 从 Fabric Target 的事实读取；ModDev、Loom 和 Wrapper 从各自构建事实读取。
 已有最低 Loader 要求与编译用版本分离，新 Minecraft Target 不沿用旧端的运行下限。
-本轮仅更新现有 Target 的编译 Loader，最低 Loader 要求、Minecraft、Fabric API 与其他产品依赖保持不变。
+本轮保持Minecraft、最低Loader要求及模板2.0.2不变，更新现有Target兼容的稳定Loader、Fabric API与项目拥有的Loom。
+Fabric Loader最新稳定为0.19.5，0.20.x标为非稳定，本批不采用。
+
+2026-10-20更新范围与官方来源如下；版本事实仍只从Target文件与版本目录读取。
+
+| 依赖 | 更新前 | 当前 | 上游来源 |
+| --- | --- | --- | --- |
+| NeoForge / 1.21.1 | 21.1.259 | 21.1.264 | [官方Maven](https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml) |
+| NeoForge / 26.1.2 | 26.1.2.117 | 26.1.2.122 | 同上 |
+| NeoForge / 26.3 | 26.3.0.77 | 26.3.0.94 | 同上 |
+| Fabric API / 26.3 | 0.162.0+26.3 | 0.164.0+26.3 | [官方Maven](https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml) |
+| Loom | 1.18.3 | 1.19.1 | [官方发布模块](https://maven.fabricmc.net/net/fabricmc/fabric-loom/1.19.1/fabric-loom-1.19.1.module) |
+
+Forge47.4.28、ModDev2.0.148及其余适用项目依赖已是当前稳定发布；模板工具版本不动。
+Loom1.19.1要求的Java25与Gradle9.8 API由现有daemon/Wrapper满足，不为此修改模板。
 
 ## 运行库与测试库
 

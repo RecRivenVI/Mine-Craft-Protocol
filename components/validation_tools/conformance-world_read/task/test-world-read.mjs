@@ -73,7 +73,9 @@ assert(prioritySource.includes("command:`execute in ${dimension} run tp @s 0.5 8
 assert(prioritySource.includes("assert.equal(r.mechanism,'GAME_ROUTED_RAW')"),'The other command consumer flows must keep their actual CHAT path');
 assert(prioritySource.includes("case:'consumer_dimension',dimension,before,receipt,player:p,after,released,readyUi"),'Native submission and independent USER/context/cleanup evidence remain separate');
 const installedSource=await readFile(resolve(import.meta.dirname,'../../integration-packaged_runtime/task/installed-launcher.mjs'),'utf8');
-assert(installedSource.includes("automaticTakeoverRequest(await status.json(),{ttlMs:15000})"));
+assert(installedSource.includes('async function acquire(ttlMs=15000)'),'Title-only acquisition keeps its existing TTL default');
+assert(installedSource.includes('automaticTakeoverRequest(await status.json(),{ttlMs})'),'Every requested TTL still passes the manual-revocation policy check');
+assert(installedSource.includes('const acquired=await acquire(60000)'),'Installed world entry explicitly requests the existing longer TTL rather than reacquiring around expiry');
 assert.equal((installedSource.match(/connection\.fetch\('\/v0\/control\/acquire'/g)??[]).length,1,'Every installed-loader acquisition uses the checked helper');
 
 const repo=resolve(import.meta.dirname,'../../../..');

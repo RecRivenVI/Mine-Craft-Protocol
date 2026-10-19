@@ -1880,3 +1880,27 @@ Linux清理测试已按平台分支修复：Windows使用回收站，其他平�
 本机统一spotlessApply、check、verifyRelease、verifyCompliance --strict --offline通过，246 tasks，耗时2分47秒；真实Linux CI仍待唯一检查点推送后确认。
 此时检查点、兼容稳定依赖更新、五端独立安装进入世界smoke及更新快照均未执行；后续按当前计划推进，不重复完整矩阵。
 M-01～M-12的P/V及58个剩余验收组保持，UI/世界与完整Showcase仍IN PROGRESS，Persistent Write调用保持0。
+
+### 2026-10-20兼容依赖更新与五端独立安装进入世界
+
+唯一Update检查点ccbd2c8b9293faaace7de0b3ecc0a09eaf21e08a已SSH签名，作者日期与提交日期相等，正常推送develop并同步。
+175份源码、测试、工具及文档纳入提交，78份raw results未纳入；Check 39313898839与Specification 39313896580真实success，Linux清理分支的云端验证通过。此后未执行第二次提交或推送。
+
+六项兼容稳定依赖已更新：NeoForge 21.1.259→21.1.264、26.1.2.117→26.1.2.122、26.3.0.77→26.3.0.94，Fabric API 0.162.0+26.3→0.164.0+26.3，Loom 1.18.3→1.19.1，Zod 4.6.5→4.6.7。
+新旧版本与官方来源见[Runtime依赖记录](../reference/dependency-runtime.md#minecraft-与-loader)及[Companion依赖记录](../reference/dependency-companion.md#验证与审计)。
+五Target构建、三产品组件及Companion检查通过，151 tasks、3分8秒，npm审计0；Minecraft、最低Loader要求、模板2.0.2和maps/固定夹具未改，产品Java、资源与协议未改。
+
+最终冻结候选源码指纹为52bc024f38e8a93e39fb0059b5e097725e079394554b2861d9de99a8b40a06df，共612份源码/构建事实。
+按[独立发行JAR验证](../../validations/integration-packaged_runtime/validation.md)在五Target逐端使用最终JAR进入固定世界，全部PASS；五份结果绑定同一最终工具版本与各自实际JAR。
+每端独立确认CLIENT_KNOWN USER读取、同一输入Lease、held=0、正常Save & Quit、进程exit0及endpoint移除；一次只运行一个低优先级4逻辑核隔离客户端。
+本次仅为依赖更新的安装/进入世界smoke，不是旧65场景重新实测，也不证明完整领域或人工验收。
+
+保留两项工具失败及修复：EnterWorld夹具缺少读取held状态所需的diagnostics授权；1.21.1世界列表异步加载时过早断言。修复只补工具所需scope及真实列表就绪等待，相关Node13项通过，最终五端工具一致，未放宽Runtime权限。
+官方安装器一次TLS失败在一次原样重跑后成功，未修改TLS或游戏库；不以重试覆盖原始失败。
+历史攻击耗时NOT_MET不变，本轮性能DEFERRED且无新测量；M-01～M-12仍有58组，E/F未启动，Persistent Write调用保持0。
+此时更新后快照仍待最后仓库检查及publisher；不预写快照名称或发布完成，0337试用快照与latest保持。
+
+最终spotlessApply、check、verifyRelease及verifyCompliance --strict通过，246 tasks、2分12秒，合规失败0、警告0。
+随后发布20261020-0422-52bc024f同批五JAR、alpha-manifest.json和AGENT_GUIDE.md，publisher无警告；独立审计确认七文件、六份载荷哈希和latest一致。
+更新清单绑定当前五端独立安装进入世界证明，旧65场景仅保留为不可变试用基线的历史证明；历史NOT_MET未改写，也没有新性能测量。
+唯一检查点后的依赖、工具、文档与结果按约定保留未提交，未第二次推送或建tag；本Goal完成后停止，完整领域、E/F及统一人工验收未启动。

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFile,writeFile,mkdir,readdir,copyFile,stat,access} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,readdir,copyFile,stat,access,lstat} from 'node:fs/promises';
+import {constants} from 'node:fs';
 import {createHash,randomUUID} from 'node:crypto';
 import {resolve,join,dirname,delimiter,basename} from 'node:path';
 import {homedir} from 'node:os';
@@ -8,6 +9,7 @@ import {createWriteStream} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {candidateSource,sha256} from '../../regression-v1_release/task/alpha-candidate.mjs';
+import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
 
 export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
   assert.match(String(version),/^[1-9]\d*$/,'An explicit Java major version is required');
@@ -20,9 +22,106 @@ export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
   assert.fail('No installed Java '+version);
 }
 
+export async function readInstalledWorldBaseline(repo,target){
+  const source=`validations/conformance-world_read/instance/${target}/baseline`,root=resolve(repo,source);
+  const manifestBytes=await readFile(join(root,'fixture-manifest.json'));
+  assert(manifestBytes.length<=16777216,'World baseline manifest exceeds 16 MiB');
+  const manifest=JSON.parse(manifestBytes.toString('utf8'));
+  assert.equal(manifest.schemaVersion,1);assert.equal(manifest.target,target);assert.equal(manifest.role,'client');
+  assert.equal(manifest.owner,'world-read-classification');assert.match(manifest.targetFactsSha256,/^[0-9a-f]{64}$/);
+  assert(Array.isArray(manifest.files)&&manifest.files.length>0&&manifest.files.length<=100000);
+  const names=new Set();
+  for(const file of manifest.files){
+    assert(/^(saves\/[^/].*|resourcepacks\/[^/].*|options\.txt|servers\.dat|world-read-owner\.json)$/.test(file.path));
+    assert(!file.path.includes('\\')&&!file.path.includes(':')&&!file.path.split('/').some(part=>part==='..'||part==='.'||part===''));
+    assert.match(file.sha256,/^[0-9a-f]{64}$/);const name=file.path.toLowerCase();assert(!names.has(name));names.add(name);
+  }
+  const actual=new Set(),queue=[root];let totalBytes=0;
+  assert(!(await lstat(root)).isSymbolicLink(),'Baseline root must not be a link');
+  while(queue.length)for(const entry of await readdir(queue.shift(),{withFileTypes:true})){
+    const path=join(entry.parentPath,entry.name);assert(!(await lstat(path)).isSymbolicLink(),'Baseline must not contain links');
+    if(entry.isDirectory()){queue.push(path);continue;}
+    const name=path.slice(root.length+1).replaceAll('\\','/');
+    if(name==='fixture-manifest.json')continue;
+    assert(entry.isFile());actual.add(name);totalBytes+=(await stat(path)).size;
+    assert(actual.size<=100000&&totalBytes<=17179869184,'World baseline exceeds existing fixture bounds');
+  }
+  assert.equal(actual.size,manifest.files.length,'Unlisted baseline content');
+  const measured=[];
+  for(const file of manifest.files){assert(actual.has(file.path),'Listed baseline input is missing');const hash=sha256(await readFile(join(root,file.path)));assert.equal(hash,file.sha256,'World baseline input changed: '+file.path);measured.push({path:file.path,sha256:hash});}
+  const fileHash=files=>sha256(files.map(file=>file.path+':'+file.sha256).join('\n'));
+  assert.equal(fileHash(manifest.files),manifest.hash);assert.equal(fileHash(measured),manifest.hash);
+  const owner=JSON.parse(await readFile(join(root,'world-read-owner.json'),'utf8'));assert.equal(owner.target,target);assert.equal(owner.owner,manifest.owner);
+  const files=measured.filter(file=>file.path.startsWith('saves/World-Read-Alpha/'));
+  assert(files.some(file=>file.path==='saves/World-Read-Alpha/level.dat'),'Existing World-Read-Alpha is required');
+  return {files,summary:{policy:'immutable_baseline_read_only_copy',source,target,minecraft:target.slice(0,target.lastIndexOf('-')),
+    worldName:'World-Read-Alpha',manifestSha256:sha256(manifestBytes),baselineSha256:manifest.hash,
+    baselineTargetFactsSha256:manifest.targetFactsSha256,currentTargetFactsSha256:sha256(await readFile(join(repo,'versions',target,'target.properties'))),
+    compatibilityBasis:'same_target_and_minecraft_unchanged',sourceFileCount:manifest.files.length,worldFileCount:files.length,
+    worldFilesSha256:fileHash(files),filesVerified:true,credentialsCopied:false}};
+}
+
+export async function copyInstalledWorldFixture(repo,target,game){
+  const {files,summary}=await readInstalledWorldBaseline(repo,target);
+  assert.equal((await readdir(game)).length,0,'World input may only enter the completely new installed game directory');
+  for(const file of files){const destination=join(game,file.path);await mkdir(dirname(destination),{recursive:true});await copyFile(join(repo,summary.source,file.path),destination,constants.COPYFILE_EXCL);assert.equal(sha256(await readFile(destination)),file.sha256,'Installed world copy differs');}
+  assert.deepEqual((await readInstalledWorldBaseline(repo,target)).summary,summary,'Original world baseline changed during copying');
+  return {...summary,copiedFilesVerified:true};
+}
+
+export async function installedWorldSmoke({api,target,acquire,release},services){
+  const now=services?.now??(()=>performance.now()),sleep=services?.sleep??(millis=>new Promise(done=>setTimeout(done,millis)));
+  const deadline=now()+120000,renewals=[];let leaseId,renewAt=0,finalStatus;
+  const remaining=(maximum=5000)=>{const left=Math.floor(deadline-now());assert(left>0,'Installed world smoke exceeded 120 seconds');return Math.min(maximum,left);};
+  const walk=node=>[node,...(node.children??[]).flatMap(walk)];
+  async function maintainLease(force=false){
+    if(!force&&now()<renewAt)return;
+    const status=await api('GET','/v0/control/status');assert.equal(status.mode,'TAKEOVER');assert.equal(status.status,'active');assert.equal(status.leaseId,leaseId);
+    const renewed=await api('POST','/v0/control/renew',{ttlMs:60000});assert.equal(renewed.leaseId,leaseId);renewals.push(renewed);renewAt=now()+10000;
+  }
+  async function until(read,predicate,label,maximum=20000){
+    const end=now()+remaining(maximum);let value;
+    do{await maintainLease();value=await read();if(predicate(value))return value;await sleep(150);}while(now()<end);
+    assert.fail(label+': '+JSON.stringify(value));
+  }
+  const tree=()=>api('GET','/v0/ui/tree?category=USER');
+  const wait=(predicate,label,maximum)=>until(tree,predicate,label,maximum);
+  async function clickNode(node){await maintainLease();return api('POST','/v0/ui/action',{selector:{nodeId:node.nodeId},action:'click'});}
+  async function clickTranslation(value,key){const node=walk(value).find(node=>node.translationKey===key);assert(node,'Missing native '+key);return clickNode(node);}
+  const clean=value=>{assert.equal(value.pressedKeyCount,0);assert.equal(value.pressedButtonCount,0);assert.equal(value.inputCleanupPending,false);assert.equal(value.inputCleanupFailed,false);};
+  try{
+    const acquired=await acquire();leaseId=acquired.leaseId;assert.equal(typeof leaseId,'string');assert(leaseId.length>0);await maintainLease(true);
+    const title=await tree();assert(title.screenClass.endsWith('TitleScreen'));assert(!title.overlayIdentity);
+    await clickTranslation(title,'menu.singleplayer');
+    const list=await wait(value=>value.screenClass.endsWith('SelectWorldScreen')&&!value.overlayIdentity&&walk(value).some(node=>node.worldName==='World-Read-Alpha'),'Installed copied world row is ready');
+    const row=walk(list).find(node=>node.worldName==='World-Read-Alpha');assert(row,'Only the copied immutable world may be entered');
+    await clickNode(row);await clickTranslation(await tree(),'selectWorld.select');
+    const worldTree=await wait(value=>!value.screenClass&&!value.overlayIdentity,'Installed client entered the copied world',60000);
+    const worldReadSample=await until(()=>api('GET','/v0/player?category=USER'),value=>value.available===true,'Installed USER player');
+    assert.equal(worldReadSample.dataCategory,'USER');assert.equal(worldReadSample.authority,'CLIENT_KNOWN');
+    assert.equal(worldReadSample.chunkLoadRequested,false);assert.equal(worldReadSample.storageAccessed,false);
+    const worldSession=await api('GET','/v0/session');assert.equal(worldSession.target,target);assert.equal(worldSession.inWorld,true);
+    const worldInputState=await api('GET','/v0/input/state');clean(worldInputState);assert.equal(worldInputState.inputContextAvailable,true);
+    const accepted=await api('POST','/v0/pipelines',{steps:[{type:'key.tap',key:256,holdMs:40}],timeoutMs:8000,cleanupOnComplete:true});
+    assert.equal(typeof accepted.operationId,'string');
+    const pause=await until(()=>api('POST',`/v0/operations/${accepted.operationId}/wait`,{timeoutMs:remaining(1000)}),value=>['completed','failed','cancelled'].includes(value.state),'Installed pause input');
+    assert.equal(pause.state,'completed',JSON.stringify(pause));
+    const paused=await wait(value=>value.screenClass.endsWith('PauseScreen')&&!value.overlayIdentity,'Installed PauseScreen');
+    const quit=walk(paused).find(node=>['menu.returnToMenu','menu.disconnect'].includes(node.translationKey));assert(quit);
+    const worldExit=await finishBaselineWorldExit({api,clickNode,wait,quit,remaining},services);
+    const status=await api('GET','/v0/control/status');assert.equal(status.leaseId,leaseId);assert.equal(status.mode,'TAKEOVER');
+    await release();leaseId=undefined;finalStatus=await api('GET','/v0/control/status');assert.equal(finalStatus.mode,'READ');assert.equal(finalStatus.status,'available');assert(!finalStatus.leaseId);
+    return {enteredWorld:true,worldReadSample,worldSession,worldInputState,worldTree,pause,worldExit,
+      worldLease:{leaseId:acquired.leaseId,renewals,preserved:true,finalStatus}};
+  }finally{
+    if(leaseId){const status=await api('GET','/v0/control/status');if(status.leaseId===leaseId)await release();}
+  }
+}
+
 async function main(){
 const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
+const enterWorld=process.argv.includes('--enter-world');
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const root=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target);
 const home=join(root,'installation'),game=join(root,'client');
@@ -35,7 +134,7 @@ const facts=await properties(join(repo,'versions',target,'target.properties')),p
 const targets=[...(await readFile(join(repo,'settings.gradle.kts'),'utf8')).matchAll(/register\("([^"\r\n]+)"\)/g)].map(match=>match[1]);
 const sourceHashes=await candidateSource(repo,targets),sourceFingerprint=sha256(JSON.stringify(sourceHashes));
 const toolHashes={};
-for(const path of ['components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs','components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1','components/validation_tools/integration-packaged_runtime/task/InstalledInstanceCleanup.ps1','components/validation_tools/integration-packaged_runtime/task/installed-evidence.mjs','components/validation_tools/regression-v1_release/task/alpha-candidate.mjs','validations/integration-packaged_runtime/validation.toml'])toolHashes[path]=sha256(await readFile(join(repo,path)));
+for(const path of ['components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs','components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1','components/validation_tools/integration-packaged_runtime/task/InstalledInstanceCleanup.ps1','components/validation_tools/integration-packaged_runtime/task/installed-evidence.mjs','components/validation_tools/runtime-connection.mjs','components/companion/dist/config.js','components/companion/dist/discovery.js','components/companion/dist/runtime-client.js','components/validation_tools/regression-v1_release/task/alpha-candidate.mjs','validations/integration-packaged_runtime/validation.toml',...(enterWorld?['components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs','components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs']:[])])toolHashes[path]=sha256(await readFile(join(repo,path)));
 const instanceFacts=await readFile(join(repo,'validations/integration-packaged_runtime/validation.toml'),'utf8');
 const width=Number(instanceFacts.match(/^width\s*=\s*(\d+)$/m)?.[1]),height=Number(instanceFacts.match(/^height\s*=\s*(\d+)$/m)?.[1]);
 assert(Number.isSafeInteger(width)&&width>0&&Number.isSafeInteger(height)&&height>0,'Explicit installed test dimensions required');
@@ -84,6 +183,7 @@ if(loader!=='fabric'){
 }
 await mkdir(home,{recursive:true});await mkdir(game,{recursive:true});
 assert.equal((await readdir(game)).length,0,'Game directory must be completely new');
+const worldInput=enterWorld?await copyInstalledWorldFixture(repo,target,game):undefined;
 const launcherManifest=await json('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',join(cache,'version_manifest_v2.json'));
 const version=launcherManifest.versions.find(v=>v.id===minecraft);assert(version);
 const vanilla=await json(version.url,join(home,'versions',minecraft,minecraft+'.json'),version.sha1,[join(gradle,'neoformruntime/artifacts',`minecraft_${minecraft}_version_manifest.json`)]);
@@ -145,17 +245,17 @@ const jvm=argumentsFor([...(vanilla.arguments?.jvm??[]),...(profile.arguments?.j
 const gameArgs=argumentsFor([...(vanilla.arguments?.game??[]),...(profile.arguments?.game??[])]);
 const args=['-Xmx4G','-Xms512M','-Xlog:class+load=info:file=class-load.log','-Dminecraft.protocol.probe.port=0',...jvm,profile.mainClass,...gameArgs,'--width',String(width),'--height',String(height)];
 const output=createWriteStream(join(root,'client-console.log'));
-const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:'read,ui,input,control'},windowsHide:true,stdio:['ignore','pipe','pipe']});
+const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:enterWorld?'read,ui,input,control,diagnostics':'read,ui,input,control'},windowsHide:true,stdio:['ignore','pipe','pipe']});
 child.stdout.pipe(output,{end:false});child.stderr.pipe(output,{end:false});
 let exited=false,exitCode;const exit=new Promise((yes,no)=>{child.once('error',no);child.once('exit',code=>{exited=true;exitCode=code;output.end();yes(code);});});
 const started=Date.now();let connection,lease;
-async function acquire(){
+async function acquire(ttlMs=15000){
   const status=await connection.fetch('/v0/control/mode');assert(status.ok,'Fresh control state before automatic acquisition');
-  const request=automaticTakeoverRequest(await status.json(),{ttlMs:15000});
+  const request=automaticTakeoverRequest(await status.json(),{ttlMs});
   const response=await connection.fetch('/v0/control/acquire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(request)});
   assert(response.ok,JSON.stringify(await response.clone().json()));return response.json();
 }
-const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,...(loader==='fabric'?{}:{installerJavaVersion}),artifactSha256,sourceFingerprint,sourceHashes,toolHashes,freshGameDirectory:true,externalModCount:1,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0};
+const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,...(loader==='fabric'?{}:{installerJavaVersion}),artifactSha256,sourceFingerprint,sourceHashes,toolHashes,freshGameDirectory:true,externalModCount:1,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0,enterWorldRequested:enterWorld,enteredWorld:false,...(worldInput?{worldInput}:{})};
 try{
   let title;
   while(Date.now()-started<240000){
@@ -188,6 +288,16 @@ try{
   report.providerSpiOrigins=['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>classes.split(/\r?\n/).find(line=>line.includes(`${product.mod_group}.probe.api.${name} source:`)));
   assert(report.providerSpiOrigins.every(Boolean),'Actual public SPI classes must be loaded in the independent Loader');
   report.providerRegistryResolved=true;
+  if(enterWorld){
+    const api=async(method,path,body)=>{
+      const response=await connection.fetch(path,{method,headers:{...(body?{'content-type':'application/json'}:{}),...(lease?{'X-MCP-Control-Lease':lease}:{})},...(body?{body:JSON.stringify(body)}:{})});
+      const value=await response.json();if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{status:response.status,runtimeError:value});return value;
+    };
+    Object.assign(report,await installedWorldSmoke({api,target,acquire:async()=>{const acquired=await acquire(60000);lease=acquired.leaseId;return acquired;},release:async()=>{await api('POST','/v0/control/release',{});lease=undefined;}}));
+    const {copiedFilesVerified,...sourceInput}=worldInput;assert.equal(copiedFilesVerified,true);
+    assert.deepEqual((await readInstalledWorldBaseline(repo,target)).summary,sourceInput,'Original baseline must remain unchanged after installed play');
+    const returned=await connection.fetch('/v0/ui/tree');assert(returned.ok);title=await returned.json();assert(title.screenClass.endsWith('TitleScreen')&&!title.overlayIdentity);
+  }
   const walk=node=>[node,...(node.children??[]).flatMap(walk)];const quit=walk(title).find(n=>n.translationKey==='menu.quit');assert(quit);
   lease=(await acquire()).leaseId;
   try{
