@@ -234,6 +234,9 @@ class SurfaceContractCatalogueTest {
                 expected,
                 actual,
                 "Formal routes cannot silently outgrow or disagree with the catalogue");
+        assertEquals(80, actual.size());
+        assertEquals("readWorldRegion:READ_COMPATIBLE", actual.get("POST /v0/world/region"));
+        assertEquals("releaseAllInput:TAKEOVER_REQUIRED", actual.get("POST /v0/input/release-all"));
         assertEquals(actual.size(), ids.size());
         assertFalse(
                 actual.keySet().stream()
@@ -262,6 +265,16 @@ class SurfaceContractCatalogueTest {
                 if (id.startsWith("debug.evidence.")) {
                     assertEquals("READ_COMPATIBLE", policy, id);
                     assertFalse(value.get("requiresDebugArm").getAsBoolean());
+                }
+                if (id.equals("input.release_all")) {
+                    assertEquals("input", value.get("scope").getAsString());
+                    assertEquals("TAKEOVER_REQUIRED", policy);
+                    assertTrue(value.get("requiresControlLease").getAsBoolean());
+                    assertFalse(value.get("requiresDebugArm").getAsBoolean());
+                    assertEquals(
+                            "[\"control\"]", value.getAsJsonArray("additionalScopes").toString());
+                    assertFalse(value.get("supportsIdempotency").getAsBoolean());
+                    assertFalse(value.get("supportsCancellation").getAsBoolean());
                 }
             }
             assertTrue(
@@ -297,7 +310,9 @@ class SurfaceContractCatalogueTest {
         Set<String> covered = new HashSet<>(UI_CONDITIONS);
         covered.addAll(WORLD_CONDITIONS);
         covered.add("operation");
+        covered.add("input.released");
         assertEquals(covered, types, "New condition kinds require an explicit domain review");
+        assertEquals(13, types.size());
         ProbeService service =
                 (ProbeService)
                         Proxy.newProxyInstance(
@@ -311,13 +326,15 @@ class SurfaceContractCatalogueTest {
                 List.of(
                         Set.<String>of(),
                         Set.of("read", "ui", "event"),
+                        Set.of("read", "ui", "event", "debug", "debug.ui.read", "debug.world.read"),
                         Set.of(
                                 "read",
                                 "ui",
                                 "event",
                                 "debug",
                                 "debug.ui.read",
-                                "debug.world.read"))) {
+                                "debug.world.read",
+                                "diagnostics"))) {
             try (var state = new ProtocolState(scopes, "condition-catalogue", ignored -> {});
                     var engine =
                             new ConditionEngine(
@@ -335,14 +352,19 @@ class SurfaceContractCatalogueTest {
                 for (String type : types) {
                     var condition = new JsonObject();
                     condition.addProperty("type", type);
-                    condition.addProperty("operationId", operationId);
-                    if (scopes.isEmpty()) {
+                    if (type.equals("operation")) condition.addProperty("operationId", operationId);
+                    if (scopes.isEmpty()
+                            || type.equals("input.released") && !scopes.contains("diagnostics")) {
                         assertEquals(
                                 "SCOPE_DENIED",
                                 assertThrows(
                                                 ProtocolState.ProtocolException.class,
                                                 () -> engine.authorize(condition))
                                         .code());
+                        continue;
+                    }
+                    if (type.equals("input.released")) {
+                        assertDoesNotThrow(() -> engine.authorize(condition), type);
                         continue;
                     }
                     assertDoesNotThrow(() -> engine.authorize(condition), type + " USER");

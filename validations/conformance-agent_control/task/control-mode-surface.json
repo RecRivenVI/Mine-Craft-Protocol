@@ -10,6 +10,8 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"POST","path":"/v0/world/region","operationId":"readWorldRegion","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"POST","path":"/v0/input/release-all","operationId":"releaseAllInput","modeRequirement":"TAKEOVER_REQUIRED"},
     {"method":"GET","path":"/v0/world/scene","operationId":"getWorldScene","modeRequirement":"READ_COMPATIBLE"},
     {"method":"GET","path":"/v0/control/task","operationId":"getAgentTask","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/control/task","operationId":"manageAgentTask","modeRequirement":"READ_COMPATIBLE"},
@@ -592,6 +594,7 @@
         "acquire": "MODE_INDEPENDENT",
         "renew": "MODE_INDEPENDENT",
         "release": "MODE_INDEPENDENT",
+        "release_inputs": "TAKEOVER_REQUIRED",
         "emergency_release": "MODE_INDEPENDENT"
       },
       "note": "Only explicit acquire establishes TAKEOVER; set_mode only READ/OPERATE. No authority is granted by the label."
@@ -654,6 +657,7 @@
     }
   },
   "notes": [
+    "input.released is a mode-independent read+diagnostics condition accepting only type. It observes Runtime-owned key/button counts, not permanent queue idleness. release_inputs requires input+control+TAKEOVER+current Lease and preserves mode/Lease/latch/Arm while strongly stopping player input.",
     "Input pipeline is a TAKEOVER control macro including its embedded wait/assert steps. Standalone Wait/Assert remains READ-compatible.",
     "Arm management, cancellation and explicit mode/Lease management are mode-independent but retain their scopes and credentials.",
     "Recording observation and Artifact IO are READ-compatible; they are not Persistent Write.",

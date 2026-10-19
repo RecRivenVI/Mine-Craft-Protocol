@@ -32,7 +32,8 @@ foreach($target in $targets){
     $experimental=$target-in@('1.20.1-forge','26.3-neoforge','26.3-fabric')
     Require (($adapter-match'implements Phase9AExperimentalService')-eq$experimental) "$target experimental route surface changed"
     Require ($transport-match'attachControlSession'-and$transport-match'/v0/control/mode') "$target mode session is not connected"
-    Require ($transport-match'protocolState.requireTakeover'-and$transport-match'protocolState.admitInput') "$target input admission missing"
+    Require (([regex]::Matches($transport,'protocolState.captureInputGuard\(metadata.leaseId\(\)\)')).Count-eq4-and$transport-match'protocolState.admitInput\(\s*inputGuard,') "$target generation-fenced input admission missing"
+    Require ($state-match'captureInputGuard\(String leaseId\)'-and$state-match'requireTakeover\(guard.leaseId\(\)\)'-and$state-match'guard.run\(\)') "$target TAKEOVER/Lease/generation admission checks missing"
     Require ($transport-match'protocolState.operate\(service::openAutomationProbeScreen\)') "$target GUI Fixture must use OPERATE, not a Lease"
     Require ($transport-match'singleDebugAuthorization\(\s*metadata,\s*work\s*\)'-and$transport-match'debugBatches.start\(\s*operationId,\s*body,\s*metadata,\s*work\s*\)') "$target Debug admission missing"
     Require ($state-match'inputCleanupBarrier'-and$state-match'STALE_MODE_REVISION'-and$state-match'TAKEOVER_ONLY') "$target transition/latch contract missing"

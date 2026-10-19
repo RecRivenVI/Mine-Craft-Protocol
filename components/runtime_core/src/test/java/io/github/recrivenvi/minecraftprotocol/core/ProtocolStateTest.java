@@ -219,6 +219,88 @@ final class ProtocolStateTest {
     }
 
     @Test
+    void bulkCancellationCommitsEveryInputTerminalBeforeQueueHandoff() {
+        for (String reason :
+                java.util.List.of(
+                        "human_manual_revocation",
+                        "client_release",
+                        "control_channel_disconnected",
+                        "transport_close")) {
+            try (ProtocolState state = state();
+                    var queue =
+                            new io.github.recrivenvi.minecraftprotocol.safety
+                                    .InputSequenceQueue()) {
+                String lease = state.acquireLease(60_000L).get("leaseId").getAsString();
+                var guard = state.captureInputGuard(lease);
+                var futures = new java.util.ArrayList<CompletableFuture<JsonObject>>();
+                var drains = new java.util.ArrayList<CompletableFuture<Void>>();
+                var ids = new java.util.ArrayList<String>();
+                var nativeDispatches = new java.util.concurrent.atomic.AtomicInteger();
+                for (int index = 0; index < 3; index++) {
+                    var future = new CompletableFuture<JsonObject>();
+                    var drain = new CompletableFuture<Void>();
+                    futures.add(future);
+                    drains.add(drain);
+                    ids.add(state.startOperation(future, true).get("operationId").getAsString());
+                    future.whenComplete((value, error) -> drain.complete(null));
+                }
+                for (int index = 0; index < 3; index++) {
+                    int current = index;
+                    queue.submit(
+                            () -> {
+                                if (current == 0) return;
+                                try {
+                                    guard.run();
+                                    nativeDispatches.incrementAndGet();
+                                    futures.get(current).complete(new JsonObject());
+                                } catch (Throwable error) {
+                                    futures.get(current).completeExceptionally(error);
+                                }
+                            },
+                            () -> futures.get(current).cancel(false),
+                            drains.get(current));
+                }
+                var independent = new CompletableFuture<JsonObject>();
+                String independentId =
+                        state.startOperation(independent, false).get("operationId").getAsString();
+                JsonObject value = new JsonObject();
+                value.addProperty("answer", 42);
+                String completedId =
+                        state.startOperation(CompletableFuture.completedFuture(value), true)
+                                .get("operationId")
+                                .getAsString();
+                if (reason.equals("human_manual_revocation")) state.revokeHumanControl();
+                else if (reason.equals("control_channel_disconnected"))
+                    state.releaseLeaseIfMatches(lease, reason);
+                else if (reason.equals("transport_close")) state.close();
+                else state.releaseLease(lease, reason);
+                for (String id : ids) {
+                    JsonObject terminal = state.operationStatus(id);
+                    assertEquals(
+                            "cancelled",
+                            terminal.get("state").getAsString(),
+                            reason + ": " + terminal);
+                    assertEquals(reason, terminal.get("cancellationReason").getAsString());
+                    assertTrue(!terminal.has("errorCode"));
+                }
+                assertEquals(0, nativeDispatches.get());
+                assertEquals(
+                        "completed", state.operationStatus(completedId).get("state").getAsString());
+                assertEquals(
+                        42,
+                        state.operationStatus(completedId)
+                                .getAsJsonObject("result")
+                                .get("answer")
+                                .getAsInt());
+                assertEquals(
+                        reason.equals("transport_close") ? "cancelled" : "executing",
+                        state.operationStatus(independentId).get("state").getAsString());
+                if (!reason.equals("transport_close")) assertTrue(!independent.isDone());
+            }
+        }
+    }
+
+    @Test
     void terminalObserverSeesCommittedFailureInsteadOfFutureCallbackRegistrationOrder()
             throws Exception {
         try (var state = state()) {

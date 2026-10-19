@@ -36,6 +36,10 @@ class InputPreconditionTransportTest {
         }
 
         Fixture(String scopes) throws Exception {
+            this(scopes, true);
+        }
+
+        Fixture(String scopes, boolean acquire) throws Exception {
             System.setProperty("minecraft.protocol.scopes", scopes);
             ProbeService delegate = world.service();
             ProbeService service =
@@ -96,20 +100,30 @@ class InputPreconditionTransportTest {
                 close();
                 throw new AssertionError("Owned HTTP transport did not start");
             }
-            lease =
-                    value(
-                                    request(
-                                                    "POST",
-                                                    "/v0/control/acquire",
-                                                    "{\"ttlMs\":60000}",
-                                                    false)
-                                            .get(3, TimeUnit.SECONDS))
-                            .get("leaseId")
-                            .getAsString();
+            if (acquire)
+                lease =
+                        value(
+                                        request(
+                                                        "POST",
+                                                        "/v0/control/acquire",
+                                                        "{\"ttlMs\":60000}",
+                                                        false)
+                                                .get(3, TimeUnit.SECONDS))
+                                .get("leaseId")
+                                .getAsString();
         }
 
         CompletableFuture<HttpResponse<String>> request(
                 String method, String path, String body, boolean pin) {
+            return request(method, path, body, pin, java.util.Map.of());
+        }
+
+        CompletableFuture<HttpResponse<String>> request(
+                String method,
+                String path,
+                String body,
+                boolean pin,
+                java.util.Map<String, String> headers) {
             var builder =
                     HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
                             .timeout(Duration.ofSeconds(6))
@@ -119,6 +133,7 @@ class InputPreconditionTransportTest {
                 builder.header("X-MCP-Expected-Screen-Revision", "1")
                         .header("X-MCP-Expected-Menu-Revision", "1");
             if (body != null) builder.header("Content-Type", "application/json");
+            headers.forEach(builder::header);
             return client.sendAsync(
                     builder.method(
                                     method,
@@ -891,6 +906,265 @@ class InputPreconditionTransportTest {
             assertFalse(fixture.world.events.contains("key"));
             Thread.sleep(80);
             assertFalse(fixture.world.events.contains("key"));
+        }
+    }
+
+    @Test
+    void sameLeaseReleaseAllWaitsForNativeCleanupAndKeepsTakeover() throws Exception {
+        try (Fixture fixture = new Fixture("read,ui,input,control,diagnostics")) {
+            var pressed =
+                    fixture.request(
+                                    "POST",
+                                    "/v0/input/mouse/button",
+                                    "{\"button\":0,\"action\":1}",
+                                    false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, pressed.statusCode(), pressed.body());
+            assertEquals(1, fixture.world.buttons);
+            fixture.world.blockedCleanup = new CompletableFuture<>();
+            var stopping = fixture.request("POST", "/v0/input/release-all", "{}", false);
+            long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (fixture.world.cleanups.get() == 0 && System.nanoTime() < end) Thread.sleep(5);
+            assertTrue(fixture.world.cleanups.get() > 0, "Production cleanup really began");
+            assertFalse(stopping.isDone());
+            var state =
+                    fixture.request("GET", "/v0/input/state", null, false).get(3, TimeUnit.SECONDS);
+            assertEquals(200, state.statusCode(), state.body());
+            assertTrue(value(state).get("inputCleanupPending").getAsBoolean());
+            long generation = value(state).get("inputGeneration").getAsLong();
+            var rejected =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":1}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(409, rejected.statusCode(), rejected.body());
+            assertEquals(
+                    "CONTROL_INPUT_CLEANUP_PENDING", value(rejected).get("error").getAsString());
+            fixture.world.blockedCleanup.complete(new JsonObject());
+            fixture.world.blockedCleanup = null;
+            var stopped = stopping.get(3, TimeUnit.SECONDS);
+            assertEquals(200, stopped.statusCode(), stopped.body());
+            assertEquals("input.release_all", value(stopped).get("type").getAsString());
+            assertEquals(generation, value(stopped).get("inputGeneration").getAsLong());
+            assertEquals(0, fixture.world.buttons);
+            var mode =
+                    value(
+                            fixture.request("GET", "/v0/control/mode", null, false)
+                                    .get(3, TimeUnit.SECONDS));
+            assertEquals("TAKEOVER", mode.get("mode").getAsString());
+            assertFalse(mode.get("reconsentRequired").getAsBoolean());
+            var fresh =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":0}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, fresh.statusCode(), fresh.body());
+        }
+    }
+
+    @Test
+    void preflightThatWasOutsideTheQueueCannotDispatchAfterASameLeaseStop() throws Exception {
+        for (boolean raw : new boolean[] {true, false}) {
+            try (Fixture fixture = new Fixture()) {
+                CompletableFuture<JsonObject> preflight = new CompletableFuture<>();
+                fixture.blockedPreflight = preflight;
+                var pending =
+                        fixture.request(
+                                "POST",
+                                raw ? "/v0/input/key" : "/v0/ui/action",
+                                raw
+                                        ? "{\"key\":87,\"action\":1}"
+                                        : "{\"selector\":{\"label\":\"A\"},\"action\":\"click\"}",
+                                true);
+                long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                while (fixture.checks.get() == 0 && System.nanoTime() < end) Thread.sleep(5);
+                assertEquals(1, fixture.checks.get());
+                assertFalse(pending.isDone());
+                var stopped =
+                        fixture.request("POST", "/v0/input/release-all", "{}", false)
+                                .get(3, TimeUnit.SECONDS);
+                assertEquals(200, stopped.statusCode(), stopped.body());
+                fixture.blockedPreflight = null;
+                assertTrue(preflight.complete(new JsonObject()));
+                var rejected = pending.get(3, TimeUnit.SECONDS);
+                assertEquals(409, rejected.statusCode(), rejected.body());
+                assertEquals(
+                        "CONTROL_INPUT_GENERATION_CHANGED",
+                        value(rejected).get("error").getAsString());
+                assertFalse(fixture.world.events.contains("key"));
+                assertEquals(0, fixture.world.presses.get());
+                assertEquals(0, fixture.world.moves.get());
+                Thread.sleep(80);
+                assertFalse(fixture.world.events.contains("key"));
+                assertEquals(0, fixture.world.presses.get());
+            }
+        }
+    }
+
+    @Test
+    void releaseAllCancelsTheActivePipelineAndItsQueuedSuccessorWithoutLateInput()
+            throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            String active = fixture.blockQueue();
+            var queued =
+                    fixture.request(
+                                    "POST",
+                                    "/v0/pipelines",
+                                    "{\"steps\":[{\"type\":\"key.tap\",\"key\":87}]}",
+                                    false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, queued.statusCode(), queued.body());
+            String queuedId = value(queued).get("operationId").getAsString();
+            var stopped =
+                    fixture.request("POST", "/v0/input/release-all", "{}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, stopped.statusCode(), stopped.body());
+            assertEquals("cancelled", fixture.waitOperation(active).get("state").getAsString());
+            assertEquals("cancelled", fixture.waitOperation(queuedId).get("state").getAsString());
+            assertFalse(fixture.world.events.contains("key"));
+            assertEquals(0, fixture.world.buttons);
+            Thread.sleep(100);
+            assertFalse(fixture.world.events.contains("key"));
+        }
+    }
+
+    @Test
+    void releaseAllHttpDeadlineOnlyCancelsItsWaitNotNativeCleanup() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            fixture.world.blockedCleanup = new CompletableFuture<>();
+            var response =
+                    fixture.request(
+                                    "POST",
+                                    "/v0/input/release-all",
+                                    "{}",
+                                    false,
+                                    java.util.Map.of("X-MCP-Deadline-Ms", "50"))
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(408, response.statusCode(), response.body());
+            assertEquals("REQUEST_DEADLINE_EXCEEDED", value(response).get("error").getAsString());
+            assertFalse(fixture.world.blockedCleanup.isCancelled());
+            assertFalse(fixture.world.blockedCleanup.isDone());
+            var rejected =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":1}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(409, rejected.statusCode(), rejected.body());
+            assertEquals(
+                    "CONTROL_INPUT_CLEANUP_PENDING", value(rejected).get("error").getAsString());
+            fixture.world.blockedCleanup.complete(new JsonObject());
+            fixture.world.blockedCleanup = null;
+            var fresh =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":0}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, fresh.statusCode(), fresh.body());
+        }
+    }
+
+    @Test
+    void httpDisconnectDoesNotCancelStopCleanupOrRevokeAnUnboundLease() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            fixture.world.blockedCleanup = new CompletableFuture<>();
+            var stopping = fixture.request("POST", "/v0/input/release-all", "{}", false);
+            long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (fixture.world.cleanups.get() == 0 && System.nanoTime() < end) Thread.sleep(5);
+            assertTrue(fixture.world.cleanups.get() > 0);
+            assertTrue(stopping.cancel(true));
+            assertFalse(fixture.world.blockedCleanup.isCancelled());
+            assertFalse(fixture.world.blockedCleanup.isDone());
+            var mode =
+                    fixture.request("GET", "/v0/control/mode", null, false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, mode.statusCode(), mode.body());
+            assertEquals("TAKEOVER", value(mode).get("mode").getAsString());
+            var rejected =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":1}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(409, rejected.statusCode(), rejected.body());
+            assertEquals(
+                    "CONTROL_INPUT_CLEANUP_PENDING", value(rejected).get("error").getAsString());
+            fixture.world.blockedCleanup.complete(new JsonObject());
+            fixture.world.blockedCleanup = null;
+            var fresh =
+                    fixture.request("POST", "/v0/input/key", "{\"key\":87,\"action\":0}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(200, fresh.statusCode(), fresh.body());
+        }
+    }
+
+    @Test
+    void rawInputIdempotencyCannotReplayAcrossStopGenerationOrLease() throws Exception {
+        try (Fixture fixture = new Fixture()) {
+            var headers = java.util.Map.of("X-MCP-Idempotency-Key", "same-key");
+            for (int wave = 0; wave < 3; wave++) {
+                for (int replay = 0; replay < 2; replay++) {
+                    var response =
+                            fixture.request(
+                                            "POST",
+                                            "/v0/input/key",
+                                            "{\"key\":87,\"action\":0}",
+                                            false,
+                                            headers)
+                                    .get(3, TimeUnit.SECONDS);
+                    assertEquals(200, response.statusCode(), response.body());
+                }
+                assertEquals(wave + 1, fixture.world.events.stream().filter("key"::equals).count());
+                if (wave == 0) {
+                    var stopped =
+                            fixture.request("POST", "/v0/input/release-all", "{}", false, headers)
+                                    .get(3, TimeUnit.SECONDS);
+                    assertEquals(200, stopped.statusCode(), stopped.body());
+                } else if (wave == 1) {
+                    String previousLease = fixture.lease;
+                    var released =
+                            fixture.request("POST", "/v0/control/release", "{}", false)
+                                    .get(3, TimeUnit.SECONDS);
+                    assertEquals(200, released.statusCode(), released.body());
+                    fixture.lease =
+                            value(
+                                            fixture.request(
+                                                            "POST",
+                                                            "/v0/control/acquire",
+                                                            "{\"ttlMs\":60000}",
+                                                            false)
+                                                    .get(3, TimeUnit.SECONDS))
+                                    .get("leaseId")
+                                    .getAsString();
+                    String currentLease = fixture.lease;
+                    fixture.lease = previousLease;
+                    var staleStop =
+                            fixture.request("POST", "/v0/input/release-all", "{}", false, headers)
+                                    .get(3, TimeUnit.SECONDS);
+                    assertEquals(409, staleStop.statusCode(), staleStop.body());
+                    assertEquals(
+                            "CONTROL_LEASE_REQUIRED", value(staleStop).get("error").getAsString());
+                    fixture.lease = currentLease;
+                }
+            }
+        }
+    }
+
+    @Test
+    void releaseAllValidatesItsOwnScopesLeaseAndEmptyTypedBody() throws Exception {
+        for (String scopes : new String[] {"read,input", "read,control"}) {
+            try (Fixture fixture = new Fixture(scopes, scopes.contains("control"))) {
+                var denied =
+                        fixture.request("POST", "/v0/input/release-all", "{}", false)
+                                .get(3, TimeUnit.SECONDS);
+                assertEquals(403, denied.statusCode(), denied.body());
+                assertEquals("SCOPE_DENIED", value(denied).get("error").getAsString());
+                assertEquals(0, fixture.world.cleanups.get());
+            }
+        }
+        try (Fixture fixture = new Fixture()) {
+            var invalid =
+                    fixture.request("POST", "/v0/input/release-all", "{\"scope\":\"all\"}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(400, invalid.statusCode(), invalid.body());
+            assertEquals(
+                    "INVALID_INPUT_RELEASE_REQUEST", value(invalid).get("error").getAsString());
+            assertEquals(0, fixture.world.cleanups.get());
+            fixture.lease = "wrong-lease";
+            var wrong =
+                    fixture.request("POST", "/v0/input/release-all", "{}", false)
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(409, wrong.statusCode(), wrong.body());
+            assertEquals("CONTROL_LEASE_REQUIRED", value(wrong).get("error").getAsString());
+            assertEquals(0, fixture.world.cleanups.get());
         }
     }
 }

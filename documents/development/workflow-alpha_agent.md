@@ -121,6 +121,10 @@ bootstrap 不算固定副本通过。基准不复制 token、端点或日志；�
 这些历史单项场景未因本轮连接方式改变而重新完成全部业务验收。
 
 语义 UI 操作允许无关槽位持续更新，但目标、菜单/Screen 身份、几何和所持物品仍会复验；
+UI树的title是原生Screen标题；加载overlay阻挡时USER不返回底层标题，不代表页面已经可操作。
+slotOwner为player_inventory/menu/unknown，只表示当前可见槽位backing Container归属，不能代替slot视图编号；
+menu也包括合成/创造目录，不意味着持久存储。interactionNodeCount计数children，presentationNodeCount计数presentation.children，
+均按本次投影递归计算；HUD/Toast常在presentation，交互节点为0不代表没有呈现数据。
 物品名称/耐久/组件变化也会使目标失效，不仅检查种类和数量。槽位与 carriedStack 的 contentRevision
 是不透明上下文令牌，不是新增 selector 条件；显式全局 pin 仍使用菜单版本。
 适用版本的自动合成器前九个网格槽位提供 `slotDisabled`。禁用格仍可正常点击启用，不能将它误当作 `active=false`。
@@ -150,15 +154,15 @@ Operation ID 不是永久引用；当前表达到 16 项会清理终态。重要
 
 ```powershell
 pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-fabric -Scenario input-preconditions
-node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --scenario=input-preconditions
 ```
 
 专项要求已有不可覆盖基准，沿同一恢复/静音/堆限制/收尾流程运行，结果另存固定的 Target-input-preconditions.json。
-清单和生成手册明确 nativeSmokeScope/fullNativeSmoke，不将七项标题页检查写成完整联合脚本或 MCP 运行通过。
+该专项只产生自己的验证结果，不生成清单/手册或发布alpha，不能将七项标题页检查写成完整联合脚本或MCP运行通过。
 同一现场还执行两项真实 Companion UI 条件专项，mcpScope=ui_condition_contract；不是全套 MCP Runtime 矩阵。
 pipeline 的 ui.action/ui.drag 还需 ui，wait/assert 还需 read 及对应 UI/event/DEBUG 类别授权；
 缺权限的计划不会先执行前序玩家输入，不自动补权限或重新 acquire。
-未指定 scenario 的 alpha 生成仍要求全套结果匹配当前源码；不能把旧全套证据与新专项拼成全绿。
+alpha发布只接受full场景和continuous_gameplay_trial_v1档案，要求同候选完整前置矩阵与当前源码/工具及JAR匹配；
+input-preconditions等专项不能代替该门禁，也不能与其他批次结果拼接。
 
 需要复验原生指针/物品拖动时，运行独立 UI 专项；它恢复 UI 自有固定副本，并验证窗口状态、滚动条和九槽分配。
 该结果不替代完整 UI 家族目录、世界 smoke 或人工验收，准备物品仍标为诊断 Arrange。
@@ -197,6 +201,212 @@ Runtime 正常关闭后移除自己的连接记录，崩溃可能留下旧记录
 token 留在本实例 minecraft-protocol/token，默认随机；不写进报告、聊天、提交或浏览器。
 实例目录及本机文件是受信任本地输入，本机制不防御已能改写文件/进程的宿主恶意程序。
 
+## WebSocket 事件与输入时序
+
+现有事件入口为同一已锁定实例的 `/v0/events?category=USER`，使用ws协议和已发现端口，不是新的服务端口。
+使用Bearer和X-MCP-Runtime-Instance请求头，需event/read；DEBUG另需独立debug/debug.world.read，切换类别须新连接。
+以下继续使用上一节已握手的 `$connection`，只接收hello并订阅，不申请Lease或产生输入：
+
+```powershell
+$socket = [System.Net.WebSockets.ClientWebSocket]::new()
+$timeout = [System.Threading.CancellationTokenSource]::new(10000)
+try {
+    foreach ($name in $connection.Headers.Keys) {
+        $socket.Options.SetRequestHeader($name, [string]$connection.Headers[$name])
+    }
+    $uri = [UriBuilder]::new($connection.BaseUri)
+    $uri.Scheme = 'ws'
+    $uri.Path = '/v0/events'
+    $uri.Query = 'category=USER'
+    $socket.ConnectAsync($uri.Uri, $timeout.Token).GetAwaiter().GetResult()
+    $buffer = [byte[]]::new(65536)
+    $frame = $socket.ReceiveAsync([ArraySegment[byte]]::new($buffer), $timeout.Token).GetAwaiter().GetResult()
+    if (-not $frame.EndOfMessage) { throw 'Hello exceeds this example buffer' }
+    $hello = [Text.Encoding]::UTF8.GetString($buffer, 0, $frame.Count) | ConvertFrom-Json
+    if ($hello.type -ne 'event.hello') { throw 'Unexpected event handshake' }
+    $subscribe = [Text.Encoding]::UTF8.GetBytes('{"type":"event.subscribe","filter":{"namespaces":["control","event"]}}')
+    $socket.SendAsync([ArraySegment[byte]]::new($subscribe), [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $timeout.Token).GetAwaiter().GetResult()
+} finally {
+    $socket.Dispose()
+    $timeout.Dispose()
+}
+```
+
+这段最小示例结束即释放连接；持续消费者须有界Receive并处理完整多帧消息、关闭、重授权失败和gap。
+事件包括control.lease/mode/presence/task、control.gesture与control.pointer家族、event.pipeline.started/terminal、
+event.input.dispatched和event.screen.changed；精确类型与namespace筛选不同，types不接受通配符。
+先接收event.hello和event.subscription.accepted，再消费实际事件；用event.ack的sequence确认已处理，
+断流用event.resume的resumeFromSequence续接。ring=1024、每连接队列=128，event.gap要求处理缺口；
+event.resync可取本类别快照，不能把另一个类别的游标拿来续接，也不能把缺失事件当作无变化。
+world.player.state是显式USER位姿流：连接category=USER，订阅filter.types=["world.player.state"]或namespaces=["world"]。
+默认全事件订阅不会隐式开启高频流。只采样实际client tick中已连接的本地玩家，字段为sourceTick/sample时间、streamContext、
+xyz/yaw/pitch/onGround/velocityXYZ；是客户端同步状态，不是服务器真值。暂停允许同位姿重复，负载与最小化可降低墙钟速率。
+每次发布、发送、重放与条件证据复验授权/上下文；换世界后旧帧只报告gap/resync。方块变化流仍未实现。
+
+在保持连接的消费者中，以下三条是分别发送的JSON消息，不是一次发送的数组。
+先订阅位姿流；重连后将resumeFromSequence替换为本消费者最后完整处理的sequence，不复用其他类别或实例的序号。
+收到gap后使用resync并处理event.resync.snapshot，不把缺失区间补算为新帧。
+
+```json
+{"type":"event.subscribe","filter":{"types":["world.player.state"]}}
+```
+
+```json
+{"type":"event.resume","resumeFromSequence":123}
+```
+
+```json
+{"type":"event.resync"}
+```
+
+首秒测量从event.subscription.accepted到达开始，只计sequence大于该回执且sourceTick严格递增的同streamContext新帧，排除重放。
+固定自动环境的首1000ms至少15帧是本批验证门槛，不是暂停、最小化、第三方负载或任意设备下的帧率保证。
+
+成功Pipeline的Operation.result.timing提供内部单调时钟统计，scope为automation_pipeline_not_http_or_server_effect。
+queueMillis是内部输入队列等待；stages中的pointerState/nativeCall/inputState/delay/cleanup为实际累计耗时与次数，
+requestedDelayMillis累计步骤delay、按键hold及原有GUI节奏，steps[].elapsedMillis包含该步骤的等待；不要把有意GUI动画当成第一人称固定延迟。
+inputCallbackCount及首末offset只标记owner线程permit检查后的回调入口，不代表实际输入成功或服务器效果。
+另外测HTTP请求RTT、/operations/{id}/wait等待和独立效果观察；原有Operation起始时间不能推导owner消费时间。
+Native POST /v0/pipelines直接返回Operation；waitForCompletion是Companion的调用选项，不是该Native请求的等待开关。
+有界wait返回executing仍非终态，不能宣称PASS；取消后还需确认held keys/buttons=0及无late dispatch，不能只看cancelled。
+
+GET input/state的nativeEntityAttackCount是当前原生world/player/connection与控制代次内的保守诊断计数，
+nativeEntityAttackContextId/ContextGeneration/ControlGeneration标识归属；代次变化后重置，不能跨代次相减。
+nativeEntityAttackScope为native_multiplayer_game_mode_attack_return，nativeEntityAttackCounterUnits为
+native_entity_attack_invocations_not_damage_or_swing；仅记录Runtime routed处理上下文、有效TAKEOVER Lease下的原生实体攻击返回。
+nativeEntityAttackLeaseActive只是只读归属检查，不授予输入权限；nativeEntityAttackServerEffectConfirmed始终false。
+它不是唯一Vanilla调用点、伤害、挥手动画或服务端确认的证明，计数为0也不证明没有攻击。
+本批性能工具保留terminalInputSnapshot，在终态后最多两个新native tick、至多500ms独立观察queued click的消费；
+只读观察不重发攻击，Lease/epoch/控制代次变化即失效。nativeConsumptionObservation单独报告，
+其时间不计入原始pipeline/HTTP终态耗时；窗口内未确认必须保持未确认，不能补算为已消费。
+
+现有key按下/松开可跨请求持有，不只有限时key.tap；原始输入路径不在完成时自动释放。
+Pipeline的cleanupOnComplete默认为true，会清理该Agent持有的输入，包括前序请求的按键；显式false保留原有持有语义，不续Lease或授予权限。
+这里的清理范围是同一Lease；false只在成功完成时保留，失败或取消仍清理。不能通过一个默认true的中间pipeline延续前序持有。
+原始鼠标按钮仍按同Lease流持有；开始另一普通gesture前须先原始松开或release_inputs，否则返回POINTER_HELD，不抢占尚未完成的拖拽。
+需要保持时仍必须显式松开/清理并检查held=0；Lease loss/退出接管继续执行安全清理。它不是带逐帧序号或独立失联期限的持续流，不盲重放相对增量。
+输入另绑定原生world/player/connection引用代次，GET input/state中的inputContextId/Generation/Available可供核对。
+普通Screen切换不推进该代次，真正替换/断连会取消旧active/queued并清理Runtime自有held；不会向替换后的Screen补发旧mouse-up。
+清理也跟踪Runtime实际改变过的原生KeyMapping：强停止/取消/失权/换epoch会清除已松开但未消费的queued click，
+不按held集合推定原生队列已空。正常成功pipeline completion保留已提交的原生点击供游戏消费，不将终态冒充效果完成。
+没有新Lease或自动重放；仍建议主动切换前release_inputs并等待input.released。世界切换操作返回取消且效果未确认时，独立检查目标世界/页面和输入，不重放旧动作。
+
+需要立即停止同一Lease的全部玩家输入而继续后续工作时，使用以下标准MCP动作：
+
+```json
+{"tool":"minecraft_control","arguments":{"action":"release_inputs"}}
+```
+
+该动作调用Native POST /v0/input/release-all，body为{}；需input/control、TAKEOVER和当前Lease，
+取消活动与排队玩家输入，使已接受但仍在preflight的旧代次请求失效，完成必需的原生清理，不撤销Lease/模式/任务/Arm/latch或独立DEBUG。
+它不接受Screen/Menu revision pin；响应超时不会撤回安全清理。releasedKeys/releasedButtons只是最后一次native cleanup的真实计数，不是整轮累加。
+普通operation cancel不保证排队请求都停止；不要用取消单个Operation冒充release_inputs。
+调用前先停止调用者自己的发送链；屏障只取消Runtime已经接受的输入。因Lease保留，停止后才到达的新请求仍按新输入准入，不会撤回调用者尚未发送的请求。
+输入读取新增inputGeneration/inputCleanupPending/inputCleanupFailed；清理失败或未完成应明确处理，不凭Operation终态推定held已清零。
+
+```json
+{"tool":"minecraft_wait","arguments":{"condition":{"type":"input.released"},"timeoutMs":5000}}
+```
+
+input.released严格type-only，不接受category/expected/selector；需要read/diagnostics，READ/OPERATE和人工撤销后仍可使用。
+它只证明这次快照中Runtime自有pressedKeyCount与pressedButtonCount均为0，不证明队列永久空闲或服务器效果。
+同一条件可用于minecraft_assert及pipeline的wait.until/assert.that，后者仍需整个TAKEOVER计划的授权。
+第一人称mouse.delta的dx/dy是原生窗口相对像素增量，不是GUI缩放坐标或角度；每轴接受有限数值-8192..8192。
+它走原版灵敏度、反向与相机处理，0.15不是跨玩家设置或Target的通用换算常量。
+双门两扇分别为原生目标，一次use不保证另一扇打开；连续Space可能切换创造飞行，使用USER player.flying独立核验。
+
+## 连续游玩试用
+
+本批为`continuous_gameplay_trial_v1`受限试用，不是两个完整里程碑或最终人工验收。
+三次攻击相对单次1.5倍的性能目标未达成，用户已允许保留该限制试用；清单保留实际比值、
+`performanceComplete=false`及`goalPerformancePass=false`。本轮性能检测按用户决定暂缓，不采集新性能样本。
+四端既有测量仅作历史；Fabric的攻击与单步/GUI基线改为功能验证，明确
+`DEFERRED_BY_USER_2026_10_20`，不填造比值或分位数。不得把一次pipeline完成或三组回调当作三次伤害。
+
+以下在自己的安全副本中执行，先读capabilities核对当前Target支持。已有人工撤销提示时，先在当前对话重新取得用户明确同意，
+再显式acquire；其他步骤不得自动接管。所有命令仍为USER，诊断Arrange不能充当PLAYTEST效果证据。
+
+1. 通过minecraft_control acquire进入TAKEOVER；Lease续期由同一调用方负责，不新增失联租约。
+2. 按住W后，跨三个转向/观察请求保持移动；各中间pipeline必须cleanupOnComplete=false，USER和独立获准DEBUG读取不切模式。
+3. 使用release_inputs，并以input.released等到held=0；查看inputCleanupPending/Failed，取消终态不等同已完成清理。
+4. 在同一pipeline串接三组mouse.button down/delay40/up，仅付一次必要cleanup；核对原生消费与独立后置条件，不删hold或把回调次数当攻击次数，本轮不安排性能比较。
+5. 用minecraft_query_world kind=region分页读取有界已加载区域，并按nextCursor续读到complete；检查未加载、时效和截断，结束不用的cursor显式cancel。
+6. 用现有WS显式订阅world.player.state，先等hello/subscription.accepted，再按sequence/sourceTick消费新帧；短断线用resume续接，gap后resync，不自动重新接管。
+7. 经本项目接口停止输入；如需测试真人Esc，由用户亲手执行。应退READ、reconsentRequired=true，后续独立观察仍可继续。
+
+### 本批使用方影响
+
+- Runtime和Companion须来自同批源码/依赖；24个工具数不变，`minecraft_query_world`增加typed region分支。旧Companion不会因更换Mod JAR自动升级。
+- HTTP增加`POST /v0/world/region`；续读只发送cursor，不重发初始选择器。读取响应不确定时从新查询开始，不重放输入或修改。
+- 世界/玩家/连接替换会取消旧epoch输入；普通GUI换页不属于该替换。Save & Quit可能返回明确的未确认取消，应独立观察目标页，不自动再次点击。
+- 位姿流必须显式选择USER与`world.player.state`，默认全事件订阅不隐式增加每tick流量；序号重放不计作新tick，gap须处理。
+- 持有输入需同一Lease、成功中间pipeline显式`cleanupOnComplete=false`及主动停止。HTTP短连接结束不是新增失联租约；Lease过期及已绑定控制WS关闭仍清理。
+- 放置结果新增原生返回和客户端预测，`effectConfirmed=false`不等于动作失败，也不等于服务器接受；应独立读取目的格及成对方块。
+  即时预测与稍后USER回读是不同时间边界，门hinge等属性可能不同；保留两份原始状态并以任务的独立后置条件判断，不修改原回执或盲重放。
+- 按实际影响重验连续输入、生命周期、区域/状态订阅及回执消费者；不因纯文档更新要求重测全部UI，也不用旧快照通过代替新制品证明。
+
+跨请求持有示例：
+
+```json
+{"tool":"minecraft_run_input_pipeline","arguments":{"steps":[{"type":"key","key":87,"action":1}],"cleanupOnComplete":false,"waitForCompletion":true}}
+```
+
+中间转向可使用以下请求三次，仍保留按住；不以此固定单位推导角度：
+
+```json
+{"tool":"minecraft_run_input_pipeline","arguments":{"steps":[{"type":"mouse.delta","dx":2,"dy":0}],"cleanupOnComplete":false,"waitForCompletion":true}}
+```
+
+穿插以下只读请求核对玩家位置；预期继续移动且模式不切换，不把调用间隔作为延迟样本。
+
+```json
+{"tool":"minecraft_query_world","arguments":{"kind":"player","category":"USER"}}
+```
+
+先release_inputs并等待input.released，再在无Screen的安全测试场景中用以下请求提交三次左键。
+目标应已通过USER读取与原生瞄准核对；没有目标时不能把它当作三次攻击命中。终态、原生计数和效果必须分别核对。
+单次对照只保留其中一组down/delay/up，使用相同40ms；不在结果未确认时重放。
+
+```json
+{
+  "tool":"minecraft_run_input_pipeline",
+  "arguments":{
+    "steps":[
+      {"type":"mouse.button","button":0,"action":1,"modifiers":0},
+      {"type":"delay","durationMs":40},
+      {"type":"mouse.button","button":0,"action":0,"modifiers":0},
+      {"type":"mouse.button","button":0,"action":1,"modifiers":0},
+      {"type":"delay","durationMs":40},
+      {"type":"mouse.button","button":0,"action":0,"modifiers":0},
+      {"type":"mouse.button","button":0,"action":1,"modifiers":0},
+      {"type":"delay","durationMs":40},
+      {"type":"mouse.button","button":0,"action":0,"modifiers":0}
+    ],
+    "cleanupOnComplete":true,
+    "waitForCompletion":true
+  }
+}
+```
+
+区域初始坐标须根据当前USER玩家位置计算并完整落在32格球内；以下只为位于(0.5,65,0.5)附近的示例：
+
+```json
+{"tool":"minecraft_query_world","arguments":{"kind":"region","query":{"min":{"x":-8,"y":64,"z":-8},"max":{"x":7,"y":79,"z":7},"maxBlocks":4096,"maxBytes":131072}}}
+```
+
+续读query只能带cursor；成功cursor单次消费，响应不确定时重新开始查询。maxBytes只计region payload，不含requestId/protocolVersion包络。
+仅明确收到HTTP429与`WORLD_REGION_BUDGET_NO_PROGRESS`时，合同保证本次未提交续读：可遵循合法`retryAfterMillis`，
+以相同query/cursor做最多三次总尝试，并把失败尝试计入调用数。没有结构化响应、游标失效或其他错误不能套用此例外；
+取消、输入和修改不重放。该恢复不放宽生产8ms协作预算，也不把所有429都视为可安全重试。
+每页只在原生已有缓存中读取，palette index=-1明确未加载；不能用它证明方块为空。最多65536格总区域，cursor空闲30秒/总120秒过期，跨页非原子。
+以下取消请求中的占位符替换为最后一页返回且尚未消费的nextCursor；成功时cancelled=true，再取消同一已取消cursor为false，不恢复游标。
+
+```json
+{"tool":"minecraft_query_world","arguments":{"kind":"region","action":"cancel","query":{"cursor":"<nextCursor>"}}}
+```
+
+scope/模式/Lease/Arm和服务器权限始终独立；本节不是自动化最终真人验收，也不承诺固定帧率或硬实时。
+
 ## 通过 MCP Companion 使用
 
 Companion 是独立 Node/TypeScript 工具组件，JAR 不包含 Node.js；使用同源 checkout 和 Node/npm。
@@ -214,6 +424,8 @@ node components/companion/dist/index.js
 最后一条供支持 MCP 的宿主通过 stdio 启动，不是交互聊天 CLI；配置示例为 components/companion/mcp.example.json。
 Companion 先安全读取 Session 验证身份，随后固定绑定该 UUID；网络错误或实例变化不会自动换绑其他游戏。
 发现握手使用既有 read scope；不会在缺权限时自动补授。
+Companion握手serverInfo.version直接读取同源package.json，当前实际stdio已核对一致；旧版本反馈在当前入口未复现。
+若外部模型看到不同值，先确认实际启动进程、入口和dist来源，不推测其已加载本次更新。
 显式兼容模式仍允许 MCP_MINECRAFT_BASE_URL 加 TOKEN/TOKEN_FILE，但不再隐式猜测 25582。
 不能将 INSTANCE_DIR 与旧 URL/token 变量混用；会明确报错，防止两套配置指向不同实例。
 显式模式不提供实例发现/重启隔离保证，推荐所有新使用者采用 INSTANCE_DIR。
@@ -307,6 +519,16 @@ batch只走NATIVE，需要OPERATE/TAKEOVER和command scope，1～32条、合计�
 Session/control状态的authorization给出scope、Lease和Arm剩余时间摘要，不包含凭据；contextValidated=false表示仍须实际请求校验世界和资源。
 
 正式debug capabilities的resourceInspection列出六类既有修改的deep selector与resourceRevisionRefs映射。
+Deep需要显式DEBUG；domains=["blocks"]才请求指定方块，domains=["world"]是环境域而非所有数据的通配符。
+获取block资源版本的最小Native请求如下，坐标须换为本实例已确认加载的目标：
+
+```json
+{"category":"DEBUG","perspective":"server_authoritative","domains":["blocks"],"selector":{"blocks":[{"x":0,"y":64,"z":0}]}}
+```
+
+通过POST /v0/observe/deep发送；显式blocks最多64项。selector.chunkRadius缺省0，只接受JSON整数0..2，非法值返回400 INVALID_DEEP_SELECTOR，不静默截断。
+chunk域给区块元信息而非全部方块；USER附近场景使用GET /v0/world/scene及明确radius/blockLimit/entityLimit，不能向该路径POST。
+对应MCP为minecraft_deep_observe与minecraft_query_world；minecraft_diagnostics必须提供kind，使用readiness/trace/hooks/audit/thread/peer之一。
 supportedAttribute是setter接受的语义名，不保证等于原生读取名：旧版最大生命属性可能读为minecraft:generic.max_health，
 写入仍只接受minecraft:max_health。按实际返回值匹配，保留原token，不能修改token身份或用猜测计数补偿。
 DEBUG玩家属性列表包含原生supplier提供的最大生命base与有效值，即使该属性尚未实例化；只读不会创建实例。
@@ -382,10 +604,12 @@ USER玩家的gameMode/onGround/flying来自当前客户端；flying是正在飞�
 不可得时为字符串unknown，不能按false判断。Native、client/player Provider、State Frame及MCP使用同一投影。
 WORLD_TARGET_NOT_HIT可在Operation.errorDetails.actualHit给出实际有界命中；source区分原生准星/持续使用射线/outline候选遮挡。
 据此重新观察目标或调整正常玩家位置，不跳过遮挡/距离/形状，也不把unknown当miss或把失败动作盲目重放。
-玩家命令仍需要独立 command/control/input scope、TAKEOVER 与现有 Lease；当前界面/草稿未处理或超原生 256 单元限制时输入前拒绝。
+CHAT（含TAKEOVER下AUTO）命令需要command/control/input、TAKEOVER及当前Lease；当前界面/草稿未处理或超原生256个UTF-16单位时输入前拒绝。
+NATIVE（含OPERATE下AUTO）需要command及OPERATE/TAKEOVER，使用当前玩家原生API，不要求输入Lease、control/input或Debug Arm。
+discover另需read与command；所有路径仍复验当前主体、原生命令树和实际服务器权限，不自动提权。
 效果按实际原生玩家命令树分为沟通、信息和状态修改；未知/未决间接命令及宿主管理请求拒绝。
 gameplayAcceptanceEligible=false，状态修改时 evidenceContaminated=true；mode=PLAYTEST/DEBUG_PRIVILEGED 是证据来源，
-不是 Presence Mode 或授予权限。真实效果必须另外观察；取消可能留下未提交的草稿，须显式处理，不自动重放。
+不是 Presence Mode 或授予权限。真实效果必须另外观察；CHAT取消可能留下未提交的草稿，须显式处理，不自动重放；NATIVE不修改聊天草稿。
 活动录制会在提交前保留污染，即使随后发送失败、超时或取消也不能宣称未执行；不要盲目重放。
 测试命令准备仍是诊断 Arrange；原生聊天/链接共用最终检查，输入结果的 commandSubmissions 保留来源。
 输入失败、超时或取消不等于“没有发出命令”：Operation 可返回 partial=true 的最小来源记录，
@@ -431,6 +655,10 @@ MCP 输入例子（不是自动执行指令，nodeId 替换为本次树的真实
 ```
 
 Companion 会保存自己取得的 Lease，不需将其手工复制到每个 Tool 参数。
+Native acquire/renew省略ttlMs时为15秒，并夹取1–60秒；Companion当前缺省显式请求60秒。
+TTL可续租，60秒不是总接管时长上限；过期前用renew续租，另行遵守逻辑任务的TTL/总预算。
+普通HTTP请求断连不撤销Lease；绑定该Lease的事件WebSocket关闭、TTL到期或显式撤权会清理输入。
+未绑定控制Lease的只读事件连接关闭不撤销其他控制会话，不能依靠关闭任意HTTP连接来停止玩家。
 直接 Native 输入则携带 X-MCP-Control-Lease；请求可带 X-MCP-Request-Id 和 X-MCP-Deadline-Ms。
 Operation 必须检查终态，超时不能当成功；取消后核对 held keys/buttons 为 0，不自动重放未知结果的 mutation。
 
@@ -456,6 +684,7 @@ UI USER 仍按实际呈现，玩家操作仍需 TAKEOVER/Lease，不能因读到
 方块输出最多 512、实体最多 128，扫描及时间预算可能更早截断，必须检查 blocksTruncated/entitiesTruncated。
 visibility=not_evaluated，available=false 的 reason 区分无世界、范围外和未加载；
 不自动加载 Chunk，不读服务器、未打开容器、NBT 或磁盘。实体没有 UUID/生命/AI 等内部字段。
+客户端追踪的非空掉落物提供itemId/itemCount，来自原生同步ItemStack，不含components或NBT；它是采样计数，不是服务器拾取确认。
 source=bounded_client_world_model 与 sampledAtMillis 标明来源和时效；截断不等于目标不存在。
 scene.aimPresentation 为可选原生准星提示，不是可执行世界 targetRef，不能据此虚构语义世界动作。
 
@@ -473,7 +702,7 @@ action 支持 aim、attack、use、mine、use_hold、place。attack/use 先通�
 不写 yaw/pitch，不 teleport，不直接破坏或放置。不要手写/猜测 targetRef，也不要使用 UI 节点 ID。
 普通方块瞄准使用原生交互轮廓盒体候选，不再强制整个方块的几何中心；最多 64 项，不能命中就拒绝。
 这有利于按钮等非完整方块，但不是第三方形状自动适配保证；指定面的 place 规则保持不变。
-一个 Operation 内的世界动作和 GUI/键鼠输入共用串行队列；取消、退出 TAKEOVER、Lease loss 或断线清理输入。
+一个 Operation 内的世界动作和 GUI/键鼠输入共用串行队列；取消、退出 TAKEOVER、Lease loss 或绑定控制Lease的WebSocket断连清理输入，普通HTTP断连不撤权。
 必须检查 Operation.state；failed 的具体原因在 errorCode，不能仅凭 HTTP 成功或 Tool 未标 isError 判断动作成功。
 
 WORLD_TARGET_STALE 表示引用过期、对象/世界变化、Chunk 实例更换或有界变更历史失效，重新读取目标，不自动重放攻击。
@@ -519,6 +748,9 @@ place 需要主手方块物品和新鲜方块引用，face 指定六个表面之
 ```
 
 检查 destination、requestedFace、hitU/hitV 和原版实际目的格的后续状态；不能从 inputReleased 推定放置成功。
+放置回执另有nativeUseOnResultObserved/nativeUseOnResult/nativeConsumesAction、placementOutcome/reason与placementState完整前后状态。
+native_rejected给出原版use-on失败，不猜测具体哪一配对格阻挡；被消费但无预期方块变化也不算已放置。
+clientPlacementPredicted只表示原版已消费且客户端目的格呈现预期方块/属性变化，effectConfirmed和serverValidationObserved仍为false；操作completed仅为输入生命周期。
 WORLD_MINE_TIMEOUT、WORLD_USE_NOT_STARTED、WORLD_USE_RELEASE_TIMEOUT 明确区分预算与原版使用状态。
 WORLD_PLACE_PRECONDITION_FAILED/BLOCKED/NOT_DISPATCHED 分别为目的格值、可替换性或未观察到原版调用。
 动作中物品/玩家/Screen/目标发生非预期变化会拒绝并清理，重新读取后由 Agent 决定，不自动重放。
@@ -590,10 +822,11 @@ locked/busy、stale、unavailable、not-found 与 corrupt 按真实错误区分�
 ## UI 与 Core 功能展示入口
 
 入口现有 18 项案例（17 项自动、1 项可选真人 Esc），配置支持当前五端，可按单例、固定顺序 All 和保持时间运行。
-新增世界读取/语义交互、Wait/Assert/录制采证、持久化只读和取消清理；这五个 Core 案例的五端 smoke 已通过，
-不等于本候选十七项全套、完整目录或最终人工验收。
-采纳本范围结果更新 alpha 时，使用生成器的 `--scenario=core-showcase`，只记录五项开发 Runtime smoke，
-fullNativeSmoke=false、MCP 专项数为 0；不把旧全套源码证据或纯 Native 展示冒充当前全套/MCP/独立制品证明。
+世界读取/语义交互、Wait/Assert/录制采证、持久化只读和取消清理可分别运行；
+案例入口存在不等于当前候选五端smoke、十七项全套、完整目录或最终人工验收已通过。
+Showcase只记录对应开发Runtime展示，不单独授权生成或发布新alpha。
+当前alpha发布必须使用full场景及continuous_gameplay_trial_v1档案，完成其同候选前置门禁；
+不把旧全套源码证据或纯Native展示冒充当前全套/MCP/独立制品证明。
 只使用 Runner 的专用实例，不连接日常客户端；运行前核对是否有本线程实例正在使用，默认结束后关闭。
 
 ```powershell
@@ -624,6 +857,8 @@ Agent Routed Esc 仅为正常游戏按键，不视为人类撤销。
 
 ## 验收边界与继续阅读
 
+当前接口目录为80项正式HTTP、24个MCP工具、13种条件；各端Live以所附清单的同候选结果为准，
+不能从接口存在或代表端通过推定其余端完成，也不等同统一人工验收。
 清单的packagedRuntime记录五端全新正常Loader、单个发行JAR的标题/握手/USER读取及正常退出，且绑定源码和JAR哈希；
 它不证明进入世界后的全部功能或人工观感。nativeSmokeScope=packaged-runtime时，没有完整世界或MCP功能验收。
 其他范围的开发Runtime结果单独列出，不能与独立安装或完整领域验收混为一谈。

@@ -74,6 +74,32 @@ test('MCP basic world category forwarding preserves intent, unavailable errors a
   } finally { await client.close().catch(()=>undefined); await runtime.close(); }
 });
 
+test('MCP typed USER region pages forward fixed queries, continuations and cancellation without takeover', async () => {
+  const runtime = await startRuntime();
+  const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client = new Client({name:'region-consumer-test',version:'0.0.1'});
+  try {
+    await client.connect(transport);
+    for (const request of [
+      {kind:'region',query:{min:{x:0,y:64,z:0},max:{x:15,y:79,z:15}}},
+      {kind:'region',query:{cursor:'opaque-native-cursor'}},
+      {kind:'region',action:'cancel',query:{cursor:'opaque-native-cursor'}}
+    ]) {
+      const reply = await client.callTool({name:'minecraft_query_world',arguments:request});
+      assert.notEqual(reply.isError,true,JSON.stringify(reply));
+      const data = (reply.structuredContent as {data:{request:Record<string,unknown>}}).data;
+      assert.deepEqual(data.request,{category:'USER',action:'action' in request ? request.action : 'read',query:request.query});
+    }
+    const before = runtime.worldReads.length;
+    for (const extra of [{category:'DEBUG'},{perspective:'server'},{query:{cursor:'old',maxBlocks:1}},{query:{min:{x:0,y:64,z:0},max:{x:1,y:65,z:1},maxBlocks:4097}}]) {
+      const reply = await client.callTool({name:'minecraft_query_world',arguments:{kind:'region',query:{cursor:'opaque'},...extra}});
+      assert.equal(reply.isError,true);
+    }
+    assert.equal(runtime.worldReads.length,before,'Invalid typed region requests cannot dispatch');
+    assert.equal(runtime.leases.length,0);
+  } finally {await client.close().catch(()=>undefined);await runtime.close();}
+});
+
 test('Debug batch automatic wait always selects DEBUG without adding world authority to UI-only batches', async () => {
   const runtime = await startRuntime();
   const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
@@ -173,7 +199,9 @@ test('MCP typed block properties preserve both maps and reject malformed values 
   }finally{await client.close();await transport.close();await runtime.close();}
 });
 
-async function startRuntime(operationEvidence: Record<string,unknown> = {}): Promise<{ revokeControl: () => void; baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[]; worldReads: string[]; operationReads: string[]; pipelines:Record<string,unknown>[]; inputRequests:Record<string,unknown>[]; debugMutations:Record<string,unknown>[]; commandDiscoveries:Record<string,unknown>[]; debugArms:Record<string,unknown>[] }> {
+async function startRuntime(operationEvidence: Record<string,unknown> = {}): Promise<{ revokeControl: () => void; deniedScopes:Set<string>; inputConditions:Record<string,unknown>[]; baseUrl: string; close: () => Promise<void>; leases: string[]; operationCancels: number[]; deepObserveStarts: number[]; deepObserveAborts: number[]; deepObserveDeadlines: string[]; worldReads: string[]; operationReads: string[]; pipelines:Record<string,unknown>[]; inputRequests:Record<string,unknown>[]; debugMutations:Record<string,unknown>[]; commandDiscoveries:Record<string,unknown>[]; debugArms:Record<string,unknown>[] }> {
+  const deniedScopes=new Set<string>(),inputConditions:Record<string,unknown>[]=[];
+  let inputGeneration=0;
   const debugMutations:Record<string,unknown>[]=[];
   const pipelines:Record<string,unknown>[]=[];
   const inputRequests:Record<string,unknown>[]=[];
@@ -208,7 +236,7 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
     const path = url.pathname;
     const payload = await body(request);
-    if(['/v0/ui/action','/v0/pipelines'].includes(path))inputRequests.push({path,screen:request.headers['x-mcp-expected-screen-revision'],menu:request.headers['x-mcp-expected-menu-revision'],payload});
+    if(['/v0/ui/action','/v0/pipelines','/v0/input/release-all'].includes(path))inputRequests.push({path,lease:request.headers['x-mcp-control-lease'],screen:request.headers['x-mcp-expected-screen-revision'],menu:request.headers['x-mcp-expected-menu-revision'],payload});
     const base = { target: 'mock-26.3-fabric', clientTick: 42, requestId: 'mock-request', protocolVersion: 'v0' };
 
     if (path === '/v0/session') return json(response, 200, { ...base, ...control(), type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
@@ -226,7 +254,14 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
       }
     }
     if (path === '/v0/player' || path === '/v0/server/player') return json(response, 200, { ...base, domain:'WORLD',dataCategory:'DEBUG',type: 'player.state', source: path.includes('/server/') ? 'integrated_server_live' : 'client_live', perspective: path.includes('/server/') ? 'server_authoritative_live' : 'client_known', available: true, x: 1, y: 64, z: 2 });
-    if (path === '/v0/input/state') return json(response, 200, { ...base, type: 'input.state', pressedKeyCount: 0, pressedButtonCount: 0 });
+    if (path === '/v0/input/state') return json(response, 200, { ...base, type: 'input.state', pressedKeyCount: 0, pressedButtonCount: 0, inputGeneration, inputCleanupPending:false, inputCleanupFailed:false });
+    if (path === '/v0/input/release-all') {
+      if (deniedScopes.has('input') || deniedScopes.has('control')) return json(response,403,{error:'SCOPE_DENIED',message:'Required input/control scope missing'});
+      if (mode !== 'TAKEOVER') return json(response,409,{error:manuallyRevoked?'USER_MANUALLY_ENDED_CONTROL':'TAKEOVER_REQUIRED',message:'Explicit TAKEOVER required',control:control(),...(manuallyRevoked?{controlState:'MANUALLY_REVOKED',reconsentRequired:true,manualRevocationReason:'human_manual_revocation'}:{})});
+      if (request.headers['x-mcp-control-lease'] !== 'mock-lease') return json(response,409,{error:'CONTROL_LEASE_REQUIRED',message:'Current Lease required'});
+      assert.deepEqual(payload,{}); inputGeneration++; longOperation=false;
+      return json(response,200,{...base,type:'input.release_all',...control(),inputGeneration,releasedKeys:0,releasedButtons:0,inputCleanupPending:false,inputCleanupFailed:false});
+    }
     if (path === '/v0/capture/info') return json(response, 200, { ...base, type: 'capture.info', backend: 'opengl', mode: 'COMPOSITE', format: 'PNG' });
     if (path === '/v0/state/frames') return json(response, 200, { ...base, type: 'state.frame', stateFrameId: recordingId, consistency: 'coordinated_best_effort', dataCategory:payload.category ?? 'USER', request:payload, reads: payload.reads ?? [] });
     if (path === '/v0/observe/deep') {
@@ -335,7 +370,15 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
     }
     if (path === `/v0/operations/${recordingId}`) return json(response, 200, { ...base, type: 'operation', operationId: recordingId, status: 'completed', result: { stepCount: 1 }, ...operationEvidence });
     if (path === '/v0/command/player') return json(response, 200, { ...base, type: 'command.player.execute', dataCategory:'USER', route:nativeCommand?'NATIVE':'CHAT', inputDispatched:!nativeCommand, requiresControlLease:!nativeCommand, accepted: true, mode: 'PLAYTEST', mechanism: nativeCommand?'NORMAL_NETWORK':'GAME_ROUTED_RAW', permissionEscalated: false, effectClassification: 'COMMUNICATION', classificationSource: 'native_player_command_tree', effectConfirmed: false, serverValidationObserved: false, gameplayAcceptanceEligible: false, submissionStatus: 'submitted_unconfirmed', evidenceContaminated: nativeCommand, contaminationReason: nativeCommand?'non_game_routed_player_command':'none' });
-    if (path === '/v0/wait/until' || path === '/v0/assert') return json(response, 200, { ...base, type: 'assert.result', passed: true, condition: payload.condition });
+    if (path === '/v0/wait/until' || path === '/v0/assert') {
+      if ((payload.condition as Record<string,unknown>)?.type === 'input.released') {
+        inputConditions.push(payload);
+        if (deniedScopes.has('read') || deniedScopes.has('diagnostics')) return json(response,403,{error:'SCOPE_DENIED',message:'Required read/diagnostics scope missing'});
+        assert.deepEqual(payload.condition,{type:'input.released'});
+        return json(response,200,{...base,type:'assert.result',passed:true,condition:payload.condition,evidence:{type:'input.released',pressedKeyCount:0,pressedButtonCount:0}});
+      }
+      return json(response, 200, { ...base, type: 'assert.result', passed: true, condition: payload.condition });
+    }
     if (path === '/v0/readiness') return json(response, 200, { ...base, type: 'readiness', overall: 'ready', hooks: {} });
     if (path === '/v0/trace') return json(response, 200, { ...base, type: 'trace', screenRevision: 3, menuRevision: 1 });
     if (path === '/v0/diagnostics/hooks') return json(response, 200, { ...base, type: 'diagnostics.hook_manifest', policy: 'capability_fidelity_first', overall: 'ready', hooks: [] });
@@ -344,6 +387,10 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
     if (path === '/v0/server/peer') return json(response, 200, { ...base, type: 'server.peer.status', connected: false, protocol: 'peer-v0', pendingRequests: 0 });
     if (path === '/v0/server/peer/probe') return json(response, 409, { error: 'SERVER_PEER_UNAVAILABLE', message: 'no peer', requestId: 'mock-request' });
     if (path === '/v0/world/scene') { worldReads.push(path + url.search); return json(response, 200, {...base,type:'world.scene',dataCategory:'USER',coverage:'bounded_client_cache',visibility:'not_evaluated',blocks:[],entities:[],available:true}); }
+    if (path === '/v0/world/region') {
+      assert.equal(request.method,'POST'); worldReads.push(path);
+      return json(response,200,{...base,type:payload.action==='cancel'?'world.region.cancel':'world.region',dataCategory:'USER',request:payload});
+    }
     if (path === '/v0/recordings' && request.method === 'POST') return json(response, 200, { ...base, type: 'recording', recordingId, dataCategory:payload.category ?? 'USER', status: 'recording' });
     if (path === '/v0/recordings') return json(response, 200, { ...base, type: 'recordings', recordings: [{ recordingId, status: 'completed' }] });
     if (path === `/v0/recordings/${recordingId}`) return json(response, 200, { ...base, type: 'recording', recordingId, status: 'completed', artifactReady: true });
@@ -378,6 +425,7 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Mock Runtime did not bind');
   return {
+    deniedScopes,inputConditions,
     revokeControl: () => { manuallyRevoked = true; mode = 'READ'; generation++; leases.length = 0; },
     baseUrl: `http://127.0.0.1:${address.port}`,
     leases,
@@ -489,6 +537,63 @@ test('MCP UI and pipeline forward explicit revision headers, not body hints or i
   }finally{await client.close();await transport.close();await runtime.close();}
 });
 
+test('MCP release_inputs strongly stops input without changing cached Lease, mode or Debug authority',async()=>{
+  const runtime=await startRuntime(),client=new Client({name:'release-inputs-consumer',version:'1.0.0'});
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const call=(arguments_:Record<string,unknown>)=>client.callTool({name:'minecraft_control',arguments:arguments_});
+  const errorCode=(result:unknown)=>(result as {structuredContent:{error:{code:string}}}).structuredContent.error.code;
+  try{
+    await client.connect(transport);
+    assert.equal(errorCode(await call({action:'release_inputs'})),'TAKEOVER_REQUIRED');
+    assert.equal(runtime.leases.length,0);
+    await call({action:'set_mode',mode:'OPERATE'});
+    assert.equal(errorCode(await call({action:'release_inputs'})),'TAKEOVER_REQUIRED');
+    for(const scope of ['input','control']){runtime.deniedScopes.add(scope);assert.equal(errorCode(await call({action:'release_inputs'})),'SCOPE_DENIED');runtime.deniedScopes.delete(scope);}
+    assert.equal(runtime.leases.length,0,'No error may automatically acquire control');
+    await call({action:'acquire'});
+    await client.callTool({name:'minecraft_debug_arm',arguments:{action:'arm',worldFingerprint:'a'.repeat(64),namespaces:['player']}});
+    const before=await call({action:'status'});
+    const stopped=await call({action:'release_inputs'});assert.notEqual(stopped.isError,true,JSON.stringify(stopped));
+    const data=(stopped.structuredContent as {data:Record<string,unknown>}).data;
+    assert.equal(data.type,'input.release_all');assert.equal(data.inputGeneration,1);assert.equal(data.mode,'TAKEOVER');assert.equal(data.reconsentRequired,false);
+    const request=runtime.inputRequests.at(-1)!;assert.equal(request.path,'/v0/input/release-all');assert.equal(request.lease,'mock-lease');assert.equal(request.screen,undefined);assert.equal(request.menu,undefined);assert.deepEqual(request.payload,{});
+    const after=await call({action:'status'});assert.deepEqual((after.structuredContent as {data:{modeVersion:unknown}}).data.modeVersion,(before.structuredContent as {data:{modeVersion:unknown}}).data.modeVersion);assert.equal(runtime.leases.length,1);
+    const renewed=await client.callTool({name:'minecraft_debug_arm',arguments:{action:'renew'}});assert.notEqual(renewed.isError,true,'Stopping player input must not forget the independent Arm');
+    const pipeline=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'delay',durationMs:0}],waitForCompletion:false}});assert.notEqual(pipeline.isError,true);assert.equal(runtime.inputRequests.at(-1)?.lease,'mock-lease');
+    const calls=runtime.inputRequests.length;
+    for(const field of ['expectedScreenRevision','expectedMenuRevision'])assert.equal((await call({action:'release_inputs',[field]:99})).isError,true);
+    assert.equal(runtime.inputRequests.length,calls,'Revision pins must not be stripped into an unintended stop call');
+    const wrong=await call({action:'release_inputs',leaseId:'wrong-lease'});assert.equal(errorCode(wrong),'CONTROL_LEASE_REQUIRED');assert.equal(runtime.leases.length,1);
+    const state=await client.callTool({name:'minecraft_get_state',arguments:{kind:'input'}});assert.deepEqual(Object.fromEntries(['inputGeneration','inputCleanupPending','inputCleanupFailed'].map(field=>[field,(state.structuredContent as {data:Record<string,unknown>}).data[field]])),{inputGeneration:1,inputCleanupPending:false,inputCleanupFailed:false});
+    runtime.revokeControl();const revoked=await call({action:'release_inputs'});assert.equal(errorCode(revoked),'USER_MANUALLY_ENDED_CONTROL');assert.equal((revoked.structuredContent as {error:{reconsentRequired:boolean}}).error.reconsentRequired,true);assert.equal(runtime.leases.length,0);
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
+
+test('MCP input.released is strict type-only through standalone and both nested condition steps',async()=>{
+  const runtime=await startRuntime(),client=new Client({name:'input-released-condition-consumer',version:'1.0.0'});
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  try{
+    await client.connect(transport);
+    for(const mode of ['READ','OPERATE']){
+      await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode}});
+      for(const name of ['minecraft_wait','minecraft_assert']){const result=await client.callTool({name,arguments:{condition:{type:'input.released'}}});assert.notEqual(result.isError,true);assert.equal((result.structuredContent as {data:{passed:boolean}}).data.passed,true);}
+    }
+    for(const scope of ['read','diagnostics']){runtime.deniedScopes.add(scope);const denied=await client.callTool({name:'minecraft_assert',arguments:{condition:{type:'input.released'}}});assert.equal((denied.structuredContent as {error:{code:string}}).error.code,'SCOPE_DENIED');runtime.deniedScopes.delete(scope);}
+    await client.callTool({name:'minecraft_control',arguments:{action:'acquire'}});
+    const pipeline=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'wait.until',condition:{type:'input.released'}},{type:'assert.that',condition:{type:'input.released'}}],waitForCompletion:false}});assert.notEqual(pipeline.isError,true);
+    assert.deepEqual((runtime.pipelines.at(-1)?.steps as Record<string,unknown>[]).map(step=>step.condition),[{type:'input.released'},{type:'input.released'}]);
+    for(const extra of [{category:'USER'},{expected:{}},{selector:{}},{pressedKeyCount:0}]){
+      const beforeConditions=runtime.inputConditions.length,beforeInputs=runtime.inputRequests.length;
+      for(const name of ['minecraft_wait','minecraft_assert'])assert.equal((await client.callTool({name,arguments:{condition:{type:'input.released',...extra}}})).isError,true);
+      for(const type of ['wait.until','assert.that'])assert.equal((await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type,condition:{type:'input.released',...extra}}],waitForCompletion:false}})).isError,true);
+      assert.equal(runtime.inputConditions.length,beforeConditions);assert.equal(runtime.inputRequests.length,beforeInputs,'Invalid condition shape must never reach Native input');
+    }
+    runtime.revokeControl();
+    const observed=await client.callTool({name:'minecraft_wait',arguments:{condition:{type:'input.released'}}});assert.notEqual(observed.isError,true);assert.equal(runtime.leases.length,0);
+    assert(runtime.inputConditions.every(value=>JSON.stringify(value.condition)==='{"type":"input.released"}'));
+  }finally{await client.close();await transport.close();await runtime.close();}
+});
+
 test('MCP Companion exposes static tools/resources and preserves data-plane trust', async () => {
   const runtime = await startRuntime();
   const companionPath = resolve(process.cwd(), 'dist/index.js');
@@ -508,9 +613,25 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     await client.connect(transport);
     const negotiated = client.getNegotiatedProtocolVersion();
     assert.ok(negotiated, 'official v2 Client must negotiate a protocol version');
+    const companionPackage = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string };
+    assert.equal(client.getServerVersion()?.version, companionPackage.version, 'Actual MCP initialize serverInfo.version must come from package.json');
 
     const listed = await client.listTools();
     assert.equal(listed.tools.length, 24);
+    const diagnosticsTool = listed.tools.find(tool => tool.name === 'minecraft_diagnostics')!;
+    assert.ok(diagnosticsTool.inputSchema.required?.includes('kind'));
+    assert.match(diagnosticsTool.description ?? '', /kind is required/);
+    assert.match(diagnosticsTool.description ?? '', /no default/);
+    const deepTool = listed.tools.find(tool => tool.name === 'minecraft_deep_observe')!;
+    assert.match(deepTool.description ?? '', /domains=\[blocks\].*selector\.blocks/);
+    assert.match(deepTool.description ?? '', /domains=\[world\].*not region block contents/);
+    const commandTool = listed.tools.find(tool => tool.name === 'minecraft_execute_player_command')!;
+    assert.match(commandTool.description ?? '', /NATIVE requires OPERATE or TAKEOVER and command scope/);
+    assert.match(commandTool.description ?? '', /CHAT needs TAKEOVER, command\/control\/input scopes and Lease/);
+    const waitTool = listed.tools.find(tool => tool.name === 'minecraft_wait_operation')!;
+    assert.match(waitTool.description ?? '', /timeoutMs.*bounds this wait only/);
+    assert.match(waitTool.description ?? '', /current snapshot.*still be running/);
+    assert.match(waitTool.description ?? '', /does not cancel or fail the operation/);
     const modeCatalogue=JSON.parse(await readFile(resolve(process.cwd(),'../../validations/conformance-agent_control/task/control-mode-surface.json'),'utf8')).mcp as Record<string,{default?:string;discriminator?:string;actions?:Record<string,string>}>;
     assert.deepEqual(listed.tools.map(tool=>tool.name).sort(),Object.keys(modeCatalogue).sort(),'Every actual MCP tool needs one current catalogue entry');
     const discriminatorValues=(schema:unknown,key:string):string[]=>{

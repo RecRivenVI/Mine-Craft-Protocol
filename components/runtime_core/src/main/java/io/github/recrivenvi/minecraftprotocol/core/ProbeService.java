@@ -32,6 +32,11 @@ public interface ProbeService {
 
     CompletableFuture<JsonObject> pointerState();
 
+    /** Internal pacing context; semantic targets and explicit menu pins require pointerState. */
+    default CompletableFuture<JsonObject> inputPacingState() {
+        return pointerState();
+    }
+
     CompletableFuture<JsonObject> mouseMove(double guiX, double guiY);
 
     CompletableFuture<JsonObject> mouseMoveGuarded(double guiX, double guiY, JsonObject guard);
@@ -142,6 +147,16 @@ public interface ProbeService {
                         "WORLD_USER_MODEL_UNAVAILABLE",
                         409,
                         "Bounded client world model unavailable"));
+    }
+
+    /**
+     * Cached USER pages only; the guard includes request cancellation and current read authority.
+     */
+    default CompletableFuture<JsonObject> clientWorldRegion(
+            String action, JsonObject query, String trustedOwner, Runnable authorization) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "WORLD_USER_MODEL_UNAVAILABLE", 409, "Client region pages unavailable"));
     }
 
     default CompletableFuture<JsonObject> worldPresentation() {

@@ -51,6 +51,7 @@ public final class ConditionEngine implements AutoCloseable {
                 this.evaluate(condition),
                 evaluation -> {
                     authorize(condition);
+                    validateEventEvidence(condition, evaluation);
                     if (!evaluation.get("passed").getAsBoolean()) {
                         throw new ProtocolState.ProtocolException(
                                 "ASSERTION_FAILED", 412, evaluation.get("message").getAsString());
@@ -101,6 +102,7 @@ public final class ConditionEngine implements AutoCloseable {
                                 if (result.isDone()) return;
                                 try {
                                     publication.run();
+                                    if (value != null) validateEventEvidence(condition, value);
                                 } catch (Throwable denied) {
                                     result.completeExceptionally(denied);
                                     return;
@@ -197,12 +199,24 @@ public final class ConditionEngine implements AutoCloseable {
         return evaluateSource(condition);
     }
 
+    private void validateEventEvidence(JsonObject condition, JsonObject result) {
+        if (string(condition, "type", "").equals("event"))
+            (string(condition, "category", "USER").equals("DEBUG") ? debugEventHub : eventHub)
+                    .validateConditionEvidence(result);
+    }
+
     void authorize(JsonObject condition) {
         protocolState.requireScope("read");
         if (condition == null)
             throw new ProtocolState.ProtocolException(
                     "INVALID_CONDITION", 400, "Condition object is required");
         String type = string(condition, "type", "");
+        if (type.equals("input.released")) {
+            protocolState.requireScope("diagnostics");
+            if (!condition.keySet().equals(java.util.Set.of("type")))
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_CONDITION", 400, "Input released condition accepts only its type");
+        }
         if (uiCondition(type))
             protocolState.requireUiCategory(string(condition, "category", "USER"));
         if (type.equals("event")) protocolState.requireScope("event");
@@ -238,6 +252,7 @@ public final class ConditionEngine implements AutoCloseable {
     private CompletableFuture<JsonObject> evaluateSource(JsonObject condition) {
         String type = string(condition, "type", "");
         return switch (type) {
+            case "input.released" -> this.inputReleased(condition);
             case "screen" -> this.screen(condition);
             case "ui.exists" -> this.uiExists(condition);
             case "player" -> this.player(condition);
@@ -296,6 +311,41 @@ public final class ConditionEngine implements AutoCloseable {
                                     400,
                                     "Unsupported condition type: " + type));
         };
+    }
+
+    private CompletableFuture<JsonObject> inputReleased(JsonObject condition) {
+        return CancellableWork.handle(
+                this.service.inputState(),
+                (state, failure) -> {
+                    authorize(condition);
+                    if (failure != null) throw new CompletionException(failure);
+                    int keys = heldCount(state, "pressedKeyCount");
+                    int buttons = heldCount(state, "pressedButtonCount");
+                    JsonObject evidence = new JsonObject();
+                    evidence.addProperty("pressedKeyCount", keys);
+                    evidence.addProperty("pressedButtonCount", buttons);
+                    return result(
+                            condition,
+                            evidence,
+                            keys == 0 && buttons == 0,
+                            "Runtime held input release condition");
+                });
+    }
+
+    private static int heldCount(JsonObject state, String name) {
+        try {
+            if (state != null
+                    && state.has(name)
+                    && state.get(name).isJsonPrimitive()
+                    && state.getAsJsonPrimitive(name).isNumber()) {
+                int count = state.get(name).getAsBigDecimal().intValueExact();
+                if (count >= 0) return count;
+            }
+        } catch (ArithmeticException | NumberFormatException invalid) {
+            // A malformed owner-thread snapshot cannot establish that input was released.
+        }
+        throw new ProtocolState.ProtocolException(
+                "INPUT_STATE_UNAVAILABLE", 409, "Runtime held input counts are unavailable");
     }
 
     private CompletableFuture<JsonObject> screen(JsonObject condition) {

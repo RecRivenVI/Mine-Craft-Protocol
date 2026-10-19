@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {finishBaselineWorldExit} from './interaction-baseline-actions.mjs';
 
 // Native consumer flows on the runner's immutable copy, never another project's instance.
 // Commands are diagnostic Arrange. Captures prove delivery, not third-party scene convergence.
@@ -59,17 +60,25 @@ export async function consumerPriorityActions({api,connection,repo,instance,targ
   await check('consumer dimension travel checks client identity and never force-loads by reading',async()=>{
    await acquire();
    for(const dimension of ['minecraft:the_nether','minecraft:overworld']){
-    const receipt=await command(`execute in ${dimension} run tp @s 0.5 80 0.5 0 0`);const p=await poll(player,p=>p.available&&p.dimension===dimension,'native dimension transfer',90000);
-    assert.equal(receipt.commandFeedback.complete,true);if(receipt.commandFeedback.observedMillis<500)assert.equal(receipt.commandFeedback.terminationReason,'client_context_changed');
-    await wait(t=>!t.screenClass,'dimension Screen cleared',90000);samples.push({case:'consumer_dimension',dimension,player:p,commandFeedback:receipt.commandFeedback,authority:'diagnostic_native_command'});
+    const before=await clean();assert.equal(before.inputContextAvailable,true);assert.equal(typeof before.inputContextId,'string');assert(before.inputContextId.length>0);
+    await api('POST','/v0/control/renew',{ttlMs:60000});
+    const receipt=await api('POST','/v0/command/player',{command:`execute in ${dimension} run tp @s 0.5 80 0.5 0 0`,route:'NATIVE'});
+    assert.equal(receipt.route,'NATIVE');assert.equal(receipt.mechanism,'NORMAL_NETWORK');assert.equal(receipt.dataCategory,'USER');assert.equal(receipt.inputDispatched,false);assert.equal(receipt.requiresControlLease,false);assert.equal(receipt.effectConfirmed,false);assert.equal(receipt.serverValidationObserved,false);assert.equal(receipt.gameplayAcceptanceEligible,false);assert.equal(receipt.feedbackAvailable,false);assert(!('commandFeedback'in receipt));
+    const p=await poll(player,p=>p.available&&p.dimension===dimension,'native dimension transfer independently observed by USER',90000);assert.equal(p.dataCategory,'USER');assert.equal(p.authority,'CLIENT_KNOWN');
+    const readyUi=await wait(t=>!t.screenClass&&t.overlayIdentity===0,'dimension Screen and overlay cleared',90000);
+    const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});assert.equal(released.passed,true);assert.deepEqual(released.evidence,{pressedKeyCount:0,pressedButtonCount:0});
+    const after=await poll(clean,value=>value.inputContextAvailable===true&&value.inputCleanupPending===false&&value.inputCleanupFailed===false&&value.inputContextGeneration>before.inputContextGeneration,'native dimension epoch and cleanup independently observed',5000);
+    for(const field of ['inputGeneration','inputContextGeneration']){assert(Number.isSafeInteger(before[field])&&before[field]>=0);assert(Number.isSafeInteger(after[field])&&after[field]>before[field]);}assert.equal(typeof after.inputContextId,'string');assert(after.inputContextId.length>0);assert.notEqual(after.inputContextId,before.inputContextId);
+    samples.push({case:'consumer_dimension',dimension,before,receipt,player:p,after,released,readyUi,authority:'diagnostic_native_command',effectConfirmedBy:'independent_USER_dimension_and_native_epoch_not_submission_receipt'});
    }
    await release();const unloaded=await api('GET','/v0/world/block?x=1000000&y=80&z=1000000');assert.equal(unloaded.available,false);assert.equal(unloaded.chunkLoadRequested,false);
    await capture('after_dimension_roundtrip');
   });
   await check('consumer Save Quit reentry persists the marker through semantic world selection',async()=>{
    await acquire();await key(256);await wait(t=>t.screenClass.endsWith('PauseScreen'),'pause');
-   const t=await api('GET','/v0/ui/tree'),quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));assert(quit);await api('POST','/v0/ui/action',{selector:{nodeId:quit.nodeId},action:'click'});
-   await wait(t=>t.screenClass.endsWith('TitleScreen'),'save completed',90000);await release();await capture('saved_title');
+   const t=await api('GET','/v0/ui/tree'),quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));assert(quit);
+   const worldExit=await finishBaselineWorldExit({api,quit,wait,clickNode:node=>api('POST','/v0/ui/action',{selector:{nodeId:node.nodeId},action:'click'})});
+   samples.push({case:'consumer_world_exit',...worldExit});await release();await capture('saved_title');
    await acquire();await enter();await poll(()=>api('GET','/v0/world/block?x=2&y=80&z=2'),b=>b.available&&b.block==='minecraft:lime_concrete','saved marker client readback',90000);await release();await capture('saved_world_reentry');
   });
   await check('consumer Provider V2 reads validate owner thread schema category and independent scope',async()=>{

@@ -8,6 +8,9 @@ import java.util.function.Consumer;
 
 /** Detached UI projections. Permission checks remain in the authenticated Runtime transport. */
 public final class UiDataView {
+    private static final String COUNT_SEMANTICS = "returned_projection_recursive";
+    private static final Set<String> SLOT_OWNERS = Set.of("player_inventory", "menu", "unknown");
+
     public enum Category {
         USER,
         DEBUG;
@@ -143,9 +146,11 @@ public final class UiDataView {
             JsonObject result = captured.deepCopy();
             JsonObject facts = new JsonObject();
             facts.addProperty("capturedNodeCount", count(captured.getAsJsonArray("children")));
+            facts.addProperty("capturedPresentationNodeCount", presentationCount(captured));
             facts.addProperty("scope", "bounded_captured_ui_graph");
             facts.addProperty("completeGameData", false);
             result.add("debugFacts", facts);
+            counts(result);
             tag(result, category);
             return result;
         }
@@ -153,6 +158,7 @@ public final class UiDataView {
         // A loading/other Overlay blocks the underlying Screen. Do not disclose its controls.
         boolean blocked =
                 captured.has("overlayIdentity") && captured.get("overlayIdentity").getAsLong() != 0;
+        if (blocked) result.remove("title");
         JsonArray children =
                 blocked ? new JsonArray() : visibleChildren(captured.getAsJsonArray("children"));
         result.add("children", children);
@@ -193,6 +199,7 @@ public final class UiDataView {
                             captured.getAsJsonObject("screenData"),
                             Set.of("family", "pageIndex", "pageCount", "pageText")));
         }
+        counts(result);
         tag(result, category);
         return result;
     }
@@ -200,6 +207,13 @@ public final class UiDataView {
     public static JsonObject userNode(JsonObject node) {
         if (!visible(node)) return null;
         JsonObject result = copy(node, NODE_FIELDS);
+        if ("slot".equals(string(node, "role")) && node.has("slotOwner")) {
+            JsonElement owner = node.get("slotOwner");
+            if (owner.isJsonPrimitive()
+                    && owner.getAsJsonPrimitive().isString()
+                    && SLOT_OWNERS.contains(owner.getAsString()))
+                result.add("slotOwner", owner.deepCopy());
+        }
         if (node.has("children"))
             result.add("children", visibleChildren(node.getAsJsonArray("children")));
         // Tooltips must first be revealed by a real hover, not extracted from inactive metadata.
@@ -237,6 +251,7 @@ public final class UiDataView {
         result.addProperty("operateCategory", "DEBUG");
         result.addProperty("debugReadScope", "debug.ui.read");
         result.addProperty("debugReadRequiresArm", false);
+        result.addProperty("countSemantics", COUNT_SEMANTICS);
         result.addProperty("milestoneComplete", false);
         return result;
     }
@@ -286,5 +301,17 @@ public final class UiDataView {
                 result += 1 + count(element.getAsJsonObject().getAsJsonArray("children"));
             }
         return result;
+    }
+
+    private static int presentationCount(JsonObject tree) {
+        return tree.has("presentation")
+                ? count(tree.getAsJsonObject("presentation").getAsJsonArray("children"))
+                : 0;
+    }
+
+    private static void counts(JsonObject result) {
+        result.addProperty("interactionNodeCount", count(result.getAsJsonArray("children")));
+        result.addProperty("presentationNodeCount", presentationCount(result));
+        result.addProperty("countSemantics", COUNT_SEMANTICS);
     }
 }

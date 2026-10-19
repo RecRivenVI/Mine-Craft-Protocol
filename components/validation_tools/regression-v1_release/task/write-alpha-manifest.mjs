@@ -2,12 +2,14 @@ import { readFile, readdir, writeFile, stat } from 'node:fs/promises';
 import { resolve, relative, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof} from './alpha-evidence.mjs';
+import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof,continuousInputProof,canonicalSourceHashes,verifyEvidenceSources,CONTINUOUS_PROFILE,DEFERRED_PERFORMANCE,collectContinuousGameplayProof} from './alpha-evidence.mjs';
 import {candidateSource} from './alpha-candidate.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const scenario=process.argv.find(value=>value.startsWith('--scenario='))?.slice('--scenario='.length)??'full';
+const publicationProfile=process.argv.find(value=>value.startsWith('--profile='))?.slice('--profile='.length)??CONTINUOUS_PROFILE;
+if(publicationProfile!==CONTINUOUS_PROFILE||scenario!=='full')throw new Error('New alpha publication requires the continuous-gameplay trial profile and full Native/UI regression; historical scoped snapshots remain unchanged');
 const validation=process.argv.find(value=>value.startsWith('--validation='))?.slice('--validation='.length)??(scenario==='core-showcase'?'feature-control_ui_showcase':'conformance-world_read');
 if(!['conformance-world_read','migration-runtime_core','feature-control_ui_showcase'].includes(validation))throw new Error('Unsupported Native smoke validation: '+validation);
 if(!['full','input-preconditions','player-command','command-configuration','core-showcase','packaged-runtime'].includes(scenario)||(scenario==='core-showcase'?validation!=='feature-control_ui_showcase':validation==='feature-control_ui_showcase'||!['full','packaged-runtime'].includes(scenario)&&validation!=='conformance-world_read'))throw new Error('Unsupported alpha Native smoke scope');
@@ -29,7 +31,7 @@ for(const proof of packagedRuntime){
   const bytes=await readFile(resolve(repo,proof.result));
   if(digest(bytes)!==proof.resultSha256)throw new Error('Installed proof changed during alpha preparation: '+proof.target);
   const result=JSON.parse(bytes.toString('utf8'));
-  for(const key of ['testedAt','loaderVersion','javaVersion','freshGameDirectory','externalModCount','developmentClasspath','exitCode','maximumHeapBytes','noCrashReports','nettyHttpOrigin','transportOrigin','quitHttpStatus','quitError','quitTransportError','toolHashes'])if(result[key]!==undefined)proof[key]=result[key];
+  for(const key of ['testedAt','loaderVersion','javaVersion','installerJavaVersion','freshGameDirectory','externalModCount','developmentClasspath','exitCode','maximumHeapBytes','noCrashReports','nettyHttpOrigin','transportOrigin','quitHttpStatus','quitError','quitTransportError','toolHashes'])if(result[key]!==undefined)proof[key]=result[key];
 }
 const head=execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim();
 const dirty=execFileSync('git',['status','--porcelain=v1'],{cwd:repo,encoding:'utf8'}).trim().length>0;
@@ -45,9 +47,8 @@ for(const target of targets) {
   const result=JSON.parse(await readFile(resolve(repo,path),'utf8'));
   const showcase=scenario==='core-showcase'?coreShowcaseProof(result,target):null;
   if(scenario==='command-configuration')commandConfigurationProof(result,target);
-  let matches=true;
-  for(const [source,hash] of Object.entries(result.sourceHashes??{}))if(digest(await readFile(resolve(repo,source)))!==hash)matches=false;
-  if((showcase?result.result!=='PASS':result.status!=='PASS'||!result.cleanShutdown)||result.sourceChangedDuringRun||!matches)throw new Error('Missing/current candidate Native smoke: '+target);
+  await verifyEvidenceSources(repo,result);
+  if((showcase?result.result!=='PASS':result.status!=='PASS'||!result.cleanShutdown)||result.sourceChangedDuringRun)throw new Error('Missing/current candidate Native smoke: '+target);
   if(showcase){nativeSmoke.push({target,result:path,scenario,fullSmoke:false,...showcase,sourceMatchesCurrent:true});continue;}
   if(scenario==='full'&&(result.fullSmoke===false||(result.scenario!==undefined&&result.scenario!=='full')))throw new Error('Targeted result is not full Native smoke: '+target);
   const feedbackProof=scenario==='full'?consumerFeedbackProof(result,target):null;
@@ -56,7 +57,7 @@ for(const target of targets) {
     const uiPath=`validations/conformance-vanilla_ui/result/${target}.json`,bytes=await readFile(resolve(repo,uiPath)),ui=JSON.parse(bytes.toString('utf8'));
     const proof=uiRegressionProof(ui,target);
     if(Object.keys(ui.sourceHashes??{}).length<100)throw new Error('UI regression must bind production sources and tools: '+target);
-    for(const [source,hash]of Object.entries(ui.sourceHashes))if(digest(await readFile(resolve(repo,source)))!==hash)throw new Error('Stale UI regression: '+target+' '+source);
+    await verifyEvidenceSources(repo,ui);
     uiRegression.push({target,...proof,result:uiPath,resultSha256:digest(bytes)});
     const item=result.actionSamples?.find(sample=>sample.case==='same_item_count_metadata_revision');
     if(!item||!/^([0-9a-f]{64})$/.test(item.beforeRevision)||!/^([0-9a-f]{64})$/.test(item.afterRevision)||item.beforeRevision===item.afterRevision||item.sameMenuAndSlot!==true||item.menuRevisionChanged!==true||item.userPrivateFingerprintLeaked!==false)
@@ -77,11 +78,29 @@ if(scenario==='full'){
   const path=`validations/conformance-world_read/result/${target}-${increment}.json`,bytes=await readFile(resolve(repo,path)),result=JSON.parse(bytes.toString('utf8'));
   const proof=collaborationIncrementProof(result,target,increment);
   if(Object.keys(result.sourceHashes??{}).length<100)throw new Error('Missing collaboration production/tool bindings: '+target+' '+increment);
-  for(const [source,hash]of Object.entries(result.sourceHashes))if(digest(await readFile(resolve(repo,source)))!==hash)throw new Error('Stale collaboration increment: '+target+' '+increment+' '+source);
+  await verifyEvidenceSources(repo,result);
   report.controlCollaboration.push({target,...proof,sourceMatchesCurrent:true,result:path,resultSha256:digest(bytes)});
+ }
+ report.continuousInput=[];
+ for(const target of targets){
+  const path=`validations/conformance-world_read/result/${target}-continuous-input.json`,bytes=await readFile(resolve(repo,path)),result=JSON.parse(bytes.toString('utf8'));
+  const proof=continuousInputProof(result,target),hashes=canonicalSourceHashes(result.sourceHashes??{});
+  const required=['components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java','components/companion/src/server.ts','components/protocol_schema/src/main/openapi/minecraft-control-v0.json','components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs','components/validation_tools/conformance-world_read/task/world-read-smoke.mjs','components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1','components/validation_tools/conformance-world_read/task/WorldReadFixture.ps1',`versions/${target}/target.properties`];
+  required.push('components/companion/package.json','components/companion/package-lock.json');
+  if(Object.keys(hashes).length<100||required.some(source=>!/^[0-9a-f]{64}$/.test(hashes[source]??'')))throw new Error('Missing continuous input production/tool bindings: '+target);
+  await verifyEvidenceSources(repo,result);
+  const fixture=result.fixtureInput;
+  if(!/^[0-9a-f]{64}$/.test(fixture?.baselineSha256??'')||fixture.restoredSha256!==fixture.baselineSha256||fixture.target!==target||fixture.role!=='client'||fixture.targetFactsSha256!==hashes[`versions/${target}/target.properties`]||fixture.credentialsCopied!==false)throw new Error('Invalid continuous input immutable fixture: '+target);
+  report.continuousInput.push({target,...proof,sourceMatchesCurrent:true,result:path,resultSha256:digest(bytes)});
  }
 }
 if(scenario==='packaged-runtime')report.runtimeAcceptance='installed Loader / single release JAR / title + USER READ / clean shutdown; not full UI/world or human acceptance';
+report.publicationProfile=publicationProfile;
+report.performancePolicy=DEFERRED_PERFORMANCE;
+report.sourceVerification={policy:'production_facts_and_executed_tools',unexecutedPlacementImportExcluded:true,originalResultBytesRetained:true};
+report.continuousGameplay=await collectContinuousGameplayProof(repo,targets,sourceHashes,report.performancePolicy);
+report.delivery=report.continuousGameplay.delivery;report.fullMilestonesComplete=false;report.performanceAcceptance=report.continuousGameplay.performanceAcceptance;
+for(const proof of report.nativeSmoke)proof.resultSha256=digest(await readFile(resolve(repo,proof.result)));
 const output=resolve(repo,'build/alpha-manifest.json');
 const alphaRoot=resolve(process.env.MCP_ALPHA_ROOT??'D:/Workspaces/Artifacts/MineCraftProtocol/Alpha');
 const dateParts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(report.preparedAt)).map(part=>[part.type,part.value]));

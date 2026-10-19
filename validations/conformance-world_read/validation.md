@@ -52,6 +52,84 @@ Forge 另外使用真实 ComponentArgument 覆盖有效 JSON、损坏 JSON 与�
 
 ## 运行
 
+本轮按用户决定暂停性能检测；现有性能入口保留供以后明确授权，不在本轮重新执行。
+Fabric缺失的两项只补功能：同40ms单次/三连真实原生消费、单步输入、两槽语义hover与取消清理；不采集RTT、比值或分位数。
+隔离Runner恢复本验证固定副本、启动到标题并确认实例身份后，调用以下消费者；消费者正常保存退出，Runner另核验进程/端口清理：
+
+```powershell
+node components/validation_tools/conformance-world_read/task/continuous-functional-smoke.mjs --target=26.3-fabric
+node --test components/validation_tools/conformance-world_read/task/continuous-functional-actions.test.mjs
+```
+
+结果为`result/26.3-fabric-continuous-functional.json`，明确`functional_only`与`DEFERRED_BY_USER_2026_10_20`；
+不能当作GUI20、性能通过或五端人工验收。其余已完成的性能原文只作为历史保留，不重写数字。
+
+区域分页和原生client tick位姿流复用当前固定副本，自动READ且无输入Lease采样：
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario region-stream
+```
+
+结果为`result/<target>-region-stream.json`。4096格重建必须无重无缺、最多32页并与独立USER点查一致，
+游标单用/取消拒绝、未加载及非原子语义不能省略。真实WS在首个1000ms收到至少15份新client tick，历史重放不凑数；
+记录停稳GET的位置/朝向/速度误差，再断线续接同上下文。无墙钟20Hz SLA，不证明真人Esc或方块变化流。
+
+输入上下文专项只使用已校验固定副本，验证普通Screen换页不换epoch、跨维度取消旧active/queued输入、
+以及绑定当前Lease的真实WebSocket关闭后READ与held清零。不模拟物理Esc，不以普通HTTP关闭代替控制连接断开。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario input-context
+```
+
+结果为`result/<target>-input-context.json`，维度变化先用NATIVE诊断命令，再独立读取USER世界/玩家、
+inputContextId/inputContextGeneration与原生清理屏障；500ms负观察窗口内不得有旧队列迟到。
+同UUID重生、游戏连接异常关闭和物理Esc不能由上述三场景推定通过，需另有实际证据。
+
+放置回执专项使用同一固定副本，通过诊断原生命令分别准备门、床、双格植物的受阻/可放置场景，
+同ID slab合并与原生消费但未放置的交互方块。Act仅通过USER语义targetRef与真实world.action，效果另行点查。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-placement-receipts
+```
+
+结果为`result/<target>-world-placement-receipts.json`；输入completed、原生consumesAction、客户端预测及独立效果回读分别判定。
+不将客户端预测写成服务端确认，不因受阻而重放输入，不为测试增加产品物品白名单；操作结束后held=0并回READ。
+
+连续性能场景只在同一固定副本构造诊断围墙平地，以W/S交替和原生相对视角持续30秒并穿插USER观察；
+按同参数down/40ms/up分别测单次和三次管线，比较内部总耗时、HTTP往返与单次cleanup。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario continuous-performance
+```
+
+结果为`result/<target>-continuous-performance.json`；1.5目标严格以batch总耗时/单次p50计算，
+未达到时明确记录NOT_MET/performanceComplete=false，不改分母、不删hold或原生冷却，不将回调数量当作命中或服务端效果。
+Save & Quit若因真实世界epoch切换取消旧请求，只能在独立观察标题、无overlay、新epoch和held=0后继续关闭客户端；
+保留未确认回执，不把取消请求说成完成，不重放退出世界的点击。
+
+连续输入专项复用固定副本，验证同Lease跨请求持有、显式停止屏障、等待释放、排队取消和真实MCP转发：
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario continuous-input
+```
+
+结果固定为`result/<target>-continuous-input.json`；输入停止成功后Lease和TAKEOVER保留，旧世代不得迟到，
+`input.released`仅代表采样时Runtime持有的键与按钮均为零，不代表队列空闲或物理输入状态。
+专项覆盖一次管线三组攻击按下/松开的实际输入及单次cleanup，不将派发等同命中，不承诺固定吞吐比。
+Lease过期和正常退出必须清理；不模拟真人Esc，也不证明切世界/切服的世代绑定或尚未提供的tick级状态流。
+
+连续操作基线复用同一固定副本与实例发现，自动客户端1920×1080、静音、4 GiB，开发Runtime一次一个Target：
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario interaction-baseline
+```
+
+结果固定为 `result/<target>-interaction-baseline.json`，分别记录3组各20次 gameplay 单步的HTTP提交/等待RTT、
+Operation终态和内部单调计时的min/p50/p95/max；主动550ms提交间隔不计入这些耗时，不自动重放被拒绝输入。
+GUI语义hover单独记录有意节奏，不用单样本声称GUI p95；callback入口计数不当作真实dispatch或服务器效果。
+还检查READ零输入拒绝、两种perspective的非法selector、实际原生相对视角变化、held Shift后取消及清理后无late dispatch。
+这些是当前机器上的基线与有界接口检查，不是已优化的性能SLA、连续游玩完整验收、真人Esc或最终发行JAR运行证明。
+
 模式协作专项使用同一已建立的不可变世界副本；先在参考端运行，再逐端验证，不模拟真人 Esc：
 
 ```powershell
@@ -77,7 +155,7 @@ WorldReadTransportTest的真实HTTP回归另外覆盖首条已有回执、第二
 最大生命base从原生supplier或实例读取，不能用有效maxHealth替代；Arrange使用原生暂停稳定动态资源，Act各自要求零输入、无Lease。
 这些专项不执行 Persistent Write，不代表WD完整字段目录已交付。
 结果按场景固定写入 `result/<target>-<scenario>.json`；服务器补全为server-completion，资源版本为resource-version。
-必须源码/工具未变化、完整通过并干净退出。alpha full 发布要求五端四项专项、完整领域及独立安装均匹配同一候选。
+必须源码/工具未变化、完整通过并干净退出。alpha full 发布要求五端四项协作专项、连续输入、完整领域及独立安装均匹配同一候选；连续输入还绑定Companion包事实和依赖锁，不用旧握手证明新包。
 
 共享读边界的HTTP回归不启动游戏：验证世界DEBUG事件权限不授予UI单次/批次详情、录制独立UI读取及会话关闭拒绝迟到结果；模式往返本身不撤销合法读取。
 录制拒绝诊断详情时仍保留污染标记；有权限的正向事件和世界事件同时核对，不以字符串扫描代替实际HTTP响应。
@@ -460,6 +538,10 @@ Provider/Frame、Wait/Assert、Deep、Event 和 Recording/Artifact 的类别隔�
 实体攻击观察到客户端受伤动画，死亡/替换旧引用拒绝；箱子矿车打开真实容器，Agent Esc 不撤销。
 喂牛后 USER HUD 小麦 8→7，空矿车使用后 riding=true，原版潜行退出为 false。
 这些是代表场景，不代表完整动物、载具、物品或交易矩阵。
+
+繁殖场景在诊断 Arrange 中分别将两只自有成年牛的移动速度设为0，保留原生AI，
+避免手持小麦时寻食移动遮挡第二个目标；USER先确认两成年、无幼牛且距离小于3。
+实际Act仍为原生喂食、物品消耗与自然出生，不强制爱情/幼牛状态，不据此证明自由移动牛群已覆盖。
 
 五端另分别完成按钮/拉杆的原生轮廓瞄准、工作台九铁锭合成并取出铁块、铁砧命名后重开实际成品确认。
 本轮普通 use 对原木/草方块/泥土应用斧/锹/锄规则，错误物品不生效；桶装入/取回炼药锅中的水。

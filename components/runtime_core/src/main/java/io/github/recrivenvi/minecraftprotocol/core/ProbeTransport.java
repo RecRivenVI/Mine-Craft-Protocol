@@ -85,6 +85,9 @@ public final class ProbeTransport implements AutoCloseable {
     private final AutomationEngine automation;
     private final ObservationEngine observation;
     private final WorldReadEngine worldReads;
+    private final PlayerStateStream playerStates = new PlayerStateStream();
+    private volatile io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot
+            nativeContext;
     private final RecordingEngine recording;
     private final PlayerCommandGate commandGate;
     private final EventHub eventHub;
@@ -93,6 +96,8 @@ public final class ProbeTransport implements AutoCloseable {
     private final DebugBatchEngine debugBatches;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private volatile CompletableFuture<JsonObject> closingInputRelease =
+            CompletableFuture.completedFuture(new JsonObject());
     private final java.util.Set<String> presenceWebSockets =
             java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final java.util.concurrent.atomic.AtomicInteger activeResponses =
@@ -138,10 +143,12 @@ public final class ProbeTransport implements AutoCloseable {
                 new ProtocolState(
                         ProtocolState.configuredScopes(),
                         this.securityGate.principalId(),
-                        reason -> {
-                            this.automation.cancelControlWork();
-                            return service.releaseAllInput(reason);
-                        },
+                        reason ->
+                                this.automation
+                                        .cancelControlWorkAndWait(reason)
+                                        .thenCombine(
+                                                this.closingInputRelease,
+                                                (cleanup, early) -> cleanup),
                         this::controlPresenceChanged);
         this.service.attachControlSession(this.protocolState.controlSession());
         this.worldReads = new WorldReadEngine(service, this.protocolState);
@@ -175,12 +182,21 @@ public final class ProbeTransport implements AutoCloseable {
         this.service.attachPlayerCommandGate(this.commandGate);
         this.eventHub =
                 new EventHub(
-                        targetId, () -> resyncSnapshot("USER"), () -> worldReads.authorize("USER"));
+                        targetId,
+                        () -> resyncSnapshot("USER"),
+                        () -> {
+                            protocolState.requireScope("event");
+                            worldReads.authorize("USER");
+                        },
+                        this::currentUserEvent);
         this.debugEventHub =
                 new EventHub(
                         targetId,
                         () -> resyncSnapshot("DEBUG"),
-                        () -> worldReads.authorize("DEBUG"));
+                        () -> {
+                            protocolState.requireScope("event");
+                            worldReads.authorize("DEBUG");
+                        });
         this.conditions =
                 new ConditionEngine(
                         service,
@@ -316,10 +332,22 @@ public final class ProbeTransport implements AutoCloseable {
             } catch (ProtocolState.ProtocolException denied) {
                 // A world event subscription is not authority to read a UI mutation receipt.
             }
-        } else this.debugEventHub.publish(internal);
+        } else {
+            try {
+                this.debugEventHub.publish(internal);
+            } catch (ProtocolState.ProtocolException denied) {
+                // Event read authority never controls whether the original action can finish.
+            }
+        }
         JsonObject user =
                 io.github.recrivenvi.minecraftprotocol.safety.WorldDataView.userEvent(event);
-        if (user != null) this.eventHub.publish(user);
+        if (user != null) {
+            try {
+                this.eventHub.publish(user);
+            } catch (ProtocolState.ProtocolException denied) {
+                // An observer losing read/event scope must not interrupt mandatory cleanup.
+            }
+        }
         this.recording.recordEvent("runtime.event", internal);
     }
 
@@ -347,12 +375,96 @@ public final class ProbeTransport implements AutoCloseable {
                 && "manually_revoked".equals(result.get("status").getAsString());
     }
 
+    /** Native owner thread only; never called while holding the ControlSession dispatch guard. */
+    public void nativeInputContextChanged(
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context) {
+        if (this.closed.get()) return;
+        this.nativeContext = context;
+        this.protocolState.nativeInputContextChanged(context);
+        try {
+            this.playerStates.setContext(
+                    context.worldAvailable()
+                            ? new PlayerStateStream.Context(
+                                    context.generation(), context.opaqueId())
+                            : null);
+        } catch (IllegalStateException closing) {
+            if (!this.closed.get()) throw closing;
+        }
+    }
+
+    /**
+     * Owner client tick, never a render callback or DEBUG snapshot. No input authority is granted.
+     */
+    public void publishPlayerState(
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context,
+            PlayerStateStream.Sample sample) {
+        if (closed.get()
+                || !context.worldAvailable()
+                || context != nativeContext
+                || !eventHub.wantsPlayerState()) return;
+        try {
+            playerStates
+                    .sample(
+                            new PlayerStateStream.Context(context.generation(), context.opaqueId()),
+                            sample,
+                            () -> {
+                                protocolState.requireScope("event");
+                                worldReads.authorize("USER");
+                            })
+                    .ifPresent(eventHub::publish);
+        } catch (ProtocolState.ProtocolException denied) {
+            // Read/event revocation stops observations; it must not crash the native client tick.
+        }
+    }
+
+    /** Read-only attribution for an actual native consumption callback, not an input permit. */
+    public boolean nativeInputLeaseActive(
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot expected) {
+        return !this.closed.get()
+                && expected == this.nativeContext
+                && this.protocolState.nativeInputLeaseActive(expected);
+    }
+
+    private boolean currentUserEvent(JsonObject event) {
+        if (!playerStates.current(event)) return false;
+        if (PlayerStateStream.isStateEvent(event)) {
+            var context = nativeContext;
+            return !closed.get()
+                    && context != null
+                    && context.worldAvailable()
+                    && context.opaqueId()
+                            .equals(
+                                    event.getAsJsonObject("streamContext")
+                                            .get("opaqueId")
+                                            .getAsString());
+        }
+        if (!event.has("type") || !"event.resync.snapshot".equals(event.get("type").getAsString()))
+            return true;
+        if (!event.has("snapshot") || !event.get("snapshot").isJsonObject()) return false;
+        JsonObject snapshot = event.getAsJsonObject("snapshot");
+        var context = nativeContext;
+        return !closed.get()
+                && (context == null
+                        ? !snapshot.has("inputContextId")
+                        : snapshot.has("inputContextId")
+                                && context.opaqueId()
+                                        .equals(snapshot.get("inputContextId").getAsString()));
+    }
+
     @Override
     public void close() {
         synchronized (this.transportLifecycle) {
             if (!this.closed.compareAndSet(false, true)) return;
+            // Owner-thread shutdown releases native held state before cancellation publishes
+            // its unconfirmed HTTP outcome. Non-owner shutdown still awaits native drain below.
+            try {
+                this.closingInputRelease = this.service.releaseAllInput("transport_closing");
+            } catch (Throwable error) {
+                this.closingInputRelease = CompletableFuture.failedFuture(error);
+            }
             this.ready.completeExceptionally(new IllegalStateException("Runtime closed"));
             this.eventHub.close();
+            this.playerStates.close();
             this.debugEventHub.close();
             this.conditions.close();
             this.debugBatches.close();
@@ -633,7 +745,8 @@ public final class ProbeTransport implements AutoCloseable {
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/ui/action")) {
                 protocolState.requireScope("ui");
                 protocolState.requireScope("input");
-                protocolState.requireTakeover(metadata.leaseId());
+                ProtocolState.InputGuard inputGuard =
+                        protocolState.captureInputGuard(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 Supplier<CompletableFuture<JsonObject>> action =
                         () ->
@@ -644,14 +757,10 @@ public final class ProbeTransport implements AutoCloseable {
                                                 ignored ->
                                                         automation.uiAction(
                                                                 body,
-                                                                () ->
-                                                                        protocolState
-                                                                                .requireTakeover(
-                                                                                        metadata
-                                                                                                .leaseId()),
+                                                                inputGuard,
                                                                 supplier ->
                                                                         protocolState.admitInput(
-                                                                                metadata.leaseId(),
+                                                                                inputGuard,
                                                                                 supplier),
                                                                 metadata.expectedMenuRevision()
                                                                         != null,
@@ -659,7 +768,7 @@ public final class ProbeTransport implements AutoCloseable {
                 String idempotencyKey =
                         metadata.idempotencyKey() == null
                                 ? null
-                                : path + ":" + metadata.idempotencyKey();
+                                : inputIdempotencyKey(path, metadata.idempotencyKey(), inputGuard);
                 CompletableFuture<JsonObject> future =
                         protocolState.idempotent(idempotencyKey, action);
                 future.thenAccept(result -> recording.recordEvent("ui.action", result));
@@ -818,13 +927,13 @@ public final class ProbeTransport implements AutoCloseable {
                 } else {
                     protocolState.requireScope("control");
                     protocolState.requireScope("input");
-                    protocolState.requireTakeover(metadata.leaseId());
+                    ProtocolState.InputGuard inputGuard =
+                            protocolState.captureInputGuard(metadata.leaseId());
                     command =
                             automation.playerCommand(
                                     body.get("command").getAsString(),
-                                    () -> protocolState.requireTakeover(metadata.leaseId()),
-                                    supplier ->
-                                            protocolState.admitInput(metadata.leaseId(), supplier));
+                                    inputGuard,
+                                    supplier -> protocolState.admitInput(inputGuard, supplier));
                 }
                 sendJsonFuture(
                         context,
@@ -913,6 +1022,13 @@ public final class ProbeTransport implements AutoCloseable {
                                 worldReads.scene(
                                         stringQuery(uri, "category", "USER"), worldQuery(uri)),
                                 metadata.deadlineAtMillis()));
+            } else if (request.method() == HttpMethod.POST && path.equals("/v0/world/region")) {
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        protocolState.applyDeadline(
+                                worldReads.region(jsonBody(request)), metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/debug/status")) {
                 protocolState.requireScope("debug");
                 sendImmediate(context, metadata, path, protocolState.debugStatus());
@@ -1479,13 +1595,14 @@ public final class ProbeTransport implements AutoCloseable {
                                 metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/pipelines")) {
                 protocolState.requireScope("input");
-                protocolState.requireTakeover(metadata.leaseId());
+                ProtocolState.InputGuard inputGuard =
+                        protocolState.captureInputGuard(metadata.leaseId());
                 JsonObject body = jsonBody(request);
                 CompletableFuture<JsonObject> pipeline =
                         automation.executePipeline(
                                 body,
-                                () -> protocolState.requireTakeover(metadata.leaseId()),
-                                supplier -> protocolState.admitInput(metadata.leaseId(), supplier),
+                                inputGuard,
+                                supplier -> protocolState.admitInput(inputGuard, supplier),
                                 metadata.expectedMenuRevision() != null,
                                 inputPreflight(metadata));
                 JsonObject operation = protocolState.startOperation(pipeline, true);
@@ -1639,7 +1756,14 @@ public final class ProbeTransport implements AutoCloseable {
                 protocolState.requireScope("control");
                 sendImmediate(context, metadata, path, protocolState.leaseStatus());
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/input/state")) {
-                read(context, metadata, path, "diagnostics", service::inputState);
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "diagnostics",
+                        () ->
+                                CancellableWork.map(
+                                        service.inputState(), protocolState::inputStateMetadata));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/acquire")) {
                 protocolState.requireScope("control");
                 JsonObject body = jsonBody(request);
@@ -1652,7 +1776,8 @@ public final class ProbeTransport implements AutoCloseable {
                         metadata,
                         path,
                         protocolState.acquireLease(
-                                optionalLong(body, "ttlMs", 15_000L),
+                                optionalLong(
+                                        body, "ttlMs", ProtocolState.DEFAULT_CONTROL_LEASE_MILLIS),
                                 body.has("expectedModeVersion")
                                         ? body.getAsJsonObject("expectedModeVersion")
                                         : null,
@@ -1665,7 +1790,11 @@ public final class ProbeTransport implements AutoCloseable {
                         metadata,
                         path,
                         protocolState.renewLease(
-                                metadata.leaseId(), optionalLong(body, "ttlMs", 15_000L)));
+                                metadata.leaseId(),
+                                optionalLong(
+                                        body,
+                                        "ttlMs",
+                                        ProtocolState.DEFAULT_CONTROL_LEASE_MILLIS)));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/release")) {
                 protocolState.requireScope("control");
                 sendJsonFuture(
@@ -1673,6 +1802,23 @@ public final class ProbeTransport implements AutoCloseable {
                         metadata,
                         path,
                         protocolState.releaseLeaseAndWait(metadata.leaseId(), "client_release"));
+            } else if (request.method() == HttpMethod.POST
+                    && path.equals("/v0/input/release-all")) {
+                protocolState.requireScope("input");
+                protocolState.requireScope("control");
+                JsonObject body = jsonBody(request);
+                if (body.size() != 0)
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_INPUT_RELEASE_REQUEST",
+                            400,
+                            "release-all requires an empty object");
+                CompletableFuture<JsonObject> cleanup =
+                        protocolState.releaseAllInputAndWait(metadata.leaseId());
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        protocolState.applyDeadline(cleanup, metadata.deadlineAtMillis()));
             } else if (request.method() == HttpMethod.POST
                     && path.equals("/v0/control/emergency-release")) {
                 protocolState.requireScope("control");
@@ -1695,7 +1841,8 @@ public final class ProbeTransport implements AutoCloseable {
                 ProtocolState.RequestMetadata metadata,
                 JsonObject body) {
             protocolState.requireScope("input");
-            protocolState.requireTakeover(metadata.leaseId());
+            ProtocolState.InputGuard inputGuard =
+                    protocolState.captureInputGuard(metadata.leaseId());
 
             Supplier<CompletableFuture<JsonObject>> action =
                     () ->
@@ -1726,13 +1873,10 @@ public final class ProbeTransport implements AutoCloseable {
                                                 step.addProperty("type", type);
                                                 return automation.rawInput(
                                                         step,
-                                                        () ->
-                                                                protocolState.requireTakeover(
-                                                                        metadata.leaseId()),
+                                                        inputGuard,
                                                         supplier ->
                                                                 protocolState.admitInput(
-                                                                        metadata.leaseId(),
-                                                                        supplier),
+                                                                        inputGuard, supplier),
                                                         metadata.expectedMenuRevision() != null,
                                                         inputPreflight(metadata));
                                             });
@@ -1740,7 +1884,7 @@ public final class ProbeTransport implements AutoCloseable {
             String idempotencyKey =
                     metadata.idempotencyKey() == null
                             ? null
-                            : path + ":" + metadata.idempotencyKey();
+                            : inputIdempotencyKey(path, metadata.idempotencyKey(), inputGuard);
             CompletableFuture<JsonObject> future = protocolState.idempotent(idempotencyKey, action);
             future.thenAccept(
                     result -> {
@@ -1850,6 +1994,7 @@ public final class ProbeTransport implements AutoCloseable {
     }
 
     private CompletableFuture<JsonObject> captureResync(String category) {
+        var capturedContext = nativeContext;
         java.util.List<CompletableFuture<?>> owned = new java.util.ArrayList<>();
         try {
             CompletableFuture<JsonObject> player =
@@ -1877,7 +2022,14 @@ public final class ProbeTransport implements AutoCloseable {
             return CancellableWork.map(
                     CancellableWork.all(owned),
                     ignored -> {
+                        if (capturedContext != nativeContext)
+                            throw new ProtocolState.ProtocolException(
+                                    "EVENT_CONTEXT_CHANGED",
+                                    409,
+                                    "Client context changed during resync; request a current snapshot");
                         JsonObject snapshot = new JsonObject();
+                        if (capturedContext != null)
+                            snapshot.addProperty("inputContextId", capturedContext.opaqueId());
                         snapshot.addProperty("type", "event.resync");
                         snapshot.addProperty("domain", "WORLD");
                         snapshot.addProperty("dataCategory", category);
@@ -1894,6 +2046,11 @@ public final class ProbeTransport implements AutoCloseable {
             owned.forEach(future -> future.cancel(false));
             return CompletableFuture.failedFuture(failure);
         }
+    }
+
+    private static String inputIdempotencyKey(
+            String path, String callerKey, ProtocolState.InputGuard guard) {
+        return path + ":" + guard.leaseId() + ":" + guard.generation() + ":" + callerKey;
     }
 
     private InputDispatchContext.Preconditions inputPreflight(
@@ -1963,6 +2120,20 @@ public final class ProbeTransport implements AutoCloseable {
             ProtocolState.RequestMetadata metadata,
             String path,
             JsonObject json) {
+        if (json.has("condition") && json.get("condition").isJsonObject()) {
+            JsonObject condition = json.getAsJsonObject("condition");
+            if ("event".equals(nullableString(condition, "type"))) {
+                try {
+                    ("DEBUG".equals(nullableString(condition, "category"))
+                                    ? debugEventHub
+                                    : eventHub)
+                            .validateConditionEvidence(json);
+                } catch (Throwable denied) {
+                    sendError(context, metadata.requestId(), denied);
+                    return;
+                }
+            }
+        }
         if (json.has("domain")
                 && "WORLD".equals(json.get("domain").getAsString())
                 && json.has("dataCategory")) {

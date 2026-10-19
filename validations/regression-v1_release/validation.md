@@ -55,10 +55,11 @@ pwsh -NoProfile -File components/validation_tools/regression-v1_release/task/Tes
 当前候选五端运行结果均已完成且源码匹配后，从仓库根刷新并发布；不以旧结果或未完成的运行补齐清单。
 
 ```powershell
-node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --scenario=full --profile=continuous_gameplay_trial_v1
 ```
 
-只完成专项时，使用生成器既有的 --scenario 参数，清单保持真实范围，不冒充 full 或独立制品运行。
+此命令在校验后直接调用固定快照发布器，不是只生成文件。新发布仅接受上述完整回归和连续游玩试用profile；
+专项结果单独保留，不能据其刷新alpha。历史快照保持原样，不按新profile回写。
 
 ## 通过标准
 
@@ -70,7 +71,17 @@ Forge固定石头配方无滚动范围时只验证0/拒绝移动，不虚构其M
 发行安装另要求公开Provider SPI类的真实加载来源及注册目录，不将目录可解析写成最终JAR已完成世界mutation。
 清单分别记录开发接口流程、UI回归及独立安装范围，不宣称第三方渲染收敛或人工验收。
 
+连续游玩试用另绑定五端各input-context、region-stream、world-placement-receipts、continuous-performance和interaction-baseline，
+以及既有continuous-input和四项协作专项，共65个场景位。2026-10-20用户暂停新性能测量：保留四端既有性能/基线原始结果，
+Fabric仅以continuous-functional的单次/三连原生消费、单步输入、两槽hover和取消清理关闭对应两个功能分支；性能明确DEFERRED，
+实际为63份原矩阵结果与1份覆盖两功能分支的补充原始结果，不宣称65份性能PASS。
+既有区域样本保留真实MCP20次读取，四端既有GUI基线保留20次实际语义悬停；不能以两槽功能验证伪装GUI20。
+三次攻击使用与单次相同的40ms hold并核对原生调用计数；用户允许实测比值NOT_MET交付试用，但必须保留performanceComplete=false，
+不声称性能目标或完整里程碑通过。物理Esc由用户执行并另记，自动结果中的physicalEscTested=false不得改写成真人通过。
+
 以本说明中的具体结果字段、日志与失败条件为准；未执行的 Live/人工场景必须保持未验收。
 固定快照的五个 JAR、清单和手册须与同批生成文件逐字节一致，并复核清单中的 SHA-256。
 合成分发测试覆盖源文件被覆盖、过期哈希、目录名冲突、重复发布、并发锁、使用登记、未知登记和回收失败；
 任何不明状态都保守保留，淘汰仅进入回收站。合成测试不作为 Minecraft 制品运行证据。
+源码校验按实际依赖：世界入口仅在world-placement-receipts分支执行放置断言模块，其他场景不因该未执行模块的断言修订失效。
+产品、事实、公共入口与其他实际工具仍逐字节校验；原始结果及其SHA不改写，不以此忽略真实输入或产品变更。

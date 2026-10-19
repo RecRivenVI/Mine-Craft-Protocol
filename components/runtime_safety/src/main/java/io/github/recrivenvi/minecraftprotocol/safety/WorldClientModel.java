@@ -124,6 +124,13 @@ public final class WorldClientModel {
                                     : value.getAsJsonPrimitive().isBoolean());
             if (valid) player.add(field, value.deepCopy());
         }
+        for (String field : Set.of("velocityX", "velocityY", "velocityZ")) {
+            var value = knownPlayer.get(field);
+            if (value != null
+                    && value.isJsonPrimitive()
+                    && value.getAsJsonPrimitive().isNumber()
+                    && Double.isFinite(value.getAsDouble())) player.add(field, value.deepCopy());
+        }
         double px = player.get("x").getAsDouble(),
                 py = player.get("y").getAsDouble(),
                 pz = player.get("z").getAsDouble();
@@ -266,6 +273,8 @@ public final class WorldClientModel {
                                     "leashed",
                                     "leashHolderKnown",
                                     "leashHeldByPlayer",
+                                    "itemId",
+                                    "itemCount",
                                     "targetRef",
                                     "targetTtlMs")));
         }

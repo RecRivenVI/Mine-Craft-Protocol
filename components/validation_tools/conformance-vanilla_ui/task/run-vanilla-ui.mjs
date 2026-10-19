@@ -11,6 +11,7 @@ import {advancementPanActions} from './ui-debug-advancement-actions.mjs';
 import {spectatorConsumers} from './spectator-consumers.mjs';
 import {specialMenuActions} from './special-menu-actions.mjs';
 import {hudVitalActions} from './hud-vital-actions.mjs';
+import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
 import {createServer} from 'node:net';
@@ -43,6 +44,7 @@ async function sourceHashes(){
  const core=resolve(repo,'components/runtime_core/src/main');
  for(const entry of await readdir(core,{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.java$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  paths.push('components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/spectator-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/special-menu-actions.mjs','components/validation_tools/conformance-vanilla_ui/task/hud-vital-actions.mjs','validations/conformance-vanilla_ui/task/screens.json');
+ paths.push('components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs','components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs');
  for(const dir of ['src','dist'])for(const entry of await readdir(resolve(repo,'components/companion',dir),{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.(?:ts|js)$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  for(const file of extraTools)paths.push('components/validation_tools/conformance-vanilla_ui/task/'+file);
  const hashes={};for(const path of paths.sort())hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');return hashes;
@@ -52,7 +54,7 @@ let lease, taskId, failure, failureTree, failureControl, failureInput, debugArm,
 const validationStarted=Date.now();
 let taskStarted=validationStarted;
 const checks=[],toastSamples=[],editorSamples=[],effectSamples=[],spectatorSamples=[],specialMenuSamples=[],vitalSamples=[],fixtureReadSamples=[],chatCloseSamples=[],screens=new Set(),pause=()=>new Promise(r=>setTimeout(r,120));
-const worldSelectionSamples=[],uiDebugSamples=[];
+const worldSelectionSamples=[],uiDebugSamples=[],worldExitSamples=[],respawnSamples=[];
 const advancementPanSamples=[];
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]);
 async function api(method,path,body,extraHeaders={}){
@@ -89,7 +91,86 @@ async function closeOwnedChat(prefix){
  }
  throw new Error('Owned Chat did not close through bounded native Esc input');
 }
-async function title(){for(let i=0;i<12;i++){const t=await wait(t=>!t.overlayIdentity,'ready for navigation');if(t.screenClass?.endsWith('TitleScreen'))return t;if(!t.screenClass){await key(256);continue;}const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));if(quit){await ui({nodeId:quit.nodeId});return await wait(t=>t.screenClass?.endsWith('TitleScreen'),'save & quit');}await key(256);}throw new Error('Could not return to title');}
+async function saveQuit(quit){
+ let titleTree;
+ const evidence=await finishBaselineWorldExit({api,quit,clickNode:async node=>{
+  try{return await ui({nodeId:node.nodeId});}catch(error){
+   const body=error?.nativeError;
+   if(error?.httpStatus===409&&['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(body?.error)
+      &&body.executionOutcome==='not_confirmed'&&body.retrySafe===false)
+    throw Object.assign(error,{status:error.httpStatus,runtimeError:body});
+   throw error;
+  }
+ },wait:async(predicate,description)=>{titleTree=await wait(predicate,description);return titleTree;}});
+ worldExitSamples.push(evidence);return titleTree;
+}
+async function title(){for(let i=0;i<12;i++){const t=await wait(t=>!t.overlayIdentity,'ready for navigation');if(t.screenClass?.endsWith('TitleScreen'))return t;if(!t.screenClass){await key(256);continue;}const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));if(quit)return saveQuit(quit);await key(256);}throw new Error('Could not return to title');}
+async function respawnFromDeath(button,testServices){
+ const now=testServices?.now??(()=>performance.now()),sleep=testServices?.sleep??(ms=>new Promise(done=>setTimeout(done,ms)));
+ const death=await tree();assert(death.screenClass.endsWith('DeathScreen'));assert.equal(death.overlayIdentity,0);
+ const targets=nodes(death).filter(n=>n.nodeId===button.nodeId&&n.translationKey==='deathScreen.respawn'&&n.active!==false&&n.visible!==false);
+ assert.equal(targets.length,1,'Only the confirmed native Respawn button has this boundary handler');
+ const controlBefore=await api('GET','/v0/control/status'),before=await api('GET','/v0/input/state');
+ function controlled(value){
+  assert.equal(value.mode,'TAKEOVER');assert.equal(value.takeoverActive,true);assert.equal(value.status,'active');
+  assert.equal(value.reconsentRequired,false);assert.equal(value.leaseId,lease);
+  assert.deepEqual(value.modeVersion,controlBefore.modeVersion,'Respawn must preserve the same control generation');
+ }
+ function input(value,released=false){
+  for(const field of ['inputGeneration','inputContextGeneration','clientTick'])assert(Number.isSafeInteger(value[field])&&value[field]>=0);
+  assert.equal(typeof value.inputContextId,'string');assert(value.inputContextId.length>0);
+  for(const field of ['pressedKeyCount','pressedButtonCount'])assert(Number.isSafeInteger(value[field])&&value[field]>=0);
+  if(released){assert.equal(value.pressedKeyCount,0);assert.equal(value.pressedButtonCount,0);}assert.equal(value.inputCleanupFailed,false);
+ }
+ assert.equal(typeof lease,'string');assert(lease.length>0);controlled(controlBefore);input(before,true);
+ assert.equal(before.inputContextAvailable,true);assert.equal(before.inputCleanupPending,false);
+ assert.equal(typeof controlBefore.modeVersion?.controlSessionId,'string');assert(controlBefore.modeVersion.controlSessionId.length>0);
+ assert(Number.isSafeInteger(controlBefore.modeVersion.generation)&&controlBefore.modeVersion.generation>=0);
+ let response,error;
+ try{response=await ui({nodeId:button.nodeId});}catch(original){
+  const body=original?.nativeError;
+  if(original?.httpStatus!==409||!['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(body?.error)
+     ||body.executionOutcome!=='not_confirmed'||body.retrySafe!==false)throw original;
+  error={httpStatus:original.httpStatus,body};
+ }
+ const observations=[],end=now()+20000;let previous,stable;
+ do{
+  const first=await api('GET','/v0/input/state'),t=await tree(),player=await api('GET','/v0/player?category=USER');
+  const last=await api('GET','/v0/input/state'),control=await api('GET','/v0/control/status');
+  input(first);input(last);controlled(control);
+  assert(Number.isSafeInteger(t.clientTick)&&t.clientTick>=first.clientTick&&t.clientTick<=last.clientTick);
+  assert(Number.isSafeInteger(t.screenRevision)&&t.screenRevision>=0);
+  assert.equal(player.dataCategory,'USER');
+  const frame={first,last,player,control,ui:{clientTick:t.clientTick,screenClass:t.screenClass,screenIdentity:t.screenIdentity,screenRevision:t.screenRevision,overlayIdentity:t.overlayIdentity}};
+  observations.push(frame);
+  const advanced=[first,last].every(value=>value.inputContextAvailable===true&&value.inputContextId!==before.inputContextId
+    &&value.inputContextGeneration>before.inputContextGeneration&&value.inputGeneration>before.inputGeneration&&value.inputCleanupPending===false&&value.pressedKeyCount===0&&value.pressedButtonCount===0);
+  const same=first.inputContextId===last.inputContextId&&first.inputContextGeneration===last.inputContextGeneration&&first.inputGeneration===last.inputGeneration;
+  const ready=advanced&&same&&t.screenClass===''&&t.screenIdentity===0&&t.overlayIdentity===0&&player.available===true
+    &&Number.isFinite(player.health)&&player.health>0&&Number.isSafeInteger(player.clientTick)&&player.clientTick>=t.clientTick&&player.clientTick<=last.clientTick;
+  if(ready){
+   if(previous&&t.clientTick>previous.ui.clientTick&&t.screenRevision===previous.ui.screenRevision
+      &&last.inputContextId===previous.last.inputContextId&&last.inputContextGeneration===previous.last.inputContextGeneration&&last.inputGeneration===previous.last.inputGeneration){stable=[previous,frame];break;}
+   previous=frame;
+  }else previous=undefined;
+  await sleep(100);
+ }while(now()<end);
+ assert(stable,'Respawn did not expose two distinct ready native frames in the same new input context');
+ const after=stable[1].last,sequence=after.inputDispatchSequence,quietBegan=now(),quietSamples=[];
+ assert(Number.isSafeInteger(sequence)&&sequence>=0);
+ async function quiet(){
+  const state=await api('GET','/v0/input/state');input(state,true);assert.equal(state.inputContextAvailable,true);assert.equal(state.inputCleanupPending,false);
+  for(const field of ['inputContextId','inputContextGeneration','inputGeneration'])assert.equal(state[field],after[field]);
+  assert.equal(state.inputDispatchSequence,sequence,'Late Agent input arrived after the new respawn context was ready');
+  quietSamples.push(state);return state;
+ }
+ do{await quiet();await sleep(Math.min(100,Math.max(0,500-(now()-quietBegan))));}while(now()-quietBegan<500);
+ const later=await quiet(),controlAfter=await api('GET','/v0/control/status');controlled(controlAfter);
+ const evidence={outcome:'respawn_independently_observed',requestOutcome:error?'not_confirmed':'response_received',requestReplayed:false,
+  requestEffectConfirmed:false,...(error?{error}:{response}),before,controlBefore,observations,stableNativeFrames:stable,after,later,controlAfter,
+  negativeObservationMillis:now()-quietBegan,quietSamples,postRespawnInputDispatch:0,sameLeasePreserved:true,sameModeVersionPreserved:true};
+ respawnSamples.push(evidence);return evidence;
+}
 async function check(name,fn){
  if(args.scenario==='ui-debug-advancement'&&!/^(title:|world fixture:|typed advancement DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-toast'&&!/^(title:|world fixture:|Toast: native movement tutorial|typed Toast DEBUG:|pause:)/.test(name))return;
@@ -288,7 +369,8 @@ try{
    assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
-   assert.equal(hooks.replacementInjectionCount,target.startsWith('26.3-')?9:10);
+   assert.equal(hooks.replacementInjectionCount,target.startsWith('26.1.2-')?11:10);
+   if(target.startsWith('26.'))assert(hooks.hooks.some(hook=>hook.id==='host_cursor_shape_guard'&&hook.mechanism==='MIXIN_MODIFY_VARIABLE'&&hook.cancellable===false&&hook.replacement===true&&hook.behavior==='default_host_shape_during_takeover'));
    assert.equal(hooks.passiveDrawDelegationCount,5);
    assert.equal(hooks.controlFlowPolicy,'operator_control_and_exact_hud_draw_delegation');
    async function presentation(mode,icon,suffix){
@@ -1100,8 +1182,9 @@ try{
   });
   await check('death: native respawn button and live world restored',async()=>{
    await command('gamemode survival @s');await command('kill @s');
-   await wait(t=>/DeathScreen$/.test(t.screenClass)&&nodes(t).some(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false),'death respawn enabled');
-   await click('deathScreen.respawn','Respawn');await wait(t=>!t.screenClass,'native respawn');await command('gamemode creative @s');
+   const death=await wait(t=>/DeathScreen$/.test(t.screenClass)&&nodes(t).some(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false),'death respawn enabled');
+   const buttons=nodes(death).filter(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false&&n.visible!==false);assert.equal(buttons.length,1);
+   await respawnFromDeath(buttons[0]);await command('gamemode creative @s');
   });
   if(uiDebugAuthorized&&['ui-debug-advancement','all'].includes(args.scenario))await advancementPanActions({target,api,command,wait,tree,nodes,ui,key,check,debugUi,applyUiMutation,editorHandoff,samples:advancementPanSamples});
   await check('pause: Return to Game is routed, then Save & Quit',async()=>{await command('clear @s');await key(256);await wait(t=>/PauseScreen$/.test(t.screenClass),'pause');await click('menu.returnToGame','Back to Game');await wait(t=>!t.screenClass,'resume');await title();});
@@ -1165,6 +1248,8 @@ finally{
  result.vitalSamples=vitalSamples;
  result.fixtureReadSamples=fixtureReadSamples;
  result.chatCloseSamples=chatCloseSamples;
+ result.worldExitSamples=worldExitSamples;
+ result.respawnSamples=respawnSamples;
  result.identityChurn=identityChurn;
  const resultDir=resolve(repo,'validations/conformance-vanilla_ui/result');await mkdir(resultDir,{recursive:true});const suffix=args.phase&&args.phase!=='test'?'-'+args.phase:args.scenario&&args.scenario!=='all'?'-'+args.scenario:'';await writeFile(resolve(resultDir,target+suffix+'.json'),JSON.stringify(result,null,2)+'\n');
  if(!args['keep-client'])try{const mode=await api('GET','/v0/control/mode');if(mode.reconsentRequired)throw new Error('Human override: client remains READ; reacquisition requires user consent');taskId=(await api('POST','/v0/control/task',{action:'begin',ttlMs:60000,budgetMs:60000})).taskId;lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;await title();await click('menu.quit','Quit Game');}catch(e){let stopped=false;for(let i=0;i<30;i++){try{await api('GET','/v0/session');}catch{stopped=true;break;}await pause();}if(!stopped){if(lease)await api('POST','/v0/control/release').catch(()=>{});if(taskId)await api('POST','/v0/control/task',{action:'end',taskId}).catch(()=>{});console.error('Shutdown: '+e.message);process.exitCode=1;}}

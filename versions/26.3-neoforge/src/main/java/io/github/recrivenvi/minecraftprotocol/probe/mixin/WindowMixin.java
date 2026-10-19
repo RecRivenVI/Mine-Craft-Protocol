@@ -1,14 +1,32 @@
 package io.github.recrivenvi.minecraftprotocol.probe.mixin;
 
 import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.platform.cursor.CursorType;
 import io.github.recrivenvi.minecraftprotocol.probe.runtime.NeoForgeProbeRuntime;
 import org.lwjgl.sdl.SDL_Surface;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Window.class)
 abstract class WindowMixin {
+    @ModifyVariable(
+            method = "selectCursor(Lcom/mojang/blaze3d/platform/cursor/CursorType;)V",
+            at = @At("HEAD"),
+            argsOnly = true,
+            ordinal = 0)
+    private CursorType minecraftProtocolProbe$hostCursor(CursorType requested) {
+        return minecraftProtocolProbe$hostCursorShape(
+                requested, NeoForgeProbeRuntime.isAgentControlActive());
+    }
+
+    @Unique
+    private static CursorType minecraftProtocolProbe$hostCursorShape(
+            CursorType requested, boolean takeover) {
+        return takeover ? CursorType.DEFAULT : requested;
+    }
+
     @Redirect(
             method = "setTitle",
             at =

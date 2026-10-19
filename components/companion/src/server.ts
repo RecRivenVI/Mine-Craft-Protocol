@@ -1,5 +1,6 @@
 import { McpServer, ResourceTemplate, type CallToolResult } from '@modelcontextprotocol/server';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import * as z from 'zod/v4';
 
 import type { CompanionConfig } from './config.js';
@@ -9,6 +10,7 @@ import { CompanionSessionState } from './session-state.js';
 import { TOOL_MODE_POLICY } from './mode-policy.js';
 import type { JsonObject, JsonValue } from './types.js';
 
+const companionVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 const readAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 const actionAnnotations = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false } as const;
 const safeActionAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
@@ -29,6 +31,7 @@ const controlToolSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('acquire'), ttlMs: z.number().int().min(1000).max(60000).default(60000), expectedModeVersion: modeVersionSchema.optional() }),
   z.object({ action: z.literal('renew'), ttlMs: z.number().int().min(1000).max(60000).default(60000), leaseId: leaseSchema }),
   z.object({ action: z.literal('release'), leaseId: leaseSchema }),
+  z.strictObject({ action: z.literal('release_inputs'), leaseId: leaseSchema }),
   z.object({ action: z.literal('emergency_release') }),
   z.object({ action: z.literal('set_mode'), mode: z.enum(['READ', 'OPERATE']), expectedModeVersion: modeVersionSchema.optional(), leaseId: leaseSchema })
 ]);
@@ -101,6 +104,7 @@ const uiConditionSchema = z.object({
 const expectedStateSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]));
 const worldCategory = z.enum(['USER', 'DEBUG']).optional();
 const conditionSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('input.released') }),
   screenConditionSchema.extend({category:worldCategory}),
   uiConditionSchema.extend({category:worldCategory}),
   z.object({ type: z.literal('player'), category: worldCategory, perspective: z.enum(['client', 'server']).optional(), expected: expectedStateSchema.optional(), healthMin: z.number().optional(), healthMax: z.number().optional(), position: z.object({ x: z.number().optional(), y: z.number().optional(), z: z.number().optional(), tolerance: z.number().min(0).optional() }).optional() }),
@@ -153,7 +157,7 @@ const recordingConfigSchema = z.object({
 const deepObservationSchema = z.object({
   category: z.enum(['USER', 'DEBUG']).default('USER'),
   perspective: z.enum(['client_known', 'server_authoritative', 'both']),
-  domains: z.array(z.enum(['player', 'entities', 'blocks', 'block_entities', 'chunks', 'world', 'menu', 'providers'])).min(1),
+  domains: z.array(z.enum(['player', 'entities', 'blocks', 'block_entities', 'chunks', 'world', 'menu', 'providers'])).min(1).describe('blocks reads selected block positions from selector.blocks; world reads dimension/time/weather and world-level summaries, not region block contents.'),
   selector: z.object({
     chunkRadius: z.number().int().min(0).max(2).optional(),
     entityRadius: z.number().int().min(0).max(64).optional(),
@@ -253,7 +257,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: '0.0.1-phase9c' });
+  const server = new McpServer({ name: 'minecraft-protocol-companion', version: companionVersion });
   const endOwnedTask = async () => {
     const taskId = state.taskId;
     state.taskId = undefined;
@@ -313,7 +317,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_deep_observe', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_deep_observe },
     title: 'Deep Observe Minecraft',
-    description: 'Read typed internal world state in READ, OPERATE or TAKEOVER with explicit category DEBUG and independent read/debug/debug.world.read scopes; no Arm or Lease. USER is rejected before internal capture. Provider data/read effects retain their separate opt-in permissions.',
+    description: 'Read typed internal world state in READ, OPERATE or TAKEOVER with explicit category DEBUG and independent read/debug/debug.world.read scopes; no Arm or Lease. domains=[blocks] reads selected block positions via selector.blocks; domains=[world] reads dimension/time/weather and world-level summaries, not region block contents. USER is rejected before internal capture. Provider data/read effects retain their separate opt-in permissions.',
     inputSchema: deepObservationSchema,
     annotations: readAnnotations
   }, async (args, context) => asToolResult(async () => {
@@ -345,8 +349,8 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_query_world', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_query_world },
     title: 'Query Loaded Minecraft World',
-    description: 'Categorized LIVE world query. USER reads cached nearby blocks and tracked entity summaries, not strictly visible pixels; block/entity radius is bounded to 32, scene cube radius to 8. No chunk loading, server state, NBT or inventory. DEBUG retains independent scopes; neither category changes input permissions. Partial/truncated results never prove absence.',
-    inputSchema: z.object({
+    description: 'Categorized LIVE world query. USER reads cached nearby blocks and tracked entity summaries, not strictly visible pixels; block/entity radius is bounded to 32, scene cube radius to 8. kind=region is USER/client only: query=min/max inclusive coordinates, optional maxBlocks 1..4096/maxBytes 16384..131072, or a continuation-only cursor. Pages stay within the 32-block USER sphere and 65536-cell query; section palette indices use -1 for unloaded, never air. Per-page tick/time is not a cross-page atomic snapshot. action=cancel releases an unfinished cursor. Cursor is single-use after success, expires idle 30s/hard 120s and cannot cross a world/player/connection epoch. After uncertain completion restart the read rather than blindly retry a consumed cursor. No chunk loading, server state, NBT or inventory. DEBUG retains independent scopes; neither category changes input permissions. Partial/truncated results never prove absence.',
+    inputSchema: z.union([z.object({
       kind: z.enum(['block', 'entities', 'scene']),
       perspective: z.enum(['client', 'server']).default('client'),
       category: z.enum(['USER', 'DEBUG']).default('USER'),
@@ -357,9 +361,31 @@ export function buildServer(config: CompanionConfig): McpServer {
       limit: z.number().int().min(1).max(128).optional(),
       blockLimit: z.number().int().min(1).max(512).optional(),
       entityLimit: z.number().int().min(1).max(128).optional()
-    }),
+    }), z.strictObject({
+      kind: z.literal('region'), perspective: z.literal('client').default('client'),
+      category: z.literal('USER').default('USER'), action: z.enum(['read', 'cancel']).default('read'),
+      query: z.union([
+        z.strictObject({cursor: z.string().min(1).max(128)}),
+        z.strictObject({
+          min: z.strictObject({x: z.number().int(), y: z.number().int(), z: z.number().int()}),
+          max: z.strictObject({x: z.number().int(), y: z.number().int(), z: z.number().int()}),
+          maxBlocks: z.number().int().min(1).max(4096).optional(),
+          maxBytes: z.number().int().min(16384).max(131072).optional()
+        })
+      ])
+    })]),
     annotations: readAnnotations
-  }, async ({ kind, perspective, category, x, y, z: zValue, radius, limit, blockLimit, entityLimit }) => asToolResult(async () => {
+  }, async args => asToolResult(async () => {
+    if (args.kind === 'region') {
+      const query: JsonObject = 'cursor' in args.query ? {cursor: args.query.cursor}
+        : {min: args.query.min, max: args.query.max};
+      if ('min' in args.query) {
+        if (args.query.maxBlocks !== undefined) query.maxBlocks = args.query.maxBlocks;
+        if (args.query.maxBytes !== undefined) query.maxBytes = args.query.maxBytes;
+      }
+      return client.json('POST', '/v0/world/region', {category: args.category, action: args.action, query});
+    }
+    const {kind, perspective, category, x, y, z: zValue, radius, limit, blockLimit, entityLimit} = args;
     if (kind === 'scene') {
       if (perspective !== 'client') throw new RuntimeError('WORLD_USER_PERCEPTION_UNAVAILABLE', 409, 'Server scene presentation is unavailable');
       return client.json('GET', `/v0/world/scene?${new URLSearchParams({category, ...Object.fromEntries(Object.entries({radius,blockLimit,entityLimit}).filter(([,value])=>value!==undefined).map(([key,value])=>[key,String(value)]))})}`);
@@ -373,7 +399,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_execute_player_command', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_execute_player_command },
     title: 'Execute Current Player Command',
-    description: 'USER current-player commands, never console or OP impersonation. action=discover is READ-compatible with read+command scopes: default completionSource=CLIENT_LOCAL reads received roots/local suggestions without packets; explicit SERVER requests bounded native server suggestions with independent transaction ownership, one in flight, 250ms interval and 1500ms TTL. Pending human completion wins; no human future, draft, focus or input Lease is modified. Server budget remains shared; a submitted query cannot be recalled, cancellation discards its result. Suggestions and effectPolicyAllowsSubmission are not authorization, execution or server acceptance. action=batch submits 1..32 sequential NATIVE commands (32768 total UTF-16 units), requires OPERATE or TAKEOVER+command, stops at first failure, returns indexed unconfirmed receipts and not_attempted items; not atomic, rollback or correlated server feedback. action=execute (default): AUTO uses NATIVE in OPERATE, CHAT otherwise, never changes mode. NATIVE uses actual player API with command scope and no input Lease, draft/focus/key changes; CHAT needs TAKEOVER, command/control/input scopes and Lease, refuses an existing draft/Screen. Native length and server permissions still apply; unknown/indirect and host-control effects denied. State mutations contaminate evidence without granting Debug permission. Cancellation or deadline may leave partial effects; inspect independently, never blindly replay.',
+    description: 'USER current-player commands, never console or OP impersonation. action=discover is READ-compatible with read+command scopes: default completionSource=CLIENT_LOCAL reads received roots/local suggestions without packets; explicit SERVER requests bounded native server suggestions with independent transaction ownership, one in flight, 250ms interval and 1500ms TTL. Pending human completion wins; no human future, draft, focus or input Lease is modified. Server budget remains shared; a submitted query cannot be recalled, cancellation discards its result. Suggestions and effectPolicyAllowsSubmission are not authorization, execution or server acceptance. action=batch submits 1..32 sequential NATIVE commands (32768 total UTF-16 units), requires OPERATE or TAKEOVER+command, stops at first failure, returns indexed unconfirmed receipts and not_attempted items; not atomic, rollback or correlated server feedback. action=execute (default): AUTO uses NATIVE in OPERATE, CHAT otherwise, never changes mode. NATIVE requires OPERATE or TAKEOVER and command scope, uses the actual player API with no input Lease or draft/focus/key changes; CHAT needs TAKEOVER, command/control/input scopes and Lease, refuses an existing draft/Screen. Native length and server permissions still apply; unknown/indirect and host-control effects denied. State mutations contaminate evidence without granting Debug permission. Cancellation or deadline may leave partial effects; inspect independently, never blindly replay.',
     inputSchema: playerCommandToolSchema,
     annotations: actionAnnotations
   }, async (args) => asToolResult(() => {
@@ -390,10 +416,13 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_control', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_control },
     title: 'Manage Minecraft Intent and Control Lease',
-    description: 'Inspect READ/OPERATE/TAKEOVER or begin/heartbeat/end a bounded logical task. A task keeps Operator presence stable across requests and waiting, grants no authority, and end/expiry drains only its attached input Lease. Begin once, heartbeat before TTL, end in finally; inspect status after uncertain results, never replay input blindly. Acquire binds this Companion task. Modes never grant scopes or Debug Arm. USER_MANUALLY_ENDED_CONTROL / reconsentRequired applies only to another TAKEOVER: first obtain explicit conversation consent. OPERATE must not simulate player input. Runtime cannot verify chat consent; never fabricate a consent flag. No automatic mode escalation.',
+    description: 'Inspect READ/OPERATE/TAKEOVER or begin/heartbeat/end a bounded logical task. release_inputs requires input+control, TAKEOVER and its current Lease: cancel active/queued player input and release Runtime-held keys/buttons without ending the Lease/task/mode or independent Debug work. It sends no Screen/Menu revision pins; a stop-response timeout does not undo required cleanup. Observe input state or wait for input.released afterwards. A task keeps Operator presence stable across requests and waiting, grants no authority, and end/expiry drains only its attached input Lease. Begin once, heartbeat before TTL, end in finally; inspect status after uncertain results, never replay input blindly. Acquire binds this Companion task. Modes never grant scopes or Debug Arm. USER_MANUALLY_ENDED_CONTROL / reconsentRequired applies only to another TAKEOVER: first obtain explicit conversation consent. OPERATE must not simulate player input. Runtime cannot verify chat consent; never fabricate a consent flag. No automatic mode escalation.',
     inputSchema: controlToolSchema,
     annotations: safeActionAnnotations
   }, async args => asToolResult(async () => {
+    if (args.action === 'release_inputs') return client.json('POST', '/v0/input/release-all', {}, {
+      headers: inputHeaders(state, {leaseId: args.leaseId, expectedScreenRevision: undefined, expectedMenuRevision: undefined})
+    });
     if (args.action === 'begin_task') {
       const result = await client.json<JsonObject>('POST', '/v0/control/task', { action: 'begin', ttlMs: args.ttlMs, budgetMs: args.budgetMs });
       if (typeof result.taskId === 'string') state.taskId = result.taskId;
@@ -504,7 +533,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_wait_operation', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_wait_operation },
     title: 'Wait for Minecraft Operation',
-    description: 'Wait through native Runtime lifecycle without a second state machine. Inspect terminal state and retained partial command provenance; commandSubmissionsComplete does not confirm command effects. Never blindly replay failed or cancelled input.',
+    description: 'Wait through native Runtime lifecycle without a second state machine. timeoutMs (default 60000, maximum 300000) bounds this wait only: expiry returns the current snapshot, which may still be running; it does not cancel or fail the operation. Inspect status/state and wait or get the same operationId again, not replay the action. Terminal failure/cancellation and transport errors are separate outcomes. Retained partial command provenance and commandSubmissionsComplete do not confirm command effects.',
     inputSchema: z.object({ operationId: z.string().uuid(), category: z.enum(['USER', 'DEBUG']).default('USER'), timeoutMs: z.number().int().min(1).max(300_000).default(60_000) }),
     annotations: readAnnotations
   }, async ({ operationId, timeoutMs, category }, context) => asToolResult(() => waitForOperation(client, operationId, timeoutMs, cancellationSignal(context), category)));
@@ -520,7 +549,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_wait', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_wait },
     title: 'Wait for Minecraft Condition',
-    description: 'Wait inside the Runtime for a Screen or UI condition instead of using a fixed Agent sleep.',
+    description: 'Wait inside the Runtime for a UI/world condition instead of using a fixed Agent sleep. input.released accepts only {type:"input.released"}, requires independent read+diagnostics scopes, and is mode-independent including after manual revoke; it observes both Runtime-owned pressed counts at zero, not a permanently empty queue or permission to reacquire.',
     inputSchema: z.object({ condition: conditionSchema, timeoutMs: z.number().int().min(1).max(60000).default(5000) }),
     annotations: readAnnotations
   }, async ({ condition, timeoutMs }) => asToolResult(() => client.json('POST', '/v0/wait/until', { condition: asJson(condition), timeoutMs })));
@@ -528,7 +557,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_assert', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_assert },
     title: 'Assert Minecraft Condition',
-    description: 'Evaluate a Runtime condition and return typed assertion evidence.',
+    description: 'Evaluate a Runtime condition and return typed assertion evidence. input.released accepts only its type, requires read+diagnostics in any mode, and reports whether Runtime-owned keys and buttons are currently released; it grants no control or permanent queue-idle guarantee.',
     inputSchema: z.object({ condition: conditionSchema }),
     annotations: readAnnotations
   }, async ({ condition }) => asToolResult(() => client.json('POST', '/v0/assert', { condition: asJson(condition) })));
@@ -586,7 +615,7 @@ export function buildServer(config: CompanionConfig): McpServer {
   server.registerTool('minecraft_diagnostics', {
     _meta: { 'minecraft/modePolicy': TOOL_MODE_POLICY.minecraft_diagnostics },
     title: 'Get Minecraft Diagnostics',
-    description: 'Read readiness, trace, Hook manifest, audit, thread affinity, or Dedicated Server Peer status.',
+    description: 'Read readiness, trace, Hook manifest, audit, thread affinity, or Dedicated Server Peer status. kind is required: readiness, trace, hooks, audit, thread or peer; there is no default diagnostic kind.',
     inputSchema: z.object({ kind: z.enum(['readiness', 'trace', 'hooks', 'audit', 'thread', 'peer']), affinity: z.enum(['client', 'render', 'server']).default('client'), auditLimit: z.number().int().min(1).max(256).default(64) }),
     annotations: readAnnotations
   }, async ({ kind, affinity, auditLimit }) => asToolResult(() => {

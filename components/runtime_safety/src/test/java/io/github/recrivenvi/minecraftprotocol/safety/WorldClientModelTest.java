@@ -10,6 +10,22 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class WorldClientModelTest {
+    @Test
+    void clientVelocityKeepsFiniteFractionalComponentsWithoutOpeningInternalFields() {
+        View view =
+                new View() {
+                    public JsonObject player() {
+                        return json(
+                                "{\"x\":0,\"y\":64,\"z\":0,\"velocityX\":0.03125,\"velocityY\":0,\"velocityZ\":-0.0625,\"serverVelocity\":99}");
+                    }
+                };
+        var value = WorldClientModel.capture("player", new JsonObject(), view);
+        assertEquals(.03125, value.get("velocityX").getAsDouble());
+        assertEquals(0, value.get("velocityY").getAsDouble());
+        assertEquals(-.0625, value.get("velocityZ").getAsDouble());
+        assertFalse(value.has("serverVelocity"));
+    }
+
     private static JsonObject json(String value) {
         return JsonParser.parseString(value).getAsJsonObject();
     }
@@ -175,6 +191,49 @@ class WorldClientModelTest {
                         .getAsJsonObject();
         assertFalse(entity.has("leashHeldByPlayer"));
         assertFalse(entity.has("tamed"));
+    }
+
+    @Test
+    void droppedItemKnowledgeSurvivesTheProductionEntityAndSceneProjectionWithoutPrivateData() {
+        View view =
+                new View() {
+                    public JsonObject player() {
+                        return json("{\"x\":0,\"y\":64,\"z\":0}");
+                    }
+
+                    public Iterator<JsonObject> entities() {
+                        return java.util.List.of(
+                                        json(
+                                                "{\"type\":\"minecraft:item\",\"x\":0,\"y\":64,\"z\":0,\"itemId\":\"minecraft:stone\",\"itemCount\":17,\"targetRef\":\"world:item\",\"targetTtlMs\":15000,\"uuid\":\"secret\",\"nbt\":\"secret\",\"components\":{\"custom_data\":\"secret\"},\"serverCount\":99,\"ownerUUID\":\"secret\",\"pickupDelay\":40}"),
+                                        json(
+                                                "{\"type\":\"minecraft:cow\",\"x\":0,\"y\":64,\"z\":0}"))
+                                .iterator();
+                    }
+                };
+        for (String kind : java.util.List.of("entities", "scene")) {
+            JsonObject result =
+                    WorldClientModel.capture(
+                            kind,
+                            kind.equals("scene") ? json("{\"radius\":0}") : new JsonObject(),
+                            view);
+            JsonObject item = result.getAsJsonArray("entities").get(0).getAsJsonObject();
+            assertEquals("minecraft:stone", item.get("itemId").getAsString());
+            assertEquals(17, item.get("itemCount").getAsInt());
+            assertTrue(item.getAsJsonPrimitive("itemId").isString());
+            assertTrue(item.getAsJsonPrimitive("itemCount").isNumber());
+            assertEquals("world:item", item.get("targetRef").getAsString());
+            for (String field :
+                    java.util.List.of(
+                            "uuid", "nbt", "components", "serverCount", "ownerUUID", "pickupDelay"))
+                assertFalse(item.has(field), field);
+            JsonObject other = result.getAsJsonArray("entities").get(1).getAsJsonObject();
+            assertFalse(other.has("itemId"));
+            assertFalse(other.has("itemCount"));
+            assertEquals("USER", result.get("dataCategory").getAsString());
+            assertEquals("CLIENT_KNOWN", result.get("authority").getAsString());
+            assertFalse(result.get("storageAccessed").getAsBoolean());
+            assertFalse(result.get("chunkLoadRequested").getAsBoolean());
+        }
     }
 
     @Test

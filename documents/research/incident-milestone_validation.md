@@ -247,6 +247,116 @@ Fabric 另经真实 MCP stdio 和随机端口网页 HTTP 服务验证打开/选�
 613项产品Java与51项Companion/网页及五端构建、verifyRelease、严格合规已过；随后教学工具以参考端实跑验证，批次结束仍执行最终门禁。
 状态页明确旧alpha/配置与移动专项均为前候选，不影响其历史通过事实；本增量成果不宣称两个领域READY。
 
+## 2026-10-19：原生点击消费与松开后的队列
+
+连续游玩候选的一次参考端重跑，三组相同40ms点击的输入回调均派发，但诊断只确认到2次原生实体攻击。
+原始结果另存于仓库外Investigations/20261019-continuous-input/attack-after-mouseup/reference-under-counted.json，
+SHA-256为3fd2a87873cc645db3faea1305393cfe3cd50095e9bdced4e3f6c1f5e6ea25fe；不改写或追认这次结果。
+此结果的测量流程完成不等于三次实际消费通过，后续批跑中止，不以用户允许性能比值未达标为由放行计数不足。
+
+核对真实Native字节码：mouseup只取消isDown，clickCount继续由后续handleKeybinds消费。
+原计数要求Runtime仍按住mouse0，因此存在真实消费后漏记的条件；仅凭此源码分析不能追认故障样本实际发生了第三次攻击。
+计数改为在既有routed消费上下文中观察真实attack RETURN，继续复验owner、原生epoch、接管代次及Lease。
+它不是伤害、动画、服务器确认，也不声称排除了第三方在routed回调内直接调用原生方法的情况。
+
+同一链还暴露了强清理的独立缺口：若只按held集合清理，会遗漏已up但仍pending的原生点击。
+新增身份归属追踪只记录Runtime回调实际改变过的KeyMapping；强停止、取消、失权和epoch切换释放这些映射，
+正常成功完成仅回收已消费归属，不抹掉已提交但尚待游戏消费的点击。10项纯Java正负例及真实Native release字节码验证覆盖该条件，
+不将潜在窗口写成已经观察到的现场迟到攻击。
+
+参考端修复后的三次独立实机复测，单次计数均为1/1/1、三次批次均为3，正常退出且源码未变。
+原40ms、原版冷却和计时边界不变；终态后额外消费观察单列，不计入原pipeline或HTTP终态计时，缺失仍不确认。
+三次比值2.60484、2.46793、2.42329均未达到1.5，按用户明确决定只允许带限制试用；这不是性能或完整里程碑PASS。
+其余四端移植及共同候选验证的当前状态仍以状态页为准。
+
+## 2026-10-19：区域读取的无进展预算拒绝
+
+冻结产品候选7792367d的Forge区域专项，准备世界后的分页过程中返回明确的429 WORLD_REGION_BUDGET_NO_PROGRESS，
+retryAfterMillis=50；未提交续读游标。原始FAIL正常退出，另存Investigations/20261019-continuous-input/region-cold-owner-budget/forge-first-read.json，
+SHA-256为78d387d786f5ab617aeb674e6f3d6fa271c400c1fd9b21c85af78864b5c399f1，未覆盖成PASS。
+该错误来自既有协作式8ms预算的无进展分支，不能只凭一次运行断定具体冷初始化或负载原因，也不能据此改大预算。
+
+消费者此前无条件传播此错误，故停止矩阵。修订只针对read中明确未消费游标的该结构化拒绝，遵循合法retryAfterMillis并限制总尝试次数；
+当前工具/发布器需记录和核对全部尝试，计入真实调用减少比值。其他错误、传输结果不确定、失效游标、取消、输入或修改不得据此重试。
+共同矩阵重新绑定新工具后才可刷新alpha，当前验收状态见状态页。
+
+## 2026-10-19：旧验证消费者的退出回执
+
+参考端server-completion共同回归在七项通过后，Save & Quit返回409 REQUEST_CANCELLED，
+executionOutcome=not_confirmed、retrySafe=false；客户端实际正常Stopping并释放发现记录。
+原始FAIL另存Investigations/20261019-continuous-input/server-completion-epoch-exit/reference-first-run.json，
+SHA-256为ec064b8d80e1dae8f671693254600aa3a393ed85c64030b529880f0f6e158e2d，不将正常关闭追认为成功点击回执。
+旧消费者尚未复用独立退出观察器；该修订只允许明确的取消结构，并独立要求新epoch、标题无overlay、held=0及清理完成，
+不重发点击、不吞其他409或传输错误。修订工具后的结果须重新绑定源码，原始失败保留。
+
+## 2026-10-19：诊断维度准备与输入epoch
+
+参考端完整回归在consumer维度往返的CHAT准备命令处返回409 REQUEST_CANCELLED，
+executionOutcome=not_confirmed、retrySafe=false；服务器已执行维度切换，但旧输入管线在新epoch结束。
+原始FAIL另存Investigations/20261019-continuous-input/consumer-dimension-epoch/reference-first-full.json，
+SHA-256为1c2e77244d191815aaa4e2f7ce1749e4b0680d249d1a8d3c23a6414d296ac258。
+首次清理Esc又因加载Screen更换而返回UI_TARGET_INVALIDATED；外层以新鲜状态重新导航，客户端随后正常Stopping。
+没有把前两次失败请求写成成功，也没有重发维度命令。
+
+维度变更本为诊断Arrange，不是玩家验收Act。修订该准备使用既有NATIVE原生命令入口，仍标未确认提交，
+再分别确认USER维度、新epoch、页面就绪和输入清理；其他真实CHAT流程不改。
+这不放松生产输入epoch守卫，也不宣称CHAT跨上下文请求已成功，后续共同回归须重新绑定工具。
+
+## 2026-10-19：物理Esc与队列取消终态
+
+候选7792367d的真人检查记录nativeRevocations从0变1、TAKEOVER退回READ、MANUALLY_REVOKED、
+held keys/buttons为0且清理完成；但active Operation取消后，至少一项queued Operation先变为failed CONTROL_LEASE_REQUIRED。
+原始FAIL保留于Investigations/20261019-continuous-input/manual-esc/first-queued-terminal-failure/manual-esc-report.json，
+SHA-256为071b762b1a808f29b7cebb7ff76c351acf68c3dbb532b972adc50ab458aad7ae。
+这不是完整撤销PASS，也没有在该失败样本上完成8秒无迟到判定；用户明确重新同意后，客户端已通过原生界面正常退出并移除发现记录。
+
+根因是批量取消逐项调用Future.cancel，首项的同步drain回调会让输入队列启动后项；
+后项Lease守卫正确拒绝输入，但Operation在遍历取消到它前已提交失败终态。
+新增真实InputSequenceQueue的确定性测试在修复前失败；修复将批量操作先全部标记取消，再调用各Future，
+关闭同样在清理回调前标记，完成/已失败操作不追改，独立非接管工作只在整个Runtime关闭时取消。
+回调和terminal发布仍不持Operation锁；修复后专项通过，新的物理检查和五端共同候选仍须另跑。
+
+## 2026-10-19：动态菜单夹具未形成实际重叠
+
+候选f2dc15c9的26.1.2 NeoForge完整世界回归在动态菜单样本处失败；原始观测中，
+otherCount于clientTick 7701从6增到7时指针仍在(312,77)，7711从7增到8时已经到达(168,202)。
+指针7703～7709的移动区间内没有采到物品转移，因此不能证明“无关槽位变化与移动重叠”，断言正确拒绝计为通过。
+这不证明生产目标校验失败，也不能用移动前后的更新代替所需重叠；没有放宽条件、修改节奏或补造样本。
+
+原始FAIL正常关闭、源码/工具未变化、Persistent Write为0，另存
+Investigations/20261019-continuous-input/dynamic-menu-overlap/26.1.2-first-full.json，
+SHA-256为f9dbda2d94a1cc5be87c33ae9f62ae160458b754b3369f8fc75c15f5c645479b；失败矩阵检查点同步保留。
+没有产品/工具改动；核对既有39份结果正文哈希与当前发布断言后，仅对未完成场景进行有界原样复测。
+复测结果独立计证，不能将此原始缺覆盖样本追写为PASS。
+
+## 2026-10-20：门放置预测与后续客户端回读不同
+
+候选f2dc15c9的26.3 Fabric放置专项首次通过door_blocked，随后door_unblocked的逐属性比较失败：
+原生useItemOn返回时的placementState.after为oak_door、hinge=right，稍后独立USER点读为同类型门、hinge=left，
+其余记录属性相同。客户端预测和后续状态处于不同时间边界；回执本来就标effectConfirmed=false、serverValidationObserved=false，
+不能把后续状态不同当作服务器确认，也不能把原回执追写为后续值。此样本不证明所有预测必与回读一致。
+
+原始FAIL正常关闭、源码/工具未变化、Persistent Write为0，另存
+Investigations/20261019-continuous-input/door-prediction-reconciliation/fabric-first-placement.json，
+SHA-256为709943beff308c10b040d61ff3a5fb30f2103f523ffc7d15373eec4a6ef2f16a；失败检查点保留。
+未删除hinge或放宽原断言；复核55份已完成结果后，只对该未完成场景进行有界同参数复测，另行计证。
+具体服务器回包及量化误差成因尚未由此样本证明，不能仅凭差异确认产品故障或将一次复测推广为总是相等。
+
+## 2026-10-20：放置消费者时间边界修正
+
+同参数第二次Fabric复测仍在相同门铰链差异处失败，停止无改动重试。
+第二份原始FAIL与检查点另存door-prediction-reconciliation/fabric-second-placement.json，
+SHA-256为df97c10fc5c7aa076b0197e6ff5bbcd383594fbe49b1a47a0fafff25f5fd3cbc；正常退出、Persistent Write为0。
+只读核对原生26.3的BlockHitResult传输将相对命中double写为float，门铰链以大于0.5判定，
+与观察到的左右差异机制吻合，但失败样本没有独立保存完整actualHit，不宣称实际量化因果或服务器确认已证明。
+
+确定性测试修正前复现同一错误断言，修正后通过：即时changed只比较native before/after，
+两份完整状态分别按有限Vanilla夹具校验，仅门hinge允许合法左右；后续门/床成对状态必须一致，
+受阻、消费未放置、缺属性、错朝向及虚构服务器确认仍拒绝。生产坐标、精度和回执时刻不变。
+发布器复用同一完整验证，没有减少源码/工具绑定。旧47份世界PASS因工具改变失效并保留，
+全部55份世界结果必须实际重跑；既有UI/独立安装只有实际哈希及完整发布断言仍匹配才能复用。
+本条记录验证方法修正，不将尚未执行的新矩阵或旧FAIL追写为PASS。
+
 ## 结论
 
 这些记录说明各次失败的处理与证据边界，不独立证明当前候选全部通过。

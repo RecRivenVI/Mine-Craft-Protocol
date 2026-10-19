@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { clearWorldUiFixture } from './world-ui-actions.mjs';
-import {villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
+import {breedingFixtureCommands,villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
 import {coreShowcaseProof} from '../../regression-v1_release/task/alpha-evidence.mjs';
 
 function showcaseResult(){
@@ -23,6 +23,20 @@ test('alpha refuses partial, stale, unsafe or falsely promoted Core Showcase pro
 });
 
 for(const target of ['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric']){
+  test(target+' breeding fixture keeps native AI and distinct bounded movement selectors',()=>{
+    const commands=breedingFixtureCommands({target,tag:'world_gesture_fixture',position:[-29999999.5,-64,29999998.5]});
+    assert.equal(commands.length,4);
+    assert(commands.every(command=>command.length+1<=256&&!/[\r\n]/.test(command)));
+    const attribute=target.startsWith('1.')?'minecraft:generic.movement_speed':'minecraft:movement_speed';
+    for(const [index,z] of [29999997.5,29999999.5].entries()){
+      const adultTag=`world_gesture_fixture_breed${index}`;
+      assert.equal(commands[index*2],`summon minecraft:cow -29999999.5 -64 ${z} {Silent:1b,PersistenceRequired:1b,NoAI:0b,Age:0,Tags:["world_gesture_fixture","${adultTag}"]}`);
+      assert.equal(commands[index*2+1],`attribute @e[type=minecraft:cow,tag=${adultTag},limit=1] ${attribute} base set 0`);
+    }
+    assert.notEqual(commands[1],commands[3]);
+    assert(!commands.some(command=>/\b(?:data|execute|tp|teleport)\b/.test(command)));
+    assert(!commands.some(command=>/InLove|NoAI:1b|Age:-|baby/.test(command)));
+  });
   test(target+' villager fixture keeps full offers in native Chat budget',()=>{
     const sells=['stone','dirt','sand','cobblestone','oak_log','glass','gravel','clay','brick','iron_ingot','gold_ingot','diamond'];
     const commands=villagerFixtureCommands({target,tag:'world_gesture_fixture',position:[-29999999.5,-64,29999999.5],sells,zeroPriceMultiplier:true});
@@ -38,6 +52,12 @@ for(const target of ['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
 test('villager fixture rejects unsafe tags and positions instead of generating commands',()=>{
   for(const tag of ['unsafe,limit=2','escape]','two\ncommands'])assert.throws(()=>villagerFixtureCommands({target:'26.3-neoforge',tag,position:[0,80,0],sells:['stone']}));
   assert.throws(()=>villagerFixtureCommands({target:'26.3-neoforge',tag:'owned',position:[Infinity,80,0],sells:['stone']}));
+});
+test('breeding fixture rejects unknown Target and unsafe tag or positions before command generation',()=>{
+  const valid={target:'26.3-neoforge',tag:'world_gesture_fixture',position:[0.5,80,2.5]};
+  for(const target of ['1.21.1-forge','26.3-unknown','26.4-neoforge','__proto__',null])assert.throws(()=>breedingFixtureCommands({...valid,target}));
+  for(const tag of ['unsafe,limit=2','escape]','two\ncommands','',undefined])assert.throws(()=>breedingFixtureCommands({...valid,tag}));
+  for(const position of [null,[0,80],[0,80,0,1],[Infinity,80,0],[0,NaN,0],[0,80,'0'],[30000001,80,0],[0,80,29999999.5],[0,80,-29999999.5]])assert.throws(()=>breedingFixtureCommands({...valid,position}));
 });
 
 const snapshot=(tick,item='minecraft:air',drops=false,truncated=false)=>({

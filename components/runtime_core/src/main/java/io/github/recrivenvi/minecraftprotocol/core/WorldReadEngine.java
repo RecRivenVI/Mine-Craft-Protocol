@@ -4,13 +4,17 @@ import com.google.gson.JsonObject;
 import io.github.recrivenvi.minecraftprotocol.safety.CancellableWork;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldClientModel;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldDataView;
+import io.github.recrivenvi.minecraftprotocol.safety.WorldRegionPages;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /** Authenticated client-model boundary, independent of USER UI and player input contracts. */
 final class WorldReadEngine {
     private final ProbeService service;
     private final ProtocolState state;
+    private final AtomicBoolean regionInFlight = new AtomicBoolean();
 
     WorldReadEngine(ProbeService service, ProtocolState state) {
         this.service = service;
@@ -97,6 +101,84 @@ final class WorldReadEngine {
                     "WORLD_CATEGORY_UNSUPPORTED", 409, "Bounded client scene supports only USER");
         }
         return user("scene", query, category);
+    }
+
+    CompletableFuture<JsonObject> region(JsonObject request) {
+        if (category(request) != WorldDataView.Category.USER)
+            throw new ProtocolState.ProtocolException(
+                    "WORLD_CATEGORY_UNSUPPORTED", 409, "Client region pages support only USER");
+        if (!Set.of("category", "action", "query").containsAll(request.keySet())
+                || !request.has("query")
+                || !request.get("query").isJsonObject()
+                || (request.has("action")
+                        && (!request.get("action").isJsonPrimitive()
+                                || !request.getAsJsonPrimitive("action").isString())))
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_WORLD_REGION_QUERY", 400, "Typed region query required");
+        String action = request.has("action") ? request.get("action").getAsString() : "read";
+        JsonObject query = request.getAsJsonObject("query").deepCopy();
+        if (!action.equals("read") && !action.equals("cancel"))
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_WORLD_REGION_QUERY", 400, "Region action must be read or cancel");
+        if (action.equals("cancel")
+                && (!query.keySet().equals(Set.of("cursor"))
+                        || !query.get("cursor").isJsonPrimitive()
+                        || !query.getAsJsonPrimitive("cursor").isString()
+                        || query.get("cursor").getAsString().isBlank()
+                        || query.get("cursor").getAsString().length() > 128))
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_WORLD_REGION_QUERY", 400, "Cancel requires only a region cursor");
+        if (!regionInFlight.compareAndSet(false, true))
+            throw regionFailure(
+                    "WORLD_REGION_BUSY", 429, "Only one client region page may be in flight");
+        try {
+            // Principal comes from authenticated Runtime state, never the request or input Lease.
+            CompletableFuture<JsonObject> result =
+                    guarded(
+                            "USER",
+                            () ->
+                                    CancellableWork.handle(
+                                            service.clientWorldRegion(
+                                                    action,
+                                                    query,
+                                                    state.principalId(),
+                                                    publicationGuard("USER")),
+                                            (value, failure) -> {
+                                                if (failure != null) {
+                                                    Throwable cause = failure;
+                                                    while (cause
+                                                                    instanceof
+                                                                    java.util.concurrent
+                                                                            .CompletionException
+                                                            && cause.getCause() != null)
+                                                        cause = cause.getCause();
+                                                    if (cause
+                                                            instanceof
+                                                            WorldRegionPages.Failure invalid)
+                                                        throw regionFailure(
+                                                                invalid.code(),
+                                                                invalid.httpStatus(),
+                                                                invalid.getMessage());
+                                                    if (cause instanceof RuntimeException runtime)
+                                                        throw runtime;
+                                                    throw new java.util.concurrent
+                                                            .CompletionException(cause);
+                                                }
+                                                return value;
+                                            }));
+            result.whenComplete((value, failure) -> regionInFlight.set(false));
+            return result;
+        } catch (Throwable failure) {
+            regionInFlight.set(false);
+            throw failure;
+        }
+    }
+
+    private static ProtocolState.ProtocolException regionFailure(
+            String code, int status, String message) {
+        JsonObject details = new JsonObject();
+        if (status == 429) details.addProperty("retryAfterMillis", 50);
+        return new ProtocolState.ProtocolException(code, status, message, details);
     }
 
     CompletableFuture<JsonObject> read(

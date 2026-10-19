@@ -43,11 +43,14 @@ function Make-Batch([int]$Minute,[string]$Guide='Synthetic Agent guide',[switch]
         @{target=$artifact.target;status='PASS';runtime='installed_loader_release_jar';artifactSha256=$artifact.sha256;sourceFingerprint=$fingerprint;result=$path;resultSha256=(Digest $bytes)}
     })
     Write-Text (Join-Path $repo 'build/alpha-manifest.json') (($report|ConvertTo-Json -Depth 9)+"`n")
-    return $report
+    $fixtureOutput=& node (Join-Path $PSScriptRoot 'alpha-consumer.test.mjs') --write-publication-fixture $repo 2>&1
+    if($LASTEXITCODE-ne0){throw ('Synthetic publication fixture failed: '+($fixtureOutput-join' '))}
+    return Get-Content (Join-Path $repo 'build/alpha-manifest.json') -Raw|ConvertFrom-Json
 }
 try{
     $batch=Make-Batch 0 -ZuluTime
     $first=Run-Publisher
+    Require ($batch.publicationProfile-ceq'continuous_gameplay_trial_v1'-and$batch.delivery-ceq'trial_with_known_performance_limit'-and$batch.fullMilestonesComplete-eq$false-and$batch.performanceAcceptance.status-ceq'NOT_MET'-and$batch.performanceAcceptance.goalPerformancePass-eq$false) 'a permitted trial preserves NOT_MET and never claims Goal completion'
     Require ([IO.Path]::GetFileName($first.directory)-match'^20261016-1800-') 'UTC Z timestamps publish at the same Shanghai time as explicit offsets'
     Require (@($first.files).Count-eq7) 'seven flat distribution files'
     Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$first.directory) 'latest points only to a complete snapshot'
@@ -73,6 +76,49 @@ try{
     $stale=Make-Batch 1
     Write-Text (Join-Path $repo $stale.packagedRuntime[0].result) '{}'
     Rejected {Run-Publisher} 'modified installed Runtime proof'
+    $continuous=Make-Batch 1
+    $candidateJson=$continuous|ConvertTo-Json -Depth 100 -Compress
+    $latestBefore=(Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()
+    foreach($change in @(
+        {param($r)$r.publicationProfile='historical_scoped'},
+        {param($r)$r.delivery='release'},
+        {param($r)$r.fullMilestonesComplete=$true},
+        {param($r)$r.performanceAcceptance.goalPerformancePass=$true},
+        {param($r)$r.continuousGameplay.proofs=@($r.continuousGameplay.proofs|Select-Object -Skip 1)},
+        {param($r)$r.continuousGameplay.proofs[1]=$r.continuousGameplay.proofs[0]},
+        {param($r)$r.nativeSmoke=@()},
+        {param($r)$r.uiRegression=@()},
+        {param($r)$r.continuousInput=@()},
+        {param($r)$r.controlCollaboration=@($r.controlCollaboration|Select-Object -Skip 1)}
+    )){
+        $candidate=$candidateJson|ConvertFrom-Json
+        & $change $candidate
+        Write-Text (Join-Path $repo 'build/alpha-manifest.json') ($candidate|ConvertTo-Json -Depth 100)
+        Rejected {Run-Publisher} 'direct publication cannot bypass the new profile, a Target or prior core/UI/collaboration/input proof'
+        Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$latestBefore) 'rejected profile does not advance latest'
+    }
+    function Reject-ContinuousResult([string]$Scenario,[scriptblock]$Change,[string]$Message){
+        $candidate=$candidateJson|ConvertFrom-Json
+        $proof=@($candidate.continuousGameplay.proofs|Where-Object {$_.target-ceq$targets[0]-and$_.scenario-ceq$Scenario})[0]
+        $path=Join-Path $repo $proof.result;$original=Get-Content $path -Raw
+        try{
+            $result=$original|ConvertFrom-Json;& $Change $result
+            $bytes=($result|ConvertTo-Json -Depth 100 -Compress)+"`n";Write-Text $path $bytes;$proof.resultSha256=Digest $bytes
+            Write-Text (Join-Path $repo 'build/alpha-manifest.json') ($candidate|ConvertTo-Json -Depth 100)
+            Rejected {Run-Publisher} $Message
+            Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$latestBefore) 'rejected actual evidence does not advance latest'
+        }finally{Write-Text $path $original;Write-Text (Join-Path $repo 'build/alpha-manifest.json') $candidateJson}
+    }
+    Reject-ContinuousResult 'continuous-performance' {param($r)($r.actionSamples|Where-Object case -CEQ 'continuous_performance_complete').performanceComplete=$true} 'trial cannot rewrite NOT_MET into completed performance'
+    Reject-ContinuousResult 'continuous-performance' {param($r)$s=@($r.actionSamples|Where-Object case -CEQ 'continuous_performance_attack_single')[0];$s.inputAfter.nativeEntityAttackCount=$s.inputBefore.nativeEntityAttackCount} 'reported actual consumption cannot replace the native counter delta'
+    Reject-ContinuousResult 'interaction-baseline' {param($r)$r.actionSamples=@($r.actionSamples|Where-Object {$_.case-cne'interaction_baseline_sample'-or$_.index-eq0})} 'old GUI1 cannot be relabelled GUI20'
+    Reject-ContinuousResult 'region-stream' {param($r)($r.actionSamples|Where-Object case -CEQ 'mcp_world_baseline').transport='injected_unit_test'} 'injected services cannot become real MCP evidence'
+    Reject-ContinuousResult 'region-stream' {param($r)$s=$r.actionSamples|Where-Object case -CEQ 'mcp_world_baseline';$s.samples=@($s.samples|Select-Object -Skip 1)} 'MCP twenty calls cannot be inferred from summary statistics'
+    Reject-ContinuousResult 'input-context' {param($r)$r.cleanShutdown=$false} 'context transition evidence requires clean shutdown'
+    Reject-ContinuousResult 'world-placement-receipts' {param($r)$r.persistentWriteCalls=1} 'placement receipts cannot hide write contamination'
+    $tool=Join-Path $repo 'components/validation_tools/conformance-world_read/task/mcp-world-baseline.mjs';$originalTool=Get-Content $tool -Raw
+    try{Write-Text $tool 'modified bound MCP consumer';Rejected {Run-Publisher} 'direct publisher rejects changed proof tools even when they are not candidate product files'}finally{Write-Text $tool $originalTool}
+    Write-Text (Join-Path $repo 'build/alpha-manifest.json') $candidateJson
     $pin=Run-Publisher 'Pin' $first.directory 'voxy'
     Require $pin.inUse 'explicit use protects the old snapshot even after source changes'
     Run-Publisher 'Pin' $first.directory 'voxy'|Out-Null

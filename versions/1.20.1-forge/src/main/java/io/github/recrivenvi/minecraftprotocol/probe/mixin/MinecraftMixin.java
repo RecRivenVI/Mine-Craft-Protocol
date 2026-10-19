@@ -13,6 +13,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Minecraft.class)
 abstract class MinecraftMixin {
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void minecraftProtocolProbe$inputContext(CallbackInfo ci) {
+        ForgeProbeRuntime.beforeClientInput((Minecraft) (Object) this);
+    }
+
     @Inject(method = "close", at = @At("HEAD"))
     private void minecraftProtocolProbe$drainBeforeLoaderClose(CallbackInfo ci) {
         ForgeProbeRuntime.beforeClientClose();

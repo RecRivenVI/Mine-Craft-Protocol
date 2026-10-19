@@ -31,6 +31,10 @@ final class WorldClientSnapshot {
                                 value.addProperty("z", player.getZ());
                                 value.addProperty("yaw", player.getYRot());
                                 value.addProperty("pitch", player.getXRot());
+                                var velocity = player.getDeltaMovement();
+                                value.addProperty("velocityX", velocity.x);
+                                value.addProperty("velocityY", velocity.y);
+                                value.addProperty("velocityZ", velocity.z);
                                 value.addProperty("health", player.getHealth());
                                 var mode =
                                         client.gameMode == null
@@ -117,6 +121,20 @@ final class WorldClientSnapshot {
                                         value.addProperty("pitch", entity.getXRot());
                                         value.addProperty("invisible", entity.isInvisible());
                                         value.addProperty("onGround", entity.onGround());
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.item.ItemEntity
+                                                        dropped) {
+                                            var stack = dropped.getItem();
+                                            if (!stack.isEmpty()) {
+                                                value.addProperty(
+                                                        "itemId",
+                                                        BuiltInRegistries.ITEM
+                                                                .getKey(stack.getItem())
+                                                                .toString());
+                                                value.addProperty("itemCount", stack.getCount());
+                                            }
+                                        }
                                         if (entity
                                                 instanceof
                                                 net.minecraft.world.entity.LivingEntity living) {

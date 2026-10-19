@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
     [ValidateSet('conformance-world_read','migration-runtime_core')][string]$Validation='conformance-world_read',
-    [ValidateSet('full','input-preconditions','player-command','target-lifecycle','command-configuration','test-management','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion')][string]$Scenario='full')
+    [ValidateSet('full','input-preconditions','player-command','target-lifecycle','command-configuration','test-management','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')][string]$Scenario='full')
 $ErrorActionPreference='Stop'
 if($Scenario-ne'full'-and$Validation-ne'conformance-world_read'){throw 'Targeted input checks use only the world-read validation instance'}
 if($Scenario-eq'test-management'-and$Target-in@('1.20.1-forge','1.21.1-neoforge')){throw 'These pinned native versions do not provide Test management blocks or packets'}
@@ -84,8 +84,9 @@ try{
         if($LASTEXITCODE-ne0-or$classes-notmatch'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport'){throw 'Shared product transport not loaded by actual game Runtime'}
         [IO.File]::WriteAllText((Join-Path $root 'runtime-core-class-loader.log'),$classes,[Text.UTF8Encoding]::new($false))
     }
-    $entry=switch($Scenario){'full'{'world-read-smoke.mjs'}'movement'{'world-read-smoke.mjs'}'block-state'{'world-read-smoke.mjs'}'consumer'{'world-read-smoke.mjs'}'rate-limit'{'world-read-smoke.mjs'}'command-feedback'{'world-read-smoke.mjs'}'mode-collaboration'{'world-read-smoke.mjs'}'resource-version'{'world-read-smoke.mjs'}'command-discovery-batch'{'world-read-smoke.mjs'}'server-completion'{'world-read-smoke.mjs'}'input-preconditions'{'input-precondition-smoke.mjs'}'player-command'{'player-command-smoke.mjs'}'target-lifecycle'{'target-lifecycle-smoke.mjs'}'command-configuration'{'command-configuration-smoke.mjs'}'test-management'{'test-management-smoke.mjs'}}
-    if($Scenario-in@('movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion')){$fixtureArgs+="--scenario=$Scenario"}
+    $entry=switch($Scenario){'full'{'world-read-smoke.mjs'}'movement'{'world-read-smoke.mjs'}'block-state'{'world-read-smoke.mjs'}'consumer'{'world-read-smoke.mjs'}'rate-limit'{'world-read-smoke.mjs'}'command-feedback'{'world-read-smoke.mjs'}'mode-collaboration'{'world-read-smoke.mjs'}'resource-version'{'world-read-smoke.mjs'}'command-discovery-batch'{'world-read-smoke.mjs'}'server-completion'{'world-read-smoke.mjs'}'interaction-baseline'{'world-read-smoke.mjs'}'input-preconditions'{'input-precondition-smoke.mjs'}'player-command'{'player-command-smoke.mjs'}'target-lifecycle'{'target-lifecycle-smoke.mjs'}'command-configuration'{'command-configuration-smoke.mjs'}'test-management'{'test-management-smoke.mjs'}}
+    if($Scenario-in@('continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')){$entry='world-read-smoke.mjs'}
+    if($Scenario-in@('movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')){$fixtureArgs+="--scenario=$Scenario"}
     & node (Join-Path $PSScriptRoot $entry) "--target=$Target" "--validation=$Validation" @fixtureArgs
     if($LASTEXITCODE-ne0){throw 'World read Native smoke failed'}
 }catch{$failure=$_}

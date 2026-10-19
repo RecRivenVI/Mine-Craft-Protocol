@@ -1,9 +1,34 @@
 # MCP Companion 接口
 
 Companion 是独立 Node/TypeScript 工具组件，不内嵌 MCP server 到 Minecraft。
-当前 V0 文档版本为 `0.0.1-ui-m1`，`publishes 24 static Tools`。
+Companion 版本以组件 package.json 为唯一来源，MCP initialize 的 serverInfo.version 直接读取该值；当前目录为 `publishes 24 static Tools`。
+当前实际 stdio initialize 核对值与 package.json 一致，未复现握手返回旧版本；外部不一致反馈应先核对其进程、入口及同源 dist，不能据此推定其他线程已更新。
+其依赖的 Native V0 合同版本为 `0.0.1-ui-m1`，以[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)的 info.version 为准，不等同于 Companion 包或握手版本。
 工具描述/Prompt 固定，不来自 Runtime 文本；大型 PNG/ZIP 用 minecraft:// Resources。
 Wire Protocol v1 未冻结。
+
+minecraft_diagnostics 的 kind 必填且没有默认值，可选 readiness、trace、hooks、audit、thread、peer；
+affinity 只为 thread 选择线程，auditLimit 只为 audit 限制条数，不能代替 kind。
+minecraft_deep_observe 的 domains=[blocks] 根据 selector.blocks 读取选定方块；
+domains=[world] 读取维度、时间、天气和世界级摘要，不返回区域内全部方块。
+区域方块内容不能通过选择 world 域获得；选定方块仍遵守已有类别、权限、未加载与预算合同。
+
+minecraft_wait_operation 的 timeoutMs 仅限制这一次等待，默认60000、最大300000毫秒。
+等满后仍可能成功返回 running/executing 的当前快照，不代表原操作失败、取消或效果已确认。
+调用者须检查 status/state，并使用同一 operationId 继续 get/wait；不要重放输入或命令。
+原操作终态、HTTP/连接超时和调用者取消分别处理，不能仅凭一次等待返回判断执行结果。
+
+`minecraft_control(action=release_inputs)` 使用当前缓存或显式 Lease 调用 Native `/v0/input/release-all`，请求体为空对象。
+它要求 input/control、TAKEOVER 和当前 Lease；取消活动与排队玩家输入，使已接受但仍在 preflight 的旧代次请求失效并执行必要原生清理，
+不结束 Lease/模式/任务、不清除 Arm 或人工撤销 latch，不中断独立 DEBUG，也不附带 Screen/Menu revision pin。
+响应超时不撤销必需清理。releasedKeys/releasedButtons 是最后一次原生 cleanup 的实际计数，不是整轮累加值。
+`minecraft_get_state(kind=input)` 保留 inputGeneration、inputCleanupPending、inputCleanupFailed；清理失败或仍在进行不能当作安全完成。
+
+`minecraft_wait` / `minecraft_assert` 的 `{"type":"input.released"}` 严格只接受 type，不允许 category/expected/selector。
+它需要 read/diagnostics，在 READ、OPERATE 及人工撤销后仍可等待，只比较 Runtime 自有两种 held count 同时为0，不表示队列永久空闲。
+pipeline 的 wait.until/assert.that 接受相同条件形状，但整个输入计划仍要求 TAKEOVER/Lease 及各步骤权限。
+minecraft_run_input_pipeline 的 cleanupOnComplete 默认为 true，成功时也释放同一 Lease 前序请求保留的输入；
+false 仅在成功完成时保留，失败、取消及 Lease 撤销仍清理。它不替代同 Lease 强停止或续租。
 
 minecraft_execute_player_command保留一个工具，action=execute（默认）/discover/batch显式区分：
 discover在三模式均按自身read+command授权可用，completionSource默认CLIENT_LOCAL，不发送服务器补全包。
@@ -127,6 +152,7 @@ Loopback-first；ALLOW_NON_LOOPBACK 不让 Runtime 变成已验收 LAN/TLS 服�
 
 24 个静态工具覆盖 session/capabilities、UI、control、input pipeline/operation、
 Wait/Assert、Deep Observation、capture/recording/artifact、Debug Arm/typed Debug、Persistent Read。
+对应 Native 正式 HTTP 为79项，条件为13种；release_inputs 复用 minecraft_control，不新增工具。
 typed discriminator 决定操作模式，不能只按 Tool 名推断。
 工具/Resource JSON 保留原生 provenance 并标记 data-plane-only。
 Content-Length precheck、stream reader、running budget 和 oversize abort 防止无界收包。
@@ -142,6 +168,16 @@ Runtime 不读取聊天或接收假 userConsent。
 acquire 自动携带本 Companion 已明确开始的 taskId，仍须既有 Control Lease授权。
 close 尝试结束自己持有的任务；进程崩溃由 TTL 收尾，不自动重放或重新接管。
 control status 返回 agentTask 的结构化状态。任务结果不确定时先读取状态再决定下一步。
+
+Native Control Lease acquire/renew 的缺省 TTL 为15秒并夹取1–60秒；Companion 当前显式请求的默认值为60秒。
+可用 renew 续租，60秒不是接管总时长上限；逻辑任务仍有独立 TTL 和总预算。
+普通 HTTP 断连不撤销 Lease，绑定该 Lease 的 WebSocket 关闭或 TTL 到期才沿既有撤权路径清理。
+现有WebSocket支持显式world.player.state玩家位姿流，category=USER且独立read/event，不取得Lease；
+默认全事件订阅不含高频流，需types含world.player.state或namespaces含world。源为原生client tick，不是服务器/渲染tick，方块变化流尚未提供。
+旧世界帧失效时使用gap/resync，断流resume不自动接管；[Native合同](protocol-native_v0.md)定义各字段与预算。
+既有minecraft_query_world新增kind=region、USER/client、query初次min/max或续读cursor，action=cancel释放cursor；
+不新增工具或扩大读取权限，不与deep的64个显式块选择混淆。每页时效/未加载/截断必须检查，未知不证明不存在。
+mouse.delta 保留 Vanilla 灵敏度与反向设置；0.15 不是所有玩家或 Target 的通用角度换算常量。
 
 ## 本机网页游戏窗口
 

@@ -9,6 +9,152 @@ import org.junit.jupiter.api.Test;
 
 class UiDataViewTest {
     @Test
+    void visibleMenuTitleAndNativeSlotOwnersSurviveWithoutExposingBackingIndices() {
+        JsonObject raw =
+                object(
+                        """
+            {"title":"Named container","menuId":4,"menuIdentity":91,"children":[
+              {"nodeId":"container","role":"slot","visible":true,"slot":0,"slotOwner":"menu","nativeSlotIndex":0,"containerSecret":"hidden"},
+              {"nodeId":"inventory","role":"slot","visible":true,"slot":27,"slotOwner":"player_inventory","nativeSlotIndex":9},
+              {"nodeId":"unclassified","role":"slot","visible":true,"slot":28,"slotOwner":"unknown"},
+              {"nodeId":"hidden","role":"slot","visible":false,"slot":29,"slotOwner":"player_inventory","item":"hidden:item"}]}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertEquals("Named container", user.get("title").getAsString());
+        JsonArray slots = user.getAsJsonArray("children");
+        assertEquals(3, slots.size());
+        assertEquals("menu", slots.get(0).getAsJsonObject().get("slotOwner").getAsString());
+        assertEquals(
+                "player_inventory", slots.get(1).getAsJsonObject().get("slotOwner").getAsString());
+        assertEquals(27, slots.get(1).getAsJsonObject().get("slot").getAsInt());
+        assertEquals("unknown", slots.get(2).getAsJsonObject().get("slotOwner").getAsString());
+        for (String field : new String[] {"nativeSlotIndex", "containerSecret", "hidden:item"})
+            assertFalse(user.toString().contains(field));
+        assertTrue(
+                UiDataView.tree(raw, UiDataView.Category.DEBUG)
+                        .toString()
+                        .contains("nativeSlotIndex"));
+    }
+
+    @Test
+    void overlayDoesNotPublishTheUnderlyingScreenTitleAsVisibleUserContent() {
+        JsonObject raw =
+                object(
+                        """
+            {"screenClass":"native.ContainerScreen","screenIdentity":17,"title":"Private container title",
+             "overlayIdentity":0,"children":[{"visible":true,"label":"Underlying control"}]}
+            """);
+        assertEquals(
+                "Private container title",
+                UiDataView.tree(raw, UiDataView.Category.USER).get("title").getAsString());
+        raw.addProperty("overlayIdentity", 4);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertFalse(user.has("title"));
+        assertEquals("native.ContainerScreen", user.get("screenClass").getAsString());
+        assertEquals(17, user.get("screenIdentity").getAsInt());
+        assertEquals(0, user.get("interactionNodeCount").getAsInt());
+        assertFalse(user.toString().contains("Private container title"));
+        assertEquals(
+                "Private container title",
+                UiDataView.tree(raw, UiDataView.Category.DEBUG).get("title").getAsString());
+        assertEquals("Private container title", raw.get("title").getAsString());
+    }
+
+    @Test
+    void slotOwnerCannotBecomeAnUnfilteredNestedDebugChannelOrAClaimOnOtherNodeTypes() {
+        JsonObject raw =
+                object(
+                        """
+            {"children":[
+              {"visible":true,"role":"slot","slotOwner":{"private":"secret"}},
+              {"visible":true,"role":"slot","slotOwner":"server_authoritative"},
+              {"visible":true,"role":"button","slotOwner":"player_inventory"},
+              {"visible":true,"role":"slot","slotOwner":false},
+              {"visible":true,"role":"slot"}]}
+            """);
+        for (var value : UiDataView.tree(raw, UiDataView.Category.USER).getAsJsonArray("children"))
+            assertFalse(value.getAsJsonObject().has("slotOwner"));
+        assertTrue(UiDataView.tree(raw, UiDataView.Category.DEBUG).toString().contains("secret"));
+        assertFalse(UiDataView.tree(raw, UiDataView.Category.USER).toString().contains("secret"));
+    }
+
+    @Test
+    void projectedInteractionAndPresentationCountsRemainSeparateAndRecursive() {
+        JsonObject raw =
+                object(
+                        """
+            {"treeNodeCount":99,"interactionNodeCount":999,"presentationNodeCount":999,"countSemantics":"untrusted",
+             "children":[{"visible":true,"children":[{"visible":true},{"visible":false}]},{"visible":false}],
+             "presentation":{"children":[{"visible":true,"role":"hud_text","children":[{"visible":true}]},{"visible":false,"label":"secret"}]}}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertEquals(2, user.get("treeNodeCount").getAsInt());
+        assertEquals(2, user.get("interactionNodeCount").getAsInt());
+        assertEquals(2, user.get("presentationNodeCount").getAsInt());
+        assertEquals("returned_projection_recursive", user.get("countSemantics").getAsString());
+        assertFalse(user.has("debugFacts"));
+        assertFalse(user.toString().contains("secret"));
+        JsonObject debug = UiDataView.tree(raw, UiDataView.Category.DEBUG);
+        assertEquals(
+                99,
+                debug.get("treeNodeCount").getAsInt(),
+                "Keep the legacy producer field unchanged");
+        assertEquals(4, debug.get("interactionNodeCount").getAsInt());
+        assertEquals(3, debug.get("presentationNodeCount").getAsInt());
+        assertEquals(4, debug.getAsJsonObject("debugFacts").get("capturedNodeCount").getAsInt());
+        assertEquals(
+                3,
+                debug.getAsJsonObject("debugFacts")
+                        .get("capturedPresentationNodeCount")
+                        .getAsInt());
+        assertEquals(
+                999, raw.get("interactionNodeCount").getAsInt(), "Projection must stay detached");
+    }
+
+    @Test
+    void visibleHudWithNoInteractionNodesStillReportsPresentationWhileOverlayReportsNeither() {
+        JsonObject raw =
+                object(
+                        """
+            {"overlayIdentity":0,"children":[],"presentation":{"queuedToastCount":5,
+             "children":[{"visible":true,"role":"hud_text","label":"drawn"},{"visible":false,"label":"hidden"}]}}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertEquals(0, user.get("treeNodeCount").getAsInt());
+        assertEquals(0, user.get("interactionNodeCount").getAsInt());
+        assertEquals(1, user.get("presentationNodeCount").getAsInt());
+        assertFalse(user.toString().contains("queuedToastCount"));
+        raw.addProperty("overlayIdentity", 7);
+        JsonObject blocked = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertEquals(0, blocked.get("interactionNodeCount").getAsInt());
+        assertEquals(0, blocked.get("presentationNodeCount").getAsInt());
+        assertEquals(
+                2,
+                UiDataView.tree(raw, UiDataView.Category.DEBUG)
+                        .get("presentationNodeCount")
+                        .getAsInt());
+    }
+
+    @Test
+    void actionResultsKeepOnlyVisibleNativeSlotOwnershipAndDoNotInventItForOldNodes() {
+        JsonObject response =
+                object(
+                        """
+            {"resolvedNode":{"role":"slot","visible":true,"slot":6,"slotOwner":"player_inventory","nativeSlotIndex":17}}
+            """);
+        JsonObject result = UiDataView.actionResult(response);
+        assertEquals(
+                "player_inventory",
+                result.getAsJsonObject("resolvedNode").get("slotOwner").getAsString());
+        assertFalse(result.toString().contains("nativeSlotIndex"));
+        assertFalse(
+                UiDataView.userNode(object("{\"visible\":true,\"role\":\"slot\",\"slot\":0}"))
+                        .has("slotOwner"));
+        response.getAsJsonObject("resolvedNode").addProperty("visible", false);
+        assertFalse(UiDataView.actionResult(response).has("resolvedNode"));
+    }
+
+    @Test
     void completeTextGuardMetadataRemainsDebugOnly() {
         JsonObject raw =
                 object(

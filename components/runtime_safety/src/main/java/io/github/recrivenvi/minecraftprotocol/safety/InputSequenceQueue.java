@@ -56,12 +56,20 @@ public final class InputSequenceQueue implements AutoCloseable {
     }
 
     public void cancelAll() {
+        cancelAllAndWait();
+    }
+
+    /** Waits for the captured owners to drain; callers must fence admission of new work. */
+    public CompletableFuture<Void> cancelAllAndWait() {
         ArrayList<Entry> entries;
         synchronized (this) {
             cancelling = true;
             entries = new ArrayList<>(waiting);
             if (active != null) entries.add(active);
         }
+        CompletableFuture<Void> drained =
+                CompletableFuture.allOf(
+                        entries.stream().map(Entry::drained).toArray(CompletableFuture[]::new));
         try {
             for (Entry entry : entries) entry.cancel.run();
         } finally {
@@ -70,6 +78,7 @@ public final class InputSequenceQueue implements AutoCloseable {
             }
             pump();
         }
+        return drained;
     }
 
     public synchronized int pendingCount() {

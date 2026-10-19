@@ -88,6 +88,24 @@ public final class InputDispatchContext {
             String expectedCommand,
             boolean commandSubmissionAllowed,
             Supplier<CompletableFuture<JsonObject>> factory) {
+        return run(
+                gestureId,
+                check,
+                firstInput,
+                expectedCommand,
+                commandSubmissionAllowed,
+                () -> {},
+                factory);
+    }
+
+    static CompletableFuture<JsonObject> run(
+            String gestureId,
+            Runnable check,
+            FirstInput firstInput,
+            String expectedCommand,
+            boolean commandSubmissionAllowed,
+            Runnable inputCallback,
+            Supplier<CompletableFuture<JsonObject>> factory) {
         AtomicBoolean live = new AtomicBoolean(true);
         Permit permit =
                 new Permit() {
@@ -121,6 +139,7 @@ public final class InputDispatchContext {
                         check();
                         if (firstInput != null) firstInput.validate(validate);
                         check();
+                        inputCallback.run();
                     }
                 };
         Permit previous = CURRENT.get();

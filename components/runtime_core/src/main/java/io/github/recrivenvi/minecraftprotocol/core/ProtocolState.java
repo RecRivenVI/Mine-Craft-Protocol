@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentTaskLifecycle;
+import io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -35,6 +36,9 @@ public final class ProtocolState implements AutoCloseable {
     static final String EXPECTED_SCREEN_HEADER = "X-MCP-Expected-Screen-Revision";
     static final String EXPECTED_MENU_HEADER = "X-MCP-Expected-Menu-Revision";
     static final String DEBUG_ARM_HEADER = "X-MCP-Debug-Arm";
+    static final long DEFAULT_CONTROL_LEASE_MILLIS = 15_000L;
+    static final long MIN_CONTROL_LEASE_MILLIS = 1_000L;
+    static final long MAX_CONTROL_LEASE_MILLIS = 60_000L;
 
     private static final Set<String> DEFAULT_SCOPES =
             Set.of("read", "ui", "input", "capture", "event", "diagnostics", "control", "command");
@@ -42,8 +46,11 @@ public final class ProtocolState implements AutoCloseable {
     private final Set<String> scopes;
     private final String principalId;
     private final Function<String, CompletableFuture<JsonObject>> inputCleanup;
-    private CompletableFuture<JsonObject> inputCleanupBarrier =
+    private volatile CompletableFuture<JsonObject> inputCleanupBarrier =
             CompletableFuture.completedFuture(new JsonObject());
+    private final AtomicLong inputGeneration = new AtomicLong();
+    private volatile String inputCleanupReason = "";
+    private volatile InputContextEpoch.Snapshot nativeInputContext;
     private boolean modeTransitionPending;
     private volatile boolean closed;
     private final ScheduledExecutorService scheduler;
@@ -227,6 +234,24 @@ public final class ProtocolState implements AutoCloseable {
                     "CONTROL_LEASE_REQUIRED", 409, "A current unexpired input Lease is required");
     }
 
+    // Diagnostic attribution only; never acquires ProtocolState under a native dispatch lock.
+    boolean nativeInputLeaseActive(InputContextEpoch.Snapshot expected) {
+        ControlLease current = this.lease;
+        if (this.closed
+                || expected == null
+                || expected != this.nativeInputContext
+                || !expected.worldAvailable()
+                || current == null
+                || current.expiresAtMillis() <= System.currentTimeMillis()
+                || !this.hasScope("input")
+                || !this.hasScope("control")
+                || !this.inputCleanupBarrier.isDone()
+                || this.inputCleanupBarrier.isCompletedExceptionally()) return false;
+        return this.controlSession.snapshot().agentControlled()
+                && this.lease == current
+                && !this.closed;
+    }
+
     boolean hasScope(String scope) {
         return this.scopes.contains(scope);
     }
@@ -350,7 +375,10 @@ public final class ProtocolState implements AutoCloseable {
                     "CONTROL_LEASE_CONFLICT", 409, "An input control lease is already active");
         }
         boolean reacquiredAfterManualRevocation = this.controlSession.snapshot().manuallyRevoked();
-        long ttl = Math.max(1_000L, Math.min(requestedTtlMillis, 60_000L));
+        long ttl =
+                Math.max(
+                        MIN_CONTROL_LEASE_MILLIS,
+                        Math.min(requestedTtlMillis, MAX_CONTROL_LEASE_MILLIS));
         this.lease = new ControlLease(UUID.randomUUID().toString(), now + ttl);
         this.leaseTaskId = null;
         this.scheduleLeaseExpiry(this.lease);
@@ -367,7 +395,10 @@ public final class ProtocolState implements AutoCloseable {
 
     synchronized JsonObject renewLease(String leaseId, long requestedTtlMillis) {
         this.requireLease(leaseId);
-        long ttl = Math.max(1_000L, Math.min(requestedTtlMillis, 60_000L));
+        long ttl =
+                Math.max(
+                        MIN_CONTROL_LEASE_MILLIS,
+                        Math.min(requestedTtlMillis, MAX_CONTROL_LEASE_MILLIS));
         this.lease = new ControlLease(this.lease.id(), System.currentTimeMillis() + ttl);
         this.scheduleLeaseExpiry(this.lease);
         return this.leaseJson("renewed");
@@ -471,11 +502,138 @@ public final class ProtocolState implements AutoCloseable {
         return this.controlSession;
     }
 
-    private void cleanupInput(String reason) {
+    private CompletableFuture<JsonObject> cleanupInput(String reason) {
+        return this.cleanupInput(reason, false);
+    }
+
+    private CompletableFuture<JsonObject> cleanupInput(String reason, boolean forceNewWave) {
+        this.inputCleanupReason = reason;
+        CompletableFuture<JsonObject> previous = this.inputCleanupBarrier;
+        if (!forceNewWave && !previous.isDone()) return previous;
+        this.inputGeneration.incrementAndGet();
+        CompletableFuture<JsonObject> barrier = new CompletableFuture<>();
+        this.inputCleanupBarrier = barrier;
         try {
-            this.inputCleanupBarrier = this.inputCleanup.apply(reason);
+            CompletableFuture<JsonObject> cleanup = this.inputCleanup.apply(reason);
+            CompletableFuture.allOf(
+                            previous.isDone() ? CompletableFuture.completedFuture(null) : previous,
+                            cleanup)
+                    .whenComplete(
+                            (ignored, error) -> {
+                                if (error == null) barrier.complete(cleanup.join());
+                                else barrier.completeExceptionally(error);
+                            });
         } catch (Throwable error) {
-            this.inputCleanupBarrier = CompletableFuture.failedFuture(error);
+            barrier.completeExceptionally(error);
+        }
+        return barrier;
+    }
+
+    synchronized void nativeInputContextChanged(InputContextEpoch.Snapshot context) {
+        if (this.closed || context.equals(this.nativeInputContext)) return;
+        InputContextEpoch.Snapshot previous = this.nativeInputContext;
+        if (previous != null && context.generation() <= previous.generation())
+            throw new IllegalArgumentException("Native input context generation must advance");
+        this.nativeInputContext = context;
+        if (previous == null && this.lease == null) return;
+        // A second replacement must fence admission even while a previous cleanup is pending.
+        this.cleanupInput("native_input_context_changed", true);
+        this.cancelLeaseBoundOperations("native_input_context_changed");
+        this.audit(
+                UUID.randomUUID().toString(),
+                "native-input",
+                "/v0/input/context",
+                "native_input_context_changed");
+    }
+
+    synchronized CompletableFuture<JsonObject> releaseAllInputAndWait(String leaseId) {
+        this.requireScope("input");
+        this.requireScope("control");
+        this.requireTakeover(leaseId);
+        CompletableFuture<JsonObject> cleanup = this.cleanupInput("client_release_all");
+        long generation = this.inputGeneration.get();
+        // Cancelling this response must not cancel the Runtime-owned safety cleanup.
+        return cleanup.thenApply(
+                value -> {
+                    JsonObject result = value == null ? new JsonObject() : value.deepCopy();
+                    result.addProperty("type", "input.release_all");
+                    result.addProperty("inputGeneration", generation);
+                    return result;
+                });
+    }
+
+    JsonObject inputStateMetadata(JsonObject snapshot) {
+        JsonObject result = snapshot.deepCopy();
+        CompletableFuture<JsonObject> cleanup = this.inputCleanupBarrier;
+        result.addProperty("inputGeneration", this.inputGeneration.get());
+        result.addProperty("inputCleanupPending", !cleanup.isDone());
+        result.addProperty("inputCleanupFailed", cleanup.isCompletedExceptionally());
+        InputContextEpoch.Snapshot context = this.nativeInputContext;
+        result.addProperty("inputContextGeneration", context == null ? 0 : context.generation());
+        result.addProperty("inputContextId", context == null ? "" : context.opaqueId());
+        result.addProperty("inputContextAvailable", context != null && context.worldAvailable());
+        return result;
+    }
+
+    synchronized InputGuard captureInputGuard(String leaseId) {
+        this.requireScope("input");
+        this.requireTakeover(leaseId);
+        InputGuard guard = new InputGuard(this, leaseId, this.inputGeneration.get());
+        guard.run();
+        return guard;
+    }
+
+    static final class InputGuard implements Runnable {
+        private final ProtocolState state;
+        private final String leaseId;
+        private final long generation;
+
+        private InputGuard(ProtocolState state, String leaseId, long generation) {
+            this.state = state;
+            this.leaseId = leaseId;
+            this.generation = generation;
+        }
+
+        String leaseId() {
+            return this.leaseId;
+        }
+
+        long generation() {
+            return this.generation;
+        }
+
+        @Override
+        public void run() {
+            // A native callback already owns ControlSession's monitor. Never take State's here.
+            if (this.state.closed)
+                throw new ProtocolException(
+                        "CONTROL_SESSION_CLOSED", 409, "Runtime control session is closed");
+            ControlLease lease = this.state.lease;
+            if (lease == null
+                    || !this.leaseId.equals(lease.id())
+                    || lease.expiresAtMillis() <= System.currentTimeMillis()) {
+                boolean manual =
+                        lease == null
+                                && this.state.inputCleanupReason.equals("human_manual_revocation");
+                throw new ProtocolException(
+                        manual ? "USER_MANUALLY_ENDED_CONTROL" : "CONTROL_LEASE_REQUIRED",
+                        409,
+                        manual ? "用户手动结束控制" : "The originating input Lease is no longer active");
+            }
+            if (this.state.inputGeneration.get() != this.generation)
+                throw new ProtocolException(
+                        "CONTROL_INPUT_GENERATION_CHANGED",
+                        409,
+                        "Input was stopped after this request was admitted");
+            CompletableFuture<JsonObject> cleanup = this.state.inputCleanupBarrier;
+            if (!cleanup.isDone())
+                throw new ProtocolException(
+                        "CONTROL_INPUT_CLEANUP_PENDING",
+                        409,
+                        "Input cleanup must complete before admitting more player input");
+            if (cleanup.isCompletedExceptionally())
+                throw new ProtocolException(
+                        "CONTROL_INPUT_CLEANUP_FAILED", 409, "Input cleanup failed");
         }
     }
 
@@ -512,10 +670,10 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     synchronized <T> CompletableFuture<T> admitInput(
-            String leaseId, Supplier<CompletableFuture<T>> factory) {
-        this.requireTakeover(leaseId);
-        return factory
-                .get(); // captures the owner-thread generation before a mode switch can interleave
+            InputGuard guard, Supplier<CompletableFuture<T>> factory) {
+        this.requireTakeover(guard.leaseId());
+        guard.run();
+        return factory.get();
     }
 
     synchronized void requireDebugCredential(String armId) {
@@ -1186,6 +1344,7 @@ public final class ProtocolState implements AutoCloseable {
         operations.add(
                 descriptor(
                         "input.key", "input", true, true, false, "screenRevision", "menuRevision"));
+        operations.add(descriptor("input.release_all", "input", true, false, false));
         operations.add(
                 descriptor(
                         "command.player.execute",
@@ -1325,6 +1484,10 @@ public final class ProtocolState implements AutoCloseable {
         List<DeepObservationRequestContext> pendingReads;
         synchronized (this) {
             if (this.closed) return;
+            pendingOperations =
+                    this.operations.values().stream()
+                            .filter(operation -> operation.markCancelled("transport_close"))
+                            .toList();
             this.closed = true;
             this.modeTransitionPending = false;
             boolean hadLease = this.lease != null;
@@ -1339,14 +1502,13 @@ public final class ProtocolState implements AutoCloseable {
                         "control",
                         "/v0/control/transport-close",
                         "control_released");
-            pendingOperations = List.copyOf(this.operations.values());
             pendingReads = List.copyOf(this.deepObservations.values());
             this.deepObservations.clear();
             this.gameplayActs.clear();
         }
         // Native cancellation barriers may be held by an owner waiting to reauthorize here.
         // Never wait for those barriers while holding the ProtocolState monitor.
-        for (Operation operation : pendingOperations) operation.cancel("transport_close");
+        for (Operation operation : pendingOperations) operation.cancelMarkedFuture();
         for (DeepObservationRequestContext requestContext : pendingReads) {
             requestContext.cancel("transport_close");
         }
@@ -1392,9 +1554,15 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     private void cancelLeaseBoundOperations(String reason) {
-        for (Operation operation : this.operations.values()) {
-            if (operation.leaseBound) operation.cancel(reason);
-        }
+        // Cancelling one Future can synchronously drain its queue and start another entry.
+        // Commit every affected terminal before permitting any of those callbacks to run.
+        List<Operation> cancelled =
+                this.operations.values().stream()
+                        .filter(
+                                operation ->
+                                        operation.leaseBound && operation.markCancelled(reason))
+                        .toList();
+        for (Operation operation : cancelled) operation.cancelMarkedFuture();
     }
 
     private synchronized void expireDebugIfNeeded(long now) {
@@ -1513,6 +1681,11 @@ public final class ProtocolState implements AutoCloseable {
         if (id.equals("ui.action")) {
             JsonArray additional = new JsonArray();
             AutomationEngine.STEP_ADDITIONAL_SCOPES.get("ui.action").forEach(additional::add);
+            json.add("additionalScopes", additional);
+        }
+        if (id.equals("input.release_all")) {
+            JsonArray additional = new JsonArray();
+            additional.add("control");
             json.add("additionalScopes", additional);
         }
         if (id.equals("pipeline.execute")) {
@@ -1723,6 +1896,10 @@ public final class ProtocolState implements AutoCloseable {
         }
 
         private void cancel(String reason) {
+            if (this.markCancelled(reason)) this.cancelMarkedFuture();
+        }
+
+        private boolean markCancelled(String reason) {
             synchronized (this) {
                 if (this.state.equals("executing")
                         || this.state.equals("scheduled")
@@ -1731,8 +1908,13 @@ public final class ProtocolState implements AutoCloseable {
                     this.state = "cancelled";
                     this.cancellationReason = reason;
                     this.completedAtMillis = System.currentTimeMillis();
-                } else return;
+                    return true;
+                }
+                return false;
             }
+        }
+
+        private void cancelMarkedFuture() {
             try {
                 this.future.cancel(true);
                 if (this.future instanceof CancellableOperationFuture cancellable) {

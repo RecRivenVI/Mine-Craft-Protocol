@@ -3,6 +3,38 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { automaticTakeoverRequest, guardAutomaticTakeover } from '../../runtime-connection.mjs';
+import { baselineStatistics } from './interaction-baseline-actions.mjs';
+import { collectReadQuota } from './consumer-rate-actions.mjs';
+import { contextExitEvidence } from './context-exit-evidence.mjs';
+
+const exitBefore={inputGeneration:2,inputContextGeneration:1,inputContextId:'old',inputContextAvailable:true};
+const exitAfter={inputGeneration:3,inputContextGeneration:2,inputContextId:'new',inputContextAvailable:false,pressedKeyCount:0,pressedButtonCount:0,inputCleanupPending:false,inputCleanupFailed:false};
+const exitTitle={screenClass:'net.minecraft.client.gui.screens.TitleScreen',overlayIdentity:0};
+const exitError={status:409,body:{error:'REQUEST_CANCELLED',executionOutcome:'not_confirmed',retrySafe:false}};
+assert.equal(contextExitEvidence(exitBefore,exitAfter,exitTitle,exitError).requestOutcome,'not_confirmed');
+for(const override of [{inputGeneration:2},{inputContextGeneration:1},{inputContextId:'old'},{inputContextAvailable:true},{pressedKeyCount:1},{pressedButtonCount:1},{inputCleanupPending:true},{inputCleanupFailed:true}])assert.throws(()=>contextExitEvidence(exitBefore,{...exitAfter,...override},exitTitle,exitError));
+for(const override of [{screenClass:'PauseScreen'},{overlayIdentity:1}])assert.throws(()=>contextExitEvidence(exitBefore,exitAfter,{...exitTitle,...override},exitError));
+for(const error of [{status:500,body:exitError.body},{status:409,body:{...exitError.body,error:'UI_TARGET_INVALIDATED'}},{status:409,body:{...exitError.body,executionOutcome:'completed'}},{status:409,body:{...exitError.body,retrySafe:true}}])assert.throws(()=>contextExitEvidence(exitBefore,exitAfter,exitTitle,error));
+
+for(const first of ['native','mcp']){
+ let nativeCalls=0,mcpCalls=0;
+ const proof=await collectReadQuota({
+  async nativeRead(){const round=Math.floor(nativeCalls++/12);return round>0||first==='native'?{status:429,body:{channel:'native'}}:{status:200};},
+  async mcpRead(){const round=mcpCalls++;return round>0||first==='mcp'?{isError:true,structuredContent:{error:{status:429,channel:'mcp'}}}:{isError:false};},
+  validate(value,operation){assert.equal(operation,'world');return {channel:value.channel};}
+ });
+ assert.equal(nativeCalls,24);assert.equal(mcpCalls,2);assert.equal(proof.requests,24);
+ assert.deepEqual(proof.nativeQuota,{channel:'native'});assert.deepEqual(proof.mcpQuota,{channel:'mcp'});
+}
+let quotaNativeCalls=0,quotaMcpCalls=0;
+await assert.rejects(collectReadQuota({async nativeRead(){quotaNativeCalls++;return {status:200};},async mcpRead(){quotaMcpCalls++;return {isError:false};},validate(){assert.fail('No rejection was received');}}),/bounded native read burst/);
+assert.equal(quotaNativeCalls,192);assert.equal(quotaMcpCalls,16);
+await assert.rejects(collectReadQuota({async nativeRead(){return {status:500};},async mcpRead(){assert.fail('Native error must not be ignored');},validate(){assert.fail();}}),{code:'ERR_ASSERTION'});
+await assert.rejects(collectReadQuota({async nativeRead(){return {status:200};},async mcpRead(){return {isError:true,structuredContent:{error:{status:403}}};},validate(){assert.fail();}}),{code:'ERR_ASSERTION'});
+
+assert.deepEqual(baselineStatistics([3, 1, 2, 4]), {sampleCount:4,method:'nearest_rank',min:1,p50:2,p95:4,max:4});
+assert.equal(baselineStatistics(Array.from({length:20},(_,index)=>index+1)).p95,19);
+for(const invalid of [[],[-1],[NaN],[Infinity]])assert.throws(()=>baselineStatistics(invalid));
 
 const controlVersion={controlSessionId:'owned-test-runtime',generation:4};
 const automaticRequest={ttlMs:60000,taskId:'own-task'};
@@ -29,6 +61,17 @@ assert(smokeSource.includes("body=automaticTakeoverRequest(await api('GET','/v0/
 const consumerSource=await readFile(resolve(import.meta.dirname,'world-read-consumers.mjs'),'utf8');
 assert(consumerSource.includes("args=automaticTakeoverRequest(await call('minecraft_control',{action:'status'}),args)"));
 assert(consumerSource.includes("automaticTakeoverRequest(mode,{action:'acquire',ttlMs:30000})"));
+for(const[file,exitCase]of [['consumer-priority-actions.mjs','consumer_world_exit'],['server-completion-actions.mjs','server_completion_world_exit']]){
+ const source=await readFile(resolve(import.meta.dirname,file),'utf8');
+ assert(source.includes("import {finishBaselineWorldExit} from './interaction-baseline-actions.mjs'"),file+' must reuse the tested native context exit observer');
+ assert(source.includes('const worldExit=await finishBaselineWorldExit({api,quit,'),file+' must observe the one real Save & Quit dispatch');
+ assert(source.includes("case:'"+exitCase+"',...worldExit"),file+' must retain the original request outcome with independent exit evidence');
+ assert(!source.includes('await clickNode(quit);await wait('),file+' must not require the epoch-invalidated RPC to claim success');
+}
+const prioritySource=await readFile(resolve(import.meta.dirname,'consumer-priority-actions.mjs'),'utf8');
+assert(prioritySource.includes("command:`execute in ${dimension} run tp @s 0.5 80 0.5 0 0`,route:'NATIVE'"),'Dimension Arrange must use the explicit existing native route rather than a cancelled CHAT pipeline');
+assert(prioritySource.includes("assert.equal(r.mechanism,'GAME_ROUTED_RAW')"),'The other command consumer flows must keep their actual CHAT path');
+assert(prioritySource.includes("case:'consumer_dimension',dimension,before,receipt,player:p,after,released,readyUi"),'Native submission and independent USER/context/cleanup evidence remain separate');
 const installedSource=await readFile(resolve(import.meta.dirname,'../../integration-packaged_runtime/task/installed-launcher.mjs'),'utf8');
 assert(installedSource.includes("automaticTakeoverRequest(await status.json(),{ttlMs:15000})"));
 assert.equal((installedSource.match(/connection\.fetch\('\/v0\/control\/acquire'/g)??[]).length,1,'Every installed-loader acquisition uses the checked helper');
@@ -39,6 +82,13 @@ for(const path of ['/v0/player','/v0/server/player','/v0/world/block','/v0/serve
 for(const model of ['WorldDataCategory','WorldUserPlayerResponse','WorldReadContract','WorldSceneResponse']) assert(schema.components.schemas[model]);
 assert(schema.paths['/v0/world/scene']);
 assert.equal(schema.components.schemas.OperationDescriptor.properties.additionalScopesByStep.type,'object');
+assert.equal(schema['x-minecraft-websocket'].path,'/v0/events');
+assert.equal(schema['x-minecraft-websocket'].continuousWorldState,true);
+assert.equal(schema['x-minecraft-websocket'].stateScope,'USER_client_player_pose_only');
+assert.deepEqual(schema['x-minecraft-websocket'].stateTypes,['world.player.state']);
+assert.equal(schema.components.schemas.OperationResponse.properties.result.properties.timing.$ref,'#/components/schemas/PipelineTiming');
+assert.equal(schema.components.schemas.UiNode.properties.slotOwner.enum.join(','),'player_inventory,menu,unknown');
+for(const field of ['itemId','itemCount'])assert.deepEqual(schema.paths['/v0/world/entities'].get.responses['200'].content['application/json'].schema.oneOf[0].properties.entities.items.properties[field],schema.components.schemas.WorldSceneResponse.properties.entities.items.properties[field]);
 for(const parameter of ['ExpectedScreenRevision','ExpectedMenuRevision'])assert(schema.paths['/v0/pipelines'].post.parameters.some(value=>value.$ref==='#/components/parameters/'+parameter),'Pipeline queued precondition missing from the real OpenAPI surface');
 assert.throws(()=>execFileSync(process.execPath,[resolve(import.meta.dirname,'../../regression-v1_release/task/write-alpha-manifest.mjs'),'--scenario=unknown'],{stdio:'pipe'}),'Unknown alpha verification scope must fail before generating output');
 assert(schema.components.schemas.PipelineStep.properties.type.enum.includes('world.action'));

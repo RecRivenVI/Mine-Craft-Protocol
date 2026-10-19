@@ -8,6 +8,7 @@ import io.github.recrivenvi.minecraftprotocol.probe.mixin.WorldPickInvoker;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldAim;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldBlockChanges;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldBreakTrace;
+import io.github.recrivenvi.minecraftprotocol.safety.WorldPlacementReceipt;
 import io.github.recrivenvi.minecraftprotocol.safety.WorldTargetRegistry;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -15,8 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.BlockItem;
@@ -24,6 +27,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -49,6 +53,8 @@ public final class WorldTargeting {
             BlockState state,
             long revision) {}
 
+    private record Placement(BlockPos destination, Object chunk, BlockState before, String block) {}
+
     private static final class Hold {
         final String ref, action;
         final Target target;
@@ -59,6 +65,8 @@ public final class WorldTargeting {
         JsonObject errorEvidence;
         WorldBreakTrace destruction;
         int breakChanges;
+        Placement placement;
+        final WorldPlacementReceipt placementReceipt = new WorldPlacementReceipt();
 
         Hold(String ref, String action, Target target, JsonObject guard, JsonObject options) {
             this.ref = ref;
@@ -480,7 +488,7 @@ public final class WorldTargeting {
         return hit instanceof EntityHitResult entity && entity.getEntity() == target.entity.get();
     }
 
-    private static void placement(JsonObject result, JsonObject options) {
+    private static Placement placement(JsonObject result, JsonObject options) {
         Minecraft client = Minecraft.getInstance();
         if (!(client.hitResult instanceof BlockHitResult block))
             throw notHit(
@@ -504,10 +512,9 @@ public final class WorldTargeting {
                                 false);
         if (chunk == null)
             throw error("WORLD_TARGET_STALE", "Placement destination chunk is not loaded");
-        String before =
-                net.minecraft.core.registries.BuiltInRegistries.BLOCK
-                        .getKey(chunk.getBlockState(destination).getBlock())
-                        .toString();
+        BlockState beforeState = chunk.getBlockState(destination);
+        JsonObject beforeValue = placementState(beforeState);
+        String before = beforeValue.get("block").getAsString();
         if (options.has("expectedDestinationBlockId")
                 && !options.get("expectedDestinationBlockId").getAsString().equals(before))
             throw error(
@@ -520,10 +527,90 @@ public final class WorldTargeting {
         at.addProperty("y", destination.getY());
         at.addProperty("z", destination.getZ());
         at.addProperty("beforeBlock", before);
+        at.add("beforeState", beforeValue);
         result.add("destination", at);
         result.addProperty("requestedFace", options.get("face").getAsString());
         result.addProperty("hitU", options.get("u").getAsDouble());
         result.addProperty("hitV", options.get("v").getAsDouble());
+        return new Placement(
+                destination.immutable(),
+                chunk,
+                beforeState,
+                net.minecraft.core.registries.BuiltInRegistries.BLOCK
+                        .getKey(((BlockItem) client.player.getMainHandItem().getItem()).getBlock())
+                        .toString());
+    }
+
+    private static JsonObject placementState(BlockState state) {
+        JsonObject value = new JsonObject();
+        value.addProperty(
+                "block",
+                net.minecraft.core.registries.BuiltInRegistries.BLOCK
+                        .getKey(state.getBlock())
+                        .toString());
+        JsonObject properties = new JsonObject();
+        for (Property<?> property : state.getProperties())
+            placementProperty(properties, state, property);
+        value.add("properties", properties);
+        return value;
+    }
+
+    private static <T extends Comparable<T>> void placementProperty(
+            JsonObject properties, BlockState state, Property<T> property) {
+        properties.addProperty(property.getName(), property.getName(state.getValue(property)));
+    }
+
+    /** Observes only the first accepted native invocation, never simulates a second placement. */
+    public void nativeUseOnResult(
+            LocalPlayer player,
+            InteractionHand hand,
+            BlockHitResult hit,
+            InteractionResult result) {
+        Hold current = this.hold;
+        if (current == null
+                || !current.action.equals("place")
+                || !current.invoked
+                || !current.placementReceipt.pending()
+                || current.placement == null
+                || result == null) return;
+        Minecraft client = Minecraft.getInstance();
+        if (!client.isSameThread()
+                || current.target.world.get() != client.level
+                || current.target.player.get() != client.player
+                || current.target.camera.get() != client.getCameraEntity()
+                || player != client.player
+                || hand != InteractionHand.MAIN_HAND
+                || !matches(current.target, current.action, current.options, hit)) return;
+        Placement placement = current.placement;
+        var chunk =
+                client.level
+                        .getChunkSource()
+                        .getChunk(
+                                placement.destination.getX() >> 4,
+                                placement.destination.getZ() >> 4,
+                                net.minecraft.world.level.chunk.status.ChunkStatus.FULL,
+                                false);
+        if (chunk == null || chunk != placement.chunk) {
+            current.error = "WORLD_TARGET_STALE";
+            current.errorDetail = "Placement destination lifecycle changed before native receipt";
+            return;
+        }
+        String nativeResult =
+                result == InteractionResult.FAIL
+                        ? "fail"
+                        : result == InteractionResult.PASS
+                                ? "pass"
+                                : result == InteractionResult.SUCCESS
+                                        ? "success"
+                                        : result == InteractionResult.SUCCESS_SERVER
+                                                ? "success_server"
+                                                : result == InteractionResult.CONSUME
+                                                        ? "consume"
+                                                        : "other";
+        current.placementReceipt.record(
+                nativeResult,
+                result.consumesAction(),
+                placementState(chunk.getBlockState(placement.destination)));
     }
 
     /** Passive owner-thread monitoring; no direct use/destroy/camera mutation. */
@@ -585,6 +672,11 @@ public final class WorldTargeting {
         if (current.action.equals("place") && released && !current.invoked)
             throw error(
                     "WORLD_PLACE_NOT_DISPATCHED", "No native placement invocation was observed");
+        if (current.action.equals("place"))
+            current.placementReceipt
+                    .snapshot()
+                    .entrySet()
+                    .forEach(entry -> result.add(entry.getKey(), entry.getValue().deepCopy()));
         return result;
     }
 
@@ -623,7 +715,9 @@ public final class WorldTargeting {
             }
             if (current.action.equals("place")) {
                 if (!kind.equals("use_on") || current.invoked) return false;
-                placement(new JsonObject(), current.options);
+                current.placement = placement(new JsonObject(), current.options);
+                current.placementReceipt.begin(
+                        placementState(current.placement.before), current.placement.block);
                 current.invoked = true;
                 return true;
             }

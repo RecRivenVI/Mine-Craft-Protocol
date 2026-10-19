@@ -22,6 +22,24 @@
       "BearerAuth": []
     }
   ],
+  "x-minecraft-websocket": {
+    "path": "/v0/events",
+    "transport": "authenticated_http_upgrade",
+    "categoryQuery": ["USER", "DEBUG"],
+    "defaultCategory": "USER",
+    "scopes": ["event", "read"],
+    "debugReadScopes": ["debug", "debug.world.read"],
+    "instanceHeader": "X-MCP-Runtime-Instance",
+    "hello": "event.hello",
+    "commands": ["event.subscribe", "event.ack", "event.resume", "event.resync"],
+    "ringCapacity": 1024,
+    "clientQueueCapacity": 128,
+    "continuousWorldState": true,
+    "stateScope": "USER_client_player_pose_only",
+    "stateTypes": ["world.player.state"],
+    "stateSchema": "#/components/schemas/WorldPlayerStateEvent",
+    "description": "Existing lifecycle/input/screen events plus explicitly requested USER world.player.state client-tick pose. The pose stream requires read/event, types=[world.player.state] or namespaces=[world], at most once per actual client tick and only a connected local player; default all-events does not include the high-frequency stream. Each pose carries streamContext generation/opaqueId, sourceTick/sample time, xyz/yaw/pitch/onGround/velocityXYZ, no server/NBT fields. Paused gameplay may repeat the same pose; wall-clock rate depends on native tick scheduling and load. Bearer authentication and per-category read authorization are required at publication, replay and send. Old-context frames cannot replay and require gap/resync. Block-change streaming is not implemented. HTTP paths below do not model WebSocket frames."
+  },
   "paths": {
     "/v0/control/task": {
       "parameters": [
@@ -812,6 +830,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v0/input/release-all": {
+      "parameters": [{ "$ref": "#/components/parameters/RuntimeInstance" }],
+      "post": {
+        "operationId": "releaseAllInput",
+        "x-agent-mode": "TAKEOVER_REQUIRED",
+        "description": "Strongly stop active and queued player input and release Runtime-held keys/buttons. Requires input and control scopes, TAKEOVER and the current input Lease. Preserves mode, Lease, task, manual latch, Debug Arm and independent Debug work. Screen/Menu revision pins do not block safety cleanup. A response deadline does not undo mandatory cleanup; inspect input state or input.released afterwards. No rollback or permission escalation.",
+        "parameters": [
+          { "$ref": "#/components/parameters/ControlLease" },
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/ProtocolVersion" },
+          { "$ref": "#/components/parameters/Deadline" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": false, "maxProperties": 0 } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Actual input cleanup result with the new input generation; control authority is retained",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InputReleaseAllResponse" } } }
           }
         }
       }
@@ -1673,6 +1715,23 @@
         }
       }
     },
+    "/v0/world/region": {
+      "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "post": {
+        "operationId":"readWorldRegion",
+        "x-agent-mode":"READ_COMPATIBLE",
+        "description":"USER-only existing client cache pages, never server/NBT/disk or chunk loading. All region block centers remain within 32 blocks of the player at every page. At most 65536 cells per fixed query, 4096 cells per section page, cooperative 8ms owner budget and 16..128KiB payload budget (excluding HTTP envelope). Continuation is single-use on success, bound to authenticated Runtime principal and native world/player/connection epoch, idle 30s/hard 120s. -1 means unloaded, never air; per-page tick/time is not cross-page atomic. READ/OPERATE/TAKEOVER compatible, read scope, no input Lease. At most one page request in flight. Safe read-only retry after structured failure; do not replay a consumed cursor after an uncertain response, restart the read. action=cancel releases only the caller's cursor.",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/WorldRegionRequest"}}}},
+        "responses":{
+          "200":{"description":"Typed page or cancellation result","content":{"application/json":{"schema":{"oneOf":[{"$ref":"#/components/schemas/WorldRegionPageResponse"},{"$ref":"#/components/schemas/WorldRegionCancelResponse"}]}}}},
+          "400":{"description":"Invalid typed query"},
+          "403":{"description":"Read scope denied"},
+          "409":{"description":"Stale/expired cursor, changed context or region outside USER range"},
+          "413":{"description":"The first page cell and metadata cannot fit the declared payload budget"},
+          "429":{"description":"Busy, cursor limit, owner budget without progress or request budget; retryAfterMillis is advisory, not admission or a latency guarantee"}
+        }
+      }
+    },
     "/v0/world/scene": {
       "parameters": [
         {
@@ -1973,6 +2032,16 @@
                               "name": {
                                 "type": "string",
                                 "maxLength": 512
+                              },
+                              "itemId": {
+                                "type": "string",
+                                "maxLength": 512,
+                                "description": "Only for a non-empty client-tracked ItemEntity stack: registry item id, not NBT or server inventory."
+                              },
+                              "itemCount": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "description": "Client-synchronized ItemEntity stack count; sampled state, not authoritative server pickup confirmation."
                               },
                               "invisible": {
                                 "type": "boolean"
@@ -6175,6 +6244,7 @@
             "enum": [
               "MIXIN_INJECT",
               "MIXIN_REDIRECT",
+              "MIXIN_MODIFY_VARIABLE",
               "MIXIN_INVOKER",
               "MIXIN_ACCESSOR",
               "PUBLIC_METHOD",
@@ -6568,6 +6638,11 @@
                     "type": "integer",
                     "minimum": 0
                   },
+                  "capturedPresentationNodeCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "DEBUG captured presentation graph count, not the number of game data packets or actionable widgets."
+                  },
                   "scope": {
                     "type": "string",
                     "enum": [
@@ -6585,6 +6660,20 @@
               "uiContextId": {
                 "type": "string",
                 "description": "DEBUG only: session-bound UI Arm context, not a world fingerprint."
+              },
+              "interactionNodeCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Recursive node count in returned children after category/visibility projection; not a count of clickable nodes."
+              },
+              "presentationNodeCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Recursive node count in returned presentation.children, including applicable HUD/Toast data; zero interaction nodes does not mean no HUD."
+              },
+              "countSemantics": {
+                "type": "string",
+                "enum": ["returned_projection_recursive"]
               },
               "presentation": {
                 "$ref": "#/components/schemas/UiPresentation"
@@ -6650,7 +6739,8 @@
                 "type": "string"
               },
               "title": {
-                "type": "string"
+                "type": "string",
+                "description": "Native Screen title when exposed by this category. USER omits a title hidden behind a blocking overlay; Screen identity alone is not a page-ready guarantee."
               },
               "width": {
                 "type": "integer"
@@ -6925,6 +7015,83 @@
         },
         "description": "USER is a bounded client world model, not human-visible-only or server authority. UI USER and all input/evidence permissions remain separate; player-command effects and world milestone remain incomplete."
       },
+      "WorldPlayerStateEvent": {
+        "type":"object",
+        "required":["type","sequence","category","stateStream","streamContext","domain","dataCategory","authority","source","dataSource","storageAccessed","serverAuthoritative","sourceTick","sampledAtMillis","x","y","z","yaw","pitch","onGround","velocityX","velocityY","velocityZ"],
+        "properties":{
+          "type":{"type":"string","enum":["world.player.state"]},
+          "sequence":{"type":"integer","format":"int64","minimum":0},
+          "timestampMillis":{"type":"integer","format":"int64"},
+          "category":{"type":"string","enum":["world"]},
+          "stateStream":{"type":"string","enum":["client_player_pose"]},
+          "streamContext":{"type":"object","required":["generation","opaqueId"],"properties":{"generation":{"type":"integer","format":"int64","minimum":0},"opaqueId":{"type":"string"}}},
+          "domain":{"type":"string","enum":["WORLD"]},
+          "dataCategory":{"type":"string","enum":["USER"]},
+          "authority":{"type":"string","enum":["CLIENT_KNOWN"]},
+          "source":{"type":"string","enum":["client_tick_state"]},
+          "dataSource":{"type":"string","enum":["LIVE"]},
+          "storageAccessed":{"type":"boolean","enum":[false]},
+          "serverAuthoritative":{"type":"boolean","enum":[false]},
+          "sourceTick":{"type":"integer","format":"int64","minimum":0},
+          "sampledAtMillis":{"type":"integer","format":"int64","minimum":0},
+          "x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},
+          "yaw":{"type":"number"},"pitch":{"type":"number"},"onGround":{"type":"boolean"},
+          "velocityX":{"type":"number"},"velocityY":{"type":"number"},"velocityZ":{"type":"number"}
+        }
+      },
+      "WorldRegionPosition": {
+        "type":"object", "additionalProperties":false,
+        "required":["x","y","z"],
+        "properties":{"x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"}}
+      },
+      "WorldRegionPageResponse": {
+        "type":"object",
+        "required":["type","available","domain","dataCategory","authority","source","dataSource","contextId","dimension","sourceTick","sourceTickEnd","sampledAtMillis","captureDurationNanos","region","section","palette","indices","pageStartOffset","pageCellCount","pageUnloadedCellCount","requestedCellCount","coveredCellCount","remainingCellCount","unloadedCellCount","complete","allLoaded","truncated","truncationReason","maxBlocks","maxBytes","ownerBudgetNanos","crossPageAtomic","chunkLoadRequested","storageAccessed","unloadedPaletteIndex"],
+        "properties":{
+          "type":{"type":"string","enum":["world.region"]},"available":{"type":"boolean","enum":[true]},
+          "domain":{"type":"string","enum":["WORLD"]},"dataCategory":{"type":"string","enum":["USER"]},
+          "authority":{"type":"string","enum":["CLIENT_KNOWN"]},"source":{"type":"string","enum":["bounded_client_world_model"]},
+          "dataSource":{"type":"string","enum":["LIVE"]},"contextId":{"type":"string"},"dimension":{"type":"string"},
+          "sourceTick":{"type":"integer","format":"int64","minimum":0},"sourceTickEnd":{"type":"integer","format":"int64","minimum":0},
+          "sampledAtMillis":{"type":"integer","format":"int64","minimum":0},
+          "captureDurationNanos":{"type":"integer","format":"int64","minimum":0,"description":"Measured before final metadata serialization, not an owner-thread hard deadline or HTTP latency."},
+          "region":{"type":"object","required":["min","max"],"properties":{"min":{"$ref":"#/components/schemas/WorldRegionPosition"},"max":{"$ref":"#/components/schemas/WorldRegionPosition"}}},
+          "section":{"type":"object","required":["x","y","z","min","size","offset"],"properties":{
+            "x":{"type":"integer"},"y":{"type":"integer"},"z":{"type":"integer"},
+            "min":{"$ref":"#/components/schemas/WorldRegionPosition"},"size":{"$ref":"#/components/schemas/WorldRegionPosition"},"offset":{"type":"integer","minimum":0}}},
+          "palette":{"type":"array","maxItems":4096,"items":{"type":"object","additionalProperties":false,"required":["block","properties"],"properties":{"block":{"type":"string"},"properties":{"type":"object","additionalProperties":{"type":"string"}}}}},
+          "indices":{"type":"array","minItems":1,"maxItems":4096,"items":{"type":"integer","minimum":-1},"description":"Indexes into palette; -1 is unloaded/unknown, never air. Order is section_y_z_x_then_local_y_z_x."},
+          "pageStartOffset":{"type":"integer","minimum":0},"pageCellCount":{"type":"integer","minimum":1,"maximum":4096},
+          "pageUnloadedCellCount":{"type":"integer","minimum":0},"requestedCellCount":{"type":"integer","minimum":1,"maximum":65536},
+          "coveredCellCount":{"type":"integer","minimum":1},"remainingCellCount":{"type":"integer","minimum":0},"unloadedCellCount":{"type":"integer","minimum":0},
+          "complete":{"type":"boolean"},"allLoaded":{"type":"boolean"},"truncated":{"type":"boolean"},"truncationReason":{"type":"string"},
+          "maxBlocks":{"type":"integer","minimum":1,"maximum":4096},"maxBytes":{"type":"integer","minimum":16384,"maximum":131072},
+          "ownerBudgetNanos":{"type":"integer","minimum":1,"maximum":8000000,"description":"Cooperative checks between cells; a native cell read and serialization are not preempted."},
+          "nextCursor":{"type":"string","description":"Only on incomplete pages; consumed only after successful guarded publication. Do not replay after an uncertain response."},
+          "crossPageAtomic":{"type":"boolean","enum":[false]},"chunkLoadRequested":{"type":"boolean","enum":[false]},"storageAccessed":{"type":"boolean","enum":[false]},
+          "unloadedPaletteIndex":{"type":"integer","enum":[-1]}
+        }
+      },
+      "WorldRegionCancelResponse": {
+        "type":"object","required":["type","cancelled"],
+        "properties":{"type":{"type":"string","enum":["world.region.cancel"]},"cancelled":{"type":"boolean"}}
+      },
+      "WorldRegionRequest": {
+        "type":"object", "additionalProperties":false, "required":["query"],
+        "properties":{
+          "category":{"type":"string","enum":["USER"],"default":"USER"},
+          "action":{"type":"string","enum":["read","cancel"],"default":"read"},
+          "query":{"oneOf":[
+            {"type":"object","additionalProperties":false,"required":["cursor"],"properties":{"cursor":{"type":"string","minLength":1,"maxLength":128}}},
+            {"type":"object","additionalProperties":false,"required":["min","max"],"properties":{
+              "min":{"$ref":"#/components/schemas/WorldRegionPosition"},
+              "max":{"$ref":"#/components/schemas/WorldRegionPosition"},
+              "maxBlocks":{"type":"integer","minimum":1,"maximum":4096,"default":4096},
+              "maxBytes":{"type":"integer","minimum":16384,"maximum":131072,"default":65536}
+            }}
+          ]}
+        }
+      },
       "WorldSceneResponse": {
         "type": "object",
         "required": [
@@ -7128,6 +7295,16 @@
                 "name": {
                   "type": "string",
                   "maxLength": 512
+                },
+                "itemId": {
+                  "type": "string",
+                  "maxLength": 512,
+                  "description": "Only for a non-empty client-tracked ItemEntity stack: registry item id, not NBT or server inventory."
+                },
+                "itemCount": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Client-synchronized ItemEntity stack count; sampled state, not authoritative server pickup confirmation."
                 },
                 "invisible": {
                   "type": "boolean"
@@ -7417,6 +7594,9 @@
           "flying"
         ],
         "properties": {
+          "velocityX": {"type":"number","description":"Finite native client delta movement; not server authority or pixels/second."},
+          "velocityY": {"type":"number"},
+          "velocityZ": {"type":"number"},
           "gameMode": {"type": "string", "enum": ["survival", "creative", "adventure", "spectator", "unknown"]},
           "onGround": {"oneOf": [{"type": "boolean"}, {"type": "string", "enum": ["unknown"]}], "description": "Own client player ground flag, or unknown; never server truth."},
           "flying": {"oneOf": [{"type": "boolean"}, {"type": "string", "enum": ["unknown"]}], "description": "Own client abilities.flying, not permission to fly; unknown when unavailable."},
@@ -7822,6 +8002,11 @@
           "nativeSlotIndex": {
             "type": "integer",
             "description": "Diagnostic Minecraft Slot.index, which may repeat for wrappers. Never use as a UI selector."
+          },
+          "slotOwner": {
+            "type": "string",
+            "enum": ["player_inventory", "menu", "unknown"],
+            "description": "Visible slot backing-container identity relative to the current player's inventory, never inferred from indices. menu includes crafting/creative menu data and does not imply persistent storage. slot remains the semantic view index."
           },
           "slotDisabled": {
             "type": "boolean",
@@ -9761,6 +9946,23 @@
           }
         }
       },
+      "InputReleaseAllResponse": {
+        "allOf": [
+          { "$ref": "#/components/schemas/BaseResponse" },
+          {
+            "type": "object",
+            "required": ["type", "inputGeneration", "releasedKeys", "releasedButtons"],
+            "properties": {
+              "type": { "type": "string", "enum": ["input.release_all"] },
+              "inputGeneration": { "type": "integer", "format": "int64", "minimum": 0 },
+              "releasedKeys": { "type": "integer", "minimum": 0 },
+              "releasedButtons": { "type": "integer", "minimum": 0 },
+              "inputCleanupPending": { "type": "boolean" },
+              "inputCleanupFailed": { "type": "boolean" }
+            }
+          }
+        ]
+      },
       "InputStateResponse": {
         "allOf": [
           {
@@ -9773,12 +9975,32 @@
               "pressedButtons",
               "pressedKeyCount",
               "pressedButtonCount",
+              "inputGeneration",
+              "inputCleanupPending",
+              "inputCleanupFailed",
               "mode",
               "modeVersion",
               "takeoverActive",
               "reconsentRequired"
             ],
             "properties": {
+              "inputGeneration": {
+                "type": "integer", "format": "int64", "minimum": 0,
+                "description": "Player-input generation. A strong stop invalidates active/queued work without changing the input Lease."
+              },
+              "inputCleanupPending": { "type": "boolean", "description": "Runtime-owned input cleanup has not finished; not a new permission or control mode." },
+              "inputCleanupFailed": { "type": "boolean", "description": "The most recent required cleanup failed; inspect and do not assume held input is safe." },
+              "inputContextGeneration": { "type": "integer", "format": "int64", "minimum": 0, "description": "Native world/player/connection epoch; ordinary Screen changes do not advance it." },
+              "inputContextId": { "type": "string", "description": "Opaque native context identity, not a permission or resource write token; empty until initialized." },
+              "inputContextAvailable": { "type": "boolean", "description": "A connected native client world and player were present when this epoch was observed." },
+              "nativeEntityAttackCount": { "type": "integer", "format": "int64", "minimum": 0, "description": "Conservative diagnostic count of actual native entity-attack returns in the Runtime routed processing context with a valid TAKEOVER Lease and matching native epoch. Vanilla queued clicks can be consumed after mouse-up. Not a unique Vanilla call-site proof, damage, animation or server acknowledgement; zero does not prove no attack occurred." },
+              "nativeEntityAttackScope": { "type": "string", "enum": ["native_multiplayer_game_mode_attack_return"] },
+              "nativeEntityAttackCounterUnits": { "type": "string", "enum": ["native_entity_attack_invocations_not_damage_or_swing"] },
+              "nativeEntityAttackContextId": { "type": "string" },
+              "nativeEntityAttackContextGeneration": { "type": "integer", "format": "int64", "minimum": 0 },
+              "nativeEntityAttackControlGeneration": { "type": "integer", "format": "int64", "minimum": -1 },
+              "nativeEntityAttackLeaseActive": { "type": "boolean", "description": "Read-only current attribution check, not an input authorization or Lease grant." },
+              "nativeEntityAttackServerEffectConfirmed": { "type": "boolean", "enum": [false] },
               "pressedKeys": {
                 "type": "array",
                 "items": {
@@ -10280,6 +10502,9 @@
             "additionalProperties": true,
             "description": "A failed, timed-out, cancelled or still-running input pipeline may expose only type=input.command.provenance and partial=true plus known command provenance. This is not successful step execution, a replayable plan, rollback or server acknowledgement. Other operation result shapes are unchanged.",
             "properties": {
+              "timing": {
+                "$ref": "#/components/schemas/PipelineTiming"
+              },
               "partial": {
                 "type": "boolean",
                 "description": "When true on input.command.provenance, this object contains provenance only, not full step results."
@@ -10533,9 +10758,17 @@
           }
         }
       },
+      "InputReleasedCondition": {
+        "type": "object",
+        "x-agent-mode": "MODE_INDEPENDENT",
+        "description": "Requires independent read and diagnostics scopes in READ, OPERATE or TAKEOVER, including after manual revoke. Accepts only type: no category, expected or selector. True only when Runtime-owned pressedKeyCount and pressedButtonCount are both zero in the observed snapshot. Does not prove the queue will remain idle and grants no input authority.",
+        "required": ["type"],
+        "properties": { "type": { "type": "string", "enum": ["input.released"] } },
+        "additionalProperties": false
+      },
       "AutomationCondition": {
         "type": "object",
-        "description": "Requires read scope, including inside pipelines. UI screen/ui.exists/menu/inventory conditions additionally require ui and apply USER/DEBUG UI read scopes and mode rules, with the matching native projection. Event conditions additionally require event. World conditions keep their independent category and permission checks. Async publication rechecks authorization.",
+        "description": "Requires read scope, including inside pipelines. input.released is a type-only, mode-independent diagnostic condition additionally requiring diagnostics; category/expected/selector are forbidden, and zero Runtime-owned pressed counts do not imply permanent queue idleness. UI screen/ui.exists/menu/inventory conditions additionally require ui and apply USER/DEBUG UI read scopes and mode rules, with the matching native projection. Event conditions additionally require event. World conditions keep their independent category and permission checks. Async publication rechecks authorization.",
         "required": [
           "type"
         ],
@@ -10554,7 +10787,8 @@
               "operation",
               "recording",
               "provider",
-              "scene"
+              "scene",
+              "input.released"
             ]
           },
           "classContains": {
@@ -10667,6 +10901,14 @@
             "description": "Event family filter, independent of read category"
           }
         },
+        "oneOf": [
+          { "$ref": "#/components/schemas/InputReleasedCondition" },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "type": "string", "enum": ["screen", "ui.exists", "player", "block", "entity", "menu", "inventory", "event", "operation", "recording", "provider", "scene"] } }
+          }
+        ],
         "additionalProperties": true
       },
       "WaitUntilRequest": {
@@ -11004,6 +11246,31 @@
           }
         },
         "description": "Normalized point within freshly resolved semantic bounds, not hand-written screen coordinates."
+      },
+      "PipelineTiming": {
+        "type": "object",
+        "description": "Successful pipeline elapsed diagnostics only. Excludes HTTP/network overhead and server effect confirmation. Input callback offsets mark the permit-checked native callback entry, not input success. Per-step elapsedMillis includes intentional GUI pacing and holds; stage totals are accumulated durations, not a partition of total time. Existing Operation timestamps are lifecycle-registration metadata, not owner-thread measurements.",
+        "required": ["timeSource", "scope", "queueMillis", "totalMillis", "requestedDelayMillis", "inputCallbackCount", "stages"],
+        "properties": {
+          "timeSource": {"type": "string", "enum": ["monotonic_elapsed"]},
+          "scope": {"type": "string", "enum": ["automation_pipeline_not_http_or_server_effect"]},
+          "queueMillis": {"type": "number", "minimum": 0},
+          "totalMillis": {"type": "number", "minimum": 0},
+          "requestedDelayMillis": {"type": "integer", "minimum": 0},
+          "inputCallbackCount": {"type": "integer", "minimum": 0},
+          "firstInputCallbackOffsetMillis": {"type": "number", "minimum": 0, "description": "Present only when inputCallbackCount is positive; not an input success acknowledgement."},
+          "lastInputCallbackOffsetMillis": {"type": "number", "minimum": 0, "description": "Present only when inputCallbackCount is positive; absent for a delay-only pipeline."},
+          "stages": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["elapsedMillis", "calls"],
+              "properties": {"elapsedMillis": {"type": "number", "minimum": 0}, "calls": {"type": "integer", "minimum": 0}},
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PipelineRequest": {
         "type": "object",

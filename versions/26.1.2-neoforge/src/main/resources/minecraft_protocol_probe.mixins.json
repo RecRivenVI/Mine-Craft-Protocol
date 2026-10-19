@@ -60,6 +60,7 @@
         "KeyboardHandlerInvoker",
         "LevelTicksAccessor",
         "MinecraftMixin",
+        "LocalPlayerMixin",
         "GameRendererMixin",
         "WorldOutlineMixin",
         "GameRendererAccessor",

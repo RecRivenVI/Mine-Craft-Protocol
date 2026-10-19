@@ -5,9 +5,22 @@ import {resolve,join,dirname,delimiter,basename} from 'node:path';
 import {homedir} from 'node:os';
 import {spawn,execFileSync} from 'node:child_process';
 import {createWriteStream} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {candidateSource,sha256} from '../../regression-v1_release/task/alpha-candidate.mjs';
 
+export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
+  assert.match(String(version),/^[1-9]\d*$/,'An explicit Java major version is required');
+  for(const entry of await readdir(jdks,{withFileTypes:true})){
+    if(!entry.isDirectory())continue;const candidate=join(jdks,entry.name,'bin/java.exe');
+    if(!await access(candidate).then(()=>true,()=>false))continue;
+    const release=await readFile(join(dirname(dirname(candidate)),'release'),'utf8').catch(()=>'');
+    if(new RegExp('JAVA_VERSION="'+version+'[.\\"]').test(release))return candidate;
+  }
+  assert.fail('No installed Java '+version);
+}
+
+async function main(){
 const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
@@ -61,14 +74,14 @@ async function run(java,args,cwd,log,timeout=600000){
   const code=await new Promise((yes,no)=>{const timer=setTimeout(()=>{child.kill();no(Error('Owned installer deadline: '+log));},timeout);child.once('error',e=>{clearTimeout(timer);no(e);});child.once('exit',c=>{clearTimeout(timer);yes(c);});});
   output.end();assert.equal(code,0,'Official installer failed; see '+log);
 }
-let java;
-for(const entry of await readdir(join(homedir(),'.gradle/jdks'),{withFileTypes:true})){
-  if(!entry.isDirectory())continue;const candidate=join(homedir(),'.gradle/jdks',entry.name,'bin/java.exe');
-  if(!await exists(candidate))continue;
-  const release=await readFile(join(dirname(dirname(candidate)),'release'),'utf8').catch(()=>'');
-  if(new RegExp('JAVA_VERSION="'+facts.java_version+'[.\\"]').test(release)){java=candidate;break;}
+const java=await findJava(facts.java_version);
+let installerJava,installerJavaVersion;
+if(loader!=='fabric'){
+  const daemonFactsPath='gradle/gradle-daemon-jvm.properties';
+  installerJavaVersion=(await properties(join(repo,daemonFactsPath))).toolchainVersion;
+  installerJava=await findJava(installerJavaVersion);
+  toolHashes[daemonFactsPath]=sha256(await readFile(join(repo,daemonFactsPath)));
 }
-assert(java,'No installed Java '+facts.java_version);
 await mkdir(home,{recursive:true});await mkdir(game,{recursive:true});
 assert.equal((await readdir(game)).length,0,'Game directory must be completely new');
 const launcherManifest=await json('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json',join(cache,'version_manifest_v2.json'));
@@ -87,7 +100,8 @@ if(loader==='fabric'){
   const checksum=(await checksumResponse.text()).trim().split(/\s/)[0];assert.match(checksum,/^[a-f0-9]{40}$/i);
   await download(url,installer,checksum);
   await writeFile(join(home,'launcher_profiles.json'),JSON.stringify({profiles:{},settings:{}}));
-  await run(java,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
+  console.log('Official installer Java '+installerJavaVersion+'; game Java '+facts.java_version);
+  await run(installerJava,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
   const profiles=(await readdir(join(home,'versions'))).filter(name=>name!==minecraft);
   assert.equal(profiles.length,1,'One official Loader profile');profile=JSON.parse(await readFile(join(home,'versions',profiles[0],profiles[0]+'.json'),'utf8'));
 }
@@ -141,7 +155,7 @@ async function acquire(){
   const response=await connection.fetch('/v0/control/acquire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(request)});
   assert(response.ok,JSON.stringify(await response.clone().json()));return response.json();
 }
-const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,artifactSha256,sourceFingerprint,sourceHashes,toolHashes,freshGameDirectory:true,externalModCount:1,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0};
+const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,...(loader==='fabric'?{}:{installerJavaVersion}),artifactSha256,sourceFingerprint,sourceHashes,toolHashes,freshGameDirectory:true,externalModCount:1,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0};
 try{
   let title;
   while(Date.now()-started<240000){
@@ -206,3 +220,7 @@ finally{
   await writeFile(resolve(repo,'validations/integration-packaged_runtime/result',target+'.json'),JSON.stringify(report,null,2)+'\n');
 }
 console.log('PASS installed Loader / one final JAR / endpoint / USER READ / clean exit: '+target);
+}
+
+const invoked=process.argv[1]&&resolve(process.argv[1]),modulePath=fileURLToPath(import.meta.url);
+if(invoked&&(process.platform==='win32'?invoked.toLowerCase()===modulePath.toLowerCase():invoked===modulePath))await main();

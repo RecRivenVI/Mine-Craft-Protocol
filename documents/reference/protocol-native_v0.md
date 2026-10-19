@@ -1,6 +1,6 @@
 # Native V0 协议
 
-当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 78 formal HTTP operations`。
+当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 80 formal HTTP operations`。
 V0 是未冻结的产品原生合同，Wire Protocol v1 NOT FROZEN。
 机器权威为[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)；
 字段、typed discriminator、错误和 schema 从此生成，本文不维护第二份协议。
@@ -32,6 +32,43 @@ GET /v0/wait/screen与POST /v0/operations/wait/screen等待Session的screenClass
 GET /v0/ui/vision/context是需ui/capture的技术校准信息，不返回语义节点正文，也不取得玩家输入权；真实控件发现仍使用相应类别的UI树。
 
 ## 接入与表面
+
+`POST /v0/input/release-all` 只接受空对象，需要 input/control scope、TAKEOVER 和当前 Control Lease。
+它取消当前与排队玩家输入，使已接受但仍在 preflight 的旧代次请求失效，完成必要的原生松键/松鼠标；
+不释放 Lease，不改变模式、Debug Arm、人工撤销 latch 或独立 DEBUG 工作，也不受 Screen/Menu revision pin 阻挡。
+响应超时或调用者取消不能撤销 Runtime 必须完成的安全清理；结果不确定时读取输入状态，不盲重放旧输入。
+调用者须先停止自己的发送链；屏障不撤回尚未被Runtime接受的请求，保留Lease意味着停止后新到达的输入仍可获准。
+成功返回 type=input.release_all；releasedKeys/releasedButtons 是最后一次原生 cleanup 的真实释放计数，
+不是整轮强停止中各次 cleanup 的累加值，不凭这两个数推断旧队列是否全部执行。
+
+`GET /v0/input/state` 返回 inputGeneration、inputCleanupPending、inputCleanupFailed。
+原生适配器另公开inputContextGeneration/inputContextId/inputContextAvailable，来自真实world/player/connection引用代次；
+普通Screen切换不推进该代次。替换或连接关闭先封住旧输入并取消旧active/queued，再只清理Runtime自有按住状态，
+不会向替换后的Screen派发旧mouse-up。新输入须等待清理及目标页面就绪，旧操作取消不表示切换未发生，不盲重放。
+generation 标识当前输入代次；pending 表示必要清理尚未完成，failed 表示清理失败，不是模式或权限。
+条件 `{"type":"input.released"}` 严格只接受 type，需 read/diagnostics，三模式及人工撤销后均可独立读取。
+它只判断同一实际快照中 Runtime 自有 pressedKeyCount/pressedButtonCount 均为0，不证明队列永久空闲、服务器效果或授权。
+独立 Wait/Assert 和 pipeline 的 wait.until/assert.that 使用相同形状；嵌入 pipeline 仍须整个输入计划的授权。
+
+pipeline 的 cleanupOnComplete 默认为 true，成功收尾也清理同一 Lease 前序请求遗留的 held input；
+false 只允许成功完成时保留，失败、取消、Lease 撤销和 shutdown 仍执行必要清理。
+单次 operation cancel 不是“连同所有排队输入强停止”；需要该语义时使用 release-all。
+
+成功的输入 Pipeline 在 Operation.result.timing 返回单调时钟分段：queueMillis、totalMillis、
+requestedDelayMillis 及 stages 中的 inputState/pointerState/nativeCall/delay/cleanup，按实际执行包含可选 preflight。
+每段给出 calls 与累计 elapsedMillis，steps[].elapsedMillis 为该步骤含有意等待的耗时；各段不是total的完整互斥分解。
+requestedDelayMillis累计步骤delay、按键hold及原有GUI pacing请求的等待，不只统计调用方写出的delay步骤。
+范围为 automation_pipeline_not_http_or_server_effect，HTTP收发、游戏效果等待须另测。
+inputCallbackCount及首末offset仅表示owner线程通过permit/前置检查后进入原生回调，不保证回调成功、事件产生或服务器效果；
+纯delay没有输入回调，其首末offset字段缺省，不伪造零值。原有Operation起始时间是登记元数据，不代表实际队列/owner消费时间。
+计时不更改权限、取消、cleanupOnComplete或GUI观看节奏；失败/取消不伪造成功timing结果，也不以终态直接证明held input已清零。
+
+UI tree新增interactionNodeCount与presentationNodeCount，countSemantics=returned_projection_recursive；
+分别递归计数本次返回children和presentation.children，不是可点击节点数，treeNodeCount仍只描述交互图。
+HUD/Toast可只出现在presentation，children为空不代表无内容。USER被overlay阻挡时两计数为0且不返回底层title；
+获准DEBUG按实际捕获图计数，debugFacts另含capturedPresentationNodeCount，不表示所有游戏数据。
+可见slotOwner按原生backing Container身份为player_inventory/menu/unknown，menu也可为合成/创造目录，不代表持久化容器。
+它不改变唯一slot视图编号，也不是玩家背包内部index或写权限。
 
 `world.block.set` 可带 `properties` 与 `expectedProperties` 字符串映射，各最多64项；实际名称/值须属于目标方块的原生状态定义。
 同类型只覆盖给出的属性，其余保持；替换类型从新类型默认状态开始。省略属性保持原有调用语义，同类型无变化仍拒绝。
@@ -314,6 +351,8 @@ valueSemantics=ordered_native_glyph_composition_not_raw_statistics。样本绑�
 hudIconSampleStatus区分CURRENT、UNOBSERVED、STALE、CONTEXT_CHANGED、BUDGET_EXCEEDED与OCCLUDED；
 不完整、超预算或被普通Screen/Overlay遮挡的样本不进入USER。此为原生绘制参数观察，不保证第三方最终像素遮挡。
 Hook manifest单独公开passiveDrawDelegationCount=5，同时计入replacementInjectionCount；它不是玩家输入许可。
+26.x的host_cursor_shape_guard按MIXIN_MODIFY_VARIABLE公开，单独计入replacementInjectionCount，不增加cancellableInjectionCount；
+TAKEOVER仅归一宿主光标形状为默认箭头，不改变虚拟指针、输入坐标或捕获规则。HookDescriptor.mechanism增加此枚举值，V0消费者须更新枚举处理，不把新Hook视作未知授权。
 HookDescriptor.failureCapability是受影响功能的诊断标签，不是capabilities表的外键或授权scope；判断支持情况、当前就绪状态和调用权限时，分别使用能力声明、readiness及操作本身的准入结果。
 这些只读委托先原样调用原生绘制一次，再记录参数；逐Target字节码测试约束调用次数、参数顺序及观察前无分支。
 命令效果分类将function/schedule、clone/place/loot及item的from/modify保守拒绝为PLAYER_COMMAND_UNCLASSIFIED；
@@ -352,6 +391,26 @@ Runtime 使用认证 loopback HTTP / WebSocket，独立 Companion 通过这些�
 requestId、deadline、Control Lease、Debug Arm、world/resource/value preconditions、scope
 各自承担独立职责。Session/capabilities 表达支持、当前策略与状态，不将三者混为一个字段。
 
+Control Lease 的 Native acquire/renew 缺省 TTL 为15秒，按1–60秒夹取，可续租；60秒是单次 TTL 上限，不是接管总时长上限。
+普通 HTTP 请求或短连接断开不撤销 Lease；显式绑定该 Lease 的事件 WebSocket 关闭或 TTL 到期会撤销并清理输入。
+未绑定 Lease 的只读 WebSocket 关闭不撤销其他控制会话。逻辑任务的 TTL 与总预算是另一组约束。
+现有 WebSocket 增加显式订阅的world.player.state：types含该类型或namespaces含world才启用，默认全事件订阅不隐式产生20Hz流量。
+category=USER且需read/event；三模式均可，不取得输入Lease。每个实际client tick最多一份已连接本地玩家位姿，
+包括sourceTick、sampledAtMillis、streamContext、位置/朝向/着地/velocityXYZ；不是服务器真值或世界模拟tick。
+暂停时允许重复位姿而tick推进，最小化/卡顿不承诺墙钟20Hz。GET USER player另含同源有限速度分量，跨请求不保证原子同刻。
+入ring、发送、重放与event条件取证复验授权/上下文；旧世界帧只报告gap/resync，不回放为新世界数据。普通只读断流恢复不自动接管。
+方块变化流尚未提供；状态流不等同新增输入通道。
+第一人称 mouse.delta 仍走 Vanilla sensitivity/inversion；0.15 不是跨版本、玩家设置或帧处理的通用角度换算常量。
+双开门的两扇是两个原生交互目标，一次use不承诺联动另一扇；连续Space切换创造飞行仍由Vanilla处理，需独立读取flying核验。
+
+`POST /v0/world/region`支持USER/client已加载缓存的有界section分页，不扩展既有32格客户端模型。
+初次query含闭区间min/max，可选maxBlocks/maxBytes；续读只能给cursor，action=cancel释放未完成cursor。
+每页返回section局部顺序、palette/indices、覆盖/未加载/剩余数、源tick/时间、预算与截断原因；-1只表示未加载，不当air。
+cursor绑定认证principal及真实原生上下文，成功单次消费，空闲30秒/总120秒过期；换世界、玩家或连接后明确失效。
+总区域最多65536格，每section页最多4096格、合作owner预算8ms、payload最多128KiB（不含HTTP envelope），单个原生读取不能被抢占。
+每次续读仍须整个区域在玩家32格球内；跨页不是原子快照，不读服务器/NBT/磁盘、不加载区块。
+同一Runtime只允许一页在途；只读失败可依据结构化错误重试，响应不确定时重开查询，不能假定旧cursor未消费。
+
 `GET /v0/control/task` 查询逻辑任务，`POST` 显式 begin/heartbeat/end；需要 read scope，
 不授予模式、Lease 或 Debug 权限。TTL 为 1–60 秒，总预算为 1–300 秒，心跳不能延长总预算。
 显式任务期间 acquire 带 taskId，结束/超时清理其绑定的既有输入 Lease并等待清理完成；
@@ -365,7 +424,7 @@ Provider、Fixture/typed Debug/batch、Event、capture/recording/artifact、Pers
 
 ## 意图、身份与来源
 
-正式路径及HTTP method的唯一接口目录是OpenAPI；当前验证输入逐项对照其78个operationId和x-agent-mode，
+正式路径及HTTP method的唯一接口目录是OpenAPI；当前验证输入逐项对照其80个operationId和x-agent-mode，
 并核对24个实际MCP listTools结果及typed discriminator，不按HTTP POST或Tool名字粗分读取/修改。
 
 | 表面/typed分支 | 模式/类别 | 独立授权及证据边界 |
@@ -375,13 +434,16 @@ Provider、Fixture/typed Debug/batch、Event、capture/recording/artifact、Pers
 | UI tree/resolve与screen/ui.exists/menu/inventory条件 | UI；三模式均可独立授权两类 | USER仅实际呈现；DEBUG另需debug/debug.ui.read；条件含read及ui，授权/异步发布沿用相同投影，不能凭节点ID取隐藏数据 |
 | 客户端模型、服务器/内部世界、Deep Observation、Provider/Frame及相关条件 | WORLD；按实际USER/DEBUG能力 | 客户端有界USER不加载区块；内部/服务器、第三方Provider及保留实验读取只接受DEBUG和独立世界读取scope，不回退LIVE/PERSISTED |
 | UI action、键鼠/文本/输入pipeline、世界语义gesture、CHAT命令 | TAKEOVER USER输入路径 | 原Control Lease、input/command/额外步骤scope和原生验证；命令仍可污染为DEBUG_PRIVILEGED，不以输入机制洗白effects |
+| input/release-all | TAKEOVER；同 Lease 玩家输入强停止 | input/control 和当前 Lease；保留 Lease、模式、Arm、latch 和独立 DEBUG；取消排队输入，不是操作回滚 |
 | NATIVE当前玩家命令 | OPERATE或TAKEOVER；USER非输入路径 | 独立command scope与实际玩家命令树/服务器权限，不取得输入Lease，不证明执行成功或gameplay验收 |
 | Fixture、UI/世界typed Debug和batch、诊断事件压力发布 | OPERATE或TAKEOVER；各自FIXTURE/DEBUG操作 | Fixture自己的scope，Debug另需Arm/namespace/版本/值/deadline；不获得玩家Lease；批次逐项结果而非多资源事务 |
 | Capture、Recording/Artifact及事件流 | READ compatible，显式记录/读取类别与资源权威 | capture/event/类别及独立UI诊断读取门禁；像素截图不是内部状态或第三方渲染收敛oracle；不混读诊断录制或丢失污染标记 |
 | Persistent Read | READ compatible，PERSISTED/last_saved_state | 独立storage.read与实际存储上下文，不借LIVE类别提升权限，不自动加载/写入；当前无正式Persistent Write |
 
-全部12种条件按实际生产授权路径分类：UI为screen/ui.exists/menu/inventory；WORLD为player/block/entity/scene/provider/event/recording，
-event另需event scope；operation按结果的诊断领域复验，无诊断结果时仅为生命周期/普通结果。嵌入pipeline仍需整个TAKEOVER输入计划的权限，不把独立Wait/Assert升级成输入。
+全部13种条件按实际生产授权路径分类：UI为screen/ui.exists/menu/inventory；WORLD为player/block/entity/scene/provider/event/recording，
+event另需event scope；operation按结果的诊断领域复验，无诊断结果时仅为生命周期/普通结果；
+input.released是独立MODE_INDEPENDENT诊断读取，仅接受type并需read/diagnostics。
+嵌入pipeline仍需整个TAKEOVER输入计划的权限，不把独立Wait/Assert升级成输入。
 V1/V2 Provider的声明不授予USER能力；只有实际客户端投影和capture info支持USER，server/内部与扩展的默认查询不因此可见。
 保留实验诊断的Target列表按注册Adapter及共享Transport的实际接口分支检查，不把阶段曾经通过或旧Target名称当当前可用性。
 Peer接收端的委托/撤权生命周期属于M-01/01c和M-09，操作分类完成不等于远程主体安全审查已完成。

@@ -308,7 +308,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return json;
     }
 
+    static int formalChunkRadius(JsonObject request) {
+        try {
+            return io.github.recrivenvi.minecraftprotocol.safety.DeepObservationSelector
+                    .chunkRadius(request);
+        } catch (IllegalArgumentException invalid) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_DEEP_SELECTOR", 400, invalid.getMessage());
+        }
+    }
+
     JsonObject captureFormal(MinecraftServer server, ServerPlayer player, JsonObject request) {
+        int chunkRadius = formalChunkRadius(request);
         JsonObject selector = new JsonObject();
         JsonObject requestedSelector =
                 request.has("selector") && request.get("selector").isJsonObject()
@@ -318,8 +329,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 request.has("budgets") && request.get("budgets").isJsonObject()
                         ? request.getAsJsonObject("budgets")
                         : new JsonObject();
-        selector.addProperty(
-                "radiusChunks", bounded(integer(requestedSelector, "chunkRadius", 0), 0, 2));
+        selector.addProperty("radiusChunks", chunkRadius);
         selector.addProperty(
                 "entityRadius", bounded(integer(requestedSelector, "entityRadius", 16), 0, 64));
         selector.addProperty(

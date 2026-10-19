@@ -41,7 +41,11 @@ class SemanticTextReplacementTest {
                             new Class<?>[] {ProbeService.class},
                             (proxy, method, args) -> {
                                 if (method.getReturnType() == void.class) return null;
-                                if (Set.of("pointerState", "uiTree", "debugUiTree")
+                                if (Set.of(
+                                                "pointerState",
+                                                "inputPacingState",
+                                                "uiTree",
+                                                "debugUiTree")
                                         .contains(method.getName()))
                                     return CompletableFuture.completedFuture(tree());
                                 if (method.getName().equals("keyGuarded")) {

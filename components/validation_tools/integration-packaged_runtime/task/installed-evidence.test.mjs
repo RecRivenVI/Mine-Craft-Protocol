@@ -1,9 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
 import {installedProof} from './installed-evidence.mjs';
+import {findJava} from './installed-launcher.mjs';
 
 const artifact={target:'1.21.1-neoforge',sha256:'a'.repeat(64)},fingerprint='b'.repeat(64);
 function valid(){return{target:artifact.target,status:'PASS',runtime:'installed_loader_release_jar',artifactSha256:artifact.sha256,sourceFingerprint:fingerprint,sourceChangedDuringRun:false,freshGameDirectory:true,endpointVerified:true,handshake:true,readPassed:true,titleReady:true,cleanShutdown:true,noCrashReports:true,developmentClasspath:false,externalModCount:1,exitCode:0,maximumHeapBytes:4294967296,instanceProfile:'automatic',windowWidth:1920,windowHeight:1080,persistentWriteCalls:0,quitHttpStatus:200,nettyHttpOrigin:'io.netty.handler.codec.http.HttpMessage source: file:/installation/netty-codec-http.jar',transportOrigin:'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source: file:/client/mods/product.jar',readSample:{dataCategory:'USER',available:false},providerRegistryResolved:true,providerCatalog:['safe','client-thread','render-thread','server-thread'].map(id=>({providerId:'product:'+id,threadAffinity:id==='client-thread'?'client_thread':id==='render-thread'?'render_thread':'server_thread',snapshotSchema:'fixture://snapshot',querySchema:'fixture://query'})),providerSpiOrigins:['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>'io.github.fixture.probe.api.'+name+' source: file:/client/mods/product.jar')};}
+test('installed launcher resolves game and installer JDK majors independently from release facts',async()=>{
+  const jdks=resolve(import.meta.dirname,'../../build/test/installed-java');
+  for(const [name,version]of [['jdk170','170.0.1'],['jdk17','17.0.19'],['jdk25','25.0.4']]){
+    const root=join(jdks,name);await mkdir(join(root,'bin'),{recursive:true});
+    await writeFile(join(root,'bin/java.exe'),'fixture, never executed\n');
+    await writeFile(join(root,'release'),`JAVA_VERSION="${version}"\n`);
+  }
+  assert.equal(await findJava('17',jdks),join(jdks,'jdk17/bin/java.exe'));
+  assert.equal(await findJava('25',jdks),join(jdks,'jdk25/bin/java.exe'));
+  await assert.rejects(findJava('21',jdks),/No installed Java 21/);
+  for(const invalid of [undefined,'','25.0.4','25|17'])await assert.rejects(findJava(invalid,jdks),/explicit Java major/);
+});
+test('official installer uses daemon JVM facts while the game retains Target Java',async()=>{
+  const source=await readFile(new URL('./installed-launcher.mjs',import.meta.url),'utf8');
+  assert.match(source,/const java=await findJava\(facts\.java_version\)/);
+  assert.match(source,/daemonFactsPath='gradle\/gradle-daemon-jvm\.properties'/);
+  assert.match(source,/installerJavaVersion=\(await properties\(join\(repo,daemonFactsPath\)\)\)\.toolchainVersion/);
+  assert.match(source,/installerJava=await findJava\(installerJavaVersion\)/);
+  assert.match(source,/toolHashes\[daemonFactsPath\]=sha256/);
+  assert.match(source,/await run\(installerJava,\['-Djava\.awt\.headless=true','-jar',installer,'--installClient',home\]/);
+  assert.match(source,/const child=spawn\(java,args,/);
+  assert.match(source,/loader==='fabric'\?\{\}:\{installerJavaVersion\}/);
+});
 test('alpha accepts only actual clean-install final-JAR proof, not full gameplay acceptance',()=>{
   assert.equal(installedProof(valid(),artifact,fingerprint).status,'PASS');
   assert.throws(()=>installedProof({...valid(),quitHttpStatus:500},artifact,fingerprint),'Internal server failure cannot masquerade as an explained shutdown');

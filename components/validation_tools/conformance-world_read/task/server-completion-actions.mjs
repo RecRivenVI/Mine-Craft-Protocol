@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {finishBaselineWorldExit} from './interaction-baseline-actions.mjs';
 
 export async function serverCompletionActions({api,connection,repo,instance,target,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples}) {
   const path='/v0/command/player',samples=[];
@@ -97,7 +98,8 @@ export async function serverCompletionActions({api,connection,repo,instance,targ
   await check('leaving world invalidates its completion context and cleanly returns to READ',async()=>{
     await acquire();await key(256);await wait(value=>value.screenClass.endsWith('PauseScreen'),'server completion Save and Quit');
     const pause=await api('GET','/v0/ui/tree'),quit=nodes(pause).find(value=>['menu.returnToMenu','menu.disconnect'].includes(value.translationKey));assert(quit);
-    await clickNode(quit);await wait(value=>value.screenClass.endsWith('TitleScreen'),'server completion title after world close',150000);await release();
+    const worldExit=await finishBaselineWorldExit({api,quit,clickNode,wait});
+    actionSamples.push({case:'server_completion_world_exit',...worldExit});await release();
     await api('POST',path,body(),'PLAYER_COMMAND_CONTEXT_UNAVAILABLE');
     assert.equal((await api('GET','/v0/control/mode')).mode,'READ');await clean();
   });

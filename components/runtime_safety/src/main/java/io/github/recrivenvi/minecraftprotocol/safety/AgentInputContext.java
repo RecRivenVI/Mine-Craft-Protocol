@@ -48,7 +48,9 @@ public final class AgentInputContext {
 
     private AgentInputContext() {}
 
-    /** Used only for Vanilla logical focus/camera processing, not callback authorization. */
+    /**
+     * Read-only execution provenance for logical focus/camera and diagnostics, not authorization.
+     */
     public static boolean isAgentRouted() {
         return ROUTED_DEPTH.get() > 0 && !NATIVE.get();
     }

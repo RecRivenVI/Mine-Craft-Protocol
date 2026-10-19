@@ -226,6 +226,12 @@ public final class AutomationEngine implements AutoCloseable {
         for (PipelineExecution execution : this.activeExecutions) execution.result.cancel(false);
     }
 
+    CompletableFuture<JsonObject> cancelControlWorkAndWait(String reason) {
+        CompletableFuture<Void> drained = this.sequences.cancelAllAndWait();
+        for (PipelineExecution execution : this.activeExecutions) execution.result.cancel(false);
+        return drained.thenCompose(ignored -> this.service.releaseAllInput(reason));
+    }
+
     CompletableFuture<JsonObject> assertThat(JsonObject condition) {
         return requireConditionEngine().assertThat(condition);
     }
@@ -651,7 +657,7 @@ public final class AutomationEngine implements AutoCloseable {
     private CompletableFuture<JsonObject> smoothMove(
             double x, double y, PipelineExecution execution, JsonObject checked) {
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(
                         state -> {
                             boolean gui =
@@ -735,9 +741,7 @@ public final class AutomationEngine implements AutoCloseable {
                                             execution
                                                     .delay(InteractionPacing.HOVER_MILLIS)
                                                     .thenCompose(
-                                                            ignored ->
-                                                                    execution.effect(
-                                                                            service::pointerState))
+                                                            ignored -> execution.pointerState())
                                                     .thenApply(
                                                             current -> {
                                                                 validatePointerGuard(
@@ -767,7 +771,7 @@ public final class AutomationEngine implements AutoCloseable {
         int button = integer(request, "button", 0), modifiers = integer(request, "modifiers", 0);
         long hold = bounded(longValue(request, "holdMs", 40), 0, 5000);
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(
                         state -> {
                             JsonObject selector =
@@ -1274,7 +1278,7 @@ public final class AutomationEngine implements AutoCloseable {
     private CompletableFuture<JsonObject> click(
             double x, double y, int button, int modifiers, long hold, PipelineExecution execution) {
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(
                         state -> {
                             JsonObject expected = guard(state, null, "click");
@@ -1714,7 +1718,7 @@ public final class AutomationEngine implements AutoCloseable {
         else
             ready =
                     execution
-                            .effect(service::pointerState)
+                            .pacingState()
                             .thenCompose(
                                     state -> {
                                         long wait =
@@ -1734,10 +1738,7 @@ public final class AutomationEngine implements AutoCloseable {
                                                     .remove("menuRevision");
                                         return execution
                                                 .delay(wait)
-                                                .thenCompose(
-                                                        ignored ->
-                                                                execution.effect(
-                                                                        service::pointerState))
+                                                .thenCompose(ignored -> execution.pacingState())
                                                 .thenAccept(
                                                         current ->
                                                                 validatePointerGuard(
@@ -1747,7 +1748,7 @@ public final class AutomationEngine implements AutoCloseable {
                 .thenCompose(
                         result ->
                                 execution
-                                        .effect(service::pointerState)
+                                        .pacingState()
                                         .thenApply(
                                                 state -> {
                                                     pacing.completed(
@@ -1827,7 +1828,7 @@ public final class AutomationEngine implements AutoCloseable {
             return smoothMove(
                     requiredDouble(step, "x"), requiredDouble(step, "y"), execution, null);
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(
                         state -> {
                             if (string(state, "screenClass", "").isEmpty())
@@ -1846,7 +1847,7 @@ public final class AutomationEngine implements AutoCloseable {
 
     private CompletableFuture<JsonObject> drag(JsonObject step, PipelineExecution execution) {
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(state -> drag(step, execution, guard(state, null, "click")));
     }
 
@@ -1896,7 +1897,7 @@ public final class AutomationEngine implements AutoCloseable {
 
     private CompletableFuture<JsonObject> uiDrag(JsonObject step, PipelineExecution execution) {
         return execution
-                .effect(service::pointerState)
+                .pointerState()
                 .thenCompose(
                         state -> {
                             JsonObject fromSelector = requiredObject(step, "fromSelector"),
@@ -2112,6 +2113,7 @@ public final class AutomationEngine implements AutoCloseable {
         private final long timeoutMillis;
         private final boolean cleanupOnComplete;
         private final long startedAtMillis = System.currentTimeMillis();
+        private final PipelineTiming timing = new PipelineTiming();
         private final CompletableFuture<JsonObject> result;
         private final JsonArray stepResults = new JsonArray();
         private final List<JsonObject> commandReceipts =
@@ -2174,6 +2176,7 @@ public final class AutomationEngine implements AutoCloseable {
         }
 
         private void start() {
+            this.timing.started();
             if (this.result.isDone() || this.cancellationRequested.get()) {
                 this.drained.complete(null);
                 return;
@@ -2188,7 +2191,7 @@ public final class AutomationEngine implements AutoCloseable {
             if (this.preflight != null) {
                 // Admission can precede the actual queue turn by seconds. Recheck the
                 // caller's exact values before claiming a gesture or cleaning held input.
-                this.effect(this.preflight)
+                this.effect("preflight", this.preflight, false)
                         .whenComplete(
                                 (value, error) -> {
                                     if (this.result.isDone()
@@ -2214,19 +2217,19 @@ public final class AutomationEngine implements AutoCloseable {
             try {
                 service.gestureEvent(this.gestureId, "started", null);
                 if (!this.raw) {
-                    this.effect(service::inputState)
+                    this.effect("inputState", service::inputState, false)
                             .whenComplete(
                                     (state, error) -> {
                                         if (error != null) this.fail(unwrap(error));
                                         else if (state != null
                                                 && integer(state, "pressedButtonCount", 0) > 0) {
                                             this.finishing.set(true);
-                                            this.drained.complete(null);
-                                            this.result.completeExceptionally(
+                                            if (this.result.completeExceptionally(
                                                     new ProtocolState.ProtocolException(
                                                             "POINTER_HELD",
                                                             409,
-                                                            "Finish the Lease-owned raw button stream before a new gesture"));
+                                                            "Finish the Lease-owned raw button stream before a new gesture")))
+                                                this.drained.complete(null);
                                         } else this.enqueueNext(this::next);
                                     });
                 } else this.enqueueNext(this::next);
@@ -2261,6 +2264,7 @@ public final class AutomationEngine implements AutoCloseable {
                 JsonObject step = this.steps.get(this.index).getAsJsonObject();
                 int stepIndex = this.index++;
                 int commandStart = this.commandReceipts.size();
+                long stepStarted = this.timing.now();
                 CompletableFuture<JsonObject> stepFuture = this.track(pacedStep(step, this));
                 this.currentStep = stepFuture;
                 stepFuture.whenComplete(
@@ -2286,6 +2290,13 @@ public final class AutomationEngine implements AutoCloseable {
                                             recorded.addProperty(
                                                     "stepType", step.get("type").getAsString());
                                             recorded.addProperty("status", "completed");
+                                            recorded.addProperty(
+                                                    "elapsedMillis",
+                                                    PipelineTiming.milliseconds(
+                                                            Math.max(
+                                                                    0,
+                                                                    this.timing.now()
+                                                                            - stepStarted)));
                                             recorded.add(
                                                     "result",
                                                     stepResult == null
@@ -2309,8 +2320,8 @@ public final class AutomationEngine implements AutoCloseable {
                     (cleanupResult, error) -> {
                         if (this.result.isDone()) return;
                         if (error != null) {
-                            this.result.completeExceptionally(unwrap(error));
-                            this.drained.completeExceptionally(error);
+                            if (this.result.completeExceptionally(unwrap(error)))
+                                this.drained.completeExceptionally(error);
                             return;
                         }
                         JsonObject json = new JsonObject();
@@ -2323,14 +2334,14 @@ public final class AutomationEngine implements AutoCloseable {
                                 System.currentTimeMillis() - this.startedAtMillis);
                         json.addProperty("cleanupOnComplete", this.cleanupOnComplete);
                         json.add("steps", this.stepResults.deepCopy());
+                        json.add("timing", this.timing.snapshot());
                         PlayerCommandEvidence.attach(json, this.commandReceipts);
                         json.add(
                                 "cleanup",
                                 cleanupResult == null
                                         ? new JsonObject()
                                         : cleanupResult.deepCopy());
-                        this.result.complete(json);
-                        this.drained.complete(null);
+                        if (this.result.complete(json)) this.drained.complete(null);
                     });
         }
 
@@ -2344,10 +2355,11 @@ public final class AutomationEngine implements AutoCloseable {
             this.cleanup("pipeline_failed")
                     .whenComplete(
                             (ignored, cleanupError) -> {
-                                this.result.completeExceptionally(throwable);
-                                if (cleanupError != null)
-                                    this.drained.completeExceptionally(cleanupError);
-                                else this.drained.complete(null);
+                                if (this.result.completeExceptionally(throwable)) {
+                                    if (cleanupError != null)
+                                        this.drained.completeExceptionally(cleanupError);
+                                    else this.drained.complete(null);
+                                }
                             });
         }
 
@@ -2375,6 +2387,7 @@ public final class AutomationEngine implements AutoCloseable {
         }
 
         private void checkActive() {
+            if (this.leaseCheck instanceof ProtocolState.InputGuard guard) guard.run();
             if (System.currentTimeMillis() - this.startedAtMillis > this.timeoutMillis)
                 throw new ProtocolState.ProtocolException(
                         "PIPELINE_TIMEOUT", 408, "Input sequence deadline expired");
@@ -2392,14 +2405,33 @@ public final class AutomationEngine implements AutoCloseable {
             return effect(supplier, false);
         }
 
+        private CompletableFuture<JsonObject> pointerState() {
+            return effect("pointerState", service::pointerState, false);
+        }
+
+        private CompletableFuture<JsonObject> pacingState() {
+            return effect(
+                    "pointerState",
+                    this.strictMenuRevision ? service::pointerState : service::inputPacingState,
+                    false);
+        }
+
         private CompletableFuture<JsonObject> commandPhase(String phase) {
             return effect(() -> service.playerCommand(this.command, phase), phase.equals("submit"));
         }
 
         private CompletableFuture<JsonObject> effect(
                 Supplier<CompletableFuture<JsonObject>> supplier, boolean commandSubmit) {
+            return effect("nativeCall", supplier, commandSubmit);
+        }
+
+        private CompletableFuture<JsonObject> effect(
+                String stage,
+                Supplier<CompletableFuture<JsonObject>> supplier,
+                boolean commandSubmit) {
             this.checkActive();
             this.leaseCheck.run();
+            long started = this.timing.now();
             CompletableFuture<JsonObject> future;
             try {
                 future =
@@ -2412,14 +2444,19 @@ public final class AutomationEngine implements AutoCloseable {
                                             this.firstInput,
                                             this.command,
                                             commandSubmit,
+                                            this.timing::inputCallback,
                                             supplier);
                                 });
             } catch (Throwable throwable) {
+                this.timing.record(stage, started);
                 return CompletableFuture.failedFuture(throwable);
             }
             this.track(future);
+            CompletableFuture<JsonObject> measured =
+                    future.whenComplete((value, error) -> this.timing.record(stage, started));
+            this.track(measured);
             if (this.cancellationRequested.get()) future.cancel(true);
-            return future;
+            return measured;
         }
 
         private <T> CompletableFuture<T> track(CompletableFuture<T> future) {
@@ -2431,6 +2468,8 @@ public final class AutomationEngine implements AutoCloseable {
 
         private CompletableFuture<Void> delay(long millis) {
             this.checkActive();
+            long started = this.timing.now();
+            this.timing.requestedDelay(millis);
             CompletableFuture<Void> future = this.track(new CompletableFuture<>());
             AtomicReference<ScheduledFuture<?>> reference = new AtomicReference<>();
             ScheduledFuture<?> handle =
@@ -2438,6 +2477,7 @@ public final class AutomationEngine implements AutoCloseable {
                             () -> {
                                 ScheduledFuture<?> scheduledFuture = reference.get();
                                 if (scheduledFuture != null) this.scheduled.remove(scheduledFuture);
+                                this.timing.record("delay", started);
                                 if (this.cancellationRequested.get()) future.cancel(false);
                                 else future.complete(null);
                             },
@@ -2460,9 +2500,11 @@ public final class AutomationEngine implements AutoCloseable {
                 this.cleanupResult.complete(simpleResult("input.queued_cancelled"));
                 return this.cleanupResult;
             }
+            long started = this.timing.now();
             service.releaseAllInput(reason)
                     .whenComplete(
                             (value, error) -> {
+                                this.timing.record("cleanup", started);
                                 if (error != null) this.cleanupResult.completeExceptionally(error);
                                 else this.cleanupResult.complete(value);
                             });
@@ -2495,8 +2537,9 @@ public final class AutomationEngine implements AutoCloseable {
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            this.execution.requestCancellation("operation_cancelled");
-            return super.cancel(mayInterruptIfRunning);
+            boolean cancelled = super.cancel(mayInterruptIfRunning);
+            if (cancelled) this.execution.requestCancellation("operation_cancelled");
+            return cancelled;
         }
     }
 }

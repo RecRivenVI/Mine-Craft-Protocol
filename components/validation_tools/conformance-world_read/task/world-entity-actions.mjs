@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
+import {breedingFixtureCommands,villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
 
 // Fixtures use diagnostic administrative commands only inside the runner-owned disposable
 // world. Acceptance Act uses existing USER world.action and semantic UI, never entity setters.
@@ -28,10 +28,14 @@ export async function worldEntityActions({api,command,poll,start,finish,key,wait
   });
   await check('USER breeding feeds two adults and observes a new client-known baby',async()=>{
     await reset();
-    for(const z of [-1,1])await command(`summon minecraft:cow ${at.x} ${at.y} ${at.z+z} {Silent:1b,PersistenceRequired:1b,Tags:["world_gesture_fixture"]}`);
+    // Keep native AI but suppress fixture movement before holding tempting food.
+    // This covers natural breeding of stationary adults, not free-moving herd behavior.
+    for(const text of breedingFixtureCommands({target:p.target,tag:'world_gesture_fixture',position:[at.x,at.y,at.z]}))await command(text);
     await equip('wheat',2);
     const adults=await poll(entities,e=>e.filter(n=>n.type==='minecraft:cow'&&n.baby===false&&n.targetRef).length===2&&!e.some(n=>n.type==='minecraft:cow'&&n.baby),'two adults and no calf before Act');
     const cows=adults.filter(n=>n.type==='minecraft:cow'&&n.baby===false);
+    const adultDistanceBefore=Math.hypot(cows[0].x-cows[1].x,cows[0].y-cows[1].y,cows[0].z-cows[1].z);
+    assert(adultDistanceBefore>0&&adultDistanceBefore<3,'Stationary adults must be within native BreedGoal distance before Act');
     await use(cows[0]);await wait(t=>t.presentation.children.some(n=>n.selected&&n.item==='minecraft:wheat'&&n.count===1),'first native feeding');
     await use(cows[1]);await wait(t=>t.presentation.children.some(n=>n.selected&&n.count===0),'second native feeding');
     assert.equal((await api('POST','/v0/wait/until',{condition:{type:'entity',entityType:'minecraft:cow',radius:8,expected:{baby:true}},timeoutMs:20000})).passed,true,'Natural breeding must produce a client-known baby');
@@ -40,7 +44,7 @@ export async function worldEntityActions({api,command,poll,start,finish,key,wait
     // nearby cows for cleanup, after observing the native birth, never to create the birth.
     await command('tag @e[type=minecraft:cow,distance=..8] add world_gesture_fixture');
     async function oneBaby(){return (await entities()).find(n=>n.type==='minecraft:cow'&&n.baby===true);}
-    actionSamples.push({case:'entity_breeding',arrangeAuthority:'diagnostic_admin_command',actAuthority:'PLAYTEST',observationAuthority:'CLIENT_KNOWN',adultCountBefore:2,babyCountBefore:0,babyObserved:calf.baby,consumedWheat:2,serverLoveStateRead:false,forcedOffspring:false});
+    actionSamples.push({case:'entity_breeding',arrangeAuthority:'diagnostic_admin_command',actAuthority:'PLAYTEST',observationAuthority:'CLIENT_KNOWN',adultCountBefore:2,babyCountBefore:0,adultDistanceBefore,movementSuppressedByFixture:true,babyObserved:calf.baby,consumedWheat:2,serverLoveStateRead:false,forcedOffspring:false});
   });
   await check('USER lead attachment, native fence binding and release are client-observed',async()=>{
     await reset();await command(`summon minecraft:cow ${at.x} ${at.y} ${at.z} {NoAI:1b,Silent:1b,Tags:["world_gesture_fixture"]}`);await equip('lead',2);

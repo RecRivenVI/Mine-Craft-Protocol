@@ -48,6 +48,9 @@ foreach ($target in @('26.3-neoforge','1.20.1-forge','1.21.1-neoforge','26.1.2-n
 
 构建完成后再启动，默认串行、最大堆4 GiB、静音。工具从官方版本清单/Loader安装器准备运行库，原版缓存复用必须匹配官方SHA-1，
 游戏类路径仅含验证自有安装目录。每次将自己的旧安装移入回收站，未知目录或运行中实例拒绝覆盖；不访问外部Prism/日常实例。
+游戏Java按对应target.properties的java_version选择；Forge/NeoForge官方安装器单独使用gradle/gradle-daemon-jvm.properties的toolchainVersion，二者复用相同的已安装JDK查找规则。
+安装器不改变游戏Java、TLS或代理配置；Fabric直接读取官方Loader profile，不运行Java安装器。
+结果中javaVersion始终表示游戏Java，非Fabric另记installerJavaVersion，并将消费的Gradle JVM事实文件纳入toolHashes；安装器成功本身不计游戏验收通过。
 旧安装先核对owner、Target、父目录、Runtime锁及重解析点，再在同卷仓库旁的短临时路径原子重命名后回收，避免Shell长路径限制。
 若回收仍失败，保留并打印旧副本路径，不永久删除；新实例使用原来的固定位置，旧副本不进入类路径。
 清理阶段异常写为FAIL及具体stage，不遗留可误读的IN_PROGRESS。组件check包含实际长路径回收、锁/身份拒绝和故障保留测试。

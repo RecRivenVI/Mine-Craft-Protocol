@@ -36,6 +36,7 @@ export const TOOL_MODE_POLICY = {
       "acquire": "MODE_INDEPENDENT",
       "renew": "MODE_INDEPENDENT",
       "release": "MODE_INDEPENDENT",
+      "release_inputs": "TAKEOVER_REQUIRED",
       "emergency_release": "MODE_INDEPENDENT"
     },
     "note": "Only explicit acquire establishes TAKEOVER; set_mode only READ/OPERATE. No authority is granted by the label."

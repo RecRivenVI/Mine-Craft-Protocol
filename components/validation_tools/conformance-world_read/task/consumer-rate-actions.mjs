@@ -3,6 +3,20 @@ import {createRequire} from 'node:module';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
+export async function collectReadQuota({nativeRead,mcpRead,validate}) {
+ let nativeQuota,mcpQuota,requests=0;
+ // Either transport can encounter the first rejection at a refill boundary.
+ // Keep the same bounded read-only probe until both actual error paths are observed.
+ for(let round=0;round<16&&(!nativeQuota||!mcpQuota);round++){
+  const replies=await Promise.all(Array.from({length:12},()=>nativeRead()));requests+=12;
+  for(const reply of replies){if(reply.status===429)nativeQuota=validate(reply.body,'world');else assert.equal(reply.status,200,JSON.stringify(reply));}
+  const result=await mcpRead();
+  if(result.isError){const error=result.structuredContent?.error;assert.equal(error?.status,429,JSON.stringify(result));mcpQuota=validate(error,'world');}
+ }
+ assert(nativeQuota,'bounded native read burst must reach quota');assert(mcpQuota,'bounded real MCP read must observe structured quota');
+ return {nativeQuota,mcpQuota,requests};
+}
+
 // Bounded quota probes. Accepted pipelines contain only delay, never player input.
 export async function consumerRateActions({api,connection,repo,instance,acquire,release,leaseHeaders,check,actionSamples}) {
  const input=()=>api('GET','/v0/input/state');
@@ -27,13 +41,10 @@ export async function consumerRateActions({api,connection,repo,instance,acquire,
   let nativeQuota,mcpQuota,requests=0;
   try{
    await client.connect(transport);
-   for(let round=0;round<16&&!mcpQuota;round++){
-    const replies=await Promise.all(Array.from({length:12},()=>raw('/v0/world/block?x=2&y=80&z=2')));requests+=12;
-    for(const reply of replies){if(reply.status===429)nativeQuota=validate(reply.body,'world');else assert.equal(reply.status,200,JSON.stringify(reply));}
-    const result=await client.callTool({name:'minecraft_query_world',arguments:{kind:'block',x:2,y:80,z:2}});
-    if(result.isError){const error=result.structuredContent?.error;assert.equal(error?.status,429,JSON.stringify(result));mcpQuota=validate(error,'world');}
-   }
-   assert(nativeQuota,'bounded native read burst must reach quota');assert(mcpQuota,'bounded real MCP read must observe structured quota');
+   ({nativeQuota,mcpQuota,requests}=await collectReadQuota({
+    nativeRead:()=>raw('/v0/world/block?x=2&y=80&z=2'),
+    mcpRead:()=>client.callTool({name:'minecraft_query_world',arguments:{kind:'block',x:2,y:80,z:2}}),validate
+   }));
   }finally{await client.close();}
   // Wait only for the reported refill estimate, not for a gameplay state or an automatic input replay.
   await new Promise(done=>setTimeout(done,Math.max(nativeQuota.retryAfterMillis,mcpQuota.retryAfterMillis)+25));

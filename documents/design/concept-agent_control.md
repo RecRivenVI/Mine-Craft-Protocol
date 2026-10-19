@@ -181,6 +181,9 @@ AgentInputContext 使用逐事件、一次性来源票据，处理 callback re-e
 当前策略 hostCursorPolicy=never_capture_or_warp_during_takeover；
 当前许可状态 hostCursorCaptureGranted=false。支持、策略、状态不是同一字段。
 非 TAKEOVER 恢复 Vanilla 行为。
+支持原生手形/缩放箭头的26.x版本中，TAKEOVER将Window.selectCursor的样式参数映射为DEFAULT，
+让宿主光标保持默认箭头；不改Vanilla光标选项或缓存更新流程，退出接管后原生请求正常生效。
+这是宿主样式隔离，不改变Agent圆球、悬停/拖拽、游戏逻辑定位或Capture/Recording顺序。
 
 GUI 使用 absolute Agent Virtual Pointer，语义目标经确定性移动、mouseMoved/hover、
 click/drag/scroll；gesture 串行拥有 pointer。自由移动使用二阶欠阻尼弹簧响应，

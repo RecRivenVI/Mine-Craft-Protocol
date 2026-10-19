@@ -17,6 +17,14 @@ import { modeCollaborationActions } from './mode-collaboration-actions.mjs';
 import { resourceVersionActions } from './resource-version-actions.mjs';
 import { commandDiscoveryBatchActions } from './command-discovery-batch-actions.mjs';
 import { serverCompletionActions } from './server-completion-actions.mjs';
+import { interactionBaselineActions } from './interaction-baseline-actions.mjs';
+import { continuousInputActions } from './continuous-input-actions.mjs';
+import { continuousPerformanceActions } from './continuous-performance-actions.mjs';
+import { contextExitEvidence } from './context-exit-evidence.mjs';
+import { inputContextActions } from './input-context-actions.mjs';
+import { regionStreamActions } from './region-stream-actions.mjs';
+import { worldPlacementReceiptsActions } from './world-placement-receipts-actions.mjs';
+import { mcpWorldBaseline } from './mcp-world-baseline.mjs';
 import { connectRuntime, automaticTakeoverRequest } from '../../runtime-connection.mjs';
 
 const repo = resolve(import.meta.dirname, '../../../..');
@@ -50,7 +58,7 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
@@ -76,7 +84,9 @@ async function api(method, path, body, expectedError, extraHeaders={}) {
   const response = await connection.fetch(path, { method, headers: { ...(lease ? {'x-mcp-control-lease':lease}:{}), ...(debugArm ? {'x-mcp-debug-arm':debugArm}:{}), ...(body ? {'content-type':'application/json'}:{}), ...extraHeaders }, ...(body ? {body:JSON.stringify(body)}:{}), signal:AbortSignal.timeout(25000) });
   const value = await response.json();
   if (expectedError) { assert((Array.isArray(expectedError)?expectedError:[expectedError]).includes(value.error), JSON.stringify(value)); assert(!response.ok); return value; }
-  assert(response.ok, JSON.stringify(value));
+  if(!response.ok) {
+    const error=new Error(JSON.stringify(value));error.status=response.status;error.runtimeError=value;throw error;
+  }
   if(method==='GET'&&path.startsWith('/v0/world/entities?')&&!path.includes('category=DEBUG'))validateModel(value,'entities');
   return value;
 }
@@ -116,8 +126,19 @@ async function shutdown() {
     }
     const quit=nodes(tree).find(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey));
     if(quit) {
-      await clickNode(quit);
-      await wait(t=>t.screenClass.endsWith('TitleScreen'),'Save and Quit finishes before another navigation input');
+      const before=await api('GET','/v0/input/state');let unconfirmed;
+      try{await clickNode(quit);}catch(error){
+        if(error.status!==409||!['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(error.runtimeError?.error))throw error;
+        unconfirmed={status:error.status,body:error.runtimeError};
+      }
+      const title=await wait(t=>t.screenClass.endsWith('TitleScreen'),'Save and Quit finishes before another navigation input');
+      if(unconfirmed){
+        const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});
+        assert.equal(released.passed,true);
+        const after=await api('GET','/v0/input/state');
+        actionSamples.push({case:'shutdown_context_exit',...contextExitEvidence(before,after,title,unconfirmed),released});
+        console.log('Save and Quit request unconfirmed; new native context, title and released input independently verified; no replay');
+      }
     } else await key(256);
   }
   throw new Error('Unable to request normal shutdown');
@@ -132,6 +153,7 @@ async function sources() {
   }
 for(const path of ['components/protocol_schema/src/main/openapi/minecraft-control-v0.json',relative(repo,import.meta.filename),'components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1','components/validation_tools/conformance-world_read/task/Test-WorldReadArtifact.ps1','components/validation_tools/conformance-world_read/task/world-read-consumers.mjs','components/validation_tools/conformance-world_read/task/world-held-actions.mjs','components/validation_tools/conformance-world_read/task/world-entity-actions.mjs','validations/conformance-world_read/validation.toml','gradle.properties','settings.gradle.kts','gradle/libs.versions.toml',`versions/${target}/build.gradle.kts`,`versions/${target}/target.properties`]) hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   for(const entry of await readdir(resolve(repo,'components/companion/src'),{recursive:true,withFileTypes:true}))if(entry.isFile()&&entry.name.endsWith('.ts')){const path=resolve(entry.parentPath,entry.name);hashes[relative(repo,path).replaceAll('\\','/')]=createHash('sha256').update(await readFile(path)).digest('hex');}
+  for(const path of ['components/companion/package.json','components/companion/package-lock.json'])hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   for(const path of ['components/validation_tools/InstanceProfiles.ps1','components/validation_tools/Prepare-InstanceProfile.ps1','components/validation_tools/instance-profiles.gradle','build.gradle.kts','components/validation_tools/RuntimeConnection.ps1','components/validation_tools/runtime-connection.mjs','components/validation_tools/vanilla-command-fixtures.mjs'])hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   const fixtureSource='components/validation_tools/conformance-world_read/task/WorldReadFixture.ps1';hashes[fixtureSource]=createHash('sha256').update(await readFile(resolve(repo,fixtureSource))).digest('hex');
   const joint='components/validation_tools/conformance-world_read/task/world-ui-actions.mjs';
@@ -154,13 +176,42 @@ for(const path of ['components/protocol_schema/src/main/openapi/minecraft-contro
   hashes[hitFeedback]=createHash('sha256').update(await readFile(resolve(repo,hitFeedback))).digest('hex');
   const collaboration='components/validation_tools/conformance-world_read/task/mode-collaboration-actions.mjs';
   hashes[collaboration]=createHash('sha256').update(await readFile(resolve(repo,collaboration))).digest('hex');
+  const baseline='components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs';
+  hashes[baseline]=createHash('sha256').update(await readFile(resolve(repo,baseline))).digest('hex');
+  const continuous='components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs';
+  hashes[continuous]=createHash('sha256').update(await readFile(resolve(repo,continuous))).digest('hex');
+  const performanceTool='components/validation_tools/conformance-world_read/task/continuous-performance-actions.mjs';
+  hashes[performanceTool]=createHash('sha256').update(await readFile(resolve(repo,performanceTool))).digest('hex');
+  const exitTool='components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs';
+  hashes[exitTool]=createHash('sha256').update(await readFile(resolve(repo,exitTool))).digest('hex');
+  const contextTool='components/validation_tools/conformance-world_read/task/input-context-actions.mjs';
+  hashes[contextTool]=createHash('sha256').update(await readFile(resolve(repo,contextTool))).digest('hex');
+  const regionTool='components/validation_tools/conformance-world_read/task/region-stream-actions.mjs';
+  hashes[regionTool]=createHash('sha256').update(await readFile(resolve(repo,regionTool))).digest('hex');
+  const placementTool='components/validation_tools/conformance-world_read/task/world-placement-receipts-actions.mjs';
+  hashes[placementTool]=createHash('sha256').update(await readFile(resolve(repo,placementTool))).digest('hex');
+  const mcpBaselineTool='components/validation_tools/conformance-world_read/task/mcp-world-baseline.mjs';
+  hashes[mcpBaselineTool]=createHash('sha256').update(await readFile(resolve(repo,mcpBaselineTool))).digest('hex');
   for(const path of ['components/validation_tools/conformance-world_read/task/resource-version-actions.mjs','components/validation_tools/conformance-world_read/task/command-discovery-batch-actions.mjs','components/validation_tools/conformance-world_read/task/server-completion-actions.mjs'])hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   return hashes;
 }
 const before=await sources();
 async function check(name, run) {await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}
 try {
-  if(scenario==='server-completion') {
+  if(scenario==='world-placement-receipts') {
+    await worldPlacementReceiptsActions({api,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+  } else if(scenario==='region-stream') {
+    await regionStreamActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+    await mcpWorldBaseline({api,repo,instance,target,check,actionSamples});
+  } else if(scenario==='input-context') {
+    await inputContextActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+  } else if(scenario==='continuous-performance') {
+    await continuousPerformanceActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+  } else if(scenario==='continuous-input') {
+    await continuousInputActions({api,connection,repo,instance,target,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples,stopRenewal:()=>clearInterval(renew),forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+  } else if(scenario==='interaction-baseline') {
+    await interactionBaselineActions({api,connection,target,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='server-completion') {
     await serverCompletionActions({api,connection,repo,instance,target,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples});
   } else if(scenario==='resource-version') {
     await resourceVersionActions({api,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;},repo,instance,target,enterWorld:true});

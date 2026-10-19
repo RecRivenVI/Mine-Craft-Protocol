@@ -79,7 +79,8 @@ function Assert-Snapshot([string]$Directory,[switch]$AllowWithdrawn){
     foreach($name in $files.Keys){$path=Join-Path $directory $name;if((Assert-Regular $path).PSIsContainer-or(Hash $path)-cne$files[$name]){throw "Snapshot hash mismatch: $name"}}
     return $report
 }
-function Assert-Source($Report){
+function Assert-Source($Report,[string]$Manifest){
+    if($Report.publicationProfile-cne'continuous_gameplay_trial_v1'){throw 'New alpha publications require the continuous-gameplay trial profile; historical snapshots are not rewritten'}
     if(-not$Report.sourceHashes-or-not$Report.agentGuide.sourceSha256){throw 'Source/guide provenance is missing'}
     $canonical=$Report.sourceHashes|ConvertTo-Json -Depth 3 -Compress
     $fingerprint=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($canonical))).ToLowerInvariant()
@@ -112,6 +113,8 @@ function Assert-Source($Report){
     }
     $guide=Assert-Within (Join-Path $repo $Report.agentGuide.path) (Join-Path $repo 'build')
     if((Hash $guide)-cne$Report.agentGuide.sha256){throw 'Generated alpha guide changed'}
+    $gateOutput=& node (Join-Path $PSScriptRoot 'alpha-evidence.mjs') --verify-continuous-publication $Manifest --repository-root $repo 2>&1
+    if($LASTEXITCODE-ne0){throw ('Continuous-gameplay alpha evidence is incomplete, stale or has an unmet criterion: '+($gateOutput-join' '))}
 }
 function Write-DurableText([string]$Path,[string]$Text){
     $stream=[IO.File]::Open($Path,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
@@ -215,7 +218,7 @@ try{
     $directory=Join-Path $root $name
     if($report.distribution.layout-ne'flat_immutable_snapshot'-or[IO.Path]::GetFullPath($report.distribution.directory)-ine$directory){throw 'Manifest distribution directory does not match requested publication'}
     $files=Bundle-Files $report
-    Assert-Source $report
+    Assert-Source $report $manifest
     $files['alpha-manifest.json']=$manifestHash
     if(Test-Path -LiteralPath $directory){
         Assert-Snapshot $directory|Out-Null
@@ -227,7 +230,7 @@ try{
         Copy-Item -LiteralPath (Join-Path $repo $report.agentGuide.path) -Destination (Join-Path $stage 'AGENT_GUIDE.md')
         Copy-Item -LiteralPath $manifest -Destination (Join-Path $stage 'alpha-manifest.json')
         foreach($file in $files.Keys){if((Hash (Join-Path $stage $file))-cne$files[$file]){throw "Alpha copy changed: $file"}}
-        Assert-Source $report
+        Assert-Source $report $manifest
         if((Hash $manifest)-cne$manifestHash){throw 'Alpha manifest changed during copy'}
         [IO.Directory]::Move($stage,$directory)
         $stage=$null

@@ -34,9 +34,17 @@ $results = foreach ($target in $targets) {
     Assert-True (Test-Path -LiteralPath $drawTest) "$($target.Name) must check compiled HUD handlers for one unchanged original draw before observation"
     $observationCode = ($files | Where-Object { $_.Name -notin $operatorFiles -and $_.Name -notin $drawFiles } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
     Assert-True ($observationCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect') "$($target.Name) observation Hooks must not change control flow"
-    Assert-True ($combined -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
+    $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
+    $cursorArgumentPattern = '@ModifyVariable\(\s*method\s*=\s*"selectCursor\(Lcom/mojang/blaze3d/platform/cursor/CursorType;\)V",\s*at\s*=\s*@At\("HEAD"\),\s*argsOnly\s*=\s*true,\s*ordinal\s*=\s*0\)'
+    $cursorArgumentCount = ([regex]::Matches($windowHook, $cursorArgumentPattern)).Count
+    $expectedCursorArguments = if ($target.Name.StartsWith('26.')) { 1 } else { 0 }
+    Assert-True ($cursorArgumentCount -eq $expectedCursorArguments) "$($target.Name) must own only its applicable exact host cursor argument guard"
+    $otherWindowCode = [regex]::Replace($windowHook, $cursorArgumentPattern, '')
+    $otherHookCode = ($files | Where-Object Name -ne 'WindowMixin.java' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    Assert-True (($otherWindowCode + $otherHookCode) -notmatch '@ModifyArg|@ModifyArgs|@ModifyVariable|@ModifyConstant') "$($target.Name) must not use unreviewed replacement mechanisms"
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
+    $replacementCount = $redirectCount + $cursorArgumentCount
     $expectedCancellable=if($target.Name.StartsWith('26.3-')){26}elseif($target.Name.StartsWith('26.')){23}else{21}
     $expectedRedirect=if($target.Name.StartsWith('26.3-')){9}else{10}
     Assert-True ($cancellableCount -eq $expectedCancellable -and $redirectCount -eq $expectedRedirect) "$($target.Name) must match exclusive input/polling/warp guards and native-ingress/icon/keymapping redirects"
@@ -57,7 +65,10 @@ $results = foreach ($target in $targets) {
     Assert-True ($runtime-match'system_toast_reset_revision'-and$runtime-match'passive_native_reset_revision') "$($target.Name) passive Toast reset Hook must be disclosed independently of cancellable input Hooks"
     Assert-True ($runtime-match'ServerboundChatCommandPacket'-and$runtime-match'NativePlayerCommands.configuration\(packet\)'-and$runtime-match'gate.allowConfiguration\('-and$commandAdapter-match'ServerboundSetCommandBlockPacket'-and$commandAdapter-match'ServerboundSetCommandMinecartPacket') "$($target.Name) final typed chat/block/minecart admission must remain in production adapters"
     Assert-True ($runtime -match 'worldTargeting.holdActive\(\)' -and $runtime -match 'worldTargeting.permit\(kind\)') "$($target.Name) semantic veto must only apply while the Runtime owns a bounded gesture"
-    Assert-True ($runtime -match ('"cancellableInjectionCount",\s*'+$cancellableCount+'\)') -and $runtime -match ('"replacementInjectionCount",\s*'+$redirectCount+'\)')) "$($target.Name) production Hook counts must match actual sources"
+    Assert-True ($runtime -match ('"cancellableInjectionCount",\s*'+$cancellableCount+'\)') -and $runtime -match ('"replacementInjectionCount",\s*'+$replacementCount+'\)')) "$($target.Name) production Hook counts must match actual sources"
+    if ($cursorArgumentCount -gt 0) {
+        Assert-True ($runtime -match 'host_cursor_shape_guard' -and $runtime -match 'MIXIN_MODIFY_VARIABLE' -and $runtime -match 'default_host_shape_during_takeover') "$($target.Name) must disclose its host cursor argument replacement, not mislabel it as cancellation or redirect"
+    }
     Assert-True ($runtime -match '"passiveDrawDelegationCount",\s*5\)' -and $runtime -match 'operator_control_and_exact_hud_draw_delegation' -and $runtime -match 'passive_draw_observation') "$($target.Name) production manifest must disclose passive draw delegation separately from operator control"
     $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
     $iconApi=if($target.Name.StartsWith('26.3-')){'SDL_SetWindowIcon'}else{'glfwSetWindowIcon'}
@@ -107,7 +118,7 @@ $results = foreach ($target in $targets) {
         Accessors = ([regex]::Matches($combined, '@Accessor\s*\(')).Count
         Overwrites = 0
         Cancellable = $cancellableCount
-        Replacement = $redirectCount
+        Replacement = $replacementCount
         ThirdPartyTargets = 0
         Result = 'PASS'
     }

@@ -99,11 +99,26 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private final Map<Integer, KeyState> pressedKeys =
             new java.util.concurrent.ConcurrentHashMap<>();
     private final Set<Integer> pressedButtons = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final io.github.recrivenvi.minecraftprotocol.safety.NativeInputOwnership<
+                    net.minecraft.client.KeyMapping>
+            nativeInputOwnership =
+                    new io.github.recrivenvi.minecraftprotocol.safety.NativeInputOwnership<>();
     private final Map<Integer, Screen> buttonScreens = new HashMap<>();
     private final Map<Integer, String> buttonFrames = new HashMap<>();
     private volatile String lastTraceDetail = "";
     private volatile String lastServerThread = "";
     private volatile AgentControlSession controlSession = new AgentControlSession();
+    private final io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch inputContext =
+            new io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch();
+    private io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot
+            publishedInputContext;
+    private io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot
+            nativeEntityAttackContext;
+    private Object nativeEntityAttackWorld, nativeEntityAttackPlayer, nativeEntityAttackConnection;
+    private long nativeEntityAttackCount;
+    private long nativeEntityAttackControlGeneration = -1;
+    private final io.github.recrivenvi.minecraftprotocol.safety.WorldRegionPages regionPages =
+            new io.github.recrivenvi.minecraftprotocol.safety.WorldRegionPages();
     private volatile io.github.recrivenvi.minecraftprotocol.core.PlayerCommandGate commandGate;
     private volatile AgentControlSession.Snapshot controlPresence = this.controlSession.snapshot();
     private final java.util.concurrent.atomic.AtomicLongArray suppressedNative =
@@ -219,6 +234,45 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         INSTANCE.worldTargeting.usingReleased();
     }
 
+    public static void semanticUseOnResult(
+            net.minecraft.client.player.LocalPlayer player,
+            net.minecraft.world.InteractionHand hand,
+            net.minecraft.world.phys.BlockHitResult hit,
+            net.minecraft.world.InteractionResult result) {
+        INSTANCE.worldTargeting.nativeUseOnResult(player, hand, hit, result);
+    }
+
+    public static void nativeEntityAttackCompleted(
+            net.minecraft.world.entity.player.Player player,
+            net.minecraft.world.entity.Entity target) {
+        INSTANCE.recordNativeEntityAttack(player, target);
+    }
+
+    private void recordNativeEntityAttack(
+            net.minecraft.world.entity.player.Player player,
+            net.minecraft.world.entity.Entity target) {
+        Minecraft client = this.minecraft;
+        var context = this.inputContext.snapshot();
+        ProbeTransport current = this.transport;
+        if (client == null
+                || !client.isSameThread()
+                || !this.controlPresence.agentControlled()
+                || !AgentInputContext.isAgentRouted()
+                || context != this.nativeEntityAttackContext
+                || !context.worldAvailable()
+                || this.controlPresence.transitionSequence()
+                        != this.nativeEntityAttackControlGeneration
+                || client.level != this.nativeEntityAttackWorld
+                || client.player != this.nativeEntityAttackPlayer
+                || client.getConnection() != this.nativeEntityAttackConnection
+                || player != client.player
+                || target == null
+                || target.level() != client.level
+                || current == null
+                || !current.nativeInputLeaseActive(context)) return;
+        this.nativeEntityAttackCount++;
+    }
+
     public static void onClientTick(Minecraft minecraft) {
         INSTANCE.tick(minecraft);
     }
@@ -327,8 +381,88 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     public static void ensureExclusiveOwnerState() {
+        if (INSTANCE.minecraft != null) INSTANCE.refreshInputContext(INSTANCE.minecraft);
         if (INSTANCE.controlPresence.agentControlled() && !INSTANCE.lastTakeover)
             INSTANCE.controlPresenceChanged(INSTANCE.controlPresence);
+    }
+
+    public static void beforeClientInput(Minecraft client) {
+        INSTANCE.minecraft = client;
+        INSTANCE.refreshInputContext(client);
+    }
+
+    public static void beforePlayerInput() {
+        beforeClientInput(Minecraft.getInstance());
+    }
+
+    private void refreshInputContext(Minecraft client) {
+        var connection = client.getConnection();
+        boolean connected = connection != null && connection.getConnection().isConnected();
+        var context =
+                this.inputContext.observe(
+                        connected ? client.level : null,
+                        connected ? client.player : null,
+                        connected ? connection : null);
+        this.refreshNativeEntityAttackContext(client, context, connection, connected);
+        ProbeTransport current = this.transport;
+        if (current == null || context == this.publishedInputContext) return;
+        current.nativeInputContextChanged(context);
+        this.discardContextInput(client);
+        this.publishedInputContext = context;
+    }
+
+    private void refreshNativeEntityAttackContext(
+            Minecraft client,
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context,
+            Object connection,
+            boolean connected) {
+        long controlGeneration = this.controlPresence.transitionSequence();
+        if (context == this.nativeEntityAttackContext
+                && controlGeneration == this.nativeEntityAttackControlGeneration) return;
+        this.nativeEntityAttackCount = 0;
+        this.nativeEntityAttackContext = context;
+        this.nativeEntityAttackControlGeneration = controlGeneration;
+        this.nativeEntityAttackWorld = connected ? client.level : null;
+        this.nativeEntityAttackPlayer = connected ? client.player : null;
+        this.nativeEntityAttackConnection = connected ? connection : null;
+    }
+
+    private JsonObject discardContextInput(Minecraft client) {
+        int releasedKeys = this.pressedKeys.size(), releasedButtons = this.pressedButtons.size();
+        this.worldTargeting.end();
+        this.finishNativeInputCleanup("native_input_context_changed");
+        for (var mapping : client.options.keyMappings) {
+            var access =
+                    (io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor)
+                            mapping;
+            var key = access.minecraftProtocolProbe$key();
+            boolean ownedKey =
+                    this.pressedKeys.entrySet().stream()
+                            .anyMatch(
+                                    entry ->
+                                            mapping.matches(
+                                                    entry.getKey(), entry.getValue().scanCode()));
+            boolean ownedButton =
+                    key.getType() == com.mojang.blaze3d.platform.InputConstants.Type.MOUSE
+                            && this.pressedButtons.contains(key.getValue());
+            if (ownedKey || ownedButton || mapping == this.commandChatOpening)
+                access.minecraftProtocolProbe$release();
+        }
+        // Do not dispatch an old Screen's mouse-up into its replacement.
+        if (releasedButtons > 0) this.clearMouseButtonState(client);
+        this.pressedKeys.clear();
+        this.pressedButtons.clear();
+        this.logicalPointer.releaseButtons();
+        this.buttonScreens.clear();
+        this.buttonFrames.clear();
+        this.commandChatOpening = null;
+        this.commandChat.clear();
+        this.commandFeedback.clear();
+        JsonObject result = base("input.release_all");
+        result.addProperty("reason", "native_input_context_changed");
+        result.addProperty("releasedKeys", releasedKeys);
+        result.addProperty("releasedButtons", releasedButtons);
+        return result;
     }
 
     public static void onVanillaWindowIcon(long window, GLFWImage.Buffer icons) {
@@ -879,6 +1013,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             this.transport =
                     ProbeTransport.forInstance(
                             this, minecraft.gameDirectory.toPath(), "1.21.1-neoforge");
+            this.refreshInputContext(minecraft);
             this.transport.startAsync();
             if (this.shutdownRegistered.compareAndSet(false, true)) {
                 Runtime.getRuntime()
@@ -888,6 +1023,27 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
         this.refreshScreen(minecraft);
         this.refreshMenu(minecraft);
+        this.refreshInputContext(minecraft);
+        if (this.transport != null
+                && this.publishedInputContext != null
+                && this.publishedInputContext.worldAvailable()) {
+            var player = minecraft.player;
+            var velocity = player.getDeltaMovement();
+            this.transport.publishPlayerState(
+                    this.publishedInputContext,
+                    new io.github.recrivenvi.minecraftprotocol.core.PlayerStateStream.Sample(
+                            this.clientTick,
+                            System.currentTimeMillis(),
+                            player.getX(),
+                            player.getY(),
+                            player.getZ(),
+                            player.getYRot(),
+                            player.getXRot(),
+                            player.onGround(),
+                            velocity.x,
+                            velocity.y,
+                            velocity.z));
+        }
         MinecraftServer singleplayerServer = minecraft.getSingleplayerServer();
         this.phase9a.observeStorageLifecycle(
                 minecraft.level,
@@ -916,6 +1072,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         this.phase9a.observeStorageShutdown();
         ProbeTransport current = this.transport;
         if (current != null) current.close();
+        this.regionPages.close();
         this.phase9a.close();
     }
 
@@ -966,6 +1123,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     capabilities.addProperty("input.game_routed_raw", "runtime_hooked");
                     capabilities.addProperty("input.game_routed_screen", "path_observable");
                     capabilities.addProperty("input.game_routed_keymapping", "path_observable");
+                    capabilities.addProperty(
+                            "input.context_epoch", "native_world_player_connection");
                     capabilities.addProperty("capture.composite", "runtime_hooked");
                     capabilities.addProperty("input.pipeline", "runtime_verified");
                     capabilities.addProperty(
@@ -1091,6 +1250,24 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     boolean mouse = client.mouseHandler instanceof MouseHandlerInvoker;
                     boolean screen = this.screenRevision > 0;
                     JsonArray hooks = new JsonArray();
+                    hooks.add(
+                            hook(
+                                    "world_placement_receipt",
+                                    "MIXIN_INJECT",
+                                    "MultiPlayerGameMode.useItemOn",
+                                    "RETURN",
+                                    "read_observation",
+                                    "runtime_hooked",
+                                    "world.action"));
+                    hooks.add(
+                            hook(
+                                    "world_entity_attack_consumption",
+                                    "MIXIN_INJECT",
+                                    "MultiPlayerGameMode.attack",
+                                    "RETURN",
+                                    "read_observation",
+                                    observed(this.nativeEntityAttackCount),
+                                    "input.mouse"));
                     JsonObject scene = WorldPresentationSnapshot.capture();
                     hooks.add(
                             hook(
@@ -1239,6 +1416,24 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                     false,
                                     true,
                                     status(tick)));
+                    hooks.add(
+                            hook(
+                                    "input_context_tick",
+                                    "MIXIN_INJECT",
+                                    "Minecraft.tick",
+                                    "HEAD",
+                                    "input_context_fence",
+                                    status(tick),
+                                    "input.context_epoch"));
+                    hooks.add(
+                            hook(
+                                    "input_context_player",
+                                    "MIXIN_INJECT",
+                                    "LocalPlayer.aiStep",
+                                    "HEAD",
+                                    "input_context_fence",
+                                    status(tick),
+                                    "input.context_epoch"));
                     hooks.add(
                             operatorHook(
                                     "virtual_input_focus",
@@ -1486,6 +1681,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                         this.interactionIdentity(slot));
                 node.addProperty("class", slot.getClass().getName());
                 node.addProperty("role", "slot");
+                addSlotOwner(
+                        node, slot, client.player == null ? null : client.player.getInventory());
                 node.addProperty("nodeRevision", this.menuRevision);
                 node.addProperty("coverage", "semantic_native");
                 addSlotBounds(node, left + slot.x, top + slot.y);
@@ -1631,25 +1828,50 @@ public final class NeoForgeProbeRuntime implements ProbeService {
 
     @Override
     public CompletableFuture<JsonObject> pointerState() {
-        return this.onClient(
-                () -> {
-                    Minecraft client = requireClient();
-                    this.syncPointerContext(client);
-                    JsonObject result = this.snapshotUiTree();
-                    result.addProperty(
-                            "x",
-                            this.logicalPointer.initialized()
-                                    ? this.logicalPointer.x()
-                                    : client.getWindow().getGuiScaledWidth() / 2.0);
-                    result.addProperty(
-                            "y",
-                            this.logicalPointer.initialized()
-                                    ? this.logicalPointer.y()
-                                    : client.getWindow().getGuiScaledHeight() / 2.0);
-                    result.addProperty("guiAbsolute", client.screen != null);
-                    result.addProperty("pressedButtonCount", this.pressedButtons.size());
-                    return result;
-                });
+        return this.onClient(() -> this.pointerStateNow(false));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> inputPacingState() {
+        return this.onClient(() -> this.pointerStateNow(true));
+    }
+
+    private JsonObject pointerStateNow(boolean pacingOnly) {
+        Minecraft client = requireClient();
+        this.syncPointerContext(client);
+        JsonObject result =
+                pacingOnly && this.gameplayViewport()
+                        ? this.gameplayInputFrame(client)
+                        : this.snapshotUiTree();
+        result.addProperty(
+                "x",
+                this.logicalPointer.initialized()
+                        ? this.logicalPointer.x()
+                        : client.getWindow().getGuiScaledWidth() / 2.0);
+        result.addProperty(
+                "y",
+                this.logicalPointer.initialized()
+                        ? this.logicalPointer.y()
+                        : client.getWindow().getGuiScaledHeight() / 2.0);
+        result.addProperty("guiAbsolute", client.screen != null);
+        result.addProperty("pressedButtonCount", this.pressedButtons.size());
+        return result;
+    }
+
+    private JsonObject gameplayInputFrame(Minecraft client) {
+        this.refreshScreen(client);
+        JsonObject frame = base("input.pacing_state");
+        frame.addProperty("screenClass", "");
+        frame.addProperty("screenIdentity", 0);
+        frame.addProperty("overlayIdentity", 0);
+        frame.addProperty("screenRevision", this.screenRevision);
+        frame.addProperty("gameCursorRevision", this.logicalPointer.gameCursorRevision());
+        frame.addProperty("width", client.getWindow().getGuiScaledWidth());
+        frame.addProperty("height", client.getWindow().getGuiScaledHeight());
+        frame.addProperty("windowWidth", client.getWindow().getScreenWidth());
+        frame.addProperty("windowHeight", client.getWindow().getScreenHeight());
+        frame.addProperty("guiScale", client.getWindow().getGuiScale());
+        return frame;
     }
 
     @Override
@@ -1740,16 +1962,22 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                         || this.buttonScreens.get(button) != client.screen)) {
             this.clearMouseButtonState(client);
         } else {
-            AgentInputContext.dispatch(
-                    AgentInputContext.Event.button(
-                            client.getWindow().getWindow(), button, action, modifiers),
+            this.trackNativeInput(
+                    client,
                     () ->
-                            ((MouseHandlerInvoker) client.mouseHandler)
-                                    .minecraftProtocolProbe$onPress(
+                            AgentInputContext.dispatch(
+                                    AgentInputContext.Event.button(
                                             client.getWindow().getWindow(),
                                             button,
                                             action,
-                                            modifiers));
+                                            modifiers),
+                                    () ->
+                                            ((MouseHandlerInvoker) client.mouseHandler)
+                                                    .minecraftProtocolProbe$onPress(
+                                                            client.getWindow().getWindow(),
+                                                            button,
+                                                            action,
+                                                            modifiers)));
         }
         if (action == 0) {
             this.buttonScreens.remove(button);
@@ -1821,12 +2049,23 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             int key, int scanCode, int action, int modifiers, JsonObject guard) {
         if (action != 0) this.checkPointerGuard(guard);
         Minecraft client = requireClient();
-        AgentInputContext.dispatch(
-                AgentInputContext.Event.key(
-                        client.getWindow().getWindow(), key, scanCode, action, modifiers),
+        this.trackNativeInput(
+                client,
                 () ->
-                        client.keyboardHandler.keyPress(
-                                client.getWindow().getWindow(), key, scanCode, action, modifiers));
+                        AgentInputContext.dispatch(
+                                AgentInputContext.Event.key(
+                                        client.getWindow().getWindow(),
+                                        key,
+                                        scanCode,
+                                        action,
+                                        modifiers),
+                                () ->
+                                        client.keyboardHandler.keyPress(
+                                                client.getWindow().getWindow(),
+                                                key,
+                                                scanCode,
+                                                action,
+                                                modifiers)));
         if (action == InputConstants.PRESS || action == InputConstants.REPEAT) {
             this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
         } else if (action == InputConstants.RELEASE) {
@@ -1952,6 +2191,53 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                             .forEach(e -> result.add(e.getKey(), e.getValue()));
                     return result;
                 });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> clientWorldRegion(
+            String action, JsonObject query, String trustedOwner, Runnable authorization) {
+        JsonObject detached = query.deepCopy();
+        CompletableFuture<JsonObject> result = new CompletableFuture<>();
+        Minecraft client = requireClient();
+        client.execute(
+                () -> {
+                    if (result.isDone()) return;
+                    try {
+                        this.refreshInputContext(client);
+                        Runnable guard =
+                                () -> {
+                                    if (result.isDone() || this.shutdownStarted.get())
+                                        throw new java.util.concurrent.CancellationException(
+                                                "Region page cancelled");
+                                    authorization.run();
+                                };
+                        guard.run();
+                        JsonObject value;
+                        if (action.equals("cancel")) {
+                            value = new JsonObject();
+                            value.addProperty("type", "world.region.cancel");
+                            value.addProperty("dataCategory", "USER");
+                            value.addProperty(
+                                    "cancelled",
+                                    this.regionPages.cancel(
+                                            detached.get("cursor").getAsString(), trustedOwner));
+                        } else
+                            value =
+                                    this.regionPages.read(
+                                            detached,
+                                            trustedOwner,
+                                            WorldRegionSnapshot.view(
+                                                    client,
+                                                    this.publishedInputContext,
+                                                    () -> this.clientTick),
+                                            guard);
+                        guard.run();
+                        result.complete(value);
+                    } catch (Throwable failure) {
+                        result.completeExceptionally(failure);
+                    }
+                });
+        return result;
     }
 
     @Override
@@ -2738,6 +3024,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     @Override
     public CompletableFuture<JsonObject> formalDeepObservation(
             JsonObject request, DeepObservationRequestContext requestContext) {
+        Phase9ASpikeEngine.formalChunkRadius(request);
         String perspective =
                 request.has("perspective")
                         ? request.get("perspective").getAsString()
@@ -2928,7 +3215,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     private void checkInputPreconditions(Long expectedScreenRevision, Long expectedMenuRevision) {
         Minecraft client = requireClient();
         this.refreshScreen(client);
-        this.refreshMenu(client);
+        if (expectedMenuRevision != null) this.refreshMenu(client);
         if (expectedScreenRevision != null && expectedScreenRevision != this.screenRevision)
             throw new ProtocolState.ProtocolException(
                     "STALE_SCREEN_REVISION", 409, "Screen revision changed before input dispatch");
@@ -2965,9 +3252,29 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     json.addProperty("pressedKeyCount", this.pressedKeys.size());
                     json.addProperty("pressedButtonCount", this.pressedButtons.size());
                     json.addProperty("inputDispatchSequence", this.inputDispatchSequence.get());
+                    this.addNativeEntityAttackState(json);
                     this.addControlPresence(json);
                     return json;
                 });
+    }
+
+    private void addNativeEntityAttackState(JsonObject json) {
+        var context = this.nativeEntityAttackContext;
+        ProbeTransport current = this.transport;
+        json.addProperty("nativeEntityAttackCount", this.nativeEntityAttackCount);
+        json.addProperty("nativeEntityAttackScope", "native_multiplayer_game_mode_attack_return");
+        json.addProperty(
+                "nativeEntityAttackCounterUnits",
+                "native_entity_attack_invocations_not_damage_or_swing");
+        json.addProperty("nativeEntityAttackContextId", context == null ? "" : context.opaqueId());
+        json.addProperty(
+                "nativeEntityAttackContextGeneration", context == null ? 0 : context.generation());
+        json.addProperty(
+                "nativeEntityAttackControlGeneration", this.nativeEntityAttackControlGeneration);
+        json.addProperty(
+                "nativeEntityAttackLeaseActive",
+                current != null && current.nativeInputLeaseActive(context));
+        json.addProperty("nativeEntityAttackServerEffectConfirmed", false);
     }
 
     @Override
@@ -3045,10 +3352,42 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 });
     }
 
+    private static int pendingNativeClicks(net.minecraft.client.KeyMapping mapping) {
+        return ((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor) mapping)
+                .minecraftProtocolProbe$pendingClicks();
+    }
+
+    private void trackNativeInput(Minecraft client, Runnable dispatch) {
+        this.nativeInputOwnership.track(
+                java.util.Arrays.asList(client.options.keyMappings),
+                NeoForgeProbeRuntime::pendingNativeClicks,
+                net.minecraft.client.KeyMapping::isDown,
+                dispatch);
+    }
+
+    private void finishNativeInputCleanup(String reason) {
+        // Mouse-up clears isDown, not Vanilla's queued clickCount. A stop must clear both,
+        // while successful completion may still have an already submitted native click.
+        if ("pipeline_completed".equals(reason)) {
+            this.nativeInputOwnership.retireConsumed(
+                    NeoForgeProbeRuntime::pendingNativeClicks,
+                    net.minecraft.client.KeyMapping::isDown);
+        } else {
+            this.nativeInputOwnership.releaseOwned(
+                    mapping ->
+                            ((io.github.recrivenvi.minecraftprotocol.probe.mixin
+                                                    .KeyBindingUiAccessor)
+                                            mapping)
+                                    .minecraftProtocolProbe$release());
+        }
+    }
+
     @Override
     public CompletableFuture<JsonObject> releaseAllInput(String reason) {
         return this.onClientCleanup(
                 () -> {
+                    if (reason.equals("native_input_context_changed"))
+                        return this.discardContextInput(requireClient());
                     this.worldTargeting.end();
                     if (this.commandChatOpening != null) {
                         // Drop only this gesture's queued native Chat key action, never all key
@@ -3101,6 +3440,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                                         InputConstants.RELEASE,
                                                         0));
                     }
+                    this.finishNativeInputCleanup(reason);
                     this.pressedKeys.clear();
                     this.pressedButtons.clear();
                     if (releasedButtons > 0) this.logicalPointer.releaseButtons();
@@ -3213,6 +3553,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
         return this.onClient(
                 () -> {
+                    this.refreshInputContext(requireClient());
                     AgentControlSession.Snapshot current = this.controlPresence;
                     if (!current.agentControlled()
                             || !accepted.agentControlled()
@@ -3264,6 +3605,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                 () -> {
                     if (result.isDone()) return;
                     try {
+                        this.refreshInputContext(client);
+                        if (result.isDone()) return;
                         result.complete(supplier.get());
                     } catch (Throwable throwable) {
                         result.completeExceptionally(throwable);
@@ -3467,6 +3810,15 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                         + elementIdentity
                         + ":"
                         + viewIndex);
+    }
+
+    static void addSlotOwner(
+            JsonObject node, Slot slot, net.minecraft.world.Container playerInventory) {
+        node.addProperty(
+                "slotOwner",
+                playerInventory == null || slot.container == null
+                        ? "unknown"
+                        : slot.container == playerInventory ? "player_inventory" : "menu");
     }
 
     static boolean addSlotVisibility(JsonObject node, int width, int height) {

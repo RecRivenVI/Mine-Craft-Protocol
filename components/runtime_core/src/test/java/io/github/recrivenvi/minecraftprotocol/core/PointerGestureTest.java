@@ -140,7 +140,7 @@ final class PointerGestureTest {
                                 }
                                 JsonObject result = new JsonObject();
                                 switch (method.getName()) {
-                                    case "pointerState" -> {
+                                    case "pointerState", "inputPacingState" -> {
                                         pointerReads.incrementAndGet();
                                         if (beforePointerRead != null) beforePointerRead.run();
                                         result = tree();
@@ -830,6 +830,52 @@ final class PointerGestureTest {
             engine.rawInput(down, () -> {}, java.util.function.Supplier::get)
                     .get(1, TimeUnit.SECONDS);
             assertEquals(0, state.buttons);
+        }
+    }
+
+    @Test
+    void cancellingAnOldCompletedPipelineCannotReleaseTheNextRawHeldButton() throws Exception {
+        World state = new World();
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            JsonObject request = pipeline("[{\"type\":\"delay\",\"durationMs\":1}]", 1000);
+            request.addProperty("cleanupOnComplete", false);
+            CompletableFuture<JsonObject> old = engine.executePipeline(request, () -> {});
+            old.get(1, TimeUnit.SECONDS);
+            JsonObject down =
+                    JsonParser.parseString("{\"type\":\"mouse.button\",\"button\":0,\"action\":1}")
+                            .getAsJsonObject();
+            engine.rawInput(down, () -> {}, java.util.function.Supplier::get)
+                    .get(1, TimeUnit.SECONDS);
+            assertEquals(1, state.buttons);
+            assertEquals(0, state.cleanups.get());
+            assertFalse(old.cancel(false), "A completed operation cannot be cancelled");
+            assertEquals(
+                    1,
+                    state.buttons,
+                    "Rejected terminal cancellation must not clean a later owner");
+            assertEquals(0, state.cleanups.get());
+        }
+    }
+
+    @Test
+    void reentrantCancellationOfACompletedPipelineCannotStartCleanup() throws Exception {
+        World state = new World();
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            JsonObject request = pipeline("[{\"type\":\"delay\",\"durationMs\":50}]", 1000);
+            request.addProperty("cleanupOnComplete", false);
+            CompletableFuture<JsonObject> result = engine.executePipeline(request, () -> {});
+            CompletableFuture<Void> observed =
+                    result.thenRun(
+                            () -> {
+                                assertFalse(result.cancel(false));
+                                assertEquals(
+                                        0,
+                                        state.cleanups.get(),
+                                        "Terminal observers cannot re-open cleanup");
+                            });
+            observed.get(1, TimeUnit.SECONDS);
+            assertFalse(result.isCancelled());
+            assertEquals(0, state.cleanups.get());
         }
     }
 

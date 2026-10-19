@@ -58,6 +58,9 @@ foreach($gate in $gatePaths){
  }else{
   With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java' {param($s)$s.Replace('Compatibility Text','removed text')} {Run-Gate $gate $false 'wrong-source-contract' 'Compatibility Text'}
   With-Text 'versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json' {param($s)$j=$s|ConvertFrom-Json -AsHashtable;$j.required=$false;$j|ConvertTo-Json -Depth 20} {Run-Gate $gate $false 'wrong-hook-contract' 'required Hook'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java' {param($s)$s.Replace('ordinal = 0','ordinal = 1')} {Run-Gate $gate $false 'wrong-cursor-argument-guard' 'exact host cursor argument guard'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java' {param($s)$s+"`n@ModifyVariable(method = `"other`", at = @At(`"HEAD`"))`n"} {Run-Gate $gate $false 'unreviewed-variable-replacement' 'unreviewed replacement mechanisms'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java' {param($s)$s.Replace('MIXIN_MODIFY_VARIABLE','MIXIN_REDIRECT')} {Run-Gate $gate $false 'mislabelled-cursor-argument-hook' 'must disclose its host cursor argument replacement'}
  }
  foreach($target in $targets){$jarName=Get-JarName $target;With-Missing "versions/$target/build/libs/$jarName" {Run-Gate $gate $false "missing-artifact-$target" 'artifact must exist'}}
  $jarName=Get-JarName '26.3-neoforge'
