@@ -2,20 +2,22 @@ import { readFile, readdir, writeFile, stat } from 'node:fs/promises';
 import { resolve, relative, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof,continuousInputProof,canonicalSourceHashes,verifyEvidenceSources,CONTINUOUS_PROFILE,DEFERRED_PERFORMANCE,collectContinuousGameplayProof} from './alpha-evidence.mjs';
+import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof,continuousInputProof,canonicalSourceHashes,verifyEvidenceSources,CONTINUOUS_PROFILE,DEFERRED_PERFORMANCE,collectContinuousGameplayProof,E_UI_PROFILE,E_UI_SCOPE,collectEUiProof} from './alpha-evidence.mjs';
 import {candidateSource} from './alpha-candidate.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
-import {DEPENDENCY_PROFILE,DEPENDENCY_SCOPE,readDependencyBaseline,dependencySourceProof,dependencyPerformance} from './dependency-proof.mjs';
+import {DEPENDENCY_PROFILE,DEPENDENCY_SCOPE,readDependencyBaseline,dependencySourceProof,dependencyPerformance,historicalTrialBaseline} from './dependency-proof.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const publicationProfile=process.argv.find(value=>value.startsWith('--profile='))?.slice('--profile='.length)??CONTINUOUS_PROFILE;
 const dependencyUpdate=publicationProfile===DEPENDENCY_PROFILE;
-const scenario=process.argv.find(value=>value.startsWith('--scenario='))?.slice('--scenario='.length)??(dependencyUpdate?'packaged-runtime':'full');
+const eUiUpdate=publicationProfile===E_UI_PROFILE;
+const scenario=process.argv.find(value=>value.startsWith('--scenario='))?.slice('--scenario='.length)??(eUiUpdate?'e-ui-affected':dependencyUpdate?'packaged-runtime':'full');
 const dependencyBaselineDirectory=process.argv.find(value=>value.startsWith('--dependency-baseline='))?.slice('--dependency-baseline='.length);
-if(dependencyUpdate?(scenario!=='packaged-runtime'||!dependencyBaselineDirectory):(publicationProfile!==CONTINUOUS_PROFILE||scenario!=='full'||dependencyBaselineDirectory))throw new Error('Use full continuous-gameplay acceptance, or explicit dependency_update_trial_v1 with packaged-runtime and --dependency-baseline');
+const historicalBaselineDirectory=process.argv.find(value=>value.startsWith('--historical-baseline='))?.slice('--historical-baseline='.length);
+if(eUiUpdate?(scenario!=='e-ui-affected'||!historicalBaselineDirectory||dependencyBaselineDirectory):dependencyUpdate?(scenario!=='packaged-runtime'||!dependencyBaselineDirectory||historicalBaselineDirectory):(publicationProfile!==CONTINUOUS_PROFILE||scenario!=='full'||dependencyBaselineDirectory||historicalBaselineDirectory))throw new Error('Use the explicit continuous, dependency-update or E UI trial profile with its matching scope and baseline');
 const validation=process.argv.find(value=>value.startsWith('--validation='))?.slice('--validation='.length)??(scenario==='core-showcase'?'feature-control_ui_showcase':'conformance-world_read');
 if(!['conformance-world_read','migration-runtime_core','feature-control_ui_showcase'].includes(validation))throw new Error('Unsupported Native smoke validation: '+validation);
-if(!['full','input-preconditions','player-command','command-configuration','core-showcase','packaged-runtime'].includes(scenario)||(scenario==='core-showcase'?validation!=='feature-control_ui_showcase':validation==='feature-control_ui_showcase'||!['full','packaged-runtime'].includes(scenario)&&validation!=='conformance-world_read'))throw new Error('Unsupported alpha Native smoke scope');
+if(!['full','input-preconditions','player-command','command-configuration','core-showcase','packaged-runtime','e-ui-affected'].includes(scenario)||(scenario==='core-showcase'?validation!=='feature-control_ui_showcase':validation==='feature-control_ui_showcase'||!['full','packaged-runtime','e-ui-affected'].includes(scenario)&&validation!=='conformance-world_read'))throw new Error('Unsupported alpha Native smoke scope');
 const facts=Object.fromEntries((await readFile(resolve(repo,'gradle.properties'),'utf8')).split(/\r?\n/).filter(line=>line.startsWith('mod_')).map(line=>{const index=line.indexOf('=');return [line.slice(0,index),line.slice(index+1)];}));
 const targets=[...(await readFile(resolve(repo,'settings.gradle.kts'),'utf8')).matchAll(/register\("([^"\r\n]+)"\)/g)].map(match=>match[1]);
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -29,7 +31,7 @@ for(const target of targets){
   artifacts.push({target,path:relative(repo,collected).replaceAll('\\','/'),fileName:name,sha256:digest(bytes),bytes:bytes.length,builtAt:(await stat(native)).mtime.toISOString()});
 }
 const sourceHashes=await candidateSource(repo,targets);
-const packagedRuntime=await collectInstalledProof(repo,artifacts,digest(JSON.stringify(sourceHashes)),{requireEnteredWorld:dependencyUpdate});
+const packagedRuntime=await collectInstalledProof(repo,artifacts,digest(JSON.stringify(sourceHashes)),{requireEnteredWorld:dependencyUpdate||eUiUpdate});
 for(const proof of packagedRuntime){
   const bytes=await readFile(resolve(repo,proof.result));
   if(digest(bytes)!==proof.resultSha256)throw new Error('Installed proof changed during alpha preparation: '+proof.target);
@@ -41,9 +43,9 @@ const dirty=execFileSync('git',['status','--porcelain=v1'],{cwd:repo,encoding:'u
 const nativeSmoke=[];
 const uiRegression=[];
 for(const target of targets) {
-  if(scenario==='packaged-runtime'){
+  if(scenario==='packaged-runtime'||eUiUpdate){
     const proof=packagedRuntime.find(value=>value.target===target);
-    nativeSmoke.push({target,result:proof.result,scenario,fullSmoke:false,checks:dependencyUpdate?5:4,mcpChecks:0,mcpScope:'not_performed_by_installed_smoke',evidence:'installed_loader_release_jar',sourceMatchesCurrent:true,cleanShutdown:true,...(dependencyUpdate?{enteredWorld:true}:{}),fixturePolicy:dependencyUpdate?'immutable_baseline_read_only_copy':'fresh_install_no_world'});
+    nativeSmoke.push({target,result:proof.result,scenario:'packaged-runtime',fullSmoke:false,checks:dependencyUpdate||eUiUpdate?5:4,mcpChecks:0,mcpScope:'not_performed_by_installed_smoke',evidence:'installed_loader_release_jar',sourceMatchesCurrent:true,cleanShutdown:true,...(dependencyUpdate||eUiUpdate?{enteredWorld:true}:{}),fixturePolicy:dependencyUpdate||eUiUpdate?'immutable_baseline_read_only_copy':'fresh_install_no_world'});
     continue;
   }
   const path=`validations/${validation}/result/${target}${['full','core-showcase'].includes(scenario)?'':'-'+scenario}.json`;
@@ -101,7 +103,12 @@ if(scenario==='packaged-runtime')report.runtimeAcceptance='installed Loader / si
 report.publicationProfile=publicationProfile;
 report.performancePolicy=DEFERRED_PERFORMANCE;
 report.sourceVerification={policy:'production_facts_and_executed_tools',unexecutedPlacementImportExcluded:true,originalResultBytesRetained:true};
-if(dependencyUpdate){
+if(eUiUpdate){
+ const baseline=await readDependencyBaseline(historicalBaselineDirectory);
+ report.historicalBaseline=historicalTrialBaseline(baseline);report.eUiTrial=await collectEUiProof(repo,targets,sourceHashes);
+ report.runtimeAcceptance=E_UI_SCOPE;report.sourceVerification={policy:'production_facts_and_actually_executed_tools_excluding_tests',historicalMatrixIsNotCurrentAcceptance:true,originalResultBytesRetained:true};
+ report.delivery='e_ui_trial_with_known_performance_limit';report.performanceAcceptance=dependencyPerformance(baseline);
+}else if(dependencyUpdate){
  const baseline=await readDependencyBaseline(dependencyBaselineDirectory);
  report.dependencyBaseline=await dependencySourceProof(repo,baseline,sourceHashes);
  report.runtimeAcceptance=DEPENDENCY_SCOPE;report.sourceVerification={policy:'unchanged_product_and_declared_dependency_values',historicalMatrixIsNotCurrentAcceptance:true};
@@ -147,7 +154,8 @@ const snapshot='## 本次 alpha 构建快照\n\n生成时间：'+report.prepared
 const introductionEnd=guide.indexOf('\n\n',guide.indexOf('\n\n')+2);
 if(introductionEnd<0)throw new Error('Agent guide must start with a title and introduction');
 const dependencyNotice=dependencyUpdate?'\n\n## 本次依赖更新的验证边界\n\n当前候选只新验五端独立发行JAR进入固定世界、USER读取和正常退出，未重跑65场景矩阵；原矩阵仅引用不可变基线`'+report.dependencyBaseline.directory.replaceAll('\\','/')+'`。产品源码、资源、协议与构建脚本逐哈希不变，只有清单中明确列出的依赖事实和Companion Zod更新。基线攻击比值NOT_MET仅为历史记录，本轮不做新性能测量，也不宣称完整里程碑或真人验收PASS。Companion包/锁文件SHA另列清单；不以旧MCP现场结果证明新依赖包。':'';
-guide=guide.slice(0,introductionEnd)+'\n\n'+snapshot.replace(/\n+(?=- )/g,'\n\n').trimEnd()+dependencyNotice+guide.slice(introductionEnd);
+const eUiNotice=eUiUpdate?'\n\n## 本次 UI 试用的验证边界\n\n本快照修复 CF-017、CF-018、CF-072、CF-071、CF-021，并包含 CF-019、CF-023 的 HUD 就绪与结构化失败解释修复。当前证据为五端完整既有 UI 套件及本轮新增组、五端独立 --demo 原生 HUD、五端输入上下文和连续输入、五端方块实体坐标筛选、五端命令权限协作，以及两个代表端的后台首次转向，共 32 份开发 Runtime 运行，加五端最终单 JAR 独立安装进入世界，合计 37 份运行记录。原生不适用项与外部服务限制不计作操作通过，优化器先完成不冒充取消覆盖。自动权限夹具不等同真人 OP 变更或合作；humanAcceptance=NOT_PERFORMED。65 组旧矩阵只保留为历史基线，不冒充当前候选验收。性能检测依用户决定暂缓，历史攻击比值仍 NOT_MET；完整领域里程碑与真人验收尚未完成。':'';
+guide=guide.slice(0,introductionEnd)+'\n\n'+snapshot.replace(/\n+(?=- )/g,'\n\n').trimEnd()+dependencyNotice+eUiNotice+guide.slice(introductionEnd);
 report.agentGuide={path:relative(repo,guideOutput).replaceAll('\\','/'),fileName:'AGENT_GUIDE.md',sha256:digest(Buffer.from(guide)),source:guideSource,sourceSha256:digest(guideBytes)};
 await writeFile(guideOutput,guide);
 await writeFile(output,JSON.stringify(report,null,2)+'\n');

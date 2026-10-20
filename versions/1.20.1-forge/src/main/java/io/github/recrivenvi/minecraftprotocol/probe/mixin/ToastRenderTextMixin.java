@@ -11,8 +11,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin({AdvancementToast.class, SystemToast.class, TutorialToast.class, RecipeToast.class})
-public abstract class ToastRenderTextMixin implements UiRenderedText.Source {
+public abstract class ToastRenderTextMixin
+        implements UiRenderedText.Source, UiToastText.FrameSource {
     @Unique private UiRenderedText minecraftProtocolProbe$text;
+    @Unique private UiToastText.Frame minecraftProtocolProbe$frame;
+
+    @Unique
+    private final String minecraftProtocolProbe$contextKey = "toast:" + java.util.UUID.randomUUID();
 
     @Inject(method = "render", at = @At("RETURN"))
     private void minecraftProtocolProbe$capture(
@@ -20,16 +25,23 @@ public abstract class ToastRenderTextMixin implements UiRenderedText.Source {
             ToastComponent manager,
             long elapsed,
             CallbackInfoReturnable<Toast.Visibility> ci) {
-        // HIDE can be an early return without drawing; fail closed on that path.
         minecraftProtocolProbe$text =
-                ci.getReturnValue() == Toast.Visibility.SHOW
-                        ? UiToastText.capture(
-                                (Toast) (Object) this, manager.getMinecraft().font, elapsed)
-                        : null;
+                UiToastText.capture((Toast) (Object) this, manager.getMinecraft().font, elapsed);
+        minecraftProtocolProbe$frame =
+                UiToastText.captureFrame(
+                        (Toast) (Object) this,
+                        graphics,
+                        minecraftProtocolProbe$text,
+                        minecraftProtocolProbe$contextKey);
     }
 
     @Override
     public UiRenderedText minecraftProtocolProbe$renderedText() {
         return minecraftProtocolProbe$text;
+    }
+
+    @Override
+    public UiToastText.Frame minecraftProtocolProbe$toastFrame() {
+        return minecraftProtocolProbe$frame;
     }
 }

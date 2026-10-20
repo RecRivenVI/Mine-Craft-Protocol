@@ -13,4 +13,7 @@ public interface ToastInstanceUiAccessor {
 
     @Accessor("visiblePortion")
     float minecraftProtocolProbe$portion();
+
+    @Accessor("visibility")
+    net.minecraft.client.gui.components.toasts.Toast.Visibility minecraftProtocolProbe$visibility();
 }

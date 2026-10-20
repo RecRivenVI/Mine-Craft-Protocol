@@ -10,10 +10,14 @@ public final class UiMutationSupport {
         WIDGET_FLAGS,
         EDITOR_TEXT,
         LIST_SCROLL,
+        LIST_SELECTION,
+        SPECTATOR_SELECTION,
         NORMALIZED_SCROLL,
         CANVAS_PAN,
         SLIDER_VALUE,
         HUD_TEXT,
+        HUD_TITLE_LIFECYCLE,
+        PLAYER_LIST_TEXT,
         SYSTEM_TOAST_RESET,
         SYSTEM_TOAST_HIDE,
         TUTORIAL_TOAST_PROGRESS,
@@ -41,7 +45,7 @@ public final class UiMutationSupport {
                     add(operations, "ui.widget.active.set", "boolean", "native_widget_flag");
                     add(operations, "ui.widget.visible.set", "boolean", "native_widget_flag");
                 }
-                case EDITOR_TEXT, HUD_TEXT -> {
+                case EDITOR_TEXT, HUD_TEXT, PLAYER_LIST_TEXT -> {
                     if (!guarded)
                         blocked.addProperty("ui.text.set", "UI_CONTENT_GUARD_UNAVAILABLE");
                     else {
@@ -50,10 +54,60 @@ public final class UiMutationSupport {
                                         operations,
                                         "ui.text.set",
                                         "string",
-                                        facet == Facet.HUD_TEXT
-                                                ? "native_hud_plain_text_and_lifetime"
-                                                : "native_editor_validator_and_responder_may_submit");
+                                        facet == Facet.PLAYER_LIST_TEXT
+                                                ? "native_player_list_plain_text_only"
+                                                : facet == Facet.HUD_TEXT
+                                                        ? "native_hud_plain_text_and_lifetime"
+                                                        : "native_editor_validator_and_responder_may_submit");
                         value.addProperty("maxLength", 4096);
+                    }
+                }
+                case LIST_SELECTION, SPECTATOR_SELECTION -> {
+                    if (!node.has("debugSelectionGuardAvailable")
+                            || !node.get("debugSelectionGuardAvailable").getAsBoolean())
+                        blocked.addProperty(
+                                "ui.list.selection.set", "UI_CONTENT_GUARD_UNAVAILABLE");
+                    else {
+                        JsonObject value =
+                                add(
+                                        operations,
+                                        "ui.list.selection.set",
+                                        "integer",
+                                        facet == Facet.SPECTATOR_SELECTION
+                                                ? "native_local_spectator_highlight_not_activation"
+                                                : "native_local_suggestion_selection_not_use_or_submit");
+                        value.addProperty("unit", "native_entry_index");
+                        if (node.has("debugSelectionRange")) {
+                            JsonObject range = node.getAsJsonObject("debugSelectionRange");
+                            value.add("minimum", range.get("minimum").deepCopy());
+                            value.add("maximum", range.get("maximum").deepCopy());
+                        }
+                    }
+                }
+                case HUD_TITLE_LIFECYCLE -> {
+                    if (!node.has("debugTitleGuardAvailable")
+                            || !node.get("debugTitleGuardAvailable").getAsBoolean()) {
+                        blocked.addProperty(
+                                "ui.hud.title.times.set", "UI_CONTENT_GUARD_UNAVAILABLE");
+                        blocked.addProperty("ui.hud.title.clear", "UI_CONTENT_GUARD_UNAVAILABLE");
+                    } else {
+                        JsonObject timing =
+                                add(
+                                        operations,
+                                        "ui.hud.title.times.set",
+                                        "object",
+                                        "native_hud_title_timing_and_remaining_reset");
+                        timing.addProperty(
+                                "requiredShape", "explicit_fadeInTicks_stayTicks_fadeOutTicks");
+                        timing.addProperty("minimumFieldTicks", 0);
+                        timing.addProperty("maximumFieldTicks", 12000);
+                        JsonObject clear =
+                                add(
+                                        operations,
+                                        "ui.hud.title.clear",
+                                        "boolean",
+                                        "native_hud_title_and_subtitle_clear");
+                        clear.addProperty("onlyValue", true);
                     }
                 }
                 case LIST_SCROLL, NORMALIZED_SCROLL -> {

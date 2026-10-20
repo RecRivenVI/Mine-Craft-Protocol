@@ -4,6 +4,8 @@ const operations = new Set([
   'ui.widget.active.set', 'ui.widget.visible.set', 'ui.text.set', 'ui.scroll.set',
   'ui.slider.set', 'ui.toast.reset', 'ui.toast.hide',
   'ui.canvas.pan.set',
+  'ui.list.selection.set',
+  'ui.hud.title.times.set', 'ui.hud.title.clear',
 ]);
 
 export function uiDebugNodes(tree) {
@@ -19,6 +21,8 @@ export function auditUiDebugCapabilities(debug, user, target) {
     assert(!Object.hasOwn(node, 'debugMutation'), 'USER leaked typed DEBUG applicability');
     assert(!Object.hasOwn(node, 'resourceVersion'), 'USER leaked typed DEBUG mutation version');
     for(const field of ['debugPanReady','debugPanValue','debugPanRange'])assert(!Object.hasOwn(node,field),'USER leaked internal canvas pan metadata');
+    for(const field of ['debugSelectionIndex','debugSelectionRange','debugSelectionUnit','debugSelectionGuardAvailable'])assert(!Object.hasOwn(node,field),'USER leaked internal suggestion selection metadata');
+    for(const field of ['debugTitleTimes','debugTitleCleared','debugTitleRemainingTicks','debugTitleGuardAvailable'])assert(!Object.hasOwn(node,field),'USER leaked internal title lifecycle metadata');
   }
   const samples = [];
   for (const node of uiDebugNodes(debug)) {

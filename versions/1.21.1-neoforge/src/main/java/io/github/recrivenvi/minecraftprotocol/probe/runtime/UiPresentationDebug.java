@@ -7,18 +7,25 @@ import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
 import io.github.recrivenvi.minecraftprotocol.core.UiMutationSupport;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.HudUiAccessor;
+import io.github.recrivenvi.minecraftprotocol.probe.mixin.PlayerListUiAccessor;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.ToLongFunction;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 
 /** Local HUD message fields, independent of player input and server/world mutation. */
 final class UiPresentationDebug {
     private static final List<String> FIELDS =
-            List.of("hud.title", "hud.subtitle", "hud.actionbar");
+            List.of(
+                    "hud.title",
+                    "hud.subtitle",
+                    "hud.actionbar",
+                    "hud.playerlist.header",
+                    "hud.playerlist.footer");
 
     static boolean handles(String nodeId) {
         return FIELDS.contains(nodeId);
@@ -49,9 +56,9 @@ final class UiPresentationDebug {
         if (client == null || client.level == null || !tree.has("presentation")) return;
         var nodes = tree.getAsJsonObject("presentation").getAsJsonArray("children");
         var budget = new UiItemDataGuard.Budget();
-        var hud = (HudUiAccessor) client.gui;
         for (String key : FIELDS) {
-            Component component = current(hud, key);
+            Component component = current(client, key);
+            Object owner = playerListField(key) ? client.gui.getTabList() : client.gui;
             JsonObject node = UiDebugEngine.find(nodes, key);
             if (node == null) {
                 node = new JsonObject();
@@ -72,6 +79,8 @@ final class UiPresentationDebug {
             node.addProperty("debugTextGuardAvailable", encoded.available());
             JsonObject state = new JsonObject();
             state.addProperty("hudOwner", identity.applyAsLong(client.gui));
+            if (playerListField(key))
+                state.addProperty("playerListOwner", identity.applyAsLong(owner));
             state.addProperty("worldOwner", identity.applyAsLong(client.level));
             state.addProperty(
                     "componentOwner", component == null ? 0 : identity.applyAsLong(component));
@@ -85,11 +94,16 @@ final class UiPresentationDebug {
             node.add(
                     "resourceVersion",
                     revisions.uiRevision(
-                            "presentation:" + identity.applyAsLong(client.gui) + ":" + key, state));
+                            "presentation:" + identity.applyAsLong(owner) + ":" + key, state));
             UiMutationSupport.describe(
                     node,
-                    Set.of(UiMutationSupport.Facet.HUD_TEXT),
-                    "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME");
+                    Set.of(
+                            playerListField(key)
+                                    ? UiMutationSupport.Facet.PLAYER_LIST_TEXT
+                                    : UiMutationSupport.Facet.HUD_TEXT),
+                    playerListField(key)
+                            ? "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+                            : "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME");
         }
     }
 
@@ -117,7 +131,7 @@ final class UiPresentationDebug {
                 request.getAsJsonObject("expectedResourceVersion"),
                 node.getAsJsonObject("resourceVersion"));
         UiDebugEngine.requireTextGuard(node);
-        Component before = current((HudUiAccessor) client.gui, key);
+        Component before = current(client, key);
         String text = before == null ? "" : before.getString();
         if (request.has("expectedValue")
                 && !Objects.equals(request.get("expectedValue"), new JsonPrimitive(text)))
@@ -139,6 +153,8 @@ final class UiPresentationDebug {
                 case "hud.title" -> client.gui.setTitle(replacement);
                 case "hud.subtitle" -> client.gui.setSubtitle(replacement);
                 case "hud.actionbar" -> client.gui.setOverlayMessage(replacement, false);
+                case "hud.playerlist.header", "hud.playerlist.footer" ->
+                        setPlayerListText(client.gui.getTabList(), key, replacement);
                 default -> throw error("UI_DEBUG_UNSUPPORTED", "Unknown local HUD field");
             }
         }
@@ -161,7 +177,11 @@ final class UiPresentationDebug {
         result.addProperty("evidenceAuthority", "DEBUG_PRIVILEGED");
         result.addProperty("directMutationUsed", true);
         result.addProperty("inputDispatchCount", 0);
-        result.addProperty("sideEffects", "native_hud_plain_text_and_lifetime");
+        result.addProperty(
+                "sideEffects",
+                playerListField(key)
+                        ? "native_player_list_plain_text_only"
+                        : "native_hud_plain_text_and_lifetime");
         result.addProperty("nodeId", key);
         result.add("before", node.deepCopy());
         result.add("beforeResourceVersion", node.get("resourceVersion").deepCopy());
@@ -170,13 +190,32 @@ final class UiPresentationDebug {
         return result;
     }
 
-    private static Component current(HudUiAccessor hud, String key) {
+    private static Component current(Minecraft client, String key) {
+        var hud = (HudUiAccessor) client.gui;
         return switch (key) {
             case "hud.title" -> hud.minecraftProtocolProbe$title();
             case "hud.subtitle" -> hud.minecraftProtocolProbe$subtitle();
             case "hud.actionbar" -> hud.minecraftProtocolProbe$actionbar();
+            case "hud.playerlist.header" ->
+                    ((PlayerListUiAccessor) client.gui.getTabList())
+                            .minecraftProtocolProbe$header();
+            case "hud.playerlist.footer" ->
+                    ((PlayerListUiAccessor) client.gui.getTabList())
+                            .minecraftProtocolProbe$footer();
             default -> throw error("UI_DEBUG_UNSUPPORTED", "Unknown local HUD field");
         };
+    }
+
+    static boolean playerListField(String key) {
+        return key.equals("hud.playerlist.header") || key.equals("hud.playerlist.footer");
+    }
+
+    static void setPlayerListText(PlayerTabOverlay overlay, String key, Component replacement) {
+        switch (key) {
+            case "hud.playerlist.header" -> overlay.setHeader(replacement);
+            case "hud.playerlist.footer" -> overlay.setFooter(replacement);
+            default -> throw error("UI_DEBUG_UNSUPPORTED", "Unknown player-list text field");
+        }
     }
 
     private static ProtocolState.ProtocolException error(String code, String message) {

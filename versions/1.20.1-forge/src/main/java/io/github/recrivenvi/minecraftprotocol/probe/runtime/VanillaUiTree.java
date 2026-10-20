@@ -13,6 +13,7 @@ import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.multiplayer.ServerSelectionList;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookTabButton;
+import net.minecraft.client.gui.screens.recipebook.RecipeButton;
 import net.minecraft.client.gui.screens.worldselection.WorldSelectionList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.CreativeModeTab;
@@ -21,6 +22,7 @@ final class VanillaUiTree {
     private final long screenRevision;
     private final ToLongFunction<Object> identity;
     private final Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final JsonArray recipeOverlays = new JsonArray();
     private int count;
     private boolean truncated;
     private Screen screen;
@@ -111,6 +113,7 @@ final class VanillaUiTree {
             JsonObject node = capture(child, clip, 0, true);
             if (node != null) children.add(node);
         }
+        children.addAll(recipeOverlays);
         return children;
     }
 
@@ -155,6 +158,25 @@ final class VanillaUiTree {
                             widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight());
             node.addProperty("hovered", widget.isHovered());
         }
+        if (child instanceof RecipeBookComponent recipe) {
+            visible = recipe.isVisible();
+            if (visible) {
+                // Native drawing has a real background, but its inherited navigation rectangle is
+                // empty.
+                RecipeUiAccessor access = (RecipeUiAccessor) recipe;
+                rectangle =
+                        new ScreenRectangle(
+                                (access.minecraftProtocolProbe$width()
+                                                        - RecipeBookComponent.IMAGE_WIDTH)
+                                                / 2
+                                        - access.minecraftProtocolProbe$xOffset(),
+                                (access.minecraftProtocolProbe$height()
+                                                - RecipeBookComponent.IMAGE_HEIGHT)
+                                        / 2,
+                                RecipeBookComponent.IMAGE_WIDTH,
+                                RecipeBookComponent.IMAGE_HEIGHT);
+            }
+        }
         if (child instanceof ObjectSelectionList.Entry<?> entry)
             label = entry.getNarration().getString();
         if (child instanceof ServerSelectionList.OnlineServerEntry server)
@@ -197,8 +219,19 @@ final class VanillaUiTree {
         if (child instanceof Checkbox checkbox) node.addProperty("selected", checkbox.selected());
         if (child instanceof TabButton tab) node.addProperty("selected", tab.isSelected());
         if (child instanceof RecipeBookTabButton tab) {
-            node.addProperty("label", tab.getCategory().toString());
+            node.addProperty("label", tab.getCategory() == null ? "" : tab.getCategory().name());
             node.addProperty("role", "tab");
+        }
+        if (child instanceof RecipeButton button && visible && active) {
+            ScreenRectangle hit = intersect(clip, rectangle);
+            var collection = button.getCollection();
+            if (hit.width() > 0 && hit.height() > 0 && collection != null) {
+                var stack = button.getRecipe().getResultItem(collection.registryAccess());
+                node.addProperty("label", stack.getHoverName().getString());
+                node.addProperty("item", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+                node.addProperty("count", stack.getCount());
+                node.addProperty("role", "recipe");
+            }
         }
 
         JsonArray nested = new JsonArray();
@@ -340,11 +373,16 @@ final class VanillaUiTree {
                 controls.add(page.minecraftProtocolProbe$back());
             var overlay = page.minecraftProtocolProbe$overlay();
             if (overlay != null && overlay.isVisible()) {
-                rootRecipeOverlay(overlay, nested, effectiveClip, depth, active);
+                rootRecipeOverlay(overlay, recipeOverlays, effectiveClip, depth, active);
             }
             for (GuiEventListener control : controls) {
                 JsonObject descendant = capture(control, effectiveClip, depth + 1, active);
-                if (descendant != null) nested.add(descendant);
+                if (descendant != null) {
+                    if (control instanceof RecipeBookTabButton tab)
+                        descendant.addProperty(
+                                "selected", access.minecraftProtocolProbe$selectedTab() == tab);
+                    nested.add(descendant);
+                }
             }
         }
         if (!nested.isEmpty()) node.add("children", nested);

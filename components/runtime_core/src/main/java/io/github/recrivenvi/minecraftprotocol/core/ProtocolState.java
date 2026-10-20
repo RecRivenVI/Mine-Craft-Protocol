@@ -1875,6 +1875,13 @@ public final class ProtocolState implements AutoCloseable {
                         JsonObject stale =
                                 ResourceVersionVerifier.staleMetadata(this.errorCode, details);
                         if (stale.size() > 0) this.errorDetails = stale;
+                        if ((this.errorCode.equals("ASSERTION_FAILED")
+                                        || this.errorCode.equals("WAIT_TIMEOUT"))
+                                && details.has("readiness")
+                                && details.get("readiness").isJsonObject()) {
+                            this.errorDetails = new JsonObject();
+                            this.errorDetails.add("readiness", details.get("readiness").deepCopy());
+                        }
                         if (this.errorCode.equals("WORLD_TARGET_NOT_HIT")
                                 && details.has("actualHit")
                                 && details.get("actualHit").isJsonObject())

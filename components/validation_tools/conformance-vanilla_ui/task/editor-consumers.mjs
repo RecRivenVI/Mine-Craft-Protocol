@@ -5,6 +5,12 @@ import { pathToFileURL } from 'node:url';
 import { automaticTakeoverRequest, guardAutomaticTakeover, connectRuntime } from '../../runtime-connection.mjs';
 import { isDeepStrictEqual } from 'node:util';
 
+export function verifyRestoredUserEditor(control, node, field, expected) {
+ if(control?.privateField){if(node)assert.equal(node[field],undefined,'Private native display values must not leak into USER');}
+ else if(node)assert.deepEqual(node[control?.userField??field],expected);
+ else assert(control?.expiringPresentation,'A non-expiring restored field disappeared from USER');
+}
+
 // An idle test controller explicitly hands off its owned fixture. No user website is reused.
 export async function editorConsumers(repo, base, token, tokenFile, kind, expected, target, debugEnabled=false, control) {
  const require = createRequire(resolve(repo, 'components/companion/package.json'));
@@ -33,7 +39,7 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
   if(name==='minecraft_control'&&args.action==='acquire')args=automaticTakeoverRequest(await tool('minecraft_control',{action:'status'}),args);
   if(name==='minecraft_debug'&&['mutate','batch'].includes(args.action)){const delay=600-(Date.now()-lastMutation);if(delay>0)await new Promise(done=>setTimeout(done,delay));lastMutation=Date.now();}
   const response = await client.callTool({ name, arguments: args });
-  if(error){assert(response.isError,JSON.stringify(response));assert.equal(response.structuredContent.error.code,error,JSON.stringify(response.structuredContent));return response.structuredContent.error;}
+  if(error){assert(response.isError,JSON.stringify(response));assert(response.structuredContent?.error,JSON.stringify(response));assert.equal(response.structuredContent.error.code,error,JSON.stringify(response.structuredContent));return response.structuredContent.error;}
   assert(!response.isError, JSON.stringify(response.structuredContent));
   return response.structuredContent.data;
  };
@@ -79,7 +85,7 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
     for(const n of nodes(publicBody.tree))assert(!('resourceVersion'in n)&&!('debugFacts'in n),'USER must not disclose DEBUG metadata');
     assert.deepEqual(nodes(await snapshot()).find(n=>n.nodeId===original.nodeId).resourceVersion,original.resourceVersion);
     await tool('minecraft_debug_arm',{action:'arm',uiContextId:tree.uiContextId,namespaces:['ui'],ttlMs:60000});
-    const wrongValue=control?.operation==='ui.canvas.pan.set'?{...expected,x:expected.x+0.125}:typeof expected==='boolean'?!expected:typeof expected==='number'?expected+0.123:typeof expected==='object'?{...expected,title:expected.title+' wrong'}:expected+' wrong';
+    const wrongValue=control?.operation==='ui.canvas.pan.set'?{...expected,x:expected.x+0.125}:control?.operation==='ui.list.selection.set'?expected+1:typeof expected==='boolean'?!expected:typeof expected==='number'?expected+0.123:typeof expected==='object'?{...expected,title:expected.title+' wrong'}:expected+' wrong';
     await tool('minecraft_debug',{action:'mutate',mutation:{...mutation,expectedValue:wrongValue}},'VALUE_PRECONDITION_FAILED');
     const changed=await tool('minecraft_debug',{action:'mutate',mutation});
     if(changed.after&&Object.hasOwn(changed.after,field)&&changed.afterResourceVersion)confirmedChange={value:structuredClone(changed.after[field]),resourceVersion:structuredClone(changed.afterResourceVersion)};
@@ -115,8 +121,7 @@ export async function editorConsumers(repo, base, token, tokenFile, kind, expect
    results.push({transport:'mcp_stdio_debug',editor:kind,operation:mutation.operation,status:'PASS',inputDelta:0,playerLeaseAcquired:false,typedRecovery:true,userOperationGetWaitAssertRejected:true,diagnosticCancelRedacted:true,rejections:['DEBUG_ARM_REQUIRED','DEBUG_NOT_ARMED','VALUE_PRECONDITION_FAILED','STALE_RESOURCE_REVISION','OPERATION_NOT_FOUND']});
    const restoredPublic=await request('snapshot');assert.equal(restoredPublic.tree.dataCategory,'USER');assert.equal(restoredPublic.ownsLease,false);
    const publicField=find(restoredPublic.tree);
-   if(control?.privateField){if(publicField)assert.equal(publicField[field],undefined,'Private native display values must not leak into USER');}
-   else if(publicField)assert.deepEqual(publicField[field],expected);else assert(control?.expiringPresentation,'A non-expiring restored field disappeared from USER');
+   verifyRestoredUserEditor(control,publicField,field,expected);
    results.push({transport:'web_user_isolation',editor:kind,status:'PASS',operateUserSnapshotAvailable:true,debugMetadataLeaked:false,automaticLeaseAcquired:false});
   }
   if(control)return results;

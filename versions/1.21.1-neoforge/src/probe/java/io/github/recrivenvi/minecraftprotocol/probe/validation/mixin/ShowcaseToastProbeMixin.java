@@ -17,6 +17,17 @@ public abstract class ShowcaseToastProbeMixin extends Screen {
     }
 
     @Inject(method = "init", at = @At("TAIL"))
+    private void minecraftProtocolProbe$lifecycleButton(CallbackInfo ci) {
+        if (!Boolean.getBoolean("minecraft.protocol.toastDebugFixture")) return;
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("Toast Lifecycle Fixture"),
+                                button -> ShowcaseToastFixture.openLifecycle(this))
+                        .bounds(8, 227, 128, 20)
+                        .build());
+    }
+
+    @Inject(method = "init", at = @At("TAIL"))
     private void minecraftProtocolProbe$showcaseButton(CallbackInfo ci) {
         if (Boolean.getBoolean("minecraft.protocol.toastDebugFixture"))
             addRenderableWidget(

@@ -176,6 +176,94 @@ class UiMutationSupportTest {
         assertFalse(UiDataView.actionResult(action).toString().contains("debugPan"));
     }
 
+    @Test
+    void titleLifecycleRequiresItsOwnCompleteGuardAndDoesNotGrantInput() {
+        JsonObject node = node();
+        node.addProperty("debugTitleGuardAvailable", false);
+        UiMutationSupport.describe(node, Set.of(UiMutationSupport.Facet.HUD_TITLE_LIFECYCLE), null);
+        assertEquals(
+                0,
+                node.getAsJsonObject("debugMutation").getAsJsonArray("supportedOperations").size());
+        assertEquals(
+                "UI_CONTENT_GUARD_UNAVAILABLE",
+                node.getAsJsonObject("debugMutation")
+                        .getAsJsonObject("blockedOperations")
+                        .get("ui.hud.title.clear")
+                        .getAsString());
+        node.addProperty("debugTitleGuardAvailable", true);
+        node.add(
+                "debugTitleTimes",
+                JsonParser.parseString(
+                        "{\"fadeInTicks\":10,\"stayTicks\":70,\"fadeOutTicks\":20}"));
+        node.addProperty("debugTitleCleared", false);
+        node.addProperty("debugTitleRemainingTicks", 87);
+        UiMutationSupport.describe(node, Set.of(UiMutationSupport.Facet.HUD_TITLE_LIFECYCLE), null);
+        var descriptor = node.getAsJsonObject("debugMutation");
+        var operations = descriptor.getAsJsonObject("operations");
+        assertEquals(2, operations.size());
+        assertEquals(
+                "native_hud_title_timing_and_remaining_reset",
+                operations
+                        .getAsJsonObject("ui.hud.title.times.set")
+                        .get("sideEffects")
+                        .getAsString());
+        assertEquals(
+                12000,
+                operations
+                        .getAsJsonObject("ui.hud.title.times.set")
+                        .get("maximumFieldTicks")
+                        .getAsInt());
+        assertTrue(
+                operations.getAsJsonObject("ui.hud.title.clear").get("onlyValue").getAsBoolean());
+        assertFalse(descriptor.get("requiresInputLease").getAsBoolean());
+        assertFalse(descriptor.get("grantsPermission").getAsBoolean());
+        var user = UiDataView.userNode(node);
+        for (String field :
+                Set.of(
+                        "debugTitleGuardAvailable",
+                        "debugTitleTimes",
+                        "debugTitleCleared",
+                        "debugTitleRemainingTicks",
+                        "resourceVersion",
+                        "debugMutation")) assertFalse(user.has(field), field);
+    }
+
+    @Test
+    void localSelectionDescribesItsActualNativeOwnerWithoutClaimingActivation() {
+        for (var facet :
+                Set.of(
+                        UiMutationSupport.Facet.LIST_SELECTION,
+                        UiMutationSupport.Facet.SPECTATOR_SELECTION)) {
+            JsonObject node = node();
+            node.addProperty("debugSelectionGuardAvailable", true);
+            node.addProperty("debugSelectionIndex", -1);
+            node.add(
+                    "debugSelectionRange", JsonParser.parseString("{\"minimum\":0,\"maximum\":7}"));
+            UiMutationSupport.describe(node, Set.of(facet), null);
+            var operation =
+                    node.getAsJsonObject("debugMutation")
+                            .getAsJsonObject("operations")
+                            .getAsJsonObject("ui.list.selection.set");
+            assertEquals("integer", operation.get("valueType").getAsString());
+            assertEquals("native_entry_index", operation.get("unit").getAsString());
+            assertEquals(0, operation.get("minimum").getAsInt());
+            assertEquals(7, operation.get("maximum").getAsInt());
+            assertEquals(
+                    facet == UiMutationSupport.Facet.SPECTATOR_SELECTION
+                            ? "native_local_spectator_highlight_not_activation"
+                            : "native_local_suggestion_selection_not_use_or_submit",
+                    operation.get("sideEffects").getAsString());
+            assertFalse(UiDataView.userNode(node).has("debugSelectionIndex"));
+            node.addProperty("debugSelectionGuardAvailable", false);
+            UiMutationSupport.describe(node, Set.of(facet), null);
+            assertEquals(
+                    0,
+                    node.getAsJsonObject("debugMutation")
+                            .getAsJsonArray("supportedOperations")
+                            .size());
+        }
+    }
+
     private static JsonObject node() {
         return JsonParser.parseString(
                         "{\"nodeId\":\"native\",\"role\":\"text_field\","

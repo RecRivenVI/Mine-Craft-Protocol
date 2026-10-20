@@ -73,6 +73,18 @@ node components/validation_tools/regression-v1_release/task/write-alpha-manifest
 历史65场景只作基线范围索引，清单明确fullNativeSmoke=false、fullMilestonesComplete=false；
 NOT_MET仅为历史测量，本轮无新性能测量，不宣称新候选完整Native/MCP或人工验收。
 
+E的UI试用使用`e_ui_trial_v1`：冻结候选上各端完整UI、独立Demo、input-context、continuous-input、
+block-entity-selector和command-collaboration，以及1.21.1/26.3 NeoForge的first-camera，共32份开发运行结果；
+另需五端当前单发行JAR独立安装入世界，共37份证据。旧65场景仅作历史来源，不要求重跑未受影响的世界组。
+全部原始结果、实际消费源码和发行JAR一致后执行：
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --profile=e_ui_trial_v1 --scenario=e-ui-affected --historical-baseline=D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261020-0337-f2dc15c9
+```
+
+该入口不接受局部CheckPrefix结果替代完整UI，不把Forge未注册的保存提示或旧版本不存在的Native页面计为绘制通过。
+人工协作、真实权限变化、物理Esc和最终视觉体验保持NOT_PERFORMED，集中交用户执行；完整双里程碑仍不因此READY。
+
 ## 通过标准
 
 full清单还要求同候选五端现有完整UI套件（含未选中世界语义双击、生命图标MCP/网页消费者、实际进程/端点清理）及九项使用方流程。

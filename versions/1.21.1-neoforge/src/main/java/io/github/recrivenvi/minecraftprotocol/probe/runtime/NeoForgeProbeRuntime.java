@@ -103,6 +103,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     net.minecraft.client.KeyMapping>
             nativeInputOwnership =
                     new io.github.recrivenvi.minecraftprotocol.safety.NativeInputOwnership<>();
+    private PendingGameModeRelease pendingGameModeRelease;
+    private Screen ownedGameModeScreen, abandonedGameModeScreen;
     private final Map<Integer, Screen> buttonScreens = new HashMap<>();
     private final Map<Integer, String> buttonFrames = new HashMap<>();
     private volatile String lastTraceDetail = "";
@@ -313,9 +315,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public static boolean allowHostMouseGrab() {
         if (!INSTANCE.controlPresence.agentControlled()) return true;
         INSTANCE.rejectedHostGrabs.incrementAndGet();
-        Minecraft client = INSTANCE.minecraft;
-        if (client != null && (client.isWindowActive() || AgentInputContext.isAgentRouted()))
-            INSTANCE.requestGameCapture(true);
+        // Logical capture follows the game request, independently of host focus.
+        // The physical cursor stays ungrabbed throughout TAKEOVER.
+        INSTANCE.requestGameCapture(true);
         return false;
     }
 
@@ -396,6 +398,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private void refreshInputContext(Minecraft client) {
+        this.checkPendingGameMode(client);
         var connection = client.getConnection();
         boolean connected = connection != null && connection.getConnection().isConnected();
         var context =
@@ -428,6 +431,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private JsonObject discardContextInput(Minecraft client) {
+        this.cancelOwnedGameMode(
+                client,
+                new ProtocolState.ProtocolException(
+                        "CONTROL_INPUT_GENERATION_CHANGED",
+                        409,
+                        "Game mode input context changed"));
         int releasedKeys = this.pressedKeys.size(), releasedButtons = this.pressedButtons.size();
         this.worldTargeting.end();
         this.finishNativeInputCleanup("native_input_context_changed");
@@ -525,6 +534,13 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                             || snapshot.transitionSequence()
                                     != this.controlPresence.transitionSequence()) return;
                     boolean takeover = snapshot.agentControlled();
+                    if (!takeover)
+                        this.cancelOwnedGameMode(
+                                current,
+                                new ProtocolState.ProtocolException(
+                                        "INPUT_DISPATCH_EXPIRED",
+                                        409,
+                                        "Game mode input ownership ended"));
                     if (takeover != this.lastTakeover) {
                         if (takeover) {
                             net.minecraft.client.KeyMapping.releaseAll();
@@ -1252,6 +1268,149 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     JsonArray hooks = new JsonArray();
                     hooks.add(
                             hook(
+                                    "native_boss_bar_draw",
+                                    "MIXIN_REDIRECT",
+                                    "BossHealthOverlay.drawBar",
+                                    "AFTER_UNCHANGED_ORIGINAL_DRAW",
+                                    "passive_draw_observation",
+                                    "unverified_until_actual_boss_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_nausea_overlay",
+                                    "MIXIN_REDIRECT",
+                                    "GameRenderer.renderConfusionOverlay",
+                                    "GuiGraphics.blit",
+                                    "read_observation",
+                                    "unverified_until_native_nausea_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "native_late_text_frame",
+                                    "MIXIN_INJECT",
+                                    "GameRenderer.render",
+                                    "HEAD/RETURN",
+                                    "read_observation",
+                                    client.gameRenderer
+                                                    instanceof
+                                                    UiPresentationSnapshot.GuiPresentationSource
+                                            ? "runtime_hooked"
+                                            : "unavailable",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "native_late_gui_text",
+                                    "MIXIN_REDIRECT",
+                                    "ChatComponent/DebugScreenOverlay/EffectRenderingInventoryScreen/Gui/SubtitleOverlay",
+                                    "AFTER_UNCHANGED_ORIGINAL_DRAW",
+                                    "passive_draw_observation",
+                                    "unverified_until_actual_native_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "native_tooltip_owned_text",
+                                    "MIXIN_REDIRECT",
+                                    "GuiGraphics.renderTooltipInternal/ClientTextTooltip.renderText",
+                                    "typed_native_call_scope_and_actual_Font.drawInBatch",
+                                    "passive_draw_observation",
+                                    "unverified_until_actual_native_tooltip_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_crosshair_and_attack_pixels",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderCrosshair/renderItemHotbar",
+                                    "blitSprite",
+                                    "read_observation",
+                                    "unverified_until_crosshair_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_camera_texture",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderTextureOverlay/renderVignette",
+                                    "blit",
+                                    "read_observation",
+                                    "unverified_until_camera_overlay_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_spyglass_and_mask",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderSpyglassOverlay",
+                                    "blit/fill",
+                                    "read_observation",
+                                    "unverified_until_spyglass_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_portal_and_sleep",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderPortalOverlay/renderSleepOverlay",
+                                    "blit/fill",
+                                    "read_observation",
+                                    "unverified_until_portal_or_sleep_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_item_presentation_frame",
+                                    "MIXIN_INJECT",
+                                    "Gui.render",
+                                    "HEAD/RETURN",
+                                    "read_observation",
+                                    client.gui
+                                                    instanceof
+                                                    UiPresentationSnapshot.HudPresentationSource
+                                            ? "runtime_hooked"
+                                            : "unavailable",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_selected_item_name",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderSelectedItemName",
+                                    "drawString",
+                                    "read_observation",
+                                    "unverified_until_selected_name_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_item_durability_and_cooldown",
+                                    "MIXIN_REDIRECT",
+                                    "GuiGraphics.renderItemDecorations",
+                                    "fill:0/1/2",
+                                    "read_observation",
+                                    "unverified_until_item_decoration_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_experience_level",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderExperienceBar",
+                                    "drawString:4",
+                                    "read_observation",
+                                    "unverified_until_experience_level_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_contextual_background_and_progress",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.renderExperienceBar/renderJumpMeter",
+                                    "blitSprite:background/cropped",
+                                    "read_observation",
+                                    "unverified_until_contextual_bar_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_title_lifecycle_revision",
+                                    "MIXIN_INJECT",
+                                    "Gui.setTitle/setSubtitle/setTimes/resetTitleTimes/clear",
+                                    "HEAD",
+                                    "observe_title_lifecycle_generation",
+                                    "unverified_until_native_setter",
+                                    "ui.debug"));
+                    hooks.add(
+                            hook(
                                     "world_placement_receipt",
                                     "MIXIN_INJECT",
                                     "MultiPlayerGameMode.useItemOn",
@@ -1562,8 +1721,20 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     vitalDraw.addProperty("originalInvocationCount", 1);
                     vitalDraw.addProperty("originalArguments", "unchanged");
                     hooks.add(vitalDraw);
-                    json.addProperty("replacementInjectionCount", 10);
-                    json.addProperty("passiveDrawDelegationCount", 5);
+                    JsonObject deferredScreen =
+                            operatorHook(
+                                    "native_game_mode_render_dispatch",
+                                    "Screen.renderWithTooltip -> Screen.render",
+                                    false,
+                                    true,
+                                    "configured_pending_native_game_mode_release");
+                    deferredScreen.addProperty("injectionPoint", "EXACT_PUBLIC_SCREEN_RENDER");
+                    deferredScreen.addProperty(
+                            "behavior", "resume_owned_game_mode_release_for_one_native_render");
+                    hooks.add(deferredScreen);
+                    json.addProperty("replacementInjectionCount", 43);
+                    json.addProperty("operatorReplacementCount", 6);
+                    json.addProperty("passiveDrawDelegationCount", 37);
                     json.addProperty(
                             "controlFlowPolicy", "operator_control_and_exact_hud_draw_delegation");
                     json.addProperty("thirdPartyTargetCount", 0);
@@ -1799,6 +1970,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             throw new ProtocolState.ProtocolException(
                     "INVALID_POINTER_DELTA", 400, "Relative delta exceeds its finite pixel budget");
         this.syncPointerContext(client);
+        if (!this.logicalPointer.gameCaptured())
+            throw new ProtocolState.ProtocolException(
+                    "GAMEPLAY_POINTER_REQUIRED",
+                    409,
+                    "Relative input requires the game's logical capture request; host focus is not required");
         double x =
                 (this.agentPointerX + dx)
                         * client.getWindow().getGuiScaledWidth()
@@ -2041,8 +2217,204 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     @Override
     public CompletableFuture<JsonObject> keyGuarded(
             int key, int scanCode, int action, int modifiers, JsonObject guard) {
-        return this.onControlledClient(
-                () -> this.keyGuardedNow(key, scanCode, action, modifiers, guard));
+        if (key != GLFW.GLFW_KEY_F3 || action != InputConstants.RELEASE)
+            return this.onControlledClient(
+                    () -> this.keyGuardedNow(key, scanCode, action, modifiers, guard));
+        AgentControlSession.Snapshot accepted = this.controlPresence;
+        var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
+        CompletableFuture<JsonObject> deferred = new CompletableFuture<>();
+        CompletableFuture<JsonObject> result =
+                this.onControlledClient(
+                                () -> {
+                                    Minecraft client = requireClient();
+                                    Screen owner = client.screen;
+                                    boolean delayed =
+                                            owner
+                                                            instanceof
+                                                            net.minecraft.client.gui.screens.debug
+                                                                    .GameModeSwitcherScreen
+                                                    && this.pressedKeys.containsKey(
+                                                            GLFW.GLFW_KEY_F3);
+                                    if (delayed
+                                            && (permit == null
+                                                    || this.pendingGameModeRelease != null))
+                                        throw new ProtocolState.ProtocolException(
+                                                "PLAYER_COMMAND_ORIGIN_UNAVAILABLE",
+                                                409,
+                                                "Game mode release requires its own active input dispatch");
+                                    JsonObject evidence =
+                                            this.keyGuardedNow(
+                                                    key, scanCode, action, modifiers, guard);
+                                    if (!delayed || client.screen != owner)
+                                        return CompletableFuture.completedFuture(evidence);
+                                    this.ownedGameModeScreen = owner;
+                                    this.pendingGameModeRelease =
+                                            new PendingGameModeRelease(
+                                                    owner, accepted, permit, evidence, deferred);
+                                    return deferred;
+                                },
+                                true,
+                                accepted,
+                                permit)
+                        .thenCompose(value -> value);
+        result.whenComplete(
+                (value, failure) -> {
+                    if (failure != null)
+                        this.onClientCleanup(
+                                () -> {
+                                    if (this.pendingGameModeRelease != null
+                                            && this.pendingGameModeRelease.completion == deferred)
+                                        this.cancelOwnedGameMode(requireClient(), failure);
+                                    return null;
+                                });
+                });
+        return result;
+    }
+
+    static final class PendingGameModeRelease {
+        final Screen owner;
+        final AgentControlSession.Snapshot accepted;
+        final io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.Permit permit;
+        final JsonObject evidence;
+        final CompletableFuture<JsonObject> completion;
+        private boolean attempted;
+
+        PendingGameModeRelease(
+                Screen owner,
+                AgentControlSession.Snapshot accepted,
+                io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.Permit permit,
+                JsonObject evidence,
+                CompletableFuture<JsonObject> completion) {
+            this.owner = java.util.Objects.requireNonNull(owner);
+            this.accepted = java.util.Objects.requireNonNull(accepted);
+            this.permit = java.util.Objects.requireNonNull(permit);
+            this.evidence = evidence;
+            this.completion = completion;
+        }
+
+        void verify(Screen current, AgentControlSession.Snapshot presence) {
+            if (completion.isDone() || attempted)
+                throw new ProtocolState.ProtocolException(
+                        "INPUT_DISPATCH_EXPIRED", 409, "Game mode release is no longer pending");
+            if (current != owner)
+                throw new ProtocolState.ProtocolException(
+                        "UI_TARGET_INVALIDATED",
+                        409,
+                        "Game mode Screen changed before its native render");
+            if (!presence.agentControlled()
+                    || !accepted.agentControlled()
+                    || presence.transitionSequence() != accepted.transitionSequence()
+                    || !presence.controlSessionId().equals(accepted.controlSessionId()))
+                throw new ProtocolState.ProtocolException(
+                        presence.manuallyRevoked()
+                                ? "USER_MANUALLY_ENDED_CONTROL"
+                                : "INPUT_DISPATCH_EXPIRED",
+                        409,
+                        "Game mode release lost its original control session");
+            permit.check();
+        }
+
+        void render(
+                Screen current,
+                AgentControlSession control,
+                io.github.recrivenvi.minecraftprotocol.core.PlayerCommandGate gate,
+                Runnable nativeRender) {
+            try {
+                verify(current, control.snapshot());
+                attempted = true;
+                control.withTakeover(
+                        accepted,
+                        () -> {
+                            try (var dispatch = gate.enter(accepted, permit)) {
+                                permit.check();
+                                AgentInputContext.routed(nativeRender);
+                                dispatch.check();
+                                permit.check();
+                            }
+                            return null;
+                        });
+                // Complete only after both owner-thread authorization scopes have ended.
+                completion.complete(evidence);
+            } catch (Throwable failure) {
+                completion.completeExceptionally(failure);
+            }
+        }
+    }
+
+    public static void renderGameModeScreen(
+            Screen screen, GuiGraphics graphics, int x, int y, float partialTick) {
+        PendingGameModeRelease pending = INSTANCE.pendingGameModeRelease;
+        if (screen != INSTANCE.ownedGameModeScreen
+                && screen != INSTANCE.abandonedGameModeScreen
+                && (pending == null || pending.owner != screen)) {
+            screen.render(graphics, x, y, partialTick);
+            return;
+        }
+        INSTANCE.renderGameModeScreen(screen, () -> screen.render(graphics, x, y, partialTick));
+    }
+
+    private void renderGameModeScreen(Screen screen, Runnable nativeRender) {
+        Minecraft client = requireClient();
+        this.refreshInputContext(client);
+        if (screen == this.abandonedGameModeScreen) return;
+        PendingGameModeRelease pending = this.pendingGameModeRelease;
+        if (pending == null || pending.owner != screen) {
+            nativeRender.run();
+            return;
+        }
+        pending.render(client.screen, this.controlSession, this.commandGate, nativeRender);
+        if (this.pendingGameModeRelease == pending) {
+            if (pending.completion.isCompletedExceptionally())
+                this.cancelOwnedGameMode(
+                        client,
+                        new ProtocolState.ProtocolException(
+                                "INPUT_DISPATCH_EXPIRED",
+                                409,
+                                "Game mode native render was cancelled or rejected"));
+            else {
+                this.pendingGameModeRelease = null;
+                this.ownedGameModeScreen = null;
+            }
+        }
+        this.refreshScreen(client);
+        this.refreshMenu(client);
+    }
+
+    private void checkPendingGameMode(Minecraft client) {
+        PendingGameModeRelease pending = this.pendingGameModeRelease;
+        if (pending != null) {
+            try {
+                pending.verify(client.screen, this.controlPresence);
+            } catch (Throwable failure) {
+                this.cancelOwnedGameMode(client, failure);
+            }
+        } else if (this.ownedGameModeScreen != null && !this.controlPresence.agentControlled()) {
+            this.cancelOwnedGameMode(
+                    client,
+                    new ProtocolState.ProtocolException(
+                            "INPUT_DISPATCH_EXPIRED",
+                            409,
+                            "Game mode menu lost its Agent input owner"));
+        }
+    }
+
+    private void cancelOwnedGameMode(Minecraft client, Throwable failure) {
+        PendingGameModeRelease pending = this.pendingGameModeRelease;
+        Screen owner = pending != null ? pending.owner : this.ownedGameModeScreen;
+        if (owner == null
+                && this.pressedKeys.containsKey(GLFW.GLFW_KEY_F3)
+                && client.screen
+                        instanceof net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen)
+            owner = client.screen;
+        if (owner == null) return;
+        this.pendingGameModeRelease = null;
+        this.ownedGameModeScreen = null;
+        this.abandonedGameModeScreen = owner;
+        try {
+            if (client.screen == owner) client.setScreen(null);
+        } finally {
+            if (pending != null) pending.completion.completeExceptionally(failure);
+        }
     }
 
     private JsonObject keyGuardedNow(
@@ -2070,6 +2442,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
         } else if (action == InputConstants.RELEASE) {
             this.pressedKeys.remove(key);
+        }
+        if (client.screen instanceof net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen
+                && this.pressedKeys.containsKey(GLFW.GLFW_KEY_F3)) {
+            this.ownedGameModeScreen = client.screen;
+            this.abandonedGameModeScreen = null;
         }
         this.refreshScreen(client);
         this.refreshMenu(client);
@@ -3110,7 +3487,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                         this.snapshotUiTree(),
                                         request,
                                         this::interactionIdentity,
-                                        authorization);
+                                        authorization,
+                                        this.itemDataGuard);
                         JsonObject after =
                                 UiDebugEngine.findNode(
                                         this.snapshotUiTree(), result.get("nodeId").getAsString());
@@ -3400,6 +3778,12 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     this.commandChat.clear();
                     this.commandFeedback.clear();
                     Minecraft client = requireClient();
+                    this.cancelOwnedGameMode(
+                            client,
+                            new ProtocolState.ProtocolException(
+                                    "INPUT_DISPATCH_EXPIRED",
+                                    409,
+                                    "Game mode release cancelled by input cleanup"));
                     int releasedKeys = this.pressedKeys.size();
                     int releasedButtons = this.pressedButtons.size();
                     for (Map.Entry<Integer, KeyState> entry :
@@ -3549,8 +3933,18 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier, boolean input) {
-        AgentControlSession.Snapshot accepted = this.controlPresence;
-        var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
+        return this.onControlledClient(
+                supplier,
+                input,
+                this.controlPresence,
+                io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture());
+    }
+
+    private <T> CompletableFuture<T> onControlledClient(
+            Supplier<T> supplier,
+            boolean input,
+            AgentControlSession.Snapshot accepted,
+            io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.Permit permit) {
         return this.onClient(
                 () -> {
                     this.refreshInputContext(requireClient());

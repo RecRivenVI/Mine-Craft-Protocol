@@ -13,6 +13,68 @@ import org.junit.jupiter.api.Test;
 
 class NativePlayerCommandsTest {
     @Test
+    void actualNativeGameModePacketsUseTheExistingUserCommandAuthorizationAndEvidencePath() {
+        for (var mode : net.minecraft.world.level.GameType.values()) {
+            var packet =
+                    new net.minecraft.network.protocol.game.ServerboundChangeGameModePacket(mode);
+            assertEquals(
+                    "gamemode " + mode.getName(), NativePlayerCommands.submittedCommand(packet));
+            assertNull(NativePlayerCommands.configuration(packet));
+        }
+        assertEquals(
+                "help",
+                NativePlayerCommands.submittedCommand(
+                        new net.minecraft.network.protocol.game.ServerboundChatCommandPacket(
+                                "help")));
+        assertNull(
+                NativePlayerCommands.submittedCommand(
+                        new net.minecraft.network.protocol.game.ServerboundContainerClosePacket(
+                                1)));
+    }
+
+    @Test
+    void actualProductionPacketHookFeedsTheExtractedGameModeThroughTheSameCommandGate()
+            throws Exception {
+        var node = new org.objectweb.asm.tree.ClassNode();
+        try (var input = getClass().getResourceAsStream("NeoForgeProbeRuntime.class")) {
+            assertNotNull(input);
+            new org.objectweb.asm.ClassReader(input)
+                    .accept(
+                            node,
+                            org.objectweb.asm.ClassReader.SKIP_DEBUG
+                                    | org.objectweb.asm.ClassReader.SKIP_FRAMES);
+        }
+        var method =
+                node.methods.stream()
+                        .filter(value -> value.name.equals("allowPlayerCommandPacket"))
+                        .findFirst()
+                        .orElseThrow();
+        var calls =
+                java.util.Arrays.stream(method.instructions.toArray())
+                        .filter(value -> value instanceof org.objectweb.asm.tree.MethodInsnNode)
+                        .map(value -> (org.objectweb.asm.tree.MethodInsnNode) value)
+                        .toList();
+        assertEquals(
+                1,
+                calls.stream()
+                        .filter(
+                                value ->
+                                        value.owner.endsWith("/NativePlayerCommands")
+                                                && value.name.equals("submittedCommand"))
+                        .count());
+        assertEquals(
+                1,
+                calls.stream()
+                        .filter(
+                                value ->
+                                        value.owner.endsWith("/NeoForgeProbeRuntime")
+                                                && value.name.equals("allowPlayerCommand")
+                                                && value.desc.equals(
+                                                        "(Ljava/lang/String;ZLnet/minecraft/network/Connection;)Z"))
+                        .count());
+    }
+
+    @Test
     void opaqueNativeClickActionsAreRefusedWithoutInterpretingIdOrPayload() {
         for (String id : java.util.List.of("minecraft:validation", "unknown:validation")) {
             for (var payload :

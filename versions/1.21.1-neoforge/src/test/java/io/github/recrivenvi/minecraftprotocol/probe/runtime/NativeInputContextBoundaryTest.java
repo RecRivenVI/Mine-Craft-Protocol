@@ -66,11 +66,26 @@ final class NativeInputContextBoundaryTest {
         int refresh = callIndex(ensure, RUNTIME, "refreshInputContext");
         assertTrue(refresh >= 0 && refresh < callIndex(ensure, RUNTIME, "controlPresenceChanged"));
         assertNoMonitor(ensure);
-        var dispatch =
+        var entry =
                 method(
                         runtime,
                         "onControlledClient",
                         "(Ljava/util/function/Supplier;Z)Ljava/util/concurrent/CompletableFuture;");
+        String ownerDescriptor =
+                "(Ljava/util/function/Supplier;ZL"
+                        + ROOT
+                        + "safety/AgentControlSession$Snapshot;L"
+                        + ROOT
+                        + "core/InputDispatchContext$Permit;)Ljava/util/concurrent/CompletableFuture;";
+        var delegate = calls(entry, RUNTIME, "onControlledClient");
+        assertEquals(1, delegate.size());
+        assertEquals(ownerDescriptor, delegate.get(0).desc);
+        int accepted = fieldIndex(entry, "controlPresence", Opcodes.GETFIELD);
+        int permit = callIndex(entry, ROOT + "core/InputDispatchContext", "capture");
+        int submit = callIndex(entry, RUNTIME, "onControlledClient");
+        assertTrue(accepted >= 0 && permit > accepted && submit > permit);
+        assertNoMonitor(entry);
+        var dispatch = method(runtime, "onControlledClient", ownerDescriptor);
         var ownerCallbacks = linkedCallbacks(runtime, dispatch);
         var owner =
                 ownerCallbacks.stream()

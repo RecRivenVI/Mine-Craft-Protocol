@@ -138,8 +138,11 @@ for(const target of ['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
   const packetHook=await readFile(resolve(hooks,'ConnectionMixin.java'),'utf8');
   assert(commandHook.includes('sendCommand')&&commandHook.includes('allowPlayerCommand')&&commandHook.includes('cancellable = true'),target+' native command entry missing');
   assert(packetHook.includes('allowPlayerCommandPacket')&&packetHook.includes('cancellable = true'),target+' final command packet guard missing');
-  assert(adapter.includes('ServerboundChatCommandPacket')&&adapter.includes('NativePlayerCommands.configuration(packet)')&&adapter.includes('gate.allowConfiguration('),target+' native chat/configuration classification missing');
   const parser=await readFile(resolve(base,'NativePlayerCommands.java'),'utf8');
+  const extractedChat=adapter.replace(/\s/g,'').includes('Stringcommand=NativePlayerCommands.submittedCommand(packet);returncommand==null||allowPlayerCommand(command,true,source);')
+    &&parser.replace(/\s/g,'').includes('staticStringsubmittedCommand(Packet<?>packet){')
+    &&parser.replace(/\s/g,'').includes('if(packetinstanceofnet.minecraft.network.protocol.game.ServerboundChatCommandPacketcommand)returncommand.command();');
+  assert((adapter.includes('ServerboundChatCommandPacket')||extractedChat)&&adapter.includes('NativePlayerCommands.configuration(packet)')&&adapter.includes('gate.allowConfiguration('),target+' native chat/configuration classification missing');
   for(const packet of ['ServerboundSetCommandBlockPacket','ServerboundSetCommandMinecartPacket','ServerboundSetJigsawBlockPacket','ServerboundJigsawGeneratePacket','ServerboundSetStructureBlockPacket'])assert(parser.includes(packet),target+' missing typed native configuration packet '+packet);
   for(const [native,kind] of [['UPDATE_DATA','STRUCTURE_UPDATE'],['SCAN_AREA','STRUCTURE_SCAN'],['SAVE_AREA','STRUCTURE_SAVE'],['LOAD_AREA','STRUCTURE_LOAD']])assert(parser.replace(/\s/g,'').includes('case'+native+'->PlayerCommandGate.ConfigurationKind.'+kind),target+' structure actions must remain typed and distinct');
   assert(adapter.includes('"command.player.structure_configuration"')&&adapter.includes('"native_parameter_update_and_scan"')&&adapter.includes('"command.player.structure_template"')&&adapter.includes('"unavailable_storage_or_unresolved_template_effects"'),target+' missing production structure capability policy');

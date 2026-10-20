@@ -6,6 +6,9 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(targets = "net.minecraft.client.gui.components.toasts.ToastComponent$ToastInstance")
 public interface ToastInstanceUiAccessor {
+    @Accessor("visibility")
+    net.minecraft.client.gui.components.toasts.Toast.Visibility minecraftProtocolProbe$visibility();
+
     @Accessor("toast")
     net.minecraft.client.gui.components.toasts.Toast minecraftProtocolProbe$toast();
 

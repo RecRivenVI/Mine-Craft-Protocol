@@ -25,7 +25,8 @@ class UiPresentationDebugTest {
         var nodes = user.getAsJsonObject("presentation").getAsJsonArray("children");
         assertEquals(1, nodes.size());
         var field = nodes.get(0).getAsJsonObject();
-        assertEquals("shown", field.get("value").getAsString());
+        assertEquals("shown", field.get("label").getAsString());
+        assertFalse(field.has("value"));
         for (String name :
                 new String[] {"nativeTextPresent", "debugTextGuardAvailable", "resourceVersion"})
             assertFalse(field.has(name));

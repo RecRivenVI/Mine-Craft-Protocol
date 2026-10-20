@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { auditUiDebugCapabilities, auditAppliedUiMutation } from './ui-debug-capability-audit.mjs';
+import { verifyRestoredUserEditor } from './editor-consumers.mjs';
+
+test('HUD consumers compare actual USER drawn labels, never the DEBUG native value', () => {
+  const control = {userField: 'label'};
+  verifyRestoredUserEditor(control, {label: 'HUD title fixture'}, 'value', 'HUD title fixture');
+  assert.throws(() => verifyRestoredUserEditor(control, {label: 'stale draw', value: 'HUD title fixture'}, 'value', 'HUD title fixture'));
+  assert.throws(() => verifyRestoredUserEditor(control, {label: '', value: 'HUD title fixture'}, 'value', 'HUD title fixture'));
+  verifyRestoredUserEditor({}, {value: 'editor draft'}, 'value', 'editor draft');
+});
+
+test('public-field selection retains private-field and expiring-owner isolation', () => {
+  verifyRestoredUserEditor({privateField: true}, {label: 'actual draw'}, 'value', 'native secret');
+  assert.throws(() => verifyRestoredUserEditor({privateField: true}, {value: 'native secret'}, 'value', 'native secret'));
+  assert.throws(() => verifyRestoredUserEditor({userField: 'label'}, undefined, 'value', 'title'));
+  verifyRestoredUserEditor({userField: 'label', expiringPresentation: true}, undefined, 'value', 'actionbar');
+});
 
 function captured() {
   return {

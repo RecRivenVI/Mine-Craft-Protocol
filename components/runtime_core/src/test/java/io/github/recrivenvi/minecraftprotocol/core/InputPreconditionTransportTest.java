@@ -406,6 +406,12 @@ class InputPreconditionTransportTest {
             var response =
                     fixture.request("POST", "/v0/assert", ready, false).get(3, TimeUnit.SECONDS);
             assertEquals(412, response.statusCode(), response.body());
+            assertTrue(
+                    value(response)
+                            .getAsJsonObject("readiness")
+                            .getAsJsonArray("failures")
+                            .toString()
+                            .contains("OVERLAY_PRESENT"));
             fixture.uiReadyTree.addProperty("overlayIdentity", 0);
             assertEquals(
                     200,

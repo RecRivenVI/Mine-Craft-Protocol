@@ -272,6 +272,20 @@ final class NativePlayerCommands {
         return result;
     }
 
+    static String submittedCommand(Packet<?> packet) {
+        if (packet
+                instanceof net.minecraft.network.protocol.game.ServerboundChangeGameModePacket mode)
+            return "gamemode " + mode.mode().getName();
+        if (packet
+                instanceof net.minecraft.network.protocol.game.ServerboundChatCommandPacket command)
+            return command.command();
+        if (packet
+                instanceof
+                net.minecraft.network.protocol.game.ServerboundChatCommandSignedPacket command)
+            return command.command();
+        return null;
+    }
+
     static Configuration configuration(Packet<?> packet) {
         if (packet
                 instanceof net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket)

@@ -3,6 +3,23 @@ import test from 'node:test';
 import { RuntimeError } from '../runtime-client.js';
 import { asToolResult } from '../result.js';
 
+test('Companion preserves bounded page readiness reasons without hidden target data', async () => {
+  for (const code of ['ASSERTION_FAILED', 'WAIT_TIMEOUT']) {
+    const result = await asToolResult(async () => {
+      throw new RuntimeError(code, code === 'WAIT_TIMEOUT' ? 408 : 412, 'not ready', 'ready-request', {
+        readiness: {kind:'hud', ready:false, checks:{screen:true,overlay:false,viewport:true,secret:'not forwarded'},
+          failures:['OVERLAY_PRESENT'], hiddenMatchCount:8, label:'private game data'}
+      });
+    });
+    const error = (result.structuredContent as {error:Record<string,unknown>}).error;
+    assert.deepEqual(error.readiness, {kind:'hud',ready:false,checks:{screen:true,overlay:false,viewport:true},failures:['OVERLAY_PRESENT']});
+    assert.equal(JSON.stringify(error).includes('private game data'),false);
+  }
+  assert.equal(new RuntimeError('SCOPE_DENIED',403,'denied',undefined,{
+    readiness:{kind:'hud',ready:false,checks:{},failures:[]}
+  }).readiness,undefined);
+});
+
 test('Companion preserves safe stale revision metadata without forwarding tokens or world values', async () => {
   const result = await asToolResult(async () => {
     throw new RuntimeError('STALE_RESOURCE_REVISION', 409, 'Inspect again', 'revision-request', {

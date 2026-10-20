@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,19 @@ const assets: Record<string, [string, string]> = {
   '/model.mjs': ['model.mjs', 'text/javascript'], '/style.css': ['style.css', 'text/css']
 };
 
+// https://fetch.spec.whatwg.org/#port-blocking applies before an HTTP connection is attempted.
+const fetchBlockedPorts = new Set([0, 1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53,
+  69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143,
+  161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601,
+  636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566,
+  6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
+const automaticBindAttempts = 8;
+
 export async function startUiConsole(controller: UiConsole, port = 4317) {
+  if (!Number.isSafeInteger(port) || port < 0 || port > 65535)
+    throw new RuntimeError('WEB_UI_INVALID_PORT', 400, '网页端口必须是0（自动分配）或1–65535的整数');
+  if (port !== 0 && fetchBlockedPorts.has(port))
+    throw new RuntimeError('WEB_UI_PORT_BLOCKED', 400, `网页端口${port}被HTTP Fetch标准限制，请使用其他端口或0自动分配`);
   const browsers = new Map<string, number>();
   let origin = '';
   const server = createServer(async (request, response) => {
@@ -75,10 +87,23 @@ export async function startUiConsole(controller: UiConsole, port = 4317) {
   server.requestTimeout = 30000;
   server.headersTimeout = 10000;
   server.maxConnections = 32;
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(port, '127.0.0.1', () => resolve());
-  });
+  for (let attempt = 0; attempt < automaticBindAttempts; attempt++) {
+    // OS port=0 may select Fetch-blocked ports; the high dynamic range has no such ports.
+    const candidate = port === 0 ? randomInt(49152, 65536) : port;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const listening = (): void => { server.off('error', failed); resolve(); };
+        const failed = (error: Error): void => { server.off('listening', listening); reject(error); };
+        server.once('error', failed); server.once('listening', listening);
+        try { server.listen(candidate, '127.0.0.1'); }
+        catch (error) { server.off('error', failed); server.off('listening', listening); reject(error); }
+      });
+      break;
+    } catch (error) {
+      if (port === 0 && (error as NodeJS.ErrnoException).code === 'EADDRINUSE' && attempt + 1 < automaticBindAttempts) continue;
+      throw error;
+    }
+  }
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('No local listener');
   origin = `http://127.0.0.1:${address.port}`;

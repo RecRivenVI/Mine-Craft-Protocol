@@ -7,6 +7,25 @@ gradle.beforeProject { project ->
                 throw new GradleException('Invalid isolated UI Runtime port')
             }
             task.systemProperty('minecraft.protocol.probe.port', port.toString())
+            def scenario = project.providers.gradleProperty('vanillaUiScenario').orElse('all').get()
+            if (scenario == 'hud-demo') {
+                // Loader launchers finish configuring their main-class arguments after this init script.
+                task.doFirst { task.args('--demo') }
+            }
+            if (scenario in ['all', 'hud-late', 'hud-saving']) {
+                task.systemProperty('minecraft.protocol.uiSavingIndicatorFixture', 'true')
+            }
+            if (scenario in ['all', 'ui-navigation', 'ui-native-pages', 'ui-world-pages']) {
+                task.systemProperty('minecraft.protocol.uiNavigationFixture', 'true')
+                task.systemProperty('minecraft.protocol.uiWorldRecoveryFixture', 'true')
+                task.systemProperty('minecraft.protocol.uiReconfigurationFixture', 'true')
+            }
+            if (scenario in ['all', 'hud-player-list']) {
+                task.systemProperty('minecraft.protocol.uiPlayerListFixture', 'true')
+            }
+            if (scenario in ['all', 'ui-breadth']) {
+                task.systemProperty('minecraft.protocol.uiCommandManagementFixture', 'true')
+            }
         }
     }
 }

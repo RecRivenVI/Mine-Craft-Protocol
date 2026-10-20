@@ -48,7 +48,20 @@ final class UiToastDebug {
     }
 
     static boolean visibilityOnly(Toast toast) {
-        return toast instanceof FriendToast;
+        return toast instanceof FriendToast || toast instanceof NowPlayingToast;
+    }
+
+    private static java.util.Map<String, Object> residentInstances(Object manager) {
+        var result = new java.util.LinkedHashMap<String, Object>();
+        int index = 0;
+        for (Object instance :
+                ((ToastManagerUiAccessor) manager).minecraftProtocolProbe$visible()) {
+            if (index >= 8) break;
+            result.put("toast." + index++, instance);
+        }
+        var nowPlaying = ((ToastManagerUiAccessor) manager).minecraftProtocolProbe$nowPlaying();
+        if (nowPlaying != null) result.put("toast.now_playing", nowPlaying);
+        return result;
     }
 
     private static void lines(ByteBuf buffer, List<FormattedCharSequence> lines) {
@@ -80,16 +93,27 @@ final class UiToastDebug {
         if (client == null || !tree.has("presentation")) return;
         Object manager = client.gui.toastManager();
         var budget = new UiItemDataGuard.Budget();
-        int index = 0;
-        for (Object instance :
-                ((ToastManagerUiAccessor) manager).minecraftProtocolProbe$visible()) {
-            if (index >= 8) break;
-            String key = "toast." + index++;
+        for (var entry : residentInstances(manager).entrySet()) {
+            String key = entry.getKey();
+            Object instance = entry.getValue();
             Toast toast = ((ToastInstanceUiAccessor) instance).minecraftProtocolProbe$toast();
             if (!(toast instanceof SystemToast)
                     && !(toast instanceof TutorialToast)
                     && !visibilityOnly(toast)) continue;
             JsonObject node = UiDebugEngine.findNode(tree, key);
+            if (node == null && key.equals("toast.now_playing")) {
+                node = new JsonObject();
+                node.addProperty("nodeId", key);
+                node.addProperty("controlKey", key);
+                node.addProperty("class", toast.getClass().getName());
+                node.addProperty("role", "toast");
+                node.addProperty("label", "");
+                node.addProperty("visible", false);
+                node.addProperty("active", false);
+                node.addProperty("boundsAvailable", false);
+                node.add("actions", new JsonArray());
+                tree.getAsJsonObject("presentation").getAsJsonArray("children").add(node);
+            }
             if (node == null) continue;
             var encoded = content(guard, budget, toast);
             node.addProperty("debugToastGuardAvailable", encoded.available());
@@ -100,7 +124,9 @@ final class UiToastDebug {
                     "debugToastKind",
                     toast instanceof SystemToast
                             ? "system"
-                            : toast instanceof TutorialToast ? "tutorial" : "friend");
+                            : toast instanceof TutorialToast
+                                    ? "tutorial"
+                                    : toast instanceof NowPlayingToast ? "now_playing" : "friend");
             JsonObject state =
                     canonicalState(tree, manager, instance, toast, encoded, identity, node);
             node.add(
@@ -165,7 +191,7 @@ final class UiToastDebug {
     }
 
     static void systemResetState(JsonObject state, UiToastResetSource source) {
-        // A reset's native lifecycle consumes changed/lastChanged after its mutation receipt.
+        // A reset's native tick consumes changed/lastChanged after its mutation receipt.
         state.addProperty("resetGeneration", source.minecraftProtocolProbe$resetGeneration());
     }
 
@@ -243,17 +269,11 @@ final class UiToastDebug {
             throw error(
                     "UI_CONTENT_GUARD_UNAVAILABLE",
                     "Required native Toast state exceeded its capture budget");
-        Toast toast = null;
-        int index = 0;
-        for (Object instance :
-                ((ToastManagerUiAccessor) client.gui.toastManager())
-                        .minecraftProtocolProbe$visible()) {
-            if (index >= 8) break;
-            if (key.equals("toast." + index++)) {
-                toast = ((ToastInstanceUiAccessor) instance).minecraftProtocolProbe$toast();
-                break;
-            }
-        }
+        Object instance = residentInstances(client.gui.toastManager()).get(key);
+        Toast toast =
+                instance == null
+                        ? null
+                        : ((ToastInstanceUiAccessor) instance).minecraftProtocolProbe$toast();
         if (toast == null) throw error("UI_NODE_NOT_FOUND", "Native Toast instance disappeared");
         String operation = request.get("operation").getAsString();
         JsonElement before;
@@ -282,6 +302,8 @@ final class UiToastDebug {
             if (toast instanceof TutorialToast tutorial) apply = tutorial::hide;
             else if (toast instanceof SystemToast system) apply = system::forceHide;
             else if (toast instanceof FriendToast friend) apply = friend::hide;
+            else if (toast instanceof NowPlayingToast nowPlaying)
+                apply = () -> hideNowPlaying(nowPlaying);
             else throw error("UI_DEBUG_UNSUPPORTED", "Unsupported native Toast type");
             sideEffects = "native_toast_hide_requested_not_reversible";
         } else
@@ -321,6 +343,13 @@ final class UiToastDebug {
         if (request.has("debugOperationId"))
             result.add("debugOperationId", request.get("debugOperationId"));
         return result;
+    }
+
+    static void hideNowPlaying(NowPlayingToast toast) {
+        // Merely requesting HIDE is overwritten by native timed update until it finishes.
+        // End only this local display lifecycle; the music manager is not touched.
+        toast.onFinishedRendering();
+        toast.setWantedVisibility(Toast.Visibility.HIDE);
     }
 
     private static ProtocolState.ProtocolException error(String code, String message) {

@@ -187,19 +187,7 @@ public final class NeoForgeProbeRuntime implements ProbeService {
         var configuration = NativePlayerCommands.configuration(packet);
         if (configuration != null)
             return allowPlayerCommand(configuration.command(), true, configuration.kind(), source);
-        String command =
-                packet
-                                instanceof
-                                net.minecraft.network.protocol.game.ServerboundChatCommandPacket
-                                        unsigned
-                        ? unsigned.command()
-                        : packet
-                                        instanceof
-                                        net.minecraft.network.protocol.game
-                                                        .ServerboundChatCommandSignedPacket
-                                                signed
-                                ? signed.command()
-                                : null;
+        String command = NativePlayerCommands.submittedCommand(packet);
         return command == null || allowPlayerCommand(command, true, source);
     }
 
@@ -325,9 +313,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public static boolean allowHostMouseGrab() {
         if (!INSTANCE.controlPresence.agentControlled()) return true;
         INSTANCE.rejectedHostGrabs.incrementAndGet();
-        Minecraft client = INSTANCE.minecraft;
-        if (client != null && (client.isWindowActive() || AgentInputContext.isAgentRouted()))
-            INSTANCE.requestGameCapture(true);
+        // Logical capture follows the game request, independently of host focus.
+        // The physical cursor stays ungrabbed throughout TAKEOVER.
+        INSTANCE.requestGameCapture(true);
         return false;
     }
 
@@ -1280,6 +1268,185 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     JsonArray hooks = new JsonArray();
                     hooks.add(
                             hook(
+                                    "native_boss_bar_draw",
+                                    "MIXIN_REDIRECT",
+                                    "BossHealthOverlay.extractBar",
+                                    "AFTER_UNCHANGED_ORIGINAL_DRAW",
+                                    "passive_draw_observation",
+                                    "unverified_until_actual_boss_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_completed_presentation_frame",
+                                    "MIXIN_INJECT",
+                                    "GameRenderer.extractGui",
+                                    "HEAD/RETURN",
+                                    "read_observation",
+                                    client.gameRenderer
+                                                    instanceof
+                                                    UiPresentationSnapshot.GuiPresentationSource
+                                            ? "runtime_hooked"
+                                            : "unavailable",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_inventory_effect_text",
+                                    "MIXIN_REDIRECT",
+                                    "EffectsInInventory.extractText",
+                                    "text",
+                                    "read_observation",
+                                    "unverified_until_inventory_effect_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_tooltip_text",
+                                    "MIXIN_REDIRECT",
+                                    "ClientTextTooltip.extractText",
+                                    "text",
+                                    "read_observation",
+                                    "unverified_until_tooltip_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_f3_text",
+                                    "MIXIN_REDIRECT",
+                                    "DebugScreenOverlay.extractLines",
+                                    "text",
+                                    "read_observation",
+                                    "unverified_until_debug_text_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_chat_text",
+                                    "MIXIN_REDIRECT",
+                                    "ChatComponent.DrawingBackgroundGraphicsAccess/DrawingFocusedGraphicsAccess.handleMessage",
+                                    "ActiveTextCollector.accept",
+                                    "read_observation",
+                                    "unverified_until_chat_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_subtitle_text",
+                                    "MIXIN_REDIRECT",
+                                    "SubtitleOverlay.extractRenderState",
+                                    "text",
+                                    "read_observation",
+                                    "unverified_until_subtitle_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "gui_native_message_text",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractOverlayMessage/extractSavingIndicator/extractDemoOverlay",
+                                    "textWithBackdrop",
+                                    "read_observation",
+                                    "unverified_until_native_message_draw",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_crosshair_and_attack_pixels",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractCrosshair/extractItemHotbar",
+                                    "blitSprite",
+                                    "read_observation",
+                                    "unverified_until_crosshair_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_camera_texture",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractTextureOverlay/extractConfusionOverlay/extractVignette",
+                                    "blit",
+                                    "read_observation",
+                                    "unverified_until_camera_overlay_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_spyglass_and_mask",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractSpyglassOverlay",
+                                    "blit/fill",
+                                    "read_observation",
+                                    "unverified_until_spyglass_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_portal_and_sleep",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractPortalOverlay/extractSleepOverlay",
+                                    "blitSprite/fill",
+                                    "read_observation",
+                                    "unverified_until_portal_or_sleep_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_title_lifecycle_revision",
+                                    "MIXIN_INJECT",
+                                    "Gui.setTitle/setSubtitle/setTimes/resetTitleTimes/clearTitles",
+                                    "HEAD",
+                                    "observe_title_lifecycle_generation",
+                                    "unverified_until_native_setter",
+                                    "ui.debug"));
+                    hooks.add(
+                            hook(
+                                    "hud_item_presentation_frame",
+                                    "MIXIN_INJECT",
+                                    "Gui.extractRenderState",
+                                    "HEAD/RETURN",
+                                    "read_observation",
+                                    client.gui
+                                                    instanceof
+                                                    UiPresentationSnapshot.HudPresentationSource
+                                            ? "runtime_hooked"
+                                            : "unavailable",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_selected_item_name",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractSelectedItemName",
+                                    "textWithBackdrop",
+                                    "read_observation",
+                                    "unverified_until_selected_name_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_item_durability_and_cooldown",
+                                    "MIXIN_REDIRECT",
+                                    "GuiGraphicsExtractor.itemBar/itemCooldown",
+                                    "fill",
+                                    "read_observation",
+                                    "unverified_until_item_decoration_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_experience_level",
+                                    "MIXIN_REDIRECT",
+                                    "Gui.extractExperienceLevel",
+                                    "ContextualBarRenderer.extractExperienceLevel",
+                                    "read_observation",
+                                    "unverified_until_experience_level_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_contextual_background_progress",
+                                    "MIXIN_REDIRECT",
+                                    "ExperienceBarRenderer/JumpableVehicleBarRenderer.extractBackground",
+                                    "blitSprite",
+                                    "read_observation",
+                                    "unverified_until_contextual_bar_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
+                                    "hud_locator_background_marker",
+                                    "MIXIN_REDIRECT",
+                                    "LocatorBarRenderer",
+                                    "blitSprite",
+                                    "read_observation",
+                                    "unverified_until_locator_render",
+                                    "ui.presentation"));
+                    hooks.add(
+                            hook(
                                     "world_placement_receipt",
                                     "MIXIN_INJECT",
                                     "MultiPlayerGameMode.useItemOn",
@@ -1613,8 +1780,9 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     vitalDraw.addProperty("originalInvocationCount", 1);
                     vitalDraw.addProperty("originalArguments", "unchanged");
                     hooks.add(vitalDraw);
-                    json.addProperty("replacementInjectionCount", 11);
-                    json.addProperty("passiveDrawDelegationCount", 5);
+                    json.addProperty("replacementInjectionCount", 47);
+                    json.addProperty("operatorReplacementCount", 6);
+                    json.addProperty("passiveDrawDelegationCount", 41);
                     json.addProperty(
                             "controlFlowPolicy", "operator_control_and_exact_hud_draw_delegation");
                     json.addProperty("thirdPartyTargetCount", 0);
@@ -1885,6 +2053,11 @@ public final class NeoForgeProbeRuntime implements ProbeService {
             throw new ProtocolState.ProtocolException(
                     "INVALID_POINTER_DELTA", 400, "Relative delta exceeds its finite pixel budget");
         this.syncPointerContext(client);
+        if (!this.logicalPointer.gameCaptured())
+            throw new ProtocolState.ProtocolException(
+                    "GAMEPLAY_POINTER_REQUIRED",
+                    409,
+                    "Relative input requires the game's logical capture request; host focus is not required");
         double x =
                 (this.agentPointerX + dx)
                         * client.getWindow().getGuiScaledWidth()
@@ -3190,7 +3363,8 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                                         this.snapshotUiTree(),
                                         request,
                                         this::interactionIdentity,
-                                        authorization);
+                                        authorization,
+                                        this.itemDataGuard);
                         JsonObject after =
                                 UiDebugEngine.findNode(
                                         this.snapshotUiTree(), result.get("nodeId").getAsString());
@@ -3469,8 +3643,14 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     public CompletableFuture<JsonObject> releaseAllInput(String reason) {
         return this.onClientCleanup(
                 () -> {
+                    Minecraft client = requireClient();
+                    if (this.pressedKeys.containsKey(GLFW.GLFW_KEY_F3)
+                            && client.screen
+                                    instanceof
+                                    net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen)
+                        client.setScreen(null);
                     if (reason.equals("native_input_context_changed"))
-                        return this.discardContextInput(requireClient());
+                        return this.discardContextInput(client);
                     this.worldTargeting.end();
                     if (this.commandChatOpening != null) {
                         // Drop only this gesture's queued native Chat key action, never all key
@@ -3482,7 +3662,6 @@ public final class NeoForgeProbeRuntime implements ProbeService {
                     }
                     this.commandChat.clear();
                     this.commandFeedback.clear();
-                    Minecraft client = requireClient();
                     int releasedKeys = this.pressedKeys.size();
                     int releasedButtons = this.pressedButtons.size();
                     for (Map.Entry<Integer, KeyState> entry :

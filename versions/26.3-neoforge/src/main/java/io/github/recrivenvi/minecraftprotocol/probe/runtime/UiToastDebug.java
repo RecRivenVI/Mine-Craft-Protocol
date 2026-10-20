@@ -48,7 +48,7 @@ final class UiToastDebug {
     }
 
     static boolean visibilityOnly(Toast toast) {
-        return toast instanceof FriendToast;
+        return toast instanceof FriendToast || toast instanceof NowPlayingToast;
     }
 
     private static java.util.Map<String, Object> residentInstances(Object manager) {
@@ -59,6 +59,8 @@ final class UiToastDebug {
             if (index >= 8) break;
             result.put("toast." + index++, instance);
         }
+        var nowPlaying = ((ToastManagerUiAccessor) manager).minecraftProtocolProbe$nowPlaying();
+        if (nowPlaying != null) result.put("toast.now_playing", nowPlaying);
         return result;
     }
 
@@ -99,6 +101,19 @@ final class UiToastDebug {
                     && !(toast instanceof TutorialToast)
                     && !visibilityOnly(toast)) continue;
             JsonObject node = UiDebugEngine.findNode(tree, key);
+            if (node == null && key.equals("toast.now_playing")) {
+                node = new JsonObject();
+                node.addProperty("nodeId", key);
+                node.addProperty("controlKey", key);
+                node.addProperty("class", toast.getClass().getName());
+                node.addProperty("role", "toast");
+                node.addProperty("label", "");
+                node.addProperty("visible", false);
+                node.addProperty("active", false);
+                node.addProperty("boundsAvailable", false);
+                node.add("actions", new JsonArray());
+                tree.getAsJsonObject("presentation").getAsJsonArray("children").add(node);
+            }
             if (node == null) continue;
             var encoded = content(guard, budget, toast);
             node.addProperty("debugToastGuardAvailable", encoded.available());
@@ -109,7 +124,9 @@ final class UiToastDebug {
                     "debugToastKind",
                     toast instanceof SystemToast
                             ? "system"
-                            : toast instanceof TutorialToast ? "tutorial" : "friend");
+                            : toast instanceof TutorialToast
+                                    ? "tutorial"
+                                    : toast instanceof NowPlayingToast ? "now_playing" : "friend");
             JsonObject state =
                     canonicalState(tree, manager, instance, toast, encoded, identity, node);
             node.add(
@@ -285,6 +302,8 @@ final class UiToastDebug {
             if (toast instanceof TutorialToast tutorial) apply = tutorial::hide;
             else if (toast instanceof SystemToast system) apply = system::forceHide;
             else if (toast instanceof FriendToast friend) apply = friend::hide;
+            else if (toast instanceof NowPlayingToast nowPlaying)
+                apply = () -> hideNowPlaying(nowPlaying);
             else throw error("UI_DEBUG_UNSUPPORTED", "Unsupported native Toast type");
             sideEffects = "native_toast_hide_requested_not_reversible";
         } else
@@ -324,6 +343,13 @@ final class UiToastDebug {
         if (request.has("debugOperationId"))
             result.add("debugOperationId", request.get("debugOperationId"));
         return result;
+    }
+
+    static void hideNowPlaying(NowPlayingToast toast) {
+        // Merely requesting HIDE is overwritten by native timed update until it finishes.
+        // End only this local display lifecycle; the music manager is not touched.
+        toast.onFinishedRendering();
+        toast.setWantedVisibility(Toast.Visibility.HIDE);
     }
 
     private static ProtocolState.ProtocolException error(String code, String message) {

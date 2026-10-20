@@ -44,15 +44,76 @@ function Assert-WorldReadFixtureStopped {
     }
 }
 
+function Read-WorldReadFixtureOriginTargetFacts {
+    param([string]$Commit,[string]$Target)
+    $start=[Diagnostics.ProcessStartInfo]::new('git')
+    $start.WorkingDirectory=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
+    $start.UseShellExecute=$false
+    $start.CreateNoWindow=$true
+    $start.RedirectStandardOutput=$true
+    $start.RedirectStandardError=$true
+    $start.ArgumentList.Add('show')
+    $start.ArgumentList.Add($Commit+':versions/'+$Target+'/target.properties')
+    $process=[Diagnostics.Process]::new()
+    $process.StartInfo=$start
+    $bytes=[IO.MemoryStream]::new()
+    try{
+        [void]$process.Start()
+        $errorText=$process.StandardError.ReadToEndAsync()
+        # Hash the Git blob itself; PowerShell text output can change its encoding or newlines.
+        $process.StandardOutput.BaseStream.CopyTo($bytes)
+        $process.WaitForExit()
+        if($process.ExitCode-ne0){throw ('World baseline origin Target facts are unavailable: '+$errorText.GetAwaiter().GetResult().Trim())}
+        return ,$bytes.ToArray()
+    }finally{$bytes.Dispose();$process.Dispose()}
+}
+
+function ConvertFrom-WorldReadTargetFacts {
+    param([byte[]]$Bytes)
+    $facts=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    foreach($line in [Text.UTF8Encoding]::new($false,$true).GetString($Bytes).Split("`n")){
+        $value=$line.Trim()
+        if(-not$value-or$value.StartsWith('#')){continue}
+        if($value-cnotmatch'^([a-z][a-z0-9_]*)=(.+)$'-or-not$facts.TryAdd($Matches[1],$Matches[2])){throw 'Invalid or duplicate world baseline Target fact'}
+    }
+    return ,$facts
+}
+
+function Get-WorldReadFixtureFactsCompatibility {
+    param($Manifest,[string]$Target,[string]$TargetFacts,[switch]$AllowLoaderUpdate)
+    $currentBytes=[IO.File]::ReadAllBytes($TargetFacts)
+    $currentHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($currentBytes)).ToLowerInvariant()
+    $changes=[Collections.Generic.List[object]]::new()
+    $basis='target_facts_exact_match'
+    if($Manifest.targetFactsSha256-cne$currentHash){
+        if(-not$AllowLoaderUpdate){throw 'World baseline Target facts changed; explicit fixture replacement required'}
+        if($Manifest.originTestedCommit-cnotmatch'^[0-9a-f]{40}$'){throw 'World baseline origin commit is not a full Git commit identity'}
+        $originalBytes=Read-WorldReadFixtureOriginTargetFacts $Manifest.originTestedCommit $Target
+        $originalHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([byte[]]$originalBytes)).ToLowerInvariant()
+        if($originalHash-cne$Manifest.targetFactsSha256){throw 'World baseline origin Target facts do not match the recorded hash'}
+        $original=ConvertFrom-WorldReadTargetFacts $originalBytes
+        $current=ConvertFrom-WorldReadTargetFacts $currentBytes
+        if($original.Count-ne$current.Count){throw 'World baseline Target fact keys changed'}
+        foreach($key in $original.Keys){
+            if(-not$current.ContainsKey($key)){throw 'World baseline Target fact keys changed'}
+            if($original[$key]-ceq$current[$key]){continue}
+            if($key-cne'loader_version'-and-not($Target.EndsWith('-fabric',[StringComparison]::Ordinal)-and$key-ceq'fabric_api_version')){throw ('World baseline non-Loader Target fact changed: '+$key)}
+            $changes.Add([pscustomobject]@{key=$key;before=$original[$key];after=$current[$key]})
+        }
+        $basis='same_target_and_minecraft_loader_update_only'
+    }
+    return [pscustomobject]@{targetFactsSha256=$currentHash;currentTargetFactsSha256=$currentHash;baselineTargetFactsSha256=$Manifest.targetFactsSha256;originTestedCommit=$Manifest.originTestedCommit;compatibilityBasis=$basis;targetFactsChanges=@($changes|Sort-Object key -CaseSensitive)}
+}
+
 function Get-WorldReadFixture {
-    param([string]$Root,[string]$Target,[string]$TargetFacts)
+    param([string]$Root,[string]$Target,[string]$TargetFacts,[switch]$AllowLoaderUpdate,[ref]$FactsCompatibility)
     $baseline=Join-Path $Root 'baseline'
     $manifestFile=Join-Path $baseline 'fixture-manifest.json'
     if(-not(Test-Path -LiteralPath $manifestFile)){throw 'World baseline is missing or incomplete'}
     if((Get-Item -LiteralPath $manifestFile).Length-gt16777216){throw 'World baseline manifest exceeds 16 MiB'}
     $manifest=Get-Content -LiteralPath $manifestFile -Raw|ConvertFrom-Json
     if($manifest.schemaVersion-ne1-or$manifest.target-ne$Target-or$manifest.role-ne'client'-or$manifest.owner-ne'world-read-classification'){throw 'World baseline identity mismatch'}
-    if($manifest.targetFactsSha256-ne(Get-FileHash -LiteralPath $TargetFacts -Algorithm SHA256).Hash.ToLowerInvariant()){throw 'World baseline Target facts changed; explicit fixture replacement required'}
+    $compatibility=Get-WorldReadFixtureFactsCompatibility $manifest $Target $TargetFacts -AllowLoaderUpdate:$AllowLoaderUpdate
     if(-not$manifest.files-or$manifest.files.Count-gt100000){throw 'Invalid world baseline file list'}
     $names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach($file in $manifest.files){
@@ -61,6 +122,7 @@ function Get-WorldReadFixture {
     $actual=@(Get-WorldReadFixtureFiles $baseline|Where-Object path -ne 'fixture-manifest.json')
     if($actual.Count-ne$manifest.files.Count-or(Get-WorldReadFixtureHash $actual)-ne$manifest.hash-or(Get-WorldReadFixtureHash $manifest.files)-ne$manifest.hash){throw 'World baseline content/hash mismatch'}
     Assert-WorldReadFixtureOwner $baseline $Target
+    if($null-ne$FactsCompatibility){$FactsCompatibility.Value=$compatibility}
     return $manifest
 }
 
@@ -93,11 +155,12 @@ function Save-WorldReadFixture {
 }
 
 function Restore-WorldReadFixture {
-    param([string]$Root,[string]$Target,[string]$TargetFacts)
+    param([string]$Root,[string]$Target,[string]$TargetFacts,[switch]$AllowLoaderUpdate)
     $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
     $client=[IO.Path]::GetFullPath((Join-Path $rootPath 'client'))
     if(-not$client.StartsWith($rootPath+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)-or(Split-Path $rootPath -Leaf)-ne$Target){throw 'Unsafe world fixture restore path'}
-    $manifest=Get-WorldReadFixture $rootPath $Target $TargetFacts
+    $compatibility=$null
+    $manifest=Get-WorldReadFixture $rootPath $Target $TargetFacts -AllowLoaderUpdate:$AllowLoaderUpdate -FactsCompatibility ([ref]$compatibility)
     Assert-WorldReadFixtureOwner $client $Target
     Assert-WorldReadFixtureStopped $client
     # Validate everything before retiring the working copy. Never permanently delete test worlds.
@@ -119,7 +182,8 @@ function Restore-WorldReadFixture {
     }
     $restored=@(Get-WorldReadFixtureFiles $client)
     if($restored.Count-ne$manifest.files.Count-or(Get-WorldReadFixtureHash $restored)-ne$manifest.hash){throw 'Restored world fixture differs from its baseline'}
-    $receipt=@{policy='immutable_baseline_restored';target=$Target;role='client';baselineSha256=$manifest.hash;restoredSha256=Get-WorldReadFixtureHash $restored;fileCount=$restored.Count;targetFactsSha256=$manifest.targetFactsSha256;restoredAt=[DateTime]::UtcNow.ToString('o');credentialsCopied=$false}
+    $receipt=@{policy='immutable_baseline_restored';target=$Target;role='client';baselineSha256=$manifest.hash;restoredSha256=Get-WorldReadFixtureHash $restored;fileCount=$restored.Count;restoredAt=[DateTime]::UtcNow.ToString('o');credentialsCopied=$false}
+    foreach($property in $compatibility.PSObject.Properties){$receipt[$property.Name]=$property.Value}
     [IO.File]::WriteAllText((Join-Path $client 'fixture-input.json'),($receipt|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
     return $receipt
 }

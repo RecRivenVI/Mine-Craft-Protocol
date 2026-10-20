@@ -763,6 +763,52 @@ final class PointerGestureTest {
     }
 
     @Test
+    void nativeHoverSelectionIsTheResultOfMotionRatherThanItsOwnStalePrecondition()
+            throws Exception {
+        World state = new World();
+        state.selectionRows = true;
+        state.afterMove = () -> state.selectedTarget = true;
+        JsonObject hover = action("A");
+        hover.addProperty("action", "hover");
+        try (AutomationEngine engine = new AutomationEngine(state.service())) {
+            engine.uiAction(hover, () -> {}).get(3, TimeUnit.SECONDS);
+            assertTrue(state.selectedTarget);
+            assertTrue(state.moves.get() > 1);
+            assertEquals(0, state.presses.get());
+            assertEquals(0, state.cleanups.get());
+        }
+    }
+
+    @Test
+    void hoverStillPinsGeometryAndClickStillPinsSelection() throws Exception {
+        for (String action : List.of("hover", "click")) {
+            World state = new World();
+            state.selectionRows = true;
+            state.afterMove =
+                    () -> {
+                        if (action.equals("hover")) state.moveTarget = true;
+                        else state.selectedTarget = true;
+                    };
+            JsonObject request = action("A");
+            request.addProperty("action", action);
+            try (AutomationEngine engine = new AutomationEngine(state.service())) {
+                var pending = engine.uiAction(request, () -> {});
+                ExecutionException failure =
+                        assertThrows(
+                                ExecutionException.class, () -> pending.get(3, TimeUnit.SECONDS));
+                assertEquals(
+                        "UI_TARGET_INVALIDATED",
+                        assertInstanceOf(ProtocolState.ProtocolException.class, failure.getCause())
+                                .code());
+                assertEquals(0, state.presses.get());
+                int stopped = state.moves.get();
+                Thread.sleep(60);
+                assertEquals(stopped, state.moves.get());
+            }
+        }
+    }
+
+    @Test
     void queuedCancelDoesNotReleaseActiveInputAndActiveCancelWaitsForDrain() throws Exception {
         World state = new World();
         try (AutomationEngine engine = new AutomationEngine(state.service())) {

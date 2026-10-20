@@ -239,8 +239,10 @@ export async function inputContextActions({api, target, fixtureInput, connection
       assert(title.screenClass.endsWith('TitleScreen')); assert(!title.overlayIdentity);
       await acquire(); ownsLease = true; const acquired = await api('GET', '/v0/control/status');
       assert.equal(acquired.status, 'active'); assert.equal(acquired.mode, 'TAKEOVER'); assert.equal(typeof acquired.leaseId, 'string'); ownedLease = acquired.leaseId;
-      await click('menu.singleplayer', 'Singleplayer'); const list = await wait(value => value.screenClass.endsWith('SelectWorldScreen'), 'context fixed world list', remaining(20000));
-      const row = nodes(list).find(value => value.worldName === 'World-Read-Alpha'); assert(row);
+      await click('menu.singleplayer', 'Singleplayer'); const list = await wait(value => value.screenClass.endsWith('SelectWorldScreen')
+        && nodes(value).some(row => row.worldName === 'World-Read-Alpha'), 'context fixed world list', remaining(20000));
+      const rows = nodes(list).filter(value => value.worldName === 'World-Read-Alpha'); assert.equal(rows.length, 1, 'One exact fixed-world row');
+      const row = rows[0];
       await clickNode(row); await click('selectWorld.select', 'Play Selected World');
       await wait(value => !value.screenClass, 'context fixed world entered', remaining(60000));
       const inWorld = await poll(() => input(true), value => value.inputContextAvailable && !value.inputCleanupPending, 'Native world epoch unavailable', 15000);
@@ -257,7 +259,9 @@ export async function inputContextActions({api, target, fixtureInput, connection
       const original = await api('GET', '/v0/player?category=USER'); assert.equal(original.available, true); assert.equal(original.dimension, 'minecraft:overworld');
       const arrange = await nativeCommand('gamemode creative @s');
       const creative = await poll(() => api('GET', '/v0/player?category=USER'), value => value.available && value.gameMode === 'creative', 'Diagnostic safety gamemode was not observed');
-      const outward = await boundary({dimension: 'minecraft:the_nether', x: 0, y: 200, z: 0});
+      // The fixed vanilla Nether has its roof at y=128. An airborne y=200 arrival
+      // can fall before client readback; altitude drift is not an input epoch failure.
+      const outward = await boundary({dimension: 'minecraft:the_nether', x: 0, y: 128, z: 0});
       const returned = await boundary({dimension: original.dimension, x: original.x, y: original.y, z: original.z});
       actionSamples.push({case: 'input_context_dimensions', original, arrange, creative, outward, returned,
         arrangeIsGameplayAcceptance: false, destinationConfirmedBy: 'independent_USER_client_player', nativeCommandEffectReceiptNotProof: true});

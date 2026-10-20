@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { get } from 'node:http';
+import { get, Server } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { RuntimeClient, RuntimeError } from '../runtime-client.js';
 import { UiConsole, frameKey, inputFrameKey, flattenNodes } from '../ui-console.js';
 import { startUiConsole } from '../ui-console-http.js';
@@ -390,6 +391,85 @@ test('web HTTP refuses foreign origins, absent sessions and arbitrary native pat
     assert.equal(image.headers.get('content-type'), 'image/png'); assert.equal(image.status, 200);
     await fetch(app.url + '/api/release', { method: 'POST', headers, body: '{}' }); assert.equal(runtime.mode, 'READ');
   } finally { await app.close(); }
+});
+
+test('web automatic listener uses a browser-safe dynamic port and real fetch bootstrap, then unbinds', async () => {
+  const runtime = new MockRuntime(), app = await startUiConsole(new UiConsole(runtime), 0);
+  const port = Number(new URL(app.url).port);
+  try {
+    assert(port >= 49152 && port <= 65535);
+    const response = await fetch(app.url + '/api/bootstrap'); assert.equal(response.status, 200);
+    const body = await response.json() as {browserToken: string; runtimeUrl: string};
+    assert.match(body.browserToken, /^[0-9a-f]{64}$/);
+    assert.equal(body.runtimeUrl, runtime.config.baseUrl.origin);
+    assert.equal((await fetch(app.url + '/api/snapshot', {headers: {'x-web-ui-token': body.browserToken}})).status, 200);
+  } finally { await app.close(); }
+  assert.equal(app.server.listening, false); assert.equal(app.server.address(), null);
+  const replacement = createNetServer();
+  try { await new Promise<void>((resolve, reject) => {
+    replacement.once('error', reject); replacement.listen(port, '127.0.0.1', resolve);
+  }); } finally { if (replacement.listening) await new Promise<void>((resolve, reject) => replacement.close(error => error ? reject(error) : resolve())); }
+});
+
+test('web explicit Fetch-blocked and malformed ports fail before creating or controlling a listener', async () => {
+  for (const port of [1, 6000, 6566, 6667, 6679, 6697, 10080]) {
+    const runtime = new MockRuntime();
+    await assert.rejects(startUiConsole(new UiConsole(runtime), port), {code: 'WEB_UI_PORT_BLOCKED'});
+    assert.equal(runtime.calls.length, 0);
+  }
+  for (const port of [-1, 65536, .5, Number.NaN, Number.POSITIVE_INFINITY])
+    await assert.rejects(startUiConsole(new UiConsole(new MockRuntime()), port), {code: 'WEB_UI_INVALID_PORT'});
+});
+
+test('web explicit safe port is honored and an occupied explicit port never falls back', async () => {
+  const first = await startUiConsole(new UiConsole(new MockRuntime()), 0);
+  const port = Number(new URL(first.url).port);
+  try {
+    await assert.rejects(startUiConsole(new UiConsole(new MockRuntime()), port), {code: 'EADDRINUSE'});
+    assert.equal((await fetch(first.url + '/api/bootstrap')).status, 200);
+  } finally { await first.close(); }
+  const explicit = await startUiConsole(new UiConsole(new MockRuntime()), port);
+  try { assert.equal(Number(new URL(explicit.url).port), port); assert.equal((await fetch(explicit.url + '/api/bootstrap')).status, 200); }
+  finally { await explicit.close(); }
+});
+
+test('web automatic bind retries only address-in-use, stays bounded and removes per-attempt listeners', async t => {
+  const original = Server.prototype.listen;
+  let attempts = 0;
+  const replacement = t.mock.method(Server.prototype, 'listen', function (this: Server, ...args: Parameters<typeof original>) {
+    attempts++; assert.equal(typeof args[0], 'number'); assert((args[0] as unknown as number) >= 49152);
+    if (attempts === 1) {
+      queueMicrotask(() => this.emit('error', Object.assign(new Error('owned simulated collision'), {code: 'EADDRINUSE'})));
+      return this;
+    }
+    return Reflect.apply(original, this, args) as Server;
+  });
+  const app = await startUiConsole(new UiConsole(new MockRuntime()), 0);
+  try {
+    assert.equal(attempts, 2); assert.equal((await fetch(app.url + '/api/bootstrap')).status, 200);
+    assert.equal(app.server.listenerCount('error'), 0);
+    assert(!app.server.listeners('listening').some(listener => listener.name === 'listening'), 'No per-attempt listener remains; Node owns its connection-tracking listener');
+  } finally { await app.close(); replacement.mock.restore(); }
+  let failedServer: Server | undefined;
+  t.mock.method(Server.prototype, 'listen', function (this: Server) {
+    failedServer = this; attempts++;
+    queueMicrotask(() => this.emit('error', Object.assign(new Error('owned persistent collision'), {code: 'EADDRINUSE'})));
+    return this;
+  });
+  attempts = 0;
+  await assert.rejects(startUiConsole(new UiConsole(new MockRuntime()), 0), {code: 'EADDRINUSE'});
+  assert.equal(attempts, 8); assert.equal(failedServer?.listening, false);
+  assert.equal(failedServer?.listenerCount('error'), 0);
+  assert(!failedServer?.listeners('listening').some(listener => listener.name === 'listening'));
+});
+
+test('web non-collision bind errors are not retried', async t => {
+  let attempts = 0;
+  const replacement = t.mock.method(Server.prototype, 'listen', function (this: Server) {
+    attempts++; queueMicrotask(() => this.emit('error', Object.assign(new Error('owned denied bind'), {code: 'EACCES'}))); return this;
+  });
+  await assert.rejects(startUiConsole(new UiConsole(new MockRuntime()), 0), {code: 'EACCES'});
+  assert.equal(attempts, 1); replacement.mock.restore();
 });
 
 test('direct GUI stream keeps fractional positions, button ownership, scroll and native keys',async()=>{

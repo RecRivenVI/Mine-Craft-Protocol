@@ -1904,3 +1904,284 @@ M-01～M-12的P/V及58个剩余验收组保持，UI/世界与完整Showcase仍IN
 随后发布20261020-0422-52bc024f同批五JAR、alpha-manifest.json和AGENT_GUIDE.md，publisher无警告；独立审计确认七文件、六份载荷哈希和latest一致。
 更新清单绑定当前五端独立安装进入世界证明，旧65场景仅保留为不可变试用基线的历史证明；历史NOT_MET未改写，也没有新性能测量。
 唯一检查点后的依赖、工具、文档与结果按约定保留未提交，未第二次推送或建tag；本Goal完成后停止，完整领域、E/F及统一人工验收未启动。
+
+### 2026-10-20接收反馈分诊与后台相机最小复现
+
+以下为05:35完成的19条原始只读分诊，保留当时尚未复现的判断，不代表后续修复结果。
+
+2026-10-20已接收 `D:/Workspaces/Artifacts/MineCraftProtocol/ConsumerFeedback/feedback-current.md` 的“给 MCP 的待转交清单”，共19条；CF-073及先前已接收清单不重复计入。
+依据使用方原文、绑定证据和当前生产源码只读分诊，未启动游戏或复现；0337/0422发布与本机矩阵均不代替使用方复测。
+结论为接收11条（缺陷5、能力缺口6）、待补充信息1条、当前范围外7条；没有足够依据将任何一条直接关闭为调用方或环境问题。
+下表批次仅为建议归位，不是实施授权，不增加58个剩余验收组、不重开A～D或Goal；第三方兼容与扩展需求不自动成为E/F必需项。
+
+| 编号/优先级 | 分诊结论 | 建议批次或后续条件 |
+| --- | --- | --- |
+| CF-015 / P2 | 接收能力缺口：RRO自定义11行未投影，顶层导航不证明选项可操作；不是安装崩溃 | 后续第三方UI兼容批次；不计原版E/F必需项 |
+| CF-016 / P3 | 当前范围外：1.21.4 Fabric未登记，不是漏发受支持Target或运行故障 | 仅登记发行覆盖请求；新增Target须另行决定，不装26.3包代替 |
+| CF-017 / P1 | 接收缺陷：Voxy首次后台入世界，逻辑未捕获时相对输入完成但未转向；暂停返回仅是绕行 | 后续E优先补修B输入生命周期，保留独立Voxy样本 |
+| CF-018 / P1 | 接收缺陷：Physics首次转向无效而移动有效，后续新动作成功不关闭首例 | 与CF-017同簇安排E，不能据症状合并根因或归咎Physics |
+| CF-019 / P2 | 接收能力缺口：无Screen的HUD没有“无遮罩且窗口有效”的组合Wait | E的M-04/M-10；与Screen就绪、目标区块可读及图像收敛分别验收 |
+| CF-021 / P2 | 接收缺陷：坐标选择器合同不清；当前blockEntities遍历区块，未消费selectedBlocks，不能静默给无关坐标结果 | E的M-06；支持精确筛选或明确拒绝/能力说明，不自动加载区块 |
+| CF-022 / P2 | 接收能力缺口：DEBUG方块实体受128项预算限制且无分页；USER区域续读不等于容器深读分页 | E的M-06候选：有界分页及生命周期设计，非直接提高预算 |
+| CF-023 / P2 | 接收能力缺口：已有树证据，但pageReady只合并布尔判定，缺各子条件失败解释 | E的M-02/M-10：区分overlay、screen、selector、visible、active及几何，不改变就绪语义 |
+| CF-024 / P3 | 待补充信息：gamerule当前已有策略分支，NOT_AVAILABLE来自原生解析不完整，不能据旧命令字符串认定平台白名单误拒 | 请补同批Target、当前玩家权限及discover/suggest原始结果；核对版本语法和名称，不绕过服务器树 |
+| CF-025 / P3 | 当前范围外：tick属于已拒绝的host control-plane，受限步进是新能力而非现有合同漏洞 | 后续独立测试控制设计；当前按正常tick及独立条件等待，不建议解除拒绝 |
+| CF-056 / P1 | 接收兼容能力缺口：Radiance移植层的GUI阶段未覆盖本项目末帧Operator UI，直接异常由其保护抛出 | 后续渲染兼容批次，Radiance阶段适配为主、双方协作；暂不转其纯原版阶段线程 |
+| CF-063 / P3 | 当前范围外：公共扩展SDK、包批准/依赖/启动与受管重启尚非主线承诺；研究副本不算已交付 | 后续扩展平台另定批次；不为本次E/F增加可信Java加载器 |
+| CF-064 / P3 | 接收能力缺口：Modern UI独立线程/View图不在当前原生控件投影范围，冷查询和字节预算问题未解决 | 后续第三方UI兼容批次，与CF-015相关但不可共用成功结论；不提高预算冒充适配 |
+| CF-065 / P3 | 当前范围外：动态子部件几何/修订/原生命中需新的目标合同，研究样本尚未证明完整正常交互 | 后续第三方世界适配批次；现有BlockState/Chunk目标不作细部件保证 |
+| CF-066 / P3 | 当前范围外：通用扩展Action SPI及第三方异步效果屏障尚未承诺，既有Pipeline取消证据不证明它们 | 后续扩展动作批次；不作为当前Core取消失效或放宽Lease的依据 |
+| CF-067 / P3 | 当前范围外：具名早期Hook、采样会话和自动撤销资源需新扩展生命周期合同 | 后续诊断扩展批次；读取不能隐式启动采样，普通Java不构成沙箱 |
+| CF-068 / P3 | 当前范围外：profile/job、封闭handler、硬磁盘配额与账本属于宿主测试工具需求，不是游戏Runtime缺陷 | 后续宿主工具批次；不引入任意shell入口，不从调查自建工具推定产品承诺 |
+| CF-071 / P2 | 接收缺陷：虽原运行绑定研究副本，当前五端仍宣告shift_click，共享uiAction无对应派发分支，合同不一致可由源码确认 | E的M-02：语义宣告与真实Shift+guarded click一致；旧研究成功绕行不算正式Alpha已修复 |
+| CF-072 / P1 | 接收缺陷：GLASS 1245后台首次进世界未捕获时移动有效、转向无效，原版暂停/返回不关闭失败 | 与CF-017/018同簇安排E；保留26.3/Vulkan样本，不以1.21.1或后续新动作成功外推 |
+
+### P1责任与同源判断
+
+CF-017/018/072归为一个待验证的输入生命周期问题簇，**尚未证明同源**。
+五端当前 `allowHostMouseGrab` 都在窗口active或Agent routed上下文才发出逻辑capture；`routedMouseGrabbed`又依赖 `gameCaptured`。
+TAKEOVER若在标题页建立，首次后台入世界可能没有补上该状态；`mouseDeltaNow`只检查无Screen/Overlay并调用原生输入，没有因此明确拒绝。
+这与三例“移动有效、gameCaptured=false、暂停返回后新动作有效”吻合，优先调查本项目逻辑capture生命周期，而不是要求抢宿主焦点、自动暂停返回、重放输入或直接写yaw/pitch。
+使用方原文及当前[1.21.1输入路径](../../versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)、[26.3输入路径](../../versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)支持此假设，未作运行因果证明。
+
+CF-056责任初判是 **Radiance移植渲染兼容层为主，双方接入合同待协作**：其GUI scope在GameRenderer返回时关闭，本项目[末帧hook](../../versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java)在其后、present前绘制，因而落入OUTSIDE。
+原版允许的晚期GuiGraphics绘制不因Radiance私有scope未覆盖就自动成为本项目非法绘制；但本项目也未实现其显式阶段适配，所以接收组合兼容缺口，不把责任推给调用方、驱动或GPU工具。
+0914两原样JAR、仅GET READ、未acquire仍崩溃的证据有效；不是已修复后的复发，不证明Radiance单独运行失败，亦不证明当前0422组合结果。
+后续需明确末帧UI接入并保留截图排除/最高UI层合同，再联合复验；不能关闭控制提示、放宽拒绝策略或用单JAR安装通过替代。按安排本轮不转发Radiance线程。
+
+43号Goal随后在本项目原版固定副本复现了26.3 NeoForge和1.21.1 NeoForge的后台首次入世界转向：宿主未获焦点、W有效、Operation完成，但gameCaptured=false且朝向不变。
+参考端只移除allowHostMouseGrab内逻辑capture对宿主焦点的依赖，同例修后第一次相对输入即生效，hostCursorCaptured仍false，正常退出。
+调查中的启动夹具前提失败与产品失败分别保留；未使用宿主输入、自动暂停返回、重放或直接改yaw/pitch，第三方组合仍待使用方复测。
+
+### 2026-10-20 E UI参考端增量验证
+
+开工检查点398f72ea9ed0efadbdfdf3a3cf61e7e55b5888e1已SSH签名并正常推送develop，标题仅Update、无正文、作者/提交日期相等；本Goal此后未再次提交或推送。
+
+[参考命令协作结果](../../validations/conformance-world_read/result/26.3-neoforge-command-collaboration.json)6项Live通过。
+权限夹具在真实服务端当前玩家权限源安排撤销/恢复，重发原生命令树；撤权后单条命令在发送前拒绝，批次在拒绝项停止，恢复后Native及真实MCP无输入Lease提交成功。
+以help随机nonce作为服务端FIFO标记，未修改OP表或世界元数据；正常退出、端口释放、held=0、消费源码运行中不变。
+夹具先前错误采用新版已移除的daytime语法，随后采用单人世界无需该权限的seed，均失败并保留；最终从真实TimeCommand构件确认time query gametime的完整语法与权限要求，未修改产品解析/授权策略来迎合测试。
+这些是自动权限变化，不是用户真人权限调整、协作或物理Esc验收。
+
+[参考UI增量结果](../../validations/conformance-vanilla_ui/result/26.3-neoforge-ui-completion.json)13项Live通过。
+包括真实右键拆分及Shift槽位转移、HUD组合就绪和Native/真实MCP结构化失败、建议列表typed选择/恢复/旧owner拒绝及网页USER隔离、实际物品装饰和上下文条绘制。
+物品耐久、冷却自然结束、经验、真实held跳跃条和定位标记分别观察，F1/Inventory遮挡不由内部玩家数据推断。
+保留的失败分别来自工具落脚点、错误wait路由和MCP整数负控，不把修正后的工具当作旧候选成功。
+
+[参考本地DEBUG结果](../../validations/conformance-vanilla_ui/result/26.3-neoforge-ui-local.json)7项Live通过。
+标题自然倒计时跨6个实际clientTick不使token失效，timing修改/恢复及整组clear独立验证；旁观菜单选中高亮不调用激活，同索引严格no-op；页眉页脚typed文字通过真实MCP/网页隔离。
+NowPlaying和Friend原生hide后分别跨6个实际tick没有复现SHOW；未声称音乐、好友服务或所有Toast呈现完成。
+两个UI增量均正常Save & Quit和关闭，endpoint已移除，消费源码运行期间不变、Persistent Write调用0；不代替其余四端、完整M-02/03/04/07或人工验收。
+
+[Forge命令协作结果](../../validations/conformance-world_read/result/1.20.1-forge-command-collaboration.json)亦6项Live通过，正常关闭、held=0且消费源码未变；没有把参考结果推定到其余Target。
+[参考相机HUD结果](../../validations/conformance-vanilla_ui/result/26.3-neoforge-hud-camera.json)7项Live通过：准星/F1/第三人称/Inventory、换物品后的攻击指示条、南瓜和真实held望远镜及释放。
+这些是实际原生绘制参数，不是最终像素/视觉验收；Portal、睡眠等未跑分支仍待验。
+
+导航增量暴露并区分三类失败：离线账户的Telemetry入口原生禁用，保持拒绝，不强行开放；失败后的release_all即使held=0仍增加输入序号，不能误认为实际点击。
+真实AutomationEngine测试确认禁用点击在任何移动/按键前拒绝；工具断言同时检查唯一清理序号、指针和界面未变。
+GameModeSwitcher悬停的原生高亮会在移动中变化，守卫把自身效果判为selected失效；修前单测和Live失败保留，修后33项手势及6项槽位测试通过，原生hover/释放modifier后的模式改变与恢复已实际通过。
+此修复仅允许hover的高亮结果变化，click选择前置值、身份、几何及取消保护仍严格保留。
+随后Dialog入口的失败来自两个probe按钮同坐标，实际点击触发了排在前面的Toast按钮；已调整probe布局，不改变产品UI或用坐标绕过。
+导航尚未整体通过，失败结果保留在外部调查目录，不将部分通过写成M-02闭合。
+
+M-07自动权限变化现已五端各6项通过，均正常关闭、held=0、endpoint移除且消费源码未变；仍不代表真人协作或物理Esc。
+本地DEBUG专项新增1.21.1 NeoForge 6项、26.1.2 NeoForge 7项及Forge 6项实际通过，适用Native类型按版本分别验证，未由参考端推定。
+Forge启动曾因新增纯Java Toast采样与Target处在同一Java包导致ModLauncher模块冲突；已移入runtime_core独立core包，并以Forge实际进入世界及正常退出证明修复。
+相关三端Toast单元测试、五端玩家列表/模式菜单/USER投影局部测试及真实Hook门禁通过；新Hook副本正负控49项通过，不等同于五端最终UI矩阵。
+
+参考玩家列表绘制专项6项实际通过：本地原生client packet夹具覆盖80行、排序、显式未列出条目、页眉页脚、ping图标、分数格式及心形回退，清理后正常退出。
+真实部分裁切的分数只公开几何与阶段，不返回不可见全文；共享USER hud_text投影移除DEBUG全文value，而可编辑输入框和DEBUG原值不变。
+这不是多人网络或远端服务验收，旧的缓存全文预期及伪造atlas测试字段失败均保留，不修改生产边界迎合断言。
+
+参考驻留Toast专项5项实际通过，Friend和NowPlaying的进入、完整显示、部分裁切退出及自然结束分别观察。
+真实Music Toast选项经USER语义滚动开启并恢复；MASTER始终为0，不使用隐藏节点、DEBUG设置或手写坐标。
+适配26.1.2仅存在NowPlaying的Native差异，原本不存在的Friend不以模板代码虚构；局部测试通过不代替对应Live。
+
+参考晚期文字专项9项Live通过，包括Inventory实际效果文字与tooltip、背景/焦点聊天、F3和自然消失动作栏，以及静音字幕方向/自然结束和真实唱片USER交互产生的提示。
+输出仅取完成的原生draw；设置经真实USER操作并恢复，最终正常保存退出、endpoint移除且消费源码未变。四端端口随后完成局部编译与专项测试，尚无据此推定其Live。
+旧端tooltip使用真实ClientTooltipComponent/Font参数及同owner作用域，不把26.3私有类或Neo补丁方法带入其他Target；实际Native ASM断言在各端单独核验。
+
+参考相机补充专项首项传送门实际通过，随后睡眠规则查找失败；原始结果保留在外部调查目录。
+核对Native后，工具改为实际Game Rules搜索框筛选sleep，再按可见字段的精确ruleId读取，不增大滚动预算、不假设默认值、不改Runtime或规则输入。
+
+相机补充复验中，传送门、真实放床/睡眠/原生按钮醒来及恶心贴图与Screen Effects恢复已通过；最后暗角步骤因工具未匹配原生Show Vignette文案失败。
+从当前Minecraft构件的en_us原文与VideoSettingsScreen原生方法核实入口后，只修正工具/其mock文案，未改Runtime或扩大查找预算；原始失败单独保留。
+
+参考HUD变体7项Live通过：Native受伤闪烁结束、真实粉雪冻结/解冻、Boss颜色/分段与视口边界/隐藏移除重排，以及Fixed侧栏显示而不暴露底层分数。
+正常保存退出、endpoint移除、消费源码未变，仍不代表其余四端或所有纹理/参数组合。
+
+旧两端恶心Late采样、Boss原生绘制及相机对应专项各24项Java测试通过；两现代端Dialog语义与Late专项、四个非参考端新增probe编译通过。
+Hook实际源门禁及真实源码副本82项正负控通过；其中未启动游戏，不将其写成五端Live。
+参考导航主体8项与自有loopback连接取消/断开2项实际通过，正常退出且消费源码未变。
+确认页首5项已实际返回，GenericWaitingScreen的原生延迟按钮使过早选择失败；工具改为等实际启用，原始失败保留。
+为避免重复已通过业务，后续确认/恢复复验使用ui-native-pages局部分组；该分组不代替完整all结果。
+
+Fabric H-08专项随后6项Live通过，本地Native packet实际绘制、Fixed/Blank、心形/窄宽回退及清理均确认，正常保存退出、endpoint移除且消费源码未变。
+该夹具没有创建服务器玩家，不据此宣称真实多人联机完成。
+
+参考保存专项第一次被分组名称过滤，只有启动/收尾，原始PASS文件保留但不接受为提示证据；修正分组并增加实际样本必需断言。
+随后真实4项通过：原生暂停保存、实际USER保存文字、同PID保存完成/flag清除、自然淡出与held=0，正常退出且消费源码未变。
+诊断屏障最多3秒，仅安排原生保存状态已成立后的观察时间，不写isSaving/alpha、不额外调用保存，也不是性能测量。
+Forge移植首次观察超时，原生保存本身已完成；失败保留，不放宽UI draw条件。参考确认页15个Native页面/安全操作亦已实际完成。
+恢复Progress探针原先以含样式Component.equals识别禁用Cancel，原生灰色inactive样式使正确的禁用状态被漏记；仅修正适用三端probe的完整内容匹配，真实active=false断言不变，同源Restore识别一并修正，仍待Live。
+
+Forge保存提示调查以47.4.28官方sources及patched构件交叉确认：Minecraft实例化ForgeGui，其render只遍历26个默认Overlay，不调用Gui.render；默认注册表没有saving/autosave。
+Gui.tick(boolean)仍更新autosave，因此暂停不是缺失原因，返回gameplay也不能使未注册提示出现。1.21.1 NeoForge实际注册SAVING_INDICATOR，不能一并判为旧版本不适用。
+Forge验证改为当前PID/fixture的真实ForgeGui和默认注册表适用性证明，输出NOT_RENDERED_BY_DEFAULT_FORGE_GUI、userDrawValidated=false；不arm、不等待屏障、不人工调用原版绘制。
+此前一次真实保存成功但提示超时的失败保留，不改写为USER绘制通过；其余四端仍要求真实保存及独立USER/Native绘制证据。
+
+参考确认及一般恢复复验已通过，包含Progress的真实cancel flag与后续tick返回。
+辅助世界Healthy Back失败源于probe把getWorldDir存档容器误当世界根，改用getLevelPath(ROOT)后实际通过；五端cleanup真实异常报告补齐，不吞错。
+真实优化器在Cancel派发前自然完成时，目标预解析可返回UI_NODE_NOT_FOUND，工具现在与UI_TARGET_INVALIDATED一起仅在独立证明optimize_finished/nativeFinishedBeforeCancel及worker/存储/锁清理时接受该终态，不重放、不计Cancel通过。
+重配置页首次读取到正确的禁用Disconnect，但工具以可点击动作过滤使它消失；修正为先定位可见节点、派发前另验active/click，Node11项通过，原始失败及事后真实600tick/断开清理证明分别保留。
+清理导航补齐实际Disconnected按钮及重配置等待，不用反复Esc代替原生不接受Esc的页面；遗留客户端随后经项目接口正常退出。
+Demo首次参数顺序被NeoForge DevLaunch误解成主类，改为Loader配置完成后追加--demo；随后参考真实启动、介绍/Later、倒计时及正常保存退出Live通过。
+
+参考world-pages随后7项实际通过：健康恢复Back、优化器自然完成与锁清理、真实重配置ACK、600tick前后Disconnect状态及正常断开退出；未把优化器自然完成标成Cancel操作通过。
+Nautilus专项的失败前USER诊断记录显示，玩家由(.5,80,.5)被开放水池推至(.5,72.197,-4.559)，两次正常槽位点击已完成，原生距离条件随后关闭菜单。
+这是场景水流与立足点问题，不以关闭产品Screen/slot守卫修复；失败原始数据已独立保留，后续围池夹具仍需实际验证。
+围池与干燥池沿修正后，参考Nautilus定点Live四项通过：真实潜行使用、四次语义槽位往返，四阶段USER位置均为(.5,82,.5)，正常保存退出且endpoint移除、消费源码未变。
+这是partialScenario定点证明，不替代ui-breadth或all；未在Act传送、冻结玩家、重试旧坐标或放宽菜单守卫。
+参考相机补充组随后完整7项PASS：传送门、真实睡眠/醒来、恶心贴图与Screen Effects恢复，以及原生Show Vignette开关/USER绘制/恢复；正常保存退出、endpoint移除且消费源码未变，不代表其余Target或最终framebuffer。
+参考Hardcore专项2项实际PASS：从标题页经真实创建GUI进入唯一测试世界、实际绘制Hardcore心形、原生保存退出并在世界列表确认新身份；不改世界Hardcore标志、不测试死亡、不碰既有世界。
+Forge保存适用性专项随后4项Live PASS，实际ForgeGui默认注册表与同PID夹具对应；userDrawValidated=false、pauseRequests=0、selectedNativePauseSaveCalls=0，正常保存退出且endpoint移除。此处PASS仅说明适用性核对正确，不是不存在的USER保存提示绘制通过。
+配方专项先暴露无Screen响应不含treeTruncated的工具假设，按真实wire形状修正HUD路径，有Screen截断与Overlay守卫保留。
+随后真实Inventory已右移而USER缺配方书子树，核实五端RecipeBookComponent继承空navigation矩形，生产采样将父节点标为不可见并整枝过滤；参考新增真实capture/USER投影测试修前5项4失败，原生origin矩形修正后相关23项Java通过，仍待Live与移植。
+组合专项的真实Bed分支通过后，下一fixture因单件库存残留拒绝覆盖。Native链确认命令替换半床会经邻居shape更新destroyBlock(...,true)产生伴生掉落，不走Creative玩家preventDrops分支；仅修已知自有掉落的清理，不放宽后续未知库存守卫。
+配方书原生边界与Tab选择移植后，五端局部编译/测试通过；参考真实类别、过滤和搜索操作通过，选择依据为Native book owner的selectedTab身份，不以会轮播的配方图案差异作为恢复证明。
+后续右键展开在移动途中被label过期校验拒绝。原生RecipeBookComponent仅在未按Control时推进轮播时钟，右键消费完整RecipeCollection；验证采用真实Control持有、重新读取目标、右键和释放流程，不改生产点击守卫、不声称普通轮播目标自动稳定。
+Control路径实际右键已打开弹层，但USER返回空树：弹层被放在其所遮挡的RecipeBook父节点中，投影裁剪祖先时连同弹层删除。五端采样改为根级modal，通用遮挡与底层隐藏不变；参考真实producer测试修前9项1失败，修后相关27项Java与探针编译通过。
+修后实机USER已读到弹层及两个选项；下一次失败来自工具误以为选择后原版会关闭弹层，原生宽屏实际需点击选项外才关闭。后续仅修工具按USER矩形计算背景点击，明确不冒充语义节点点击；不改变Runtime或以隐藏槽位读取替代USER。
+Saved Hotbars工具的hover预检误要求Slot动作列表声明hover，而既有Runtime允许可见命中矩形悬停。按既有合同修正并保留点击校验、补缺失矩形负控，Node23项通过；参考独立Live随后实际完成保存、清空、载入及空行恢复，正常保存退出、endpoint移除且消费源码未变。
+配方修正后的参考独立Live随后通过：真实Control冻结/释放、两个Native选项、语义选择后一次矩形派生背景点击关闭，再由USER确认slot1原木1个与slot0木板4个。held为0、清理无失败、正常保存退出且endpoint移除；该partialScenario不替代五端完整all。工具26项和alpha消费者51项单测通过后冻结，不新增dismiss接口或放宽遮挡。
+spotlessApply随后通过，候选产品/构建事实742份，源码指纹cd7c0ee748fa3718dbf4779ffc4d2fdcbd534afddea58e4e2e73ab56739d37d0；首个严格合规子任务0失败/0警告。完整build/check/verifyRelease及37份受影响运行此时仍待完成，不以该子任务结果替代交付。
+冻结构建的五端Java、probe编译与发行核对已通过，但整体验证因Hook负控的精确文本替换未命中失败：Spotless把renderSleepFade注解参数拆行，测试没有真正生成remap错误。仅将该副本变异定位到唯一remap=false参数，82项实际源副本正负控随后全部通过；未修改生产Hook或放宽真实门禁，完整check重新收尾，运行矩阵已参考端串行开始。
+随后check暴露世界静态测试仍要求Runtime内联聊天包类型，但生产已委托NativePlayerCommands进行typed提取；测试改为同时验证实际委托调用、源参数传播及提取器的真实包类型，不删除配置/发送前权限断言。相关工具测试通过，完整check、verifyRelease与严格合规随后成功；五端build/Java沿用同一冻结产品候选的本次已通过结果。
+参考完整all在Boss断言失败，实际USER证据已正确按颜色背景、分段背景、颜色进度、分段进度输出。五端Native字节码确认顺序一致，Forge红条UV为20/90/25/95、宽度182/182/91/91；错误在新工具及其mock采用交替顺序，而非生产采样。仅同步工具与alpha接受器，新增旧错误顺序负控，58项Node通过；旧pilot绑定不同helper，不复用为新工具PASS，原始all失败保留于外部调查目录。
+参考冻结候选input-context随后3项实际PASS：普通Screen不改变原生context、真实维度替换取消active/queued而保留Lease、关闭Lease绑定WebSocket退回READ并清理输入。正常退出、endpoint移除且消费源码未变；退出响应未确认时只按独立观察的标题页/新context/held=0判定，不重放操作。
+Boss工具按Native纠正后的参考最小专项实际通过并正常退出。重新开始完整all后，并行只读复核发现H-10旧四类Toast进出阶段及02g矿车命令/两种Test编辑页尚未有完整本候选证明，主线程中止该次测试驱动以避免无效长矩阵；驱动中止后遗留任务令自动quit遭遇AGENT_TASK_CONFLICT，随后经Runtime结束自有任务并正常Quit，确认Stopping、无本仓库Java及endpoint。该中止不计完整all通过，既有Boss失败和本次中止日志分别保留；先补既定目录缺口，不将其降为不存在或外部服务。
+旧四类Toast复用现有原生回调记录实际绘制变换与250ms上下文帧，进出阶段只发布裁切矩形、隐藏不完整文字；完全显示保留static/header/title等原生阶段。每实例不透明contextKey仅用于通知身份，不是账号或授权；无新增输入/绘制注入。旧两端空Recipe的实际无绘制早返由只读recipes与原生字节码分支核对，不能把所有HIDE返回当成无绘制。五端相关72项Java及probe编译通过；其中旧单测曾直接初始化Native Visibility触发未Bootstrap，改为真实数据对象经过生产capture的测试，原版render早返另由ASM证明，不伪称JUnit启动游戏。
+参考首次Toast定点失败源于独立场景未完成原移动教学，夹具的empty前置不成立；显式进入已确认归属的测试显示页后清理通知，不计作教学完成。随后四类三阶段均实际通过，排队退出却误把Native HIDE首个完整帧要求为部分文字遮蔽；仅修工具等待真正裁切退出，生产仍保留完整可见文字。新增五端Java完整HIDE边界与工具双帧负控，排队定点复验通过：五个实际阻塞通知、三个不同clientTick不泄露Recipe、释放后同owner进入/完全显示/裁切退出/消失、正常保存退出及endpoint移除，消费源码未变。两个原始FAIL均独立保留；这些partial结果不是完整all或五端Live。
+参考本地管理页定点随后3项Live通过：真实矿车命令草稿及Done拒绝，Test Block草稿及Done拒绝，Test Instance初始化/查询/Reset的受限路径；服务器FIFO计数与实际存储哈希保持，正常保存退出、endpoint移除且消费源码未变。准备与观察为明确诊断夹具，不冒充管理功能执行或本地草稿事务回滚；旧两端只有矿车页，现代三端才有Test页。Probe初次编译的entity.getTags API差异已按实际构件修正为现代entityTags、旧两端getTags，未放宽自有实体过滤；工具过滤的组不再退出重进世界或无条件Arrange，16项Node正负控通过。
+上述增量随后spotlessApply通过，重新冻结744份产品/构建事实，指纹a0cd6b5e1661dbf414e57f4f367b392cd3c47772530e2b453753e1865c9085c7。参考完整all重新串行开始；两次定点Toast与管理页结果保留其真实partial范围，不替代新候选37份交付矩阵，发行JAR仍待重新收集核对后独立安装。
+
+参考all在网页消费者的第二次启动失败：port=0分配到6566，Fetch按真实浏览器的禁止端口规则拒绝bootstrap，并非Runtime响应或UI节点失败。原始FAIL保留于外部调查目录reference-all-web-bad-port-before.json，客户端正常退出且endpoint消失；不以raw HTTP绕过浏览器限制冒充可用。
+同批完整构建的严格合规子任务为0失败/0警告，但整体check因旧两端RecipeToastUiAccessor未登记公共Native适配器精确目标失败；保留失败，不将已通过子任务替代完整门禁。修复只补真实RecipeToast目标和只读recipes形状的审查/负控，不改生产Hook或放宽任意适配器限制。
+
+网页自动端口修复将0分配限制为49152～65535，只有实际EADDRINUSE有界重选；显式浏览器受限端口明确拒绝，不偷偷换固定端口。Companion正式构建及34项直接测试通过，包括真实Fetch bootstrap、Origin/会话隔离、关闭解绑及碰撞，不新增依赖或更改Runtime权限。Toast精确适配器及负控随后实际85项通过，alpha接受器55项通过；这些自动检查不替代仍需执行的最终Live矩阵。
+
+该冻结候选的最终spotlessApply及完整build/check/verifyRelease随后通过，严格合规检查2055份文件、0失败/0警告；日志e-ui-final-build-check-after-hook保留。参考all已实际越过原网页失败点，完整37份实机矩阵仍在执行，未提前刷新alpha或改写旧失败。
+
+随后参考all已通过HUD与前五类导航，进入Dialog时超时。实际failureTree为LifecycleScreen；新Toast Lifecycle入口与既有UI Navigation入口均为(8,107,128,20)，完整all同时启用时原生点击命中另一个夹具。原始FAIL保留于reference-all-probe-button-collision-before.json，正常退出、endpoint移除且源码未变；只修probe入口布局并补真实五端源非重叠测试，不改生产输入守卫或直接调用目标回调。
+
+五端probe入口移至(8,227,128,20)后，真实源码的非重叠/视口边界及107碰撞负控8项通过，五端probe编译与格式化通过。参考Dialog语义链接及实际页面替换已定点PASS，但同次局部Runner随后因未选择的owned-connection组仍要求两次连接而FAIL；保留原始结果，不称整体通过。工具仅在没有建立listener时跳过组后断言，零选中及完整TCP正负控5项通过，完整组的两次实际连接/关闭要求不变。
+
+新入口的参考Toast定点随后整体通过：四类各三阶段及消失、五个阻塞通知和排队释放、暂停返回/保存退出、exit0与endpoint移除均确认，消费源码未变。该结果明确partialScenario，不替代完整all；产品744份事实指纹保持a0cd6b5e，继续固定交付矩阵。
+
+新完整all随后实际通过Dialog、连接、确认/恢复、600tick重配置、三个管理页及配方/热栏，晚置移动教学却未见通知而超时；原始reference-all-late-native-tutorial-before.json保留，正常退出且endpoint移除。Native调查确认移动/转向各累计超过40tick才完成，Creative会转NONE；长等待本身不结束教学，首次提示需100tick。大量先前玩法、世界卸载/通知清理会使晚置前置不再可靠，不能把无通知推定为自然完成。原动作块移至首次world fixture之后、任何后续玩法或通知清理之前，等待完整可读Native提示再操作；9项工具测试通过，不改options/基准/教学状态，也不将fixture清理冒充玩家完成。
+
+提前教学的参考hud定点随后整体PASS，原版提示完整出现、GAME_ROUTED跳跃与相对转向后自然消失、held=0及正常保存退出/endpoint移除均确认。其partial范围不冒充完整all；余下Advancement/Recipe/DEBUG消费者等待已只读复核，没有因新增部分裁切合同而机械更改不相关断言。
+
+下一次完整all越过教学后，在typed HUD消费者比较失败：网页USER实际字段为原生draw的label，工具却拿DEBUG value字段比较。原始reference-all-hud-public-projection-before.json保留，正常退出且endpoint移除；Runtime边界不改。三个HUD消息消费者显式映射USER label，普通编辑器仍比较value，私有字段/消失owner限制保持；6项正负控拒绝用DEBUG值补过错误或空绘制。参考ui-debug-hud定点随后真实MCP修改/恢复、网页USER校验与正常退出整体通过，未将旧完整all改为PASS。
+
+余下Toast消费者定点暴露真实生产回归：新增observed分支提前返回，漏掉原有bounded debugLabel，按既有DEBUG字段定位原生owner因而失败；resourceVersion并非根因，不能通过放宽定位器掩盖。修前结果toast-debug-observed-label-before.json保留。五端实际observed出口补回2048字符有界字段，USER仍剥离，部分裁切仍无隐藏正文；生产出口→DEBUG/USER回归及实际toast分支ASM接线检查已接入，参考8项Java通过，Native消费者复验进行中。此时a0cd6b5e不再作为最终候选，待修后重新冻结，不改写原始FAIL。
+
+修后参考ui-debug-toast实际6项通过：本地可见性owner、驻留对象版本、原生reset与进度恢复、旧版本拒绝及单向关闭均经Native执行；正常保存退出、endpoint移除、消费源码未变。USER仍无debugLabel，定点不冒充完整all。其后启动spotlessApply及完整build/check/verifyRelease/严格合规，计划在重新冻结候选上串行完成37份既定受影响运行，不增加历史65场景或新性能测量。
+
+重新冻结候选3466a65ca17e8302821273201866bcbe401b592229470769968850eb900bba13，744份产品/构建事实。14:31完整spotlessApply/build/check/verifyRelease/verifyCompliance --strict成功，248任务，日志e-ui-final-build-after-debug-exit.log；五端Toast生命周期42项Java通过。随后从参考端重新开始37份既定交付矩阵；尚未发布，不将定点或原候选结果改写成最终PASS。
+
+参考all随后实际越过HUD/Toast两个消费者失败点、旧四类Toast三阶段与排队、玩家列表和旁观流程，但效果组把所有status_icon误计为效果图标，实际4而非2。Native效果之外的准星和暗角节点本身正确；修前结果reference-all-effect-role-overmatch-before.json保留，正常退出、endpoint移除且消费源码未变。只将工具的计数与清理限定到既有hud.effect身份，并用混合原生身份、隐藏效果额外计数和清理后剩余非效果图标补6项Node回归；产品指纹保持3466a65c，正在执行最小效果Live，不重建发行JAR或扩展范围。
+
+效果消费者修后的参考最小Live随后4项整体PASS：两种可见/隐藏效果、F1、透明闪烁和自然过期、最终清理均按实际身份判断，正常保存退出且endpoint移除，消费源码未变；不以该partial结果替代完整all。保留产品3466a65c与本批已通过构建，重新开始受影响矩阵，不原样重跑失败断言。
+
+下一次参考all在保存指示器证据读取遭遇ENOENT，稍后同进程记录已存在；原始reference-all-saving-proof-read-before.json保留，正常退出、endpoint移除且消费源码未变。保存probe的同步report将pending以非原子REPLACE_EXISTING移动到结果，替换窗口可能暂时无文件；同仓库重配置probe已采用ATOMIC_MOVE。仅将五端保存probe改为同目录原子替换，不加读取重试、不吞IO错误、不复用旧PID/fixture、不重放保存。18项工具回归含真实五端发布形状及既有身份/故障/清理负控通过，产品3466a65c和发行JAR不变，开始probe编译及最小Live复验。
+
+原子发布修后spotlessApply、五端probe编译及相关24项工具回归通过；参考hud-saving最小Live4项整体通过，实际USER保存文字、同Native保存完成/清旗、淡出、held=0、正常保存退出及endpoint移除均确认，消费源码未变。恢复既定最终矩阵，工具与probe修改不触发无关历史或发行重构，未发布新快照。
+
+恢复后的all在同一探针发布路径发生Windows AccessDeniedException，导致server tick崩溃；这次cleanShutdown=false，不能沿用前次最小Live的干净退出结论。原始reference-all-saving-publication-crash.json及saving-publication-native-crash.txt已保留。五端probe仅在已复现的AccessDenied上进行最多8次、间隔10ms的原子替换，最终异常或中断仍明确失败并保留记录；不加非原子回退、读端重试或产品诊断。开始实际编译方法的Windows文件锁回归及probe编译，尚不宣称该竞争已闭合。
+
+五端probe编译及spotlessApply随后通过。仓库外harness直接调用参考实际编译UiSavingIndicatorFixture.publish，类SHA-256为8270346743f08eeda07960a8765e10ca5016da638cb75c2fdd08d9419450f6b1；四项Windows文件系统回归通过：无锁原子替换、NOSHARE_DELETE锁内实际观察到publish重试等待再解锁成功、持续锁耗尽保持AccessDenied及旧/临时完整记录、中断保持IOException原因与中断标志及两份记录。结果在saving-publish-harness/run-20261020-1529-observed-retry；不是游戏性能测量，也不以该方法回归替代Native保存与最终all。
+
+有界占用处理后的参考hud-saving随后4项Native整体PASS，真实保存及USER文字、淡出、输入清理、正常退出、endpoint移除和消费源码未变均确认；不修改此前崩溃的cleanShutdown=false。恢复既定37份最终矩阵，产品指纹3466a65c不变。
+
+参考26.3-neoforge最终all随后整体PASS，正常退出、endpoint移除、消费源码未变且Persistent Write调用0。直接交付接受器发现Hardcore exit字段误按回执读取，而实际saveQuit返回标题树，退出回执已保存在同结果worldExitSamples；修正接受器按同一world输入context唯一绑定回执并加缺失/重复/外来负控，不改原始结果或已通过Runner。矩阵继续Demo及受影响输入场景，不为接受器修正重跑该all。
+
+参考all共139项，随后Demo、输入context、持续输入、方块实体选择器、命令协作及首次后台转向均正常通过，七个既定场景位完成后客户端关闭并开始Forge。接受器另外纠正Disconnected恢复页的真实fixture parent；两处均仅按已有生产者结构对齐，57项Node通过。三个UI证明函数直接接受all原始字节（SHA-256 e8cb42e9aa87143776c54c4ce4d8a0c39ab9fb6e7a1f1b25135f0e2efd491669），Demo证明直接接受其原始字节（44bcfdd874fa0f59aa1b3c8956daddfcb952c10d3072156f92fdd9ba09f93eb2）。退出回执须唯一同context并满足Target/代次/tick顺序与原uiWorldBoundary，缺失/重复/外来/混合伪造、held或重放均拒绝；不手改JSON，不因接受器变化重跑已通过场景。
+
+Forge完整all在传送门组失败，记录为REQUEST_CANCELLED且Native ReceivingLevelScreen，日志确认进入Nether；正常退出、endpoint移除、源码未变，原始forge-all-portal-unload-before.json保留。工具采到覆盖层后立即release-all会把玩家停在门内，再依赖后续HTTP命令复位；改为同一原生W动作完成、USER确认已走过门、再release和复位，地面延长到同一有界自有区域。13项工具测试含未完成/完成却未离门拒绝；Forge最小Live随后4项整体通过且正常退出。产品3466a65c不变；该共享工具确实影响参考all的portal用例，因此只补该all，保留参考其余六场景，不重跑A～D无关结果。四端剩余矩阵继续，参考139项原始通过结果另存reference-all-139-before-portal-tool.json，不改为失败或冒充新工具证明。
+
+Forge下一次all越过传送门与睡眠后，工具按新文本键查找无障碍入口失败；原始forge-all-accessibility-key-before.json保留，正常退出、endpoint移除且消费源码未变。当前47.4.28原生OptionsScreen字节码明确使用options.accessibility.title，而21.1.264使用options.accessibility；仅对旧端选择实际原生键。14项工具正负控覆盖缺失/重复拒绝和清理，不改产品权限、输入或UI，开始最小恶心覆盖层Live复验。
+
+无障碍键修后的Forge最小恶心覆盖层Live整体通过，设置恢复、正常保存退出及endpoint移除均确认。完整all随后实际越过相机、生命和聊天组，在F3文字超时；原始forge-all-f3-native-text-before.json保留，cleanShutdown=true、endpointRemoved=true，消费源码未变。当前47.4.28字节码确认ForgeGui覆盖Gui.render：F3/Demo由renderHUDText实际String绘制，动作栏/唱片由renderRecordOverlay实际FormattedCharSequence绘制，原Vanilla采样虽注入合法但不被调用。
+
+此次只修Forge实际出口，移除无作用F3/动作栏/Demo回调，保留原绘制参数、单次调用和int返回及有界晚期帧；renderDebug/isDemo只区分真实绘制家族，非两者事件文字不伪装。原生方法remap=false、Minecraft调用remap=true，产品Hook被动委托35减至34、替换总数40减至39，输入替换5与可取消21不变。相关原生字节码/委托测试及最小构建进行中，不把原3466构建或其他端结果外推为这次修复通过；其余采样覆盖点经只读核对未发现确定绕过。
+
+Forge最小修复随后spotlessApply、相关13项Java与build通过，Hook门禁89项正负控通过；一次负控仍按旧委托数11改写，已对齐真实10并保持少一项必须拒绝。Native hud-late实测F3、动作栏、字幕、唱片及清理通过，真实--demo也通过并正常保存退出/endpoint移除；Forge保存提示依实际默认注册表仍明确不适用。745份产品/构建事实重新冻结为5d0eac763a6cb5b541ba0f607ff776e618606d67a631e532a2b55625dd05b45a。逐实际绑定核对参考六个未受影响场景仍有效，加Forge Demo共7/37；完整矩阵继续，不为新增Forge专属采样重跑其他Target无关结果，不提前刷新快照。
+
+下一次Forge标题检查仍按旧35委托而失败，正常退出；Runner唯一Forge表项改为真实34。为遵守实际消费范围，接受器只对非Forge或Demo未执行分支使用唯一该字面量的反向整文件hash证明，任何其他字节变化、重复项或Forge all旧结果均拒绝；58项工具回归及真实参考Demo绑定通过，原JSON/digest不改。共享portal流程实际改变的参考all仍必须复验，不加例外。
+
+完整Forge继续越过F3、动作栏/唱片和首个80行玩家列表组，数字分数却全部实际绘制为0；原始forge-all-player-list-before.json保留，正常退出、endpoint移除、held=0，消费源码未变。当前原生ClientboundSetScorePacket(Method,String,String,int)的第二参数是objectiveName、第三参数是owner，probe误传相反顺序。只交换该端夹具参数，新增实际原生构造器ASM与probe源次序负控，生产读取仍要求真实8675309及原生心形/窄列回退，不以0降低断言；正在编译和定点复验。
+
+修后数字分数Live通过，心形阶段则暴露验证器只接受完整9×9图块，实际窗口右缘为6×9且已明确标记withheld_partial_or_occluded；原始forge-player-list-hearts-before.json保留，正常退出。仅允许已知原生UV、空label、有界尺寸且实际贴视口边界的部分心形；16项正负控拒绝内部裁切、错误阶段/文字/尺寸/UV。随后Forge玩家列表专项整体Live PASS：80行/六档ping、数字分数、真实心形及窄列文字回退、原listed/页眉页脚恢复和正常保存退出，endpoint移除、消费源码未变。产品5d0eac76不变，继续完整all，不将该专项冒充完整UI交付。
+
+下一次完整Forge越过玩家列表，在遥测页无条件要求checkbox失败，原始forge-all-telemetry-control-before.json保留，正常退出且消费源码未变。当前47.4.28的TelemetryInfoScreen.createTelemetryButton通过OptionInstance创建CycleButton，21.1.264才使用Checkbox；测试按实际旧端class/button与现代checkbox各唯一存在判断，不修改遥测授权或选项。7项导航工具正负控及Forge设置导航最小Live随后通过，正常退出/endpoint移除。Demo仅排除其init明确未启用的Forge玩家列表夹具源，all及对应Mixin继续严格绑定；真实Forge Demo314项来源核验与原生退出证明通过，原JSON不改。
+
+5d0eac76候选随后spotlessApply、五端build/check/verifyRelease及严格合规整体通过，248项任务、严格失败0/警告0。完整Forge在原生游戏模式菜单失败：真实hover选中survival、释放F3并关闭菜单，但USER玩家仍为creative；forge-all-native-game-mode-before.json保留FAIL、正常保存退出及endpoint移除事实。当前1.20.1/1.21.1原生菜单在下一次render才sendUnsignedCommand，本次key-release的输入permit作用域已结束，命令被正确拒绝而Native忽略false继续关闭；26.x改为keyReleased同步提交，不外推旧两端。正在只为该真实菜单的一次公有render承接原输入生命周期，不改坐标、调用私有提交、放宽未知命令来源或取消合同；当前不能发布快照。
+
+旧两端只在Screen.renderWithTooltip内原有的那次公有render承接原snapshot/permit，作用域结束后才完成原输入future；不跨帧保留ThreadLocal。五端强清理在释放本Agent的F3之前取消实际GameMode菜单，避免下一帧或同步keyReleased迟到提交。旧两端入口刷新真实世界/玩家/连接；Forge原生同维度respawn可替换玩家并保留该Screen，Neo标准respawn通常换Screen，但断连仍可早于Core tick更新。新增菜单专项要求正常切换及还原，再选择另一模式并显式release-all，至少四个客户端tick观察到模式未变和held=0，不以此冒充真人Esc。
+
+编译中发现26.3两端缺少InputConstants限定，以及测试将非AutoCloseable会话放入try-with-resources，已分别最小修正，不改会话实现。旧两端各7项延迟调度与4项语义Java测试随后通过；五端assemble/verifyRelease和严格合规失败0/警告0通过。747份产品/构建事实冻结为90123ba7d178dcdc0012a93c12c6da778ce101d04b0ce75355bf3210ace21dff，开始真实菜单专项与最终相关矩阵；不将编译、合规或纯Java测试当作Native操作成功。
+
+90123ba7的Forge菜单专项实际通过：原生hover选择survival并释放F3后USER模式变更，再正常还原creative；第三次选另一模式后显式release-all，原生菜单关闭，五个后续client tick保持creative、按键/鼠标均0，正常保存退出、exit0、endpoint移除、消费源码未变。此为局部ui-navigation证明，不是完整all、真人Esc或新快照；随后启动本候选32组开发运行的相关矩阵，五端一次一个自有客户端。
+
+随后的完整Forge再次通过菜单正常提交及取消，在自有TCP第二场景命中测试夹具15秒总寿命；第一段原生Cancel已实际通过（整组14秒），两个连续慢速GUI场景却共用一段预算。forge-all-owned-connection-before.json保留FAIL、正常退出/endpoint移除和消费源码未变。仅将自选夹具寿命按两次允许连接各15秒计为30秒，仍只监听loopback、最多两连接/每连接64KiB、不实现或回复Minecraft协议、deadline强清理；不修改产品、GUI节奏、原生连接等待或加入重试。工具与接受器正负控通过，超出实际max+1及擅自扩到60秒仍拒绝，开始最小Native连接/取消/断开专项；产品90123ba7不变。
+
+连接工具与接受器随后65项Node测试通过；Forge最小Native连接场景实测Cancel关闭原传输、第二次有意关闭自有socket到实际DisconnectedScreen并由语义按钮返回，通过且正常保存退出、endpoint移除、消费源码未变。监听/连接全部关闭，未向外部服务器连接，也未用最终清理冒充原生Cancel；继续本候选最终相关矩阵，不把该专项计为完整all。
+
+其后完整Forge已越过两项TCP及恢复页面，在社交入口断言失败；forge-all-social-menu-before.json保留FAIL、正常退出、endpoint移除及源码未变。当前旧两端原生PauseScreen在未发布的单人世界提供menu.shareToLan，而非社交按钮。测试改为严格确认实际LAN节点与缺席社交入口，再通过原版P键读取真实可见的单人限制动作栏；不发布LAN、不伪造账号、不构造Social Screen，也不将这一环境限制算成社交页面操作覆盖。现代禁用入口保持原证明，两分支不混用。
+
+社交工具22项Node正负控及alpha接受器61项随后通过。Forge真实ui-breadth整体通过：床、明确不适用的旧端Nautilus、社交环境限制、矿车命令配置发送前拒绝、配方类别/搜索/多选及Saved Hotbars还原，正常保存退出、exit0、endpoint移除且消费源码未变。产品90123ba7不变，继续完整all；该专项不计完整UI矩阵，不修改旧失败证据。
+
+Forge随后完整all126项通过，三组alpha UI证明直接接受原始结果，Demo、input-context及continuous-input也正常通过并退出。CF-021最终回归却在世界选择页未取得异步存档行，forge-block-entity-world-row-before.json保留FAIL与正常退出。测试原来只等Screen类型，现等待实际固定存档行并要求唯一，再执行语义点击；五项Node覆盖首帧空列表、错误行、重复行拒绝和Lease清理。只修这一测试入口，不改Runtime或重跑已通过的四组；四组实际消费来源仍核对一致，恢复剩余矩阵。
+
+Forge选择器及命令协作随后通过并直接接受原始证据。串行启动器的下一项已在父进程状态核对间自动开始，重复尝试被runner.lock拒绝，未开第二个客户端；现有自有命令协作正常完成，无需删除锁或终止游戏。后续串行编排直接调用同一受限wrapper，保留已通过结果。
+
+NeoForge1.21.1完整all通过延迟菜单、两项连接、恢复及原生600tick重新配置断开后，在特殊床用例清理拒绝超出预期的床数量，neo121-all-bed-cleanup-before.json保留FAIL、正常退出与消费源码未变。测试只保证选中手为空，却把整个hotbar已有红床都当成本用例所有；前序睡眠夹具可产生拾取物，这一假设不成立。清理现记录初始九槽，新增床数量仅允许0或1，只移除新增的一件，后续两个原生帧与逐槽深等证明初始库存恢复；未知额外数量和非床物品仍拒绝清空。24项工具测试含初始一件、总数两件及未知新增负控通过；NeoForge最小真实床用例亦通过并正常退出。产品90123ba7不变，只复验实际消费这一工具的UI all，Forge其余五组保留，不为工具改动重跑无关A～D矩阵。
+
+接下来的NeoForge1.21.1运行在重新配置ACK发布期间崩溃，neo121-all-reconfiguration-ack-before.json保留FAIL、cleanShutdown=false、endpoint已移除和源码未变。实际堆栈为probe的UiReconfigurationFixture.report原子替换JSON时发生Windows AccessDeniedException；并非产品协议或GLFW崩溃。四个适用Target改为复用既有UiSavingIndicatorFixture.publish的有界原子替换，不新增第二套算法、非原子回退或产品读取重试。四端probe编译、30项相关Node以及实际编译发布方法的四项文件锁回归通过，覆盖正常原子替换、临时锁解除、持续锁保留旧/临时完整记录以及中断标志保留；开始最小原生重新配置复验。产品JAR与90123ba7指纹未变，旧失败不改写。
+
+重新配置最小Native复验随后通过600tick切换、ACK、真实断开、保存退出及endpoint移除；下一次完整all也通过此段，却再次在床清理拒绝未知新增数量。neo121-all-bed-baseline-still-fails.json保留原失败，不能将库存基线修正称为完整修复。一次两床最小组合通过；试图在未启用重新配置probe的短实例运行该场景被夹具前置拒绝，不计产品失败或重新配置通过。
+
+床工具现先记录并移除自有坐标区域内的旧红床物品实体，通过有界USER/CLIENT_KNOWN读取确认空后才建立九槽基线；当前床清理仍最多移除新增一件，不清空未知物品。新增准备前后证据，26项工具测试与63项alpha接受器正负控通过；最小Native复验进行中。旧HUD睡眠夹具可能留下物品历史是调查方向，尚未由完整组合计数证据确认，不提前宣称根因或发布快照。
+
+随后床最小Native及NeoForge1.21.1完整all130项通过，正常保存退出、endpoint移除、消费源码未变；三个alpha UI证明直接接受原始结果。此次准备前后掉落物均空、初始库存红床0、新增0、九槽完全恢复；该事实不能反证或确认历史失败的具体物品来源，旧失败继续保留。继续该端Demo/输入/选择器/命令及其余三端，Forge只重验受工具影响的all，不提前发布。
+
+NeoForge1.21.1 Demo随后通过，input-context却在下界目标高度失败，neo121-input-context-destination-before.json保留原结果及正常退出。实际Native日志确认传送至y=200，USER随后读到同一目标维度、y=128、onGround=true；空中传送后重力已令精确高度窗口失效，不是缺少维度切换。只把固定下界夹具目标改为实际顶层y=128，保留二维/高度误差、独立USER回读、epoch推进、两Operation取消、held=0、无迟到及同Lease要求；15项测试通过。此改动只使五端input-context待复验，不使已通过的UI、持续输入等无关结果失效。现代三端UI串行推进，未改产品或发布快照。
+
+NeoForge1.21.1输入上下文、持续输入、精确方块实体、命令协作及后台首次转向随后通过并正常退出。Forge输入补跑却在异步存档行出现前断言失败，forge-input-context-row-before.json保留；只等待实际目标行并拒绝重复，17项测试通过，受影响的两端输入组再复验，其余组不失效。
+
+26.1.2完整all在睡眠规则入口失败，neo261-all-sleep-rule-entry-before.json保留。官方client.jar实际含WorldOptions/InWorldGameRules/DebugOptions，但入口在Pause的Options内；WorldOptions使用Done返回Options，而26.3从Pause直达并Cancel返回。只适配三个工具的真实导航，原命名空间规则ID合法，按实际树读取而非旧语言资源猜测。原生睡眠最小用例随后通过；世界选项/规则/F3+F6 Debug最小导航首次遭probe写结果IOException，neo261-navigation-hud-probe-io-before.json保留且正常退出；一次原样复跑通过，未重现，不据此归责产品或隐藏原失败。
+
+同一官方26.1.2 Pause字节码还确认未发布单人使用唯一LAN入口，测试及接受器将其纳入实际Social缺席分支，仍要求原生P可见拒绝、零页面操作覆盖。相关工具与64项alpha测试通过。未执行26.1.2分支的其他Target仅可用精确逆整文件字节hash验证原结果；任意额外变化、重复分支、错误路径或26.1.2本身均拒绝，Neo1.21原all130来源/三个proof直接通过。现代三端完整矩阵恢复，产品90123ba7不变。
+
+26.1.2完整all随后138项通过，正常退出、endpoint移除、消费源码未变，Regression/Known/Finite三接受器直接接受原结果；Options中转/Done、Social缺席、床与Nautilus、三个管理页均为本次实际结果。HUD probe写结果失败未在该完整运行再现，旧失败保留，不宣称完成文件系统稳定性验证。继续该端其余组、现代两端和Forge受影响补跑，尚未发布快照或进行真人验收。
+
+26.1.2其余五组随后通过并逐次干净退出。22:00逐份核对32位的当前候选来源及实际样本，16位有效：Forge四位、Neo1.21六位、Neo26.1六位。其余为现代两端13位及Forge all/两端input-context三位，不能使用旧结果；五份独立安装尚未运行。Fabric完整UI已串行启动，未刷新清单、快照或latest。
+
+Fabric完整all139项及其余五组随后均实际通过并正常退出；原始all三组接受器直接通过。其第二条自有TCP连接建立约49ms后主动关闭，尚未发送握手，原生Disconnected页和语义返回真实成立；fabric-e-ui-final-proof.log保留接受器误拒绝，原JSON不改。接受器仅对第二条intentional_owned_disconnect允许0字节，并要求accepted≤close-request≤closed≤真实夹具寿命、同cleanup连接及Native页面；第一条Cancel仍要求收到1～65536字节和对端关闭。65项测试含五端零字节正例及时间/来源/字节/页面负控通过，fabric-e-ui-final-proof-after.log接受实际139项结果，不冒充Minecraft登录成功。
+
+参考端26.3 NeoForge随后在图形后端初始化时以0xC000041D退出，未进入Title或执行UI用例；neo263-all-native-launch-before.out.log及.err.log保留。没有新结果可计通过，按约定只进行一次原样启动复试；22/32开发位完成、五份独立安装待办，候选产品90123ba7不变。
+
+Windows Application事件1000/1001与实际游戏PID125612对应，报告SDL3.dll 3.4.14.0同偏移0x15d921的0xC0000005/0xC000041D，neo263-all-native-launch-before-windows-events.json保留原事件。一次原样重试已进入Title和固定世界并继续UI用例；不据此宣称已找到SDL触发原因、修复原版运行库或验证任意启动稳定性。
+
+参考端原样复试的完整all139项随后通过并正常退出，neo263-e-ui-final-proof.log三接受器直接接受原JSON；其余Demo、输入上下文、持续输入、坐标选择器、命令协作及首次后台转向也逐次通过、干净退出。首次转向实际记录未聚焦标题页接管、语义进世界及首次相对输入改变朝向；没有抢焦点或重放输入。23:10开发位29/32完成，剩Forge all及旧两端input-context；五份独立安装与最终构建仍待，尚未发布新快照，原SDL3失败不改写。
+
+Forge完整all126项随后通过并正常退出，forge-e-ui-final-proof.log三个接受器直接接受原始JSON；旧两端input-context亦通过实际异步存档行、下界固定目标、active/queued取消、held=0、同Lease及真实WS断开。23:36全部32开发位完成，e-ui-final-32-audit.log逐份校验747份候选事实、实际消费工具及原始样本，指纹仍为90123ba7，humanAcceptance=NOT_PERFORMED、fullMilestonesComplete=false。依原独立组定义，M-02/03/04的7/1/9组关闭，总剩余58→41；M-07的1组真人仍待，共同交付留在M-10，不把0或V写成完整领域READY。开始最终构建和五份独立安装，未刷新快照。
+
+最终全仓检查首先在Forge NativeInputContextBoundaryTest的owner回调查找失败，原e-ui-final-build-check-release-strict.log及forge-native-input-boundary-before.xml保留。菜单调度已将两参数包装器委托给携带Snapshot/Permit的四参数owner，测试却只查包装器的一级lambda；生产刷新仍在真实owner中、withTakeover之前。仅修旧两端测试沿真实编译委托链检查，额外核验唯一签名、Snapshot/Permit捕获顺序，原刷新顺序、无monitor及保护区断言均保留，两端各8项随后通过；未改产品，不重跑32份Native。
+
+23:56最终spotlessApply/build/check/verifyRelease/verifyCompliance --strict整体通过，248项任务、合规2099文件失败0/警告0，原生不适用与人工待验没有改成PASS。e-ui-final-32-after-format-audit.log再次直接接受32原结果及747份当前事实，产品仍为90123ba7；五JAR已收集，开始五端单最终JAR独立安装入世界，未生成或发布新清单。
+
+独立安装首端26.3 NeoForge在官方安装器下载Guava listenablefuture时发生TLS EOF，尚未进入游戏，neo263-official-installer-tls-before.log/.json保留。一次原样复试通过，未关闭证书验证、改TLS或补开发类路径。至2026-10-21 00:06五端均在全新自有目录、单产品最终JAR及官方Loader/正常运行库下完成Title、endpoint/握手、USER客户端世界读取、同Lease进世界、正常保存退出与exit0，端点移除且无新崩溃报告；实际制品及747份当前事实均绑定，不外推成制品全UI验收。
+
+e-ui-alpha-publication.log发布七文件20261021-0006-90123ba7并更新latest，warnings为空；仅回收其自有旧latest备份，三份最新与在用旧批次保留。e-ui-published-seven-file-independent-audit.log独立校验七文件列表、五JAR/手册/清单与build逐字节及SHA-256一致、latest路径、32开发/5安装的37份原证据及当前源码。profile=e_ui_trial_v1，humanAcceptance=NOT_PERFORMED、performanceAcceptance=NOT_MET且无新性能测量、fullMilestonesComplete=false、Persistent Write调用0。七个反馈编号同步为已交付/待使用方复测，不通知其他线程；M-07真人组及完整双里程碑未通过，集中人工步骤交用户后停止。此后无新增提交、推送或标签。

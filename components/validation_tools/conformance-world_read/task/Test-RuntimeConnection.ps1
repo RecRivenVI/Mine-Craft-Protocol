@@ -23,6 +23,20 @@ function Invoke-RestMethod {
 Write-Record
 $connection=Get-RuntimeConnection $game 'test-target' -NotBefore ([DateTime]::UtcNow.AddMinutes(-1))
 if($connection.ProcessId-ne$PID-or$connection.Port-ne12345-or$requests-ne1){throw 'Current UTC process identity or handshake failed'}
+$tokens=$null;$errors=$null
+$ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Invoke-WorldReadSmoke.ps1'),[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'World runner syntax failed'}
+$ownerFunction=$ast.Find({param($node) $node-is[System.Management.Automation.Language.FunctionDefinitionAst]-and$node.Name-eq'Test-WorldReceiptOwner'},$true)
+if(-not$ownerFunction){throw 'Missing actual world result owner validation'}
+. ([scriptblock]::Create($ownerFunction.Extent.Text))
+$report=@{runtimeConnection=@{runtimeInstanceId=$connection.RuntimeInstanceId;pid=$connection.ProcessId;port=$connection.Port}}
+if(-not(Test-WorldReceiptOwner $report $connection)){throw 'Current result identity rejected'}
+if((Test-WorldReceiptOwner $report $null)-or(Test-WorldReceiptOwner @{} $connection)){throw 'Launch failure or missing result identity may not annotate old evidence'}
+foreach($field in @('runtimeInstanceId','pid','port')){
+    $saved=$report.runtimeConnection[$field];$report.runtimeConnection[$field]=if($field-eq'runtimeInstanceId'){[guid]::NewGuid().ToString()}else{[int]$saved+1}
+    if(Test-WorldReceiptOwner $report $connection){throw "Foreign world result accepted: $field"}
+    $report.runtimeConnection[$field]=$saved
+}
 Reject {Get-RuntimeConnection $game 'wrong-target'}
 Reject {Get-RuntimeConnection $game 'test-target' -NotBefore ([DateTime]::UtcNow.AddMinutes(1))}
 $original=$record.processStartedAt;$record.processStartedAt=$self.StartTime.ToUniversalTime().AddMinutes(-1).ToString('o');Write-Record

@@ -1,8 +1,36 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
 import { clearWorldUiFixture } from './world-ui-actions.mjs';
 import {breedingFixtureCommands,villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
 import {coreShowcaseProof} from '../../regression-v1_release/task/alpha-evidence.mjs';
+
+async function modeRunner(rejected = false) {
+  const source = await readFile(new URL('./world-read-smoke.mjs', import.meta.url), 'utf8');
+  const declaration = source.match(/^async function mode\(value\) \{[^\n]+\}$/m)?.[0];
+  assert(declaration, 'Exercise the actual runner mode transition, not a copied implementation');
+  const calls = [], cleared = [];
+  const context = vm.createContext({lease:'ended-lease', renew:17,
+    clearInterval:value=>cleared.push(value),
+    api:async(method,path,body)=>{calls.push({method,path,body});
+      if(method==='GET')return {modeVersion:{generation:7}};
+      if(rejected)throw new Error('native transition rejected');return {mode:body.mode};}});
+  vm.runInContext(declaration, context);
+  return {context,calls,cleared};
+}
+test('the real runner retires its local Lease and renewal after an accepted non-takeover transition',async()=>{
+  for(const mode of ['READ','OPERATE']){
+    const {context,calls,cleared}=await modeRunner();await context.mode(mode);
+    assert.equal(context.lease,undefined);assert.deepEqual(cleared,[17]);
+    assert.equal(calls[1].body.mode,mode);assert.equal(calls[1].body.expectedModeVersion.generation,7);
+  }
+});
+test('a rejected native mode transition cannot claim the local Lease was released',async()=>{
+  const {context,cleared}=await modeRunner(true);
+  await assert.rejects(context.mode('READ'),/native transition rejected/);
+  assert.equal(context.lease,'ended-lease');assert.deepEqual(cleared,[]);
+});
 
 function showcaseResult(){
   const target='26.3-neoforge',hash='0'.repeat(64);

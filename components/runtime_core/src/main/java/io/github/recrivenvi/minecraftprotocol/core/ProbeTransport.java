@@ -2573,6 +2573,10 @@ public final class ProbeTransport implements AutoCloseable {
         json.addProperty("message", error.getMessage() == null ? "unknown" : error.getMessage());
         if (error instanceof ProtocolState.ProtocolException protocolError) {
             JsonObject details = protocolError.details();
+            if ((code.equals("ASSERTION_FAILED") || code.equals("WAIT_TIMEOUT"))
+                    && details.has("readiness")
+                    && details.get("readiness").isJsonObject())
+                json.add("readiness", details.get("readiness").deepCopy());
             ResourceVersionVerifier.staleMetadata(code, details)
                     .entrySet()
                     .forEach(entry -> json.add(entry.getKey(), entry.getValue()));

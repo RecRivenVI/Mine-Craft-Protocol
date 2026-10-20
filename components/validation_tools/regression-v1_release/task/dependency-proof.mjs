@@ -93,6 +93,8 @@ export async function dependencySourceProof(repo,baseline,currentSources,readOri
 
 export function dependencyPerformance(baseline){return{status:'NOT_MET',origin:'immutable_baseline_historical_only',newMeasurements:false,currentPolicy:'DEFERRED_BY_USER_2026_10_20',goalPerformancePass:false,historical:baseline.report.performanceAcceptance};}
 
+export function historicalTrialBaseline(baseline){return{directory:baseline.directory,manifestSha256:baseline.files.find(file=>file.fileName==='alpha-manifest.json').sha256,sourceFingerprint:baseline.report.sourceFingerprint,historicalOnly:true,historicalLogicalSlots:65,currentFullMatrixClaimed:false,files:baseline.files};}
+
 export async function verifyDependencyPublication(report,repo){
  assert.equal(report.publicationProfile,DEPENDENCY_PROFILE);assert.equal(report.nativeSmokeScope,'packaged-runtime');assert.equal(report.runtimeAcceptance,DEPENDENCY_SCOPE);assert.equal(report.fullNativeSmoke,false);assert.equal(report.fullMilestonesComplete,false);assert.equal(report.delivery,'dependency_update_trial');
  assert(!report.continuousGameplay&&!report.uiRegression&&!report.controlCollaboration&&!report.continuousInput,'Historical matrix must not appear as current-candidate acceptance');

@@ -846,7 +846,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(rawDebug.isError, true, 'generic raw Debug must be rejected by MCP schema');
     const uiArm = await client.callTool({name:'minecraft_debug_arm',arguments:{action:'arm',uiContextId:'ui-session:'+recordingId,namespaces:['ui']}});
     assert.equal(uiArm.isError, undefined);
-    for (const [operation,value] of [['ui.widget.active.set',false],['ui.widget.visible.set',true],['ui.text.set','bounded text'],['ui.scroll.set',10],['ui.slider.set',0.5],['ui.toast.reset',{title:'title',message:'message'}],['ui.toast.hide',true],['ui.canvas.pan.set',{x:-30.5,y:12.25}]] as const) {
+    for (const [operation,value] of [['ui.widget.active.set',false],['ui.widget.visible.set',true],['ui.text.set','bounded text'],['ui.scroll.set',10],['ui.slider.set',0.5],['ui.toast.reset',{title:'title',message:'message'}],['ui.toast.hide',true],['ui.canvas.pan.set',{x:-30.5,y:12.25}],['ui.list.selection.set',1],['ui.hud.title.times.set',{fadeInTicks:10,stayTicks:70,fadeOutTicks:20}],['ui.hud.title.clear',true]] as const) {
       const result = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation,nodeId:'widget',value,expectedResourceVersion:{...resourceVersion,resourceType:'ui_node',resourceKey:'screen:widget'}}}});
       assert.equal(result.isError,undefined,operation);
     }
@@ -855,6 +855,14 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     for(const value of [{x:1},{x:1,y:2,z:3},{x:'1',y:2},1]){
       const invalidPan=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation:'ui.canvas.pan.set',nodeId:'canvas',value,expectedResourceVersion:resourceVersion}}});
       assert.equal(invalidPan.isError,true,'canvas pan requires exactly two numeric axes');
+    }
+    const selection=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation:'ui.list.selection.set',nodeId:'spectator.menu',value:1,expectedValue:-1,expectedResourceVersion:resourceVersion}}});
+    assert.equal(selection.isError,undefined,'The native unselected sentinel is a precondition, never a permitted write');
+    const observedTiming=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation:'ui.hud.title.times.set',nodeId:'hud.titles',value:{fadeInTicks:10,stayTicks:70,fadeOutTicks:20},expectedValue:{fadeInTicks:13000,stayTicks:2147483647,fadeOutTicks:0},expectedResourceVersion:resourceVersion}}});
+    assert.equal(observedTiming.isError,undefined,'Observed native timing is not restricted to the new-write policy');
+    for(const [operation,value] of [['ui.list.selection.set',-1],['ui.list.selection.set',0.5],['ui.hud.title.clear',false],['ui.hud.title.times.set',{fadeInTicks:0,stayTicks:12001,fadeOutTicks:0}],['ui.hud.title.times.set',{fadeInTicks:0,stayTicks:10}],['ui.hud.title.times.set',{fadeInTicks:0,stayTicks:10,fadeOutTicks:0,callback:true}]] as const){
+      const invalid=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation,nodeId:'hud.titles',value,expectedResourceVersion:resourceVersion}}});
+      assert.equal(invalid.isError,true,'Typed selection/timing rejects invalid writes before Runtime dispatch');
     }
     for(const [operation,value] of [['ui.toast.reset',{title:'missing message'}],['ui.toast.reset',{title:'t',message:'m',callback:true}],['ui.toast.hide',false],['ui.toast.hide','true']] as const){
       const invalidToast=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',mutation:{operation,nodeId:'toast.0',value,expectedResourceVersion:resourceVersion}}});

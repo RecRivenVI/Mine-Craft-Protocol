@@ -11,6 +11,31 @@ import {advancementPanActions} from './ui-debug-advancement-actions.mjs';
 import {spectatorConsumers} from './spectator-consumers.mjs';
 import {specialMenuActions} from './special-menu-actions.mjs';
 import {hudVitalActions} from './hud-vital-actions.mjs';
+import {hudItemCompletionActions,hudContextCompletionActions,effectIconNodes} from './hud-completion-actions.mjs';
+import {suggestionDebugActions} from './suggestion-debug-actions.mjs';
+import {uiCorrectnessActions} from './ui-correctness-actions.mjs';
+import {titleLifecycleAssertions,spectatorSelectionAssertions} from './ui-local-owner-actions.mjs';
+import {hudCameraCompletionActions} from './hud-camera-actions.mjs';
+import {hudCameraVariantActions} from './hud-camera-variant-actions.mjs';
+import {hudToastUserCompletionActions,hideResidentFriendToast,prepareNativeMusicToastOption} from './hud-toast-user-actions.mjs';
+import {uiNavigationCompletionActions} from './ui-navigation-completion-actions.mjs';
+import {nativeConfirmationActions} from './ui-native-confirmation-actions.mjs';
+import {hudVitalVariantActions} from './hud-vital-variant-actions.mjs';
+import {hudBossScoreActions} from './hud-boss-score-actions.mjs';
+import {hudLateTextCompletionActions} from './hud-late-text-actions.mjs';
+import {hudNativeMessageActions} from './hud-native-message-actions.mjs';
+import {specialWorldMenuActions} from './ui-special-world-menu-actions.mjs';
+import {uiRecipeHotbarActions} from './ui-recipe-hotbar-actions.mjs';
+import {recoveryUiActions} from './ui-recovery-actions.mjs';
+import {playerListActions} from './player-list-actions.mjs';
+import {ownedConnectionUiActions} from './ui-owned-connection-actions.mjs';
+import {worldRecoveryUiActions} from './ui-world-recovery-actions.mjs';
+import {uiHardcoreActions} from './ui-hardcore-actions.mjs';
+import {hudDemoActions} from './hud-demo-actions.mjs';
+import {hudSavingActions} from './hud-saving-actions.mjs';
+import {uiToastLifecycleActions} from './ui-toast-lifecycle-actions.mjs';
+import {uiCommandManagementActions} from './ui-command-management-actions.mjs';
+import {reconfigurationUiActions} from './ui-reconfiguration-actions.mjs';
 import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {villagerFixtureCommands} from '../../vanilla-command-fixtures.mjs';
@@ -19,13 +44,15 @@ import {once} from 'node:events';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const args=Object.fromEntries(process.argv.slice(2).map(arg=>arg.replace(/^--/,'').split('=')));
+const checkPrefix=args['check-prefix'];
+assert(!checkPrefix||args.scenario&&args.scenario!=='all','Specific checks cannot stand in for complete scenario evidence');
 const target=args.target;
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const instance=resolve(repo,'validations/conformance-vanilla_ui/instance',target,'client');
 const token=(await readFile(resolve(instance,'minecraft-protocol/token'),'utf8')).trim();
 const connection=await connectRuntime(instance,target);
 const uiDebugAuthorized=(await (await connection.fetch('/v0/security/context')).json()).grantedScopes?.includes('debug.ui')===true;
-if(['ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement'].includes(args.scenario))assert(uiDebugAuthorized,args.scenario+' requires actual Runtime DebugUi authorization');
+if(['ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list'].includes(args.scenario))assert(uiDebugAuthorized,args.scenario+' requires actual Runtime DebugUi authorization');
 const port=connection.port,base=connection.base;
 if(args.port)assert.equal(Number(args.port),port,'Runner supplied port does not match owned instance');
 // Keep the failed-server fixture reserved; never ping an unrelated service at RuntimePort+100.
@@ -34,19 +61,20 @@ fixtureServer.listen(0,'127.0.0.1');await once(fixtureServer,'listening');fixtur
 const fixturePort=fixtureServer.address().port;
 process.on('exit',()=>fixtureServer.close());
 async function sourceHashes(){
- const extraTools=['ui-debug-capability-audit.mjs','visibility-toast-actions.mjs','ui-debug-advancement-actions.mjs'];
+ const extraTools=['ui-debug-capability-audit.mjs','visibility-toast-actions.mjs','ui-debug-advancement-actions.mjs','hud-completion-actions.mjs','suggestion-debug-actions.mjs','ui-correctness-actions.mjs','ui-local-owner-actions.mjs','hud-camera-actions.mjs','hud-toast-user-actions.mjs','ui-navigation-completion-actions.mjs','ui-native-confirmation-actions.mjs','hud-vital-variant-actions.mjs','hud-boss-score-actions.mjs','hud-late-text-actions.mjs','hud-native-message-actions.mjs','ui-special-world-menu-actions.mjs','ui-recipe-hotbar-actions.mjs','ui-recovery-actions.mjs','player-list-actions.mjs'];
  const paths=['components/protocol_schema/src/main/openapi/minecraft-control-v0.json',relative(repo,import.meta.filename),'components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1','components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle','components/validation_tools/InstanceProfiles.ps1','components/validation_tools/Prepare-InstanceProfile.ps1','components/validation_tools/instance-profiles.gradle','build.gradle.kts','components/validation_tools/RuntimeConnection.ps1','components/validation_tools/runtime-connection.mjs','validations/conformance-vanilla_ui/validation.toml'];
  paths.push('gradle.properties','settings.gradle.kts','gradle/libs.versions.toml',`versions/${target}/target.properties`,`versions/${target}/build.gradle.kts`,'components/runtime_core/build.gradle.kts','components/runtime_safety/build.gradle.kts','components/validation_tools/vanilla-command-fixtures.mjs');
  const root=resolve(repo,'versions',target,'src');
- for(const entry of await readdir(root,{recursive:true,withFileTypes:true}))if(entry.isFile()&&(/\.java$/.test(entry.name)||/mixins\.json$/.test(entry.name)))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
+ for(const entry of await readdir(root,{recursive:true,withFileTypes:true}))if(entry.isFile()&&!relative(root,resolve(entry.parentPath,entry.name)).replaceAll('\\','/').startsWith('test/'))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  const safety=resolve(repo,'components/runtime_safety/src/main');
  for(const entry of await readdir(safety,{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.java$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  const core=resolve(repo,'components/runtime_core/src/main');
  for(const entry of await readdir(core,{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.java$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
  paths.push('components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/spectator-consumers.mjs','components/validation_tools/conformance-vanilla_ui/task/special-menu-actions.mjs','components/validation_tools/conformance-vanilla_ui/task/hud-vital-actions.mjs','validations/conformance-vanilla_ui/task/screens.json');
- paths.push('components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs','components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs');
+ paths.push('components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs','components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs','components/validation_tools/conformance-vanilla_ui/task/ui-toast-lifecycle-actions.mjs','components/validation_tools/conformance-vanilla_ui/task/ui-command-management-actions.mjs');
+ paths.push('components/companion/package.json','components/companion/package-lock.json');
  for(const dir of ['src','dist'])for(const entry of await readdir(resolve(repo,'components/companion',dir),{recursive:true,withFileTypes:true}))if(entry.isFile()&&/\.(?:ts|js)$/.test(entry.name))paths.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));
- for(const file of extraTools)paths.push('components/validation_tools/conformance-vanilla_ui/task/'+file);
+ for(const file of [...extraTools,'ui-owned-connection-actions.mjs','ui-world-recovery-actions.mjs','ui-reconfiguration-actions.mjs','hud-camera-variant-actions.mjs','ui-hardcore-actions.mjs','hud-demo-actions.mjs','hud-saving-actions.mjs'])paths.push('components/validation_tools/conformance-vanilla_ui/task/'+file);
  const hashes={};for(const path of paths.sort())hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');return hashes;
 }
 const startedSources=await sourceHashes();
@@ -56,6 +84,8 @@ let taskStarted=validationStarted;
 const checks=[],toastSamples=[],editorSamples=[],effectSamples=[],spectatorSamples=[],specialMenuSamples=[],vitalSamples=[],fixtureReadSamples=[],chatCloseSamples=[],screens=new Set(),pause=()=>new Promise(r=>setTimeout(r,120));
 const worldSelectionSamples=[],uiDebugSamples=[],worldExitSamples=[],respawnSamples=[];
 const advancementPanSamples=[];
+const hudCompletionSamples=[],suggestionSamples=[],uiCorrectnessSamples=[];
+const localOwnerSamples=[],navigationCompletionSamples=[];
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]);
 async function api(method,path,body,extraHeaders={}){
  if(method==='POST'&&path==='/v0/control/acquire')body=automaticTakeoverRequest(await api('GET','/v0/control/mode'),body);
@@ -104,7 +134,23 @@ async function saveQuit(quit){
  },wait:async(predicate,description)=>{titleTree=await wait(predicate,description);return titleTree;}});
  worldExitSamples.push(evidence);return titleTree;
 }
-async function title(){for(let i=0;i<12;i++){const t=await wait(t=>!t.overlayIdentity,'ready for navigation');if(t.screenClass?.endsWith('TitleScreen'))return t;if(!t.screenClass){await key(256);continue;}const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey));if(quit)return saveQuit(quit);await key(256);}throw new Error('Could not return to title');}
+async function title(){for(let i=0;i<12;i++){
+ const t=await wait(t=>!t.overlayIdentity,'ready for navigation');
+ if(t.screenClass?.endsWith('TitleScreen'))return t;
+ if(!t.screenClass){await key(256);continue;}
+ if(t.screenClass.endsWith('DisconnectedScreen')){
+  const back=nodes(t).filter(n=>['gui.toMenu','gui.toTitle','gui.back'].includes(n.translationKey)&&n.visible&&n.active&&n.actions?.includes('click'));
+  assert.equal(back.length,1,'One actual safe native disconnected return');await ui({nodeId:back[0].nodeId});continue;
+ }
+ if(t.screenClass.endsWith('ServerReconfigScreen')){
+  const ready=await wait(value=>value.screenClass.endsWith('ServerReconfigScreen')&&nodes(value).some(n=>n.translationKey==='menu.disconnect'&&n.active&&n.actions?.includes('click')),'native reconfiguration Disconnect becomes available');
+  const disconnect=nodes(ready).filter(n=>n.translationKey==='menu.disconnect'&&n.active&&n.actions?.includes('click'));
+  assert.equal(disconnect.length,1);await ui({nodeId:disconnect[0].nodeId});continue;
+ }
+ if(t.screenClass.endsWith('DeathScreen')){const respawn=nodes(t).find(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false);if(respawn){await respawnFromDeath(respawn);continue;}}
+ const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey)&&n.active!==false);
+ if(quit)return saveQuit(quit);await key(256);
+}throw new Error('Could not return to title');}
 async function respawnFromDeath(button,testServices){
  const now=testServices?.now??(()=>performance.now()),sleep=testServices?.sleep??(ms=>new Promise(done=>setTimeout(done,ms)));
  const death=await tree();assert(death.screenClass.endsWith('DeathScreen'));assert.equal(death.overlayIdentity,0);
@@ -172,6 +218,21 @@ async function respawnFromDeath(button,testServices){
  respawnSamples.push(evidence);return evidence;
 }
 async function check(name,fn){
+ if(checkPrefix&&!/^(title:|world fixture:|pause:)/.test(name)&&!name.startsWith(checkPrefix))return;
+ if(args.scenario==='hud-hardcore'&&!/^(title:|HUD: hardcore:)/.test(name))return;
+ if(args.scenario==='ui-local'&&!/^(title:|world fixture:|typed local DEBUG:|typed Toast DEBUG: local|pause:)/.test(name))return;
+ if(args.scenario==='ui-breadth'&&!/^(title:|world fixture:|UI special world menus:|UI recipes and hotbars:|UI command management:|pause:)/.test(name))return;
+ if(args.scenario==='hud-variants'&&!/^(title:|world fixture:|HUD: (?:blinking hearts|actual powder-snow|actual boss|native fixed sidebar)|pause:)/.test(name))return;
+ if(args.scenario==='hud-late'&&!/^(title:|world fixture:|HUD: (?:Inventory effects|semantic item hover|chat background|F3 and|native messages:|native saving indicator)|pause:)/.test(name))return;
+ if(args.scenario==='hud-saving'&&!/^(title:|world fixture:|HUD: native saving indicator|pause:)/.test(name))return;
+ if(args.scenario==='hud-toast'&&!/^(title:|world fixture:|HUD: native resident|HUD: native legacy|pause:)/.test(name))return;
+ if(args.scenario==='hud-player-list'&&!/^(title:|world fixture:|HUD player list:|pause:)/.test(name))return;
+ if(args.scenario==='hud-camera-variants'&&!/^(title:|world fixture:|HUD camera variants:|pause:)/.test(name))return;
+ if(args.scenario==='ui-navigation'&&!/^(title:|world fixture:|UI navigation:|UI native confirmation:|UI recovery:|UI owned connection:|UI world recovery:|UI reconfiguration:|pause:)/.test(name))return;
+ if(args.scenario==='ui-native-pages'&&!/^(title:|world fixture:|UI native confirmation:|UI recovery:|UI world recovery:|UI reconfiguration:|pause:)/.test(name))return;
+ if(args.scenario==='ui-world-pages'&&!/^(title:|world fixture:|UI world recovery:|UI reconfiguration:|pause:)/.test(name))return;
+ if(args.scenario==='hud-camera'&&!/^(title:|world fixture:|HUD: (?:actual|native equipped|real held)|pause:)/.test(name))return;
+ if(args.scenario==='ui-completion'&&!/^(title:|world fixture:|UI completion:|typed suggestions DEBUG:|HUD: (?:completed native|native item-use|native experience|native mounted|native locator)|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-advancement'&&!/^(title:|world fixture:|typed advancement DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-toast'&&!/^(title:|world fixture:|Toast: native movement tutorial|typed Toast DEBUG:|pause:)/.test(name))return;
  if(args.scenario==='ui-debug-hud'&&!/^(title:|world fixture:|typed HUD DEBUG:|pause:)/.test(name))return;
@@ -251,8 +312,7 @@ async function dragScroller(prefix,y){
 async function shiftItem(item){
  let stable=0,last;await wait(t=>{const stamp=t.screenRevision+':'+t.menuRevision;stable=stamp===last?stable+1:0;last=stamp;return stable>=3&&nodes(t).some(n=>n.role==='slot'&&n.item===item&&n.count>0);},'fixture inventory settled');
  const slot=nodes(await tree()).find(n=>n.role==='slot'&&n.item===item&&n.count>0);assert(slot);
- await api('POST','/v0/input/key',{key:340,scanCode:0,action:1,modifiers:1});
- try{await ui({nodeId:slot.nodeId},'click',{modifiers:1});}finally{await api('POST','/v0/input/key',{key:340,scanCode:0,action:0,modifiers:0});}
+ await ui({nodeId:slot.nodeId},'shift_click');
 }
 async function debugUi(fn){
  const mode=await api('GET','/v0/control/mode');
@@ -262,6 +322,12 @@ async function debugUi(fn){
  uiDebugSamples.push({case:'typed_node_applicability',nodes:auditUiDebugCapabilities(t,await api('GET','/v0/ui/tree?category=USER'),target)});
  debugArm=(await api('POST','/v0/debug/arm',{uiContextId:t.uiContextId,namespaces:['ui'],ttlMs:60000})).debugArmId;
  try{await fn(snapshot);}finally{await api('POST','/v0/debug/disarm');debugArm=undefined;lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}
+}
+async function readOnlyHud(fn){
+ const before=await api('GET','/v0/input/state');assert.equal(before.pressedKeyCount,0);assert.equal(before.pressedButtonCount,0);
+ await api('POST','/v0/control/release');lease=undefined;const input=await api('GET','/v0/input/state');
+ try{assert.equal((await api('GET','/v0/control/mode')).mode,'READ');await fn();const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,input.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);}
+ finally{const mode=await api('GET','/v0/control/mode');assert.equal(mode.mode,'READ');assert.equal(mode.reconsentRequired,false);lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}
 }
 async function rejectUiMutation(request,code,snapshot,headers={}){
  const before=nodes(await snapshot()).find(n=>n.nodeId===request.nodeId);assert(before?.resourceVersion);
@@ -337,7 +403,7 @@ async function debugEditorTextFields(keys){
  });
 }
 async function editorHandoff(kind,expected,control){
- const debugEnabled=['ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','all'].includes(args.scenario);
+ const debugEnabled=['ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','all'].includes(args.scenario);
  if(target!=='26.3-fabric'&&!debugEnabled)return;
  await api('POST','/v0/control/release');lease=undefined;
  await api('POST','/v0/control/task',{action:'end',taskId});taskId=undefined;
@@ -361,7 +427,11 @@ try{
  assert.equal((await api('GET','/v0/session')).target,target);
  taskId=(await api('POST','/v0/control/task',{action:'begin',ttlMs:60000,budgetMs:300000})).taskId;
  lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
- if(args.phase!=='quit'){
+ if(args.phase!=='quit'&&args.scenario==='hud-demo'){
+  const launchAttestation=JSON.parse(await readFile(resolve(instance,'../launch-attestation.json'),'utf8'));
+  assert.equal(launchAttestation.processId,connection.pid);
+  await hudDemoActions({target,api,tree,wait,nodes,ui,key,title,saveQuit,check,samples:hudCompletionSamples,launchAttestation});
+ }else if(args.phase!=='quit'){
  await check('title: Native graph and bounded node metadata',async()=>{const t=await title();assert(nodes(t).some(n=>n.translationKey==='menu.singleplayer'));assert(!t.treeTruncated);});
  await check('window: final-output title and original icon badge across modes',async()=>{
    const hooks=await api('GET','/v0/diagnostics/hooks');
@@ -369,9 +439,11 @@ try{
    assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
-   assert.equal(hooks.replacementInjectionCount,target.startsWith('26.1.2-')?11:10);
+   const drawCounts={'1.20.1-forge':[34,6],'1.21.1-neoforge':[37,6],'26.1.2-neoforge':[41,6],'26.3-neoforge':[43,5],'26.3-fabric':[43,5]}[target];
+   assert.equal(hooks.passiveDrawDelegationCount,drawCounts[0]);
+   assert.equal(hooks.operatorReplacementCount,drawCounts[1]);
+   assert.equal(hooks.replacementInjectionCount,drawCounts[0]+drawCounts[1]);
    if(target.startsWith('26.'))assert(hooks.hooks.some(hook=>hook.id==='host_cursor_shape_guard'&&hook.mechanism==='MIXIN_MODIFY_VARIABLE'&&hook.cancellable===false&&hook.replacement===true&&hook.behavior==='default_host_shape_during_takeover'));
-   assert.equal(hooks.passiveDrawDelegationCount,5);
    assert.equal(hooks.controlFlowPolicy,'operator_control_and_exact_hud_draw_delegation');
    async function presentation(mode,icon,suffix){
      const end=Date.now()+10000;let s;
@@ -619,18 +691,11 @@ try{
   const input=await api('GET','/v0/input/state');assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);
   sample.status='PASS';sample.worldEntered=true;sample.noHeldInput=true;
  });
- await check('world fixture: GUI entry and deterministic Arrange',async()=>{await enterWorld();const window=await api('GET','/v0/session');assert.equal(window.windowTitle,window.windowBaseTitle+' - 由智能体接管');assert.equal(window.windowIconState,'original_with_agent_pointer');for(const [old,current,value] of [['doDaylightCycle','advance_time','false'],['doWeatherCycle','advance_weather','false'],['doMobSpawning','spawn_mobs','false'],['randomTickSpeed','random_tick_speed','0']])await command('gamerule '+(target.startsWith('1.')?old:'minecraft:'+current)+' '+value);await command('time set day');await command('weather clear');await command('kill @e[type=!minecraft:player]');await command('tp @s 0.5 80 0.5 0 0');});
+ await check('world fixture: GUI entry and deterministic Arrange',async()=>{await enterWorld();const window=await api('GET','/v0/session');assert.equal(window.windowTitle,window.windowBaseTitle+' - 由智能体接管');assert.equal(window.windowIconState,'original_with_agent_pointer');for(const [old,current,value] of [['doDaylightCycle','advance_time','false'],['doWeatherCycle','advance_weather','false'],['doMobSpawning','spawn_mobs','false'],['randomTickSpeed','random_tick_speed','0']])await command('gamerule '+(target.startsWith('1.')?old:'minecraft:'+current)+' '+value);await command('time set day');await command('weather clear');await command('kill @e[type=!minecraft:player]');await command('fill -2 79 -2 2 79 2 minecraft:stone');await command('tp @s 0.5 80 0.5 0 0');});
  if(args.phase!=='prepare'){
-  if(!args.scenario||['all','hud','hud-vitals'].includes(args.scenario))await hudVitalActions({target,api,command,wait,tree,key,check,samples:vitalSamples,serverTicksAfter,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target),readOnly:async fn=>{
-   const before=await api('GET','/v0/input/state');assert.equal(before.pressedKeyCount,0);assert.equal(before.pressedButtonCount,0);
-   await api('POST','/v0/control/release');lease=undefined;const input=await api('GET','/v0/input/state');
-   try{assert.equal((await api('GET','/v0/control/mode')).mode,'READ');await fn();const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,input.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);}
-   finally{const mode=await api('GET','/v0/control/mode');assert.equal(mode.mode,'READ');assert.equal(mode.reconsentRequired,false);lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}
-  }});
-  if(!args.scenario||['all','special-menus'].includes(args.scenario))await specialMenuActions({target,api,command,wait,tree,nodes,ui,key,use,fixtureVisible,shiftItem,check,samples:specialMenuSamples,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target)});
   await check('Toast: native movement tutorial completes through routed jump and look',async()=>{
-   const visible=await wait(t=>t.presentation.children.some(n=>n.class?.endsWith('TutorialToast')),'native movement tutorial shown');
-   const toast=visible.presentation.children.find(n=>n.class?.endsWith('TutorialToast'));assert.equal(toast.textSupported,true);assert.equal(toast.labelSource,'last_native_toast_render');assert.deepEqual(toast.actions,[]);
+   const visible=await wait(t=>t.presentation.children.some(n=>n.class?.endsWith('TutorialToast')&&n.textSupported===true&&n.label?.trim()),'native movement tutorial fully shown');
+   const toast=visible.presentation.children.find(n=>n.class?.endsWith('TutorialToast')&&n.textSupported===true&&n.label?.trim());assert.equal(toast.textSupported,true);assert.equal(toast.labelSource,'last_native_toast_render');assert.deepEqual(toast.actions,[]);
    const before=await api('GET','/v0/input/state'),start=await api('GET','/v0/player');
    const steps=[{type:'key',key:32,action:1}];for(let i=0;i<60;i++)steps.push({type:'mouse.delta',dx:i%2? -2:2,dy:0},{type:'delay',durationMs:80});steps.push({type:'key',key:32,action:0});
    const op=await api('POST','/v0/pipelines',{steps,timeoutMs:18000});const done=await api('POST','/v0/operations/'+op.operationId+'/wait',{timeoutMs:20000});assert.equal(done.state,'completed',JSON.stringify(done));
@@ -639,6 +704,131 @@ try{
    toastSamples.push({kind:'tutorial',phase:toast.textPhase,label:toast.label,source:toast.labelSource,completedBy:'GAME_ROUTED_NATIVE_JUMP_AND_RELATIVE_LOOK',arrangeAuthority:'diagnostic_admin_command_creative',observedClientTicks:end.clientTick-start.clientTick,heldKeys:0,heldButtons:0});
    await command('tp @s 0.5 80 0.5 0 0');
   });
+  if(['all','ui-completion'].includes(args.scenario)){
+   await uiCorrectnessActions({api,command,key,tree,wait,nodes,ui,check,samples:uiCorrectnessSamples,repo,instance,target});
+   await suggestionDebugActions({api,wait,tree,nodes,ui,key,check,debugUi,applyUiMutation,editorHandoff,editorSamples,closeOwnedChat,samples:suggestionSamples});
+   await hudItemCompletionActions({target,api,command,wait,tree,key,use,check,samples:hudCompletionSamples});
+   await hudContextCompletionActions({target,api,command,wait,tree,key,check,samples:hudCompletionSamples});
+  }
+  if(['all','hud-camera'].includes(args.scenario))await hudCameraCompletionActions({target,api,command,wait,tree,key,check,samples:hudCompletionSamples});
+  if(['all','hud-camera-variants'].includes(args.scenario))await hudCameraVariantActions({api,target,command,key,tree,wait,nodes,ui,check,samples:hudCompletionSamples});
+  if(['all','hud-variants'].includes(args.scenario)){
+   await hudVitalVariantActions({target,api,command,wait,check,samples:vitalSamples,serverTicksAfter,readOnly:readOnlyHud});
+   await hudBossScoreActions({target,command,wait,tree,check,samples:hudCompletionSamples,readOnly:readOnlyHud});
+  }
+  if(['all','hud-late'].includes(args.scenario)){
+   await hudLateTextCompletionActions({target,api,command,wait,tree,key,ui,check,samples:hudCompletionSamples});
+   await hudNativeMessageActions({target,api,command,key,tree,wait,ui,check,samples:hudCompletionSamples});
+  }
+  if(['all','hud-late','hud-saving'].includes(args.scenario)){
+   const sampleStart=hudCompletionSamples.length;
+   await hudSavingActions({target,api,repo,processId:connection.pid,key,tree,wait,nodes,ui,check,samples:hudCompletionSamples,
+   openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+    await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   const savingCase=target==='1.20.1-forge'?'hud_native_saving_indicator_not_applicable':'hud_native_saving_indicator';
+   const savingSamples=hudCompletionSamples.slice(sampleStart).filter(value=>value.case===savingCase);
+   assert.equal(savingSamples.length,1,'The saving scenario must execute and produce actual native evidence; filtered-out checks are not success');
+   if(target==='1.20.1-forge')assert.equal(savingSamples[0].userDrawValidated,false,'Default Forge HUD applicability is not USER draw coverage');
+  }
+  if(['all','hud-toast'].includes(args.scenario)&&(target.startsWith('26.3')||target==='26.1.2-neoforge')){
+   const restoreMusicToast=await prepareNativeMusicToastOption({target,key,tree,wait,ui});
+   hudCompletionSamples.push(restoreMusicToast.evidence);
+   const openFixture=async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+    await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;};
+   let toastFailure;
+   try{await openFixture();
+    const toastContext=await api('GET','/v0/ui/tree?category=DEBUG');
+    debugArm=(await api('POST','/v0/debug/arm',{uiContextId:toastContext.uiContextId,namespaces:['ui'],ttlMs:60000})).debugArmId;
+    await hudToastUserCompletionActions({target,api,wait,check,samples:hudCompletionSamples,
+    showFriendFixture:()=>ui({label:'USER Friend Toast Fixture'}),
+    showNowPlayingFixture:()=>ui({label:'USER Music Toast Fixture'}),
+    clearNowPlayingFixture:()=>ui({label:'Clear Music Fixture'}),
+    hideFriendFixture:async()=>{const result=await hideResidentFriendToast({api});auditAppliedUiMutation(result);
+     uiDebugSamples.push({operation:'ui.toast.hide',result:'APPLIED',inputDelta:0,mode:'TAKEOVER',diagnostic:true,before:result.beforeResourceVersion,after:result.afterResourceVersion});return result;}});
+   }catch(error){toastFailure=error;throw error;}
+   finally{const errors=[];
+    try{if(debugArm)await api('POST','/v0/debug/disarm');}catch(error){errors.push(error);}finally{debugArm=undefined;}
+    try{if((await tree()).screenClass.endsWith('AutomationProbeScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast fixture closes');}}catch(error){errors.push(error);}
+    try{hudCompletionSamples.push(await restoreMusicToast());}catch(error){errors.push(error);}
+    if(errors.length){if(toastFailure)toastFailure.cleanupErrors=errors.map(error=>error.message);else throw new AggregateError(errors,'Native music option cleanup failed');}}
+  }
+  if(['all','hud-player-list'].includes(args.scenario)){
+   await playerListActions({api,repo,target,key,tree,wait,nodes,ui,check,samples:hudCompletionSamples,openFixture:async()=>{
+    const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+    await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
+    await ui({label:'Player List Fixture'});
+   }});
+  }
+  if(['all','ui-navigation'].includes(args.scenario))await uiNavigationCompletionActions({api,target,command,key,tree,wait,nodes,ui,click,title,enterWorld,check,samples:navigationCompletionSamples,openFixture:async()=>{
+   const mode=await api('GET','/v0/control/mode');
+   await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+   await api('POST','/v0/diagnostics/ui/test-screen',{});
+   lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
+  }});
+  if(['all','ui-navigation','ui-native-pages','ui-world-pages'].includes(args.scenario)){
+   if(!['ui-native-pages','ui-world-pages'].includes(args.scenario))await ownedConnectionUiActions({api,target,key,tree,wait,nodes,ui,click,title,check,samples:navigationCompletionSamples});
+   if(args.scenario!=='ui-world-pages'){
+   await nativeConfirmationActions({api,repo,target,tree,wait,nodes,ui,title,check,samples:navigationCompletionSamples,
+    openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+     await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   await recoveryUiActions({api,repo,target,tree,wait,nodes,ui,title,check,samples:navigationCompletionSamples,
+    openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+     await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   }
+   await worldRecoveryUiActions({api,repo,instance,target,tree,wait,nodes,ui,title,check,samples:navigationCompletionSamples,
+    openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+     await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   if(target!=='1.20.1-forge')await reconfigurationUiActions({api,repo,target,tree,wait,nodes,ui,title,enterWorld,check,samples:navigationCompletionSamples,
+    openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+     await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   if(target==='1.20.1-forge')navigationCompletionSamples.push({case:'native_reconfiguration_unavailable',target,nativeClass:'ServerReconfigScreen',disposition:'NATIVE_CLASS_ABSENT',operationCoverage:false});
+   await enterWorld();
+  }
+  if(['all','ui-breadth'].includes(args.scenario)){
+   await specialWorldMenuActions({api,target,command,key,tree,wait,nodes,ui,click,enterWorld,check,samples:navigationCompletionSamples});
+   await uiCommandManagementActions({api,repo,target,processId:connection.pid,command,key,tree,wait,nodes,ui,enterWorld,check,samples:navigationCompletionSamples});
+   await command('clear @s');
+   await uiRecipeHotbarActions({api,target,command,key,tree,wait,nodes,ui,check,samples:navigationCompletionSamples});
+  }
+  await check('typed local DEBUG: title lifecycle timing and group clear preserve independent authority',async()=>{
+   await command('title @s times 10 6000 20');
+   await command('title @s subtitle {"text":"UI local subtitle fixture"}');
+   await command('title @s title {"text":"UI local title fixture"}');
+   await wait(value=>value.presentation.children.some(node=>node.controlKey==='hud.title'&&node.label==='UI local title fixture')
+     &&value.presentation.children.some(node=>node.controlKey==='hud.subtitle'&&node.label==='UI local subtitle fixture'),'owned visible title and subtitle');
+   try{await debugUi(snapshot=>titleLifecycleAssertions({target,api,snapshot,applyUiMutation,samples:localOwnerSamples,pause}));}
+   finally{await command('title @s reset');}
+  });
+  await check('typed local DEBUG: native spectator highlight never activates its selected item',async()=>{
+   await command('gamemode spectator @s');
+   try{
+    await wait(value=>value.uiInputContext==='spectator','native spectator context');
+    await ui({controlKey:'spectator.open'},'open');
+    const opened=await wait(value=>value.uiInputContext==='spectator_menu','native spectator menu');
+    const disabled=nodes(opened).find(node=>node.role==='spectator_item'&&!node.activationEnabled);
+    assert(disabled,'Owned single-player menu needs a nonactivating original selection');
+    await ui({nodeId:disabled.nodeId},'select');
+    await wait(value=>nodes(value).some(node=>node.role==='spectator_item'&&node.entryIndex===disabled.entryIndex&&node.selected),'USER selected original native item');
+    await debugUi(snapshot=>spectatorSelectionAssertions({target,api,snapshot,nodes,applyUiMutation,samples:localOwnerSamples}));
+   }finally{await command('gamemode creative @s');}
+   await wait(value=>!value.uiInputContext,'native spectator cleanup');
+  });
+  await check('typed local DEBUG: native player-list header and footer are local text not player input',async()=>{
+   await debugUi(async snapshot=>{
+    for(const key of ['hud.playerlist.header','hud.playerlist.footer']){
+     const find=async()=>(await snapshot()).presentation.children.find(node=>node.controlKey===key);
+     let node=await find();assert(node?.resourceVersion&&node.debugTextGuardAvailable);
+     const original=node.value,request={operation:'ui.text.set',nodeId:node.nodeId,expectedResourceVersion:node.resourceVersion,expectedValue:original,value:'UI local player list'};
+     try{const changed=await applyUiMutation(request);assert.equal(changed.sideEffects,'native_player_list_plain_text_only');assert.equal(changed.after.value,request.value);
+      await assert.rejects(api('POST','/v0/debug/mutations',request),error=>error.code==='STALE_RESOURCE_REVISION');
+     }finally{node=await find();assert.equal((await applyUiMutation({...request,expectedResourceVersion:node.resourceVersion,expectedValue:node.value,value:original})).after.value,original);}
+     localOwnerSamples.push({case:'native_player_list_text',field:key,restoredText:true,inputDelta:0,playerLeaseRequired:false,richFormattingRestored:false});
+    }
+   });
+   for(const key of ['hud.playerlist.header','hud.playerlist.footer'])await editorHandoff('debug_'+key,undefined,{selector:{controlKey:key},presentation:true,field:'value',operation:'ui.text.set',privateField:true});
+  });
+  if(!args.scenario||['all','hud','hud-vitals'].includes(args.scenario))await hudVitalActions({target,api,command,wait,tree,key,check,samples:vitalSamples,serverTicksAfter,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target),readOnly:readOnlyHud});
+  if(!args.scenario||['all','special-menus'].includes(args.scenario))await specialMenuActions({target,api,command,wait,tree,nodes,ui,key,use,fixtureVisible,shiftItem,check,samples:specialMenuSamples,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target)});
   await check('HUD: visible title, subtitle and actionbar; no queued Toast content in USER',async()=>{
    await command('title @s times 0 200 0');await command('title @s subtitle {"text":"UI subtitle fixture"}');
    await command('title @s title {"text":"UI title fixture"}');await command('title @s actionbar {"text":"UI actionbar fixture"}');
@@ -684,13 +874,13 @@ try{
      }
     });
     for(const key of ['hud.title','hud.subtitle','hud.actionbar'])
-     await editorHandoff('debug_'+key.replace('.','_'),undefined,{selector:{controlKey:key},presentation:true,field:'value',operation:'ui.text.set',expiringPresentation:key==='hud.actionbar'});
+     await editorHandoff('debug_'+key.replace('.','_'),undefined,{selector:{controlKey:key},presentation:true,field:'value',userField:'label',operation:'ui.text.set',expiringPresentation:key==='hud.actionbar'});
     const rows=uiDebugSamples.filter(s=>s.case==='native_hud_text');assert.equal(rows.length,3);
     for(const key of ['hud.title','hud.subtitle','hud.actionbar'])for(const channel of ['mcp_stdio_debug','web_user_isolation'])
      assert.equal(editorSamples.filter(s=>s.editor==='debug_'+key.replace('.','_')&&s.transport===channel&&s.status==='PASS').length,1,'Missing actual HUD consumer: '+key+' '+channel);
    }finally{await command('title @s reset');}
   });
-  if(target.startsWith('26.3'))await check('typed Toast DEBUG: local friend visibility owner',async()=>{
+  if(target.startsWith('26.'))await check('typed Toast DEBUG: local visibility owner',async()=>{
    const state=await api('GET','/v0/control/mode');
    await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:state.modeVersion});lease=undefined;
    await api('POST','/v0/diagnostics/ui/test-screen',{});
@@ -810,6 +1000,12 @@ try{
    await command('recipe take @s minecraft:oak_planks');
    }finally{await consumers?.close();}
   });
+  if(['all','hud-toast'].includes(args.scenario)){
+   await uiToastLifecycleActions({target,api,tree,wait,nodes,ui,check,samples:hudCompletionSamples,
+    openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
+     await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
+   if((await tree()).screenClass.endsWith('AutomationProbeScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast lifecycle fixture closes');}
+  }
   await check('HUD: player list uses native visibility and decorated names, not hidden profile or score facts',async()=>{
    const list=t=>t.presentation.children.filter(n=>n.controlKey.startsWith('hud.playerlist.'));
    const rawKey=(key,action)=>api('POST','/v0/input/key',{key,action});
@@ -827,7 +1023,7 @@ try{
     await rawKey(258,1);
     let t=await wait(t=>list(t).some(n=>n.controlKey==='hud.playerlist.row.0'&&n.label.startsWith('[UI] ')),'native player list shown');
     const row=list(t).find(n=>n.controlKey==='hud.playerlist.row.0');
-    assert.equal(list(t).length,1);assert.deepEqual(row.actions,[]);assert.equal(row.active,false);assert.equal(row.boundsAvailable,false);
+    assert.equal(list(t).filter(node=>/^hud\.playerlist\.row\.\d+$/.test(node.controlKey)).length,1);assert.deepEqual(row.actions,[]);assert.equal(row.active,false);assert.equal(row.boundsAvailable,true);
     for(const field of ['uuid','profile','latency','gameMode','score','value'])assert.equal(row[field],undefined,field+' is not visible player-list text');
     await rawKey(258,0);await wait(t=>list(t).length===0,'Tab release hides list');
     await rawKey(290,1);await rawKey(290,0);hidden=true;await rawKey(258,1);
@@ -887,7 +1083,7 @@ try{
    try{
     await command('effect give @s minecraft:speed 600 4 false');await command('effect give @s minecraft:slowness 600 0 false');
     await command('effect give @s minecraft:invisibility 600 0 true');
-    const icons=t=>t.presentation.children.filter(n=>n.role==='status_icon');
+    const icons=effectIconNodes;
     let t=await wait(t=>icons(t).some(n=>n.effect==='minecraft:speed')&&icons(t).some(n=>n.effect==='minecraft:slowness'),'effect icon packets received');
     assert.equal(icons(t).length,2);assert(!JSON.stringify(icons(t)).includes('invisibility'));
     for(const n of icons(t)){assert.deepEqual(n.actions,[]);assert.equal(n.label,'');assert(!('duration'in n));assert(!('amplifier'in n));assert.equal(n.width,18);}
@@ -923,7 +1119,7 @@ try{
      lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
     }
    }finally{await command('effect clear @s');}
-   await wait(t=>!t.presentation.children.some(n=>n.role==='status_icon'),'effects cleanup');
+   await wait(t=>effectIconNodes(t).length===0,'effects cleanup');
   });
   await check('HUD: hotbar icons, offhand and native selection; hidden HUD and menus do not leak',async()=>{
    await command('clear @s');await command('item replace entity @s hotbar.0 with minecraft:stone 12');
@@ -1222,6 +1418,7 @@ try{
    await key(256);await title();
   });
  }
+ if(['all','hud-hardcore'].includes(args.scenario))await uiHardcoreActions({target,api,tree,wait,nodes,ui,key,title,saveQuit,check,samples:hudCompletionSamples});
  await title();
  }
 }catch(e){failure??=e;console.error(e.stack);failureControl=await api('GET','/v0/control/mode').catch(()=>undefined);failureInput=await api('GET','/v0/input/state').catch(()=>undefined);}
@@ -1232,16 +1429,23 @@ finally{
  if(taskId)await api('POST','/v0/control/task',{action:'end',taskId}).catch(e=>{failure??=e;});
  const hashes=startedSources;const sourceChangedDuringRun=JSON.stringify(hashes)!==JSON.stringify(await sourceHashes());
  if(sourceChangedDuringRun)failure??=new Error('Source changed during the run; this result cannot attest the current candidate');
+ if(checkPrefix&&!checks.some(value=>value.name.startsWith(checkPrefix)))failure??=new Error('No requested specific UI check executed');
  const manifest=await readFile(resolve(instance,'../baseline/fixture-manifest.json')).catch(()=>null);
  const catalog=JSON.parse(await readFile(resolve(repo,'validations/conformance-vanilla_ui/task/screens.json'),'utf8'));
  const coverage=catalog.families.map(f=>({family:f.name,encountered:f.screens.filter(s=>[...screens].some(cls=>cls.endsWith('.'+s))),notEncountered:f.screens.filter(s=>![...screens].some(cls=>cls.endsWith('.'+s))),...(f.limitation?{limitation:f.limitation}:{})}));
  const launchAttestation=JSON.parse(await readFile(resolve(instance,'../launch-attestation.json'),'utf8').catch(()=>'null'));
  const result={status:failure?'FAIL':'PASS',target,runtime:'development_native',runtimePort:port,launchAttestation,phase:args.phase??'test',scenario:args.scenario??'all',testedAt:new Date().toISOString(),testedCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),dirty:true,screens:[...screens],coverage,checks,worldSelectionSamples,sourceHashes:hashes,sourceChangedDuringRun,fixtureSha256:manifest?createHash('sha256').update(manifest).digest('hex'):null,noMultimodal:true,screenshotAssertions:0,persistentWriteCalls:0,
-   notExecuted:['external server authentication','Realms/account-gated UI','world conversion/repair','all settings combinations','all recipe combinations','all world presets/rules/data-pack combinations','player-list header/footer, multiplayer sorting and 80-player boundary','spectator multiplayer category paging and teleport execution','spectator mouse/scancode/Loader-modified hotbar bindings','third-party UI'],...(failure?{error:failure.message,nativeError:failure.nativeError,failureTree,failureControl,failureInput}:{})};
+   notExecuted:['external server authentication','Realms/account-gated UI','world conversion/repair correctness','all settings combinations','all recipe combinations','all world presets/rules/data-pack combinations','real-network multiplayer player-list sorting and 80-player boundary (local packet fixture is separate)','spectator multiplayer category paging and teleport execution','spectator mouse/scancode/Loader-modified hotbar bindings','third-party UI'],...(failure?{error:failure.message,nativeError:failure.nativeError,failureTree,failureControl,failureInput}:{})};
+ if(checkPrefix){result.checkPrefix=checkPrefix;result.partialScenario=true;}
  result.toastSamples=toastSamples;
  result.editorSamples=editorSamples;
  result.uiDebugSamples=uiDebugSamples;
  result.advancementPanSamples=advancementPanSamples;
+ result.hudCompletionSamples=hudCompletionSamples;
+ result.suggestionSamples=suggestionSamples;
+ result.uiCorrectnessSamples=uiCorrectnessSamples;
+ result.localOwnerSamples=localOwnerSamples;
+ result.navigationCompletionSamples=navigationCompletionSamples;
  result.effectSamples=effectSamples;
  result.spectatorSamples=spectatorSamples;
  result.specialMenuSamples=specialMenuSamples;

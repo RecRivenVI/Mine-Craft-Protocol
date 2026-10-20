@@ -17,8 +17,37 @@ public abstract class ShowcaseToastProbeMixin extends Screen {
     }
 
     @Inject(method = "init", at = @At("TAIL"))
+    private void minecraftProtocolProbe$lifecycleButton(CallbackInfo ci) {
+        if (!Boolean.getBoolean("minecraft.protocol.toastDebugFixture")) return;
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("Toast Lifecycle Fixture"),
+                                button -> ShowcaseToastFixture.openLifecycle(this))
+                        .bounds(8, 227, 128, 20)
+                        .build());
+    }
+
+    @Inject(method = "init", at = @At("TAIL"))
     private void minecraftProtocolProbe$debugToasts(CallbackInfo ci) {
         if (!Boolean.getBoolean("minecraft.protocol.toastDebugFixture")) return;
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("USER Friend Toast Fixture"),
+                                button -> ShowcaseToastFixture.showFriendUser())
+                        .bounds(8, 35, 128, 20)
+                        .build());
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("USER Music Toast Fixture"),
+                                button -> ShowcaseToastFixture.showNowPlayingUser())
+                        .bounds(8, 59, 128, 20)
+                        .build());
+        addRenderableWidget(
+                Button.builder(
+                                Component.literal("Clear Music Fixture"),
+                                button -> ShowcaseToastFixture.clearNowPlayingUser())
+                        .bounds(8, 83, 128, 20)
+                        .build());
         addRenderableWidget(
                 Button.builder(
                                 Component.literal("Visibility Toast DEBUG Fixtures"),

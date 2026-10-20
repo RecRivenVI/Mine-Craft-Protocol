@@ -54,7 +54,10 @@ public final class ConditionEngine implements AutoCloseable {
                     validateEventEvidence(condition, evaluation);
                     if (!evaluation.get("passed").getAsBoolean()) {
                         throw new ProtocolState.ProtocolException(
-                                "ASSERTION_FAILED", 412, evaluation.get("message").getAsString());
+                                "ASSERTION_FAILED",
+                                412,
+                                evaluation.get("message").getAsString(),
+                                readinessDetails(evaluation));
                     }
                     return evaluation;
                 });
@@ -117,7 +120,8 @@ public final class ConditionEngine implements AutoCloseable {
                                             new ProtocolState.ProtocolException(
                                                     "WAIT_TIMEOUT",
                                                     408,
-                                                    value.get("message").getAsString()));
+                                                    value.get("message").getAsString(),
+                                                    readinessDetails(value)));
                                 } else {
                                     result.pending.set(
                                             this.scheduler.schedule(
@@ -349,7 +353,8 @@ public final class ConditionEngine implements AutoCloseable {
     }
 
     private CompletableFuture<JsonObject> screen(JsonObject condition) {
-        if (bool(condition, "ready", false)) requiredObject(condition, "selector");
+        boolean hud = condition.has("open") && !condition.get("open").getAsBoolean();
+        if (bool(condition, "ready", false) && !hud) requiredObject(condition, "selector");
         return CancellableWork.map(
                 this.uiTree(condition),
                 tree -> {
@@ -381,54 +386,121 @@ public final class ConditionEngine implements AutoCloseable {
                     if (bool(condition, "ready", false)) {
                         // One fresh owner-thread tree supplies the Screen, overlay, geometry
                         // and target. This read does not reserve the target for a later action.
-                        boolean ready =
-                                pageReady(
-                                        tree,
-                                        requiredObject(condition, "selector"),
-                                        string(condition, "readyAction", "click"));
-                        tree.addProperty("pageReady", passed && ready);
-                        passed &= ready;
+                        JsonObject readiness = pageReadiness(tree, condition, passed, hud);
+                        tree.add("readiness", readiness);
+                        tree.addProperty("pageReady", readiness.get("ready").getAsBoolean());
+                        passed &= readiness.get("ready").getAsBoolean();
                     }
                     return result(condition, tree, passed, "Screen condition");
                 });
     }
 
-    private static boolean pageReady(JsonObject tree, JsonObject selector, String action) {
-        if (number(tree, "screenIdentity", 0) <= 0
-                || !tree.has("overlayIdentity")
-                || number(tree, "overlayIdentity", -1) != 0
-                || number(tree, "windowWidth", 0) <= 0
-                || number(tree, "windowHeight", 0) <= 0
-                || number(tree, "width", 0) <= 0
-                || number(tree, "height", 0) <= 0
-                || !tree.has("screenRevision")) return false;
+    private static JsonObject readinessDetails(JsonObject evaluation) {
+        JsonObject details = new JsonObject();
+        JsonObject evidence = evaluation.getAsJsonObject("evidence");
+        if (evidence != null && evidence.has("readiness"))
+            details.add("readiness", evidence.get("readiness").deepCopy());
+        return details;
+    }
+
+    private static JsonObject pageReadiness(
+            JsonObject tree, JsonObject condition, boolean expectedScreen, boolean hud) {
+        JsonObject result = new JsonObject();
+        JsonObject checks = new JsonObject();
+        JsonArray failures = new JsonArray();
+        result.addProperty("kind", hud ? "hud" : "screen");
+        result.add("checks", checks);
+        result.add("failures", failures);
+        readyCheck(
+                checks,
+                failures,
+                "screen",
+                expectedScreen
+                        && (hud
+                                ? string(tree, "screenClass", "").isEmpty()
+                                        && number(tree, "screenIdentity", -1) == 0
+                                : number(tree, "screenIdentity", 0) > 0)
+                        && tree.has("screenRevision"),
+                "SCREEN_NOT_READY");
+        readyCheck(
+                checks,
+                failures,
+                "overlay",
+                tree.has("overlayIdentity") && number(tree, "overlayIdentity", -1) == 0,
+                "OVERLAY_PRESENT");
+        readyCheck(
+                checks,
+                failures,
+                "viewport",
+                number(tree, "windowWidth", 0) > 0
+                        && number(tree, "windowHeight", 0) > 0
+                        && number(tree, "width", 0) > 0
+                        && number(tree, "height", 0) > 0,
+                "VIEWPORT_UNAVAILABLE");
+        if (!hud || condition.has("selector"))
+            targetReadiness(
+                    tree,
+                    requiredObject(condition, "selector"),
+                    string(condition, "readyAction", "click"),
+                    checks,
+                    failures);
+        result.addProperty("ready", failures.isEmpty());
+        return result;
+    }
+
+    private static void readyCheck(
+            JsonObject checks, JsonArray failures, String field, boolean passed, String reason) {
+        checks.addProperty(field, passed);
+        if (!passed) failures.add(reason);
+    }
+
+    private static void targetReadiness(
+            JsonObject tree,
+            JsonObject selector,
+            String action,
+            JsonObject checks,
+            JsonArray failures) {
+        // Match only the authorized projection, never inspect hidden USER nodes for diagnostics.
         List<JsonObject> matches = findMatches(tree, selector);
         int index = selector.has("nth") ? selector.get("nth").getAsInt() : 0;
-        if (index < 0 || index >= matches.size() || !selector.has("nth") && matches.size() != 1)
-            return false;
+        boolean selected =
+                index >= 0
+                        && index < matches.size()
+                        && (selector.has("nth") || matches.size() == 1);
+        readyCheck(
+                checks,
+                failures,
+                "selector",
+                selected,
+                matches.isEmpty() ? "TARGET_NOT_FOUND_OR_NOT_VISIBLE" : "TARGET_AMBIGUOUS");
+        if (!selected) return;
         JsonObject node = matches.get(index);
-        if (!node.has("nodeId")
-                || !bool(node, "active", false)
-                || !bool(node, "visible", false)
-                || !node.has("actions")
-                || !node.get("actions").isJsonArray()) return false;
+        readyCheck(checks, failures, "active", bool(node, "active", false), "TARGET_INACTIVE");
+        readyCheck(checks, failures, "visible", bool(node, "visible", false), "TARGET_NOT_VISIBLE");
         boolean supported = false;
-        for (JsonElement candidate : node.getAsJsonArray("actions"))
-            supported |= candidate.isJsonPrimitive() && candidate.getAsString().equals(action);
+        if (node.has("actions") && node.get("actions").isJsonArray())
+            for (JsonElement candidate : node.getAsJsonArray("actions"))
+                supported |= candidate.isJsonPrimitive() && candidate.getAsString().equals(action);
+        readyCheck(
+                checks, failures, "action", node.has("nodeId") && supported, "ACTION_UNSUPPORTED");
         double x = number(node, "x", Double.NaN),
                 y = number(node, "y", Double.NaN),
                 width = number(node, "width", 0),
                 height = number(node, "height", 0);
         double cx = x + width / 2, cy = y + height / 2;
-        return supported
-                && Double.isFinite(cx)
-                && Double.isFinite(cy)
-                && width > 0
-                && height > 0
-                && cx >= 0
-                && cy >= 0
-                && cx < number(tree, "width", 0)
-                && cy < number(tree, "height", 0);
+        readyCheck(
+                checks,
+                failures,
+                "bounds",
+                Double.isFinite(cx)
+                        && Double.isFinite(cy)
+                        && width > 0
+                        && height > 0
+                        && cx >= 0
+                        && cy >= 0
+                        && cx < number(tree, "width", 0)
+                        && cy < number(tree, "height", 0),
+                "TARGET_BOUNDS_UNAVAILABLE");
     }
 
     private CompletableFuture<JsonObject> uiExists(JsonObject condition) {

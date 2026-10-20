@@ -20,23 +20,30 @@ UI树/resolve及UI条件在异步发布时复验独立类别权限与会话存�
 UI调试事件与录制的修改详情独立检查debug.ui.read；世界DEBUG读权限不能替代它。
 录制UI上下文维持USER类别，缺ui时不调用UI owner并标记不可用；诊断详情省略不清除证据污染。
 共享生产HTTP回归覆盖缺scope、世界事件仍可读、录制详情/污染、无UI读取、模式往返仍授权与取消/关闭阻止迟到发布；不代替五端游戏与最终JAR验证。
-Screen 静态目录已生成；UI DEBUG 已提供控件启用/显隐、EditBox 文本、列表滚动和滑块设值五类操作。
+Screen 静态目录已生成；UI DEBUG 已提供五类通用 setter，以及下文列出的建议/旁观选择、HUD 生命周期与 Toast 本地 typed 操作。
 须 OPERATE 或 TAKEOVER、独立 debug/debug.write/debug.ui、客户端 session Arm 和节点版本/可选值前置条件；不使用输入 Lease。
 TAKEOVER不省略任何scope/Arm/条件；真人Esc不连带取消独立DEBUG，USER失败不得自动改走setter。
 非 Screen 的 presentation 为USER提供只读HUD标题/副标题/动作栏与System/Tutorial/Advancement/Recipe Toast；
 独立授权的DEBUG本地HUD文字修改见下方typed目录，不把USER呈现改成可操作节点。
-USER 不含隐藏/排队内容，HUD 有 Screen/Overlay 时保守不发布；Toast 文字来自原生渲染回调，
-多行进度分别发布当前标题或名称，不提前透露下一阶段。样本超过一秒或 GUI 尺寸变化时不发布 USER 文字；
-textPhase 标明阶段，完整待显示文字仅在 DEBUG 的 debugLabel 中，均受 2048 字符预算限制。
+USER 不含隐藏/排队内容；普通HUD遵守各原生F1/Screen/Overlay规则，Inventory效果、焦点聊天及保存提示等晚期层仅在对应原生draw真实发生时返回。Toast文字来自原生渲染回调，
+多行进度分别发布当前标题或名称，不提前透露下一阶段。Toast 实际绘制样本绑定实例、世界、摄像机、Screen、Overlay 和 GUI 尺寸，250 ms 后失效。
+renderPhase 标明进入/完全显示/退出；部分滑出时只返回裁切边界，不发布未完整呈现的文字，退出请求尚未移出完整视口时仍保留原生文字阶段。
+textPhase 保留原生阶段，完整待显示文字仅在 DEBUG 的 debugLabel 中，均受 2048 字符预算限制；USER 投影继续剥离 debugLabel。
 这不是 framebuffer 像素识别，也不证明第三方改绘后的最终可见性。新增热栏/副手图标、选中状态、Boss 栏显示进度和侧边计分板；
 USER 不包含隐藏 HUD、未显示物品属性或 blank 数字格式隐藏的原始分数。
 状态效果图标按原版两行与顺序读取，不包含等级/时长；原生绘制参数提供 opacity 和 renderPhase。
 透明图标、隐藏 HUD 和无有效样本不进入 USER；样本绑定玩家、Screen 和 GUI 尺寸，250 ms 后失效。
 五端分别观察实际绘制透明度，1.x 保留 float、26.x 使用绘制颜色中的量化 alpha；不按时长预测闪烁。
-第三方替换图标绘制及最终 framebuffer 的所有遮挡情况仍不保证。玩家列表新增原版显示名和页眉/页脚读取，
-USER 仅在原生列表展开时返回，不含账号内部字段、精确延迟或列表分数/心形。
-多人排序、80 人边界和页眉/页脚仍缺独立服务端夹具验证。其余 HUD 和所有业务组合仍未完成。
+第三方替换图标绘制及最终framebuffer的所有遮挡情况仍不保证。玩家列表USER仅在原生列表实际展开时返回已绘制的显示名、页眉/页脚、延迟图标及格式化分数/心形；
+不含账号内部字段、精确延迟或未绘制原始分数。局部裁切文字不补出隐藏全文。
+本地原生packet夹具验证排序、80行边界和格式，不代替独立服务端或真实多人网络证明。其余HUD和完整业务组合的进展由状态页记录。
 旧固定结果不证明新增合同。
+
+新增物品装饰与上下文条按实际原生绘制采样。旧Forge使用真实atlas/UV，新版使用实际sprite资源，不互相伪造身份；
+USER只返回显示的像素范围、文字和图标，不附隐藏耐久、冷却、经验或跳跃统计。
+晚期GUI文字的独立采样覆盖Inventory效果文字、实际tooltip、聊天与F3等已接入入口；源码接入不等同于各分支已完成Live。
+语义hover允许自身引起的原生高亮变化，仍固定身份/几何；点击不放宽选中前置条件。
+禁用目标拒绝后的安全清理也占用输入序号，验证须区分release_all与实际鼠标事件，不仅比较总计数。
 
 诊断村民夹具通过有界原版 summon/data 命令逐条构建完整交易列表，每条含斜杠均在原生聊天限制内；
 不恢复直接发包，不把 accepted 当作数据已同步，菜单仍须实际出现并执行语义滚动与选择断言。
@@ -81,27 +88,30 @@ Forge 1.20.1 原生没有自动合成器；其余端是否通过本轮运行以�
 | 书本 | 多行编辑、签名标题、翻页、内容与原生富文本链接 | 外部 URL 和命令效果不自动执行或绕过 Vanilla 确认 |
 | 普通/悬挂告示牌 | 四行独立语义编辑，遵循原生键盘选行 | 正反面与全部木材组合未逐项验收 |
 | 聊天建议、进度树 | 建议项/滚动、聊天文字链接、进度标签/节点悬停/画布拖拽 | 节点不冒充按钮；服务端数据未到达时不虚构目标 |
-| HUD / Toast | presentation 中的有界文字、热栏/副手、Boss 栏、侧栏计分板、原生绘制阶段的状态效果图标、玩家列表显示名，非可操作节点 | 其他 Toast 尚未覆盖；玩家列表完整信息、多玩家夹具与完整视觉可见性仍待验收 |
-| 旁观者菜单 | 原生快捷键打开、语义选中/明确执行、选中名称与提示，图标显示边界不冒充鼠标命中区域 | 多人分类分页/实际传送、鼠标/扫描码/Loader 修饰键热栏绑定与专用 DEBUG mutation 尚未验收或支持 |
+| HUD / Toast | presentation 中的有界实际绘制文字、图标与阶段；独立授权的本地 typed 操作见下表，USER 节点仍只读 | 适用原生家族的冻结候选逐端复验见状态页；本地夹具不代替真实多人网络或人工视觉验收 |
+| 旁观者菜单 | 原生快捷键打开、语义选中/明确执行，以及独立 DEBUG 纯高亮选择；图标边界不冒充鼠标命中区域 | DEBUG 高亮不激活条目或传送；多人分类分页/实际传送与全部绑定组合不由本地选择证明 |
 | 新版 Dialog、Friends、Reporting 等 | 原生容器图按同一规则读取 | 各流程未独立验收，不从源码相同推断 PASS |
 | 第三方 Mod UI | 原生 GuiEventListener/ContainerEventHandler 图及 Widget | 自绘无节点区域诚实保留限制 |
 
 ## UI DEBUG 适用目录
 
-五类通用 setter 的生产入口均在客户端 owner thread 执行，使用 UI session Arm 与节点 Resource Version；
+通用 setter 与专用本地 typed 操作的生产入口均在客户端 owner thread 执行，使用 UI session Arm 与节点 Resource Version；
 它们不是玩家输入，也不取得输入 Lease。下表只描述已实现类型，当前候选五端 Live 状态仍看[状态页](../project/status-milestones.md)。
 
 | 操作 | 实际 Native 类型/值 | 行为与边界 |
 | --- | --- | --- |
 | ui.widget.active.set | AbstractWidget；boolean | 修改原生启用标志，不点击或执行按钮业务 |
 | ui.widget.visible.set | AbstractWidget；boolean | 修改原生显示标志；隐藏节点仍只允许 DEBUG 查找，USER 不因已知 nodeId 绕过隐藏 |
-| ui.text.set | EditBox、MultiLineEditBox、可编辑书本页/标题、告示牌四行及HUD标题/副标题/动作栏；最多4096字符的string；不含Test Instance编辑器 | 编辑器保留原生validator，草稿可能随关闭提交，须恢复后核对；HUD分支只调用本地原生纯文字消息setter，不改变世界事实或模拟玩家，可能重置生命周期/格式。Test Instance在文字/管理回调前拒绝，不提供任意文字/NBT写入 |
+| ui.text.set | EditBox、MultiLineEditBox、可编辑书本页/标题、告示牌四行、HUD标题/副标题/动作栏及玩家列表页眉/页脚；最多4096字符的string；不含Test Instance编辑器 | 编辑器保留原生validator，草稿可能随关闭提交，须恢复后核对；HUD/玩家列表分支只调用本地原生纯文字setter，不改变世界事实或模拟玩家，可能重置生命周期/格式。Test Instance在文字/管理回调前拒绝，不提供任意文字/NBT写入 |
 | ui.scroll.set | AbstractSelectionList的原生像素范围；创造、织布机、切石机及交易Screen卷轴的0～1归一化范围 | 前者修改列表像素量，后者修改本地显示位置并同步原生行/可见物品；不能混用单位。无滚动范围只允许0，不选择配方/交易、不取得物品或伪造玩家输入 |
 | ui.slider.set | AbstractSliderButton；0～1有限double | 调用原生setter和设置回调，可能持久保存客户端选项；必须显式恢复，不能当成无副作用预览 |
 | ui.slider.set（Toast） | progressable的TutorialToast；0～1有限数字 | 原生updateProgress只改变本地显示，不推进教学事实；不支持无进度条类型 |
 | ui.toast.reset | 驻留SystemToast；显式title/message两段，各最多4096字符 | 原生reset重设纯文字、重排及生命期；恢复文字不承诺格式/计时回滚，不隐式丢弃另一字段 |
-| ui.toast.hide | 驻留TutorialToast及原生支持forceHide的SystemToast；仅true | 原生单向隐藏，不创建/复活通知、不作为自然完成；Forge 1.20.1的SystemToast明确不支持 |
+| ui.toast.hide | 驻留TutorialToast、原生支持forceHide的SystemToast，以及适用版本的NowPlayingToast/FriendToast；仅true | 原生单向隐藏，不创建/复活通知、不作为自然完成；NowPlaying结束本地显示更新但不停止音乐；Forge 1.20.1的SystemToast明确不支持 |
 | ui.canvas.pan.set | 当前原生首次居中后的选中AdvancementTab；完整有限{x,y} | 绝对GUI偏移，按debugPanRange限制可动轴、保留固定轴原生值；只调用本地scroll，不发送输入或解锁进度 |
+| ui.list.selection.set | 原生聊天建议列表及旁观菜单的有效非负索引；expectedValue可为原生初始-1 | 只改变本地选择/高亮，不使用建议、提交聊天、激活旁观条目或传送；旁观同索引为无副作用no-op，owner/页/内容改变拒绝旧token |
+| ui.hud.title.times.set | 完整{fadeInTicks,stayTicks,fadeOutTicks}，各0～12000整数tick | 设置本地原生标题三段时长，不以每tick倒计时使token失效；完整原生旧值用于前置比较，不承诺恢复已过去的时间 |
+| ui.hud.title.clear | 标题/副标题完整组；仅true | 调用本地clearTitles同时清除两段，组owner及完整内容版本严格复验；不以空字符串替代清除，不承诺逆转已结束生命周期 |
 
 版本/值条件在实际修改前复验；取消、过期节点、Screen/布局变化、错误Arm或不适用类型均不得静默转成其他操作。
 原生文本token按完整UTF-16内容采样，公开value仍有2048字符边界；不同尾段或孤立代理单元不得复用同一修改条件。
@@ -115,7 +125,8 @@ HUD字段位于presentation.children，nodeId为hud.title/hud.subtitle/hud.actio
 sideEffects=native_hud_plain_text_and_lifetime：设置纯文字可能重置原生命期/颜色动画，恢复文字不等于恢复旧富文本或计时。
 隐藏或过期消息不进入USER；DEBUG保留当前本地字段，未知或预算不足拒绝修改，不借世界内部数据补值。
 书本/告示牌已接入上述文本合同；HUD/Toast与自绘交互区域不能因不是AbstractWidget就标成“原生只读/不适用”。
-剩余呈现字段与合法typed目录仍未完成，应保持M-03未收口；通用五类setter通过不能代替这些分支。
+03c目录已接入建议/旁观选择、玩家列表文字、标题生命周期及适用Toast等本地typed分支；各端实现、消费者和冻结候选验收状态统一见[状态页](../project/status-milestones.md)。
+专项结果不能替代整组同候选证据，也不能代替真人协作或视觉验收；本页不另行维护M-03阶段或运行进度。
 槽位真实物品属于世界/菜单资源，使用独立世界授权的 typed inventory/menu 合同，不能用 UI session Arm 修改物品或借客户端虚拟槽号写服务器槽。
 未知节点继续明确拒绝，不通过反射、任意方法或任意NBT来填空。
 
@@ -128,6 +139,7 @@ sideEffects=native_hud_plain_text_and_lifetime：设置纯文字可能重置原�
 | --- | --- | --- |
 | SystemToast | 五端均有reset(Component, Component)；旧两端和26.1.2保留title Component及格式化messageLines，26.3两端标题也只剩titleLines，并有recalculateWidth | ui.toast.reset显式替换两段；版本绑定实际manager/驻留实例/Toast、完整样式与文字、布局/屏幕和原生重置状态，不以列表下标冒充身份；不用自然动画时钟使每次请求失效 |
 | TutorialToast | 五端均有updateProgress(float)和hide；旧两端保留原始title/message，26.x改为格式化lines并有平滑进度 | progressable前置条件、有限值和实际进度/隐藏状态绑定版本；hide不可逆，不修改教学世界事实；旧对象消失或替换必须重新发现 |
+| NowPlayingToast / FriendToast | NowPlaying适用于26.1.2及26.3，Friend仅26.3；按各端真实驻留owner接线 | ui.toast.hide只改变本地通知显示；NowPlaying先结束显示更新再请求隐藏，Friend调用原生hide，不调用音乐或账号服务 |
 
 SystemToast的forceHide在1.20.1构件不存在，其余四端存在；不借其他版本方法名推断跨端支持。
 进度、文字重设与隐藏是不同原生副作用，不用任意setter兜底；完整编码超预算拒绝，未知/排队类型仍不提供修改入口。
@@ -141,7 +153,7 @@ debugPanValue/debugPanRange只在DEBUG图中描述实际值、轴是否可动及
 初次绘制尚未完成时拒绝可执行版本，不手动更改centered；切页、Tab替换、图边界或GUI变化都使旧token失效。
 ui-debug-advancement专项验证固定轴、可平移/恢复、旧值/版本/Screen拒绝及真实MCP和网页USER隔离，不取得玩家Lease或发送输入。
 仅恢复本次回执确认的改值和token，外部未知变化或响应丢失时保留现场并报告，不猜测恢复。
-该分支不代表建议弹层、旁观菜单和全部HUD/Toast目录已完成，M-03继续按状态页逐项关闭。
+该平移分支不代替建议弹层、旁观菜单及HUD/Toast各自的typed验证；各分支当次验收以[状态页](../project/status-milestones.md)为准，不从单项通过推定整组或人工验收通过。
 
 ## HUD / Toast 必需目录
 
@@ -149,28 +161,29 @@ ui-debug-advancement专项验证固定轴、可平移/恢复、旧值/版本/Scr
 按各 Target 当前构建构件的类与方法清点：1.20.1/1.21.1/26.1.2 的主类为 `Gui`，26.3 两端为 `Hud`；
 26.1.2 的上下文条类以 `Renderer` 结尾，26.3 为 `ExperienceBar`、`JumpableVehicleBar`、`LocatorBar`。
 原生方法/类只证明该端有此家族；新的实现仍须从实际绘制阶段采样，USER 不得发布隐藏、排队、过期或未实际呈现的内部值。
+下表描述实现机制及验收边界；各端实际运行、冻结矩阵与人工验收状态统一见[状态页](../project/status-milestones.md)。
 
-| 家族 | 必需独立行为 | 当前缺口 |
+| 家族 | 必需独立行为 | 验收边界 |
 | --- | --- | --- |
-| H-01 标题与消息 | 标题、副标题、动作栏的当前文字、显隐与生命周期 | 已有代表流程；不能据此覆盖聊天和其他 HUD 文字 |
-| H-02 物品栏呈现 | 热栏/副手、选中格、物品数量、实际显示的耐久/冷却和选中名称/提示 | 已有图标/数量/选中；耐久/冷却/选中提示及 tooltip 未形成完整呈现目录 |
-| H-03 生命状态图标 | 普通/特殊心形、吸收/闪烁、护甲、饥饿、氧气、坐骑生命及显隐条件 | 原生绘制采样已五端适配，11项既有生命流程已五端实测；仍缺hardcore/frozen/blinking等适用分支的闭环，不暴露比图标更精细的内部数值；当前候选复验见状态页 |
-| H-04 上下文条 | 经验进度/等级、坐骑跳跃与其互斥切换、适用版本定位条 | 尚待实现/验证；前三端和新版的原生 API 不相同，不能按名称复制 Hook |
-| H-05 准星与画面覆盖 | 准星/攻击指示、瞄准镜、传送/受冻/睡眠等原生覆盖的当前类型与状态 | 尚待有界语义采样；不扩成 Render Geometry、Render Forensics 或任意纹理解析 |
-| H-06 Boss / 计分板 | 实际可见条目、名称、格式、进度、排序/截断与移除 | 代表进度与侧栏流程已存在；其余可见格式/分支不由它们推定通过 |
-| H-07 效果图标 | 原生行/顺序、透明度、闪烁、F1/菜单遮挡；不透出未显示等级/时长 | 已有原生绘制采样与代表流程；额外提示/遮挡仍须逐项核对 |
-| H-08 玩家列表 | 原生过滤/排序/上限、页眉页脚、显示名、延迟图标与计分/生命显示 | 当前仅名称与页眉页脚；多玩家和其余原生可见字段未完成，不能用 profile/精确 latency 填空 |
-| H-09 其他文字层 | 当前聊天、F3 调试文字、字幕、唱片/音乐、保存及适用的 Demo 提示 | 不由标题或世界读取替代；各端实际渲染源和场景仍待核对 |
-| H-10 Toast | 各原生类型实际绘制的文字/图标语义、进入/完全显示/退出、排队与过期边界 | 四种类型已有部分采样和场景；新增类型不是“未知类只返回身份”就算完成 |
+| H-01 标题与消息 | 标题、副标题、动作栏的当前文字、显隐与生命周期 | 按原生消息内容和显隐合同读取；本地typed文字/时长/清除不等于恢复已过去的生命周期，也不覆盖聊天等独立文字层 |
+| H-02 物品栏呈现 | 热栏/副手、选中格、物品数量、实际显示的耐久/冷却和选中名称/提示 | 装饰、冷却与tooltip来自实际原生draw及真实hover，不返回未显示的物品属性或内部耐久/冷却计数 |
+| H-03 生命状态图标 | 普通/特殊心形、吸收/闪烁、护甲、饥饿、氧气、坐骑生命及显隐条件 | 普通与hardcore/frozen/blinking等适用变体按原生素材、绘制颜色和提交顺序采样，不暴露更精细内部数值；创建Hardcore世界不代替死亡流程或视觉验收 |
+| H-04 上下文条 | 经验进度/等级、坐骑跳跃与其互斥切换、适用版本定位条 | 按各版本实际原生条/文字绘制及互斥条件采样，不从玩家内部经验或跳跃值补出隐藏条；定位条只在原生适用端提供 |
+| H-05 准星与画面覆盖 | 准星/攻击指示、瞄准镜、传送/受冻/睡眠等原生覆盖的当前类型与状态 | 有界记录原生几何、资源及透明度，并遵循该版本实际F1/Screen/Overlay条件；旧端恶心层保留其原生F1例外，不扩成任意纹理解析或最终像素识别 |
+| H-06 Boss / 计分板 | 实际可见条目、名称、格式、进度、排序/截断与移除 | 旧Forge使用实际atlas/UV，其余端使用原生sprite；背景/分段/前景保留提交顺序，空白数字格式不补回原始分数 |
+| H-07 效果图标 | 原生行/顺序、透明度、闪烁、F1/菜单遮挡；不透出未显示等级/时长 | 图标按实际绘制帧采样，透明/失效帧不进入USER；Inventory效果文字和hover提示依各自原生绘制入口，不从缓存推定可见 |
+| H-08 玩家列表 | 原生过滤/排序/上限、页眉页脚、显示名、延迟图标与计分/生命显示 | 独立80行绘制帧保留真实显示文字、ping素材和格式化分数/心形；不公开profile、精确latency或原始分数，本地packet夹具不证明真实多人网络 |
+| H-09 其他文字层 | 当前聊天、F3 调试文字、字幕、唱片/音乐、保存及适用的 Demo 提示 | 从各版本实际晚期文字入口采样；Forge的F3/Demo与动作栏走ForgeGui实际绘制，保存按原生适用性处理；无对应draw时不以后台缓存补值 |
+| H-10 Toast | 各原生类型实际绘制的文字/图标语义、进入/完全显示/退出、排队与过期边界 | 旧四类及适用NowPlaying/Friend使用实际驻留draw和有界上下文；部分呈现隐藏全文，排队未绘制不进USER，原生隐藏请求不冒充自然教学/业务完成 |
 
 Toast 与定位条的原生适用性如下；“无此原生类”是构件事实，不是对其他未执行流程的豁免。
 
 | 原生内容 | 1.20.1 Forge | 1.21.1 NeoForge | 26.1.2 NeoForge | 26.3 NeoForge | 26.3 Fabric |
 | --- | --- | --- | --- | --- | --- |
-| System / Tutorial / Advancement / Recipe Toast | 有 | 有 | 有 | 有 | 有 |
-| NowPlayingToast | 无此原生类 | 无此原生类 | 有，待覆盖 | 有，待覆盖 | 有，待覆盖 |
-| FriendToast | 无此原生类 | 无此原生类 | 无此原生类 | 有，待覆盖 | 有，待覆盖 |
-| LocatorBar / LocatorBarRenderer | 无此原生类 | 无此原生类 | 有，待覆盖 | 有，待覆盖 | 有，待覆盖 |
+| System / Tutorial / Advancement / Recipe Toast | 已接入 | 已接入 | 已接入 | 已接入 | 已接入 |
+| NowPlayingToast | 无此原生类 | 无此原生类 | 已接入 | 已接入 | 已接入 |
+| FriendToast | 无此原生类 | 无此原生类 | 无此原生类 | 已接入 | 已接入 |
+| LocatorBar / LocatorBarRenderer | 无此原生类 | 无此原生类 | 已接入 | 已接入 | 已接入 |
 
 这些事实来自当前 Target Facts 选定的实际 Minecraft/Loader 构件，不使用旧缓存版本代替。
 真实外部服务和账号流程与合成的原生呈现夹具分别标明；仅验证原生 Toast 文字不证明 Friends 服务或联机成功。
@@ -379,9 +392,9 @@ node components/companion/scripts/live-vanilla-ui.mjs
 继续完善 UI 时补清单中的自绘交互适配和实际场景；世界桥接复用既有 world.action 与 UI 输入，不另造菜单操作系统。
 正式 Persistent Write、统一人工 UX 和其他 Phase/Extension 不属于本轮。
 
-## 新合同待实现的验收增量
+## 当前合同的验收边界
 
-本节定义下一实现的要求，不表示现有工具已经运行或通过。
+本节列出当前合同的验收条件；已接入实现与已有专项证据不表示所有部署、冻结候选消费者或真人步骤均已通过。
 
 - READ、OPERATE、TAKEOVER下的USER/DEBUG tree、resolve、条件、Event、Recording与网页/MCP均保留类别权限，不用切模式取回读。
 - TAKEOVER内正常语义点击和独立DEBUG读/写分别记来源；OPERATE不得获取真人输入Lease或偷偷点击GUI。

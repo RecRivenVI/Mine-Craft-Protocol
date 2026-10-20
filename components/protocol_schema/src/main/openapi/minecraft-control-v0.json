@@ -6314,7 +6314,13 @@
               },
               "replacementInjectionCount": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "description": "Sum of actual registered operatorReplacementCount and passiveDrawDelegationCount. Not an input permission."
+              },
+              "operatorReplacementCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Actual registered operator-control replacement callbacks, including the host cursor shape argument guard where supported."
               },
               "passiveDrawDelegationCount": {
                 "type": "integer",
@@ -10799,7 +10805,7 @@
           },
           "ready": {
             "type": "boolean",
-            "description": "For screen conditions, require matching Screen, no overlay, positive viewport and one fresh active/visible selector target supporting readyAction in the same owner-thread snapshot. Does not reserve it for a future click. Selector is required when true."
+            "description": "Require no overlay and positive native/GUI viewport in one owner-thread snapshot. For an open Screen, selector is required and must identify a fresh active/visible target supporting readyAction. With explicit open:false, selector may be omitted: this checks uncovered HUD context, not loaded chunks, world readiness or framebuffer convergence. evidence.readiness explains each tested subcondition from the authorized projection; ASSERTION_FAILED/WAIT_TIMEOUT preserve the same bounded machine reasons. No target reservation."
           },
           "readyAction": {"type": "string", "maxLength": 32, "default": "click"},
           "open": {
@@ -12293,6 +12299,9 @@
               "ui.widget.visible.set",
               "ui.text.set",
               "ui.scroll.set",
+              "ui.list.selection.set",
+              "ui.hud.title.times.set",
+              "ui.hud.title.clear",
               "ui.canvas.pan.set",
               "ui.slider.set",
               "ui.toast.reset",
@@ -12323,6 +12332,9 @@
               },
               {
                 "$ref": "#/components/schemas/DebugCanvasPanValue"
+              },
+              {
+                "$ref": "#/components/schemas/DebugTitleTimesValue"
               }
             ]
           },
@@ -12342,11 +12354,34 @@
               },
               {
                 "$ref": "#/components/schemas/DebugCanvasPanValue"
+              },
+              {
+                "$ref": "#/components/schemas/DebugTitleTimesObserved"
               }
             ]
           }
         },
         "description": "OPERATE or TAKEOVER, debug + debug.write + debug.ui, session-bound UI Arm; typed widget/text/list/slider/canvas mutation, no input Lease or arbitrary callbacks. Value type must match operation. Native text resource versions bind the complete bounded UTF-16 content, not only the published 2048-character prefix. DEBUG text nodes report debugTextGuardAvailable; missing owner or exhausted encoding budget refuses mutation with UI_CONTENT_GUARD_UNAVAILABLE. Text expectedValue compares the complete native string, not its published prefix; this does not change USER input. ui.text.set rejects TestInstanceBlockEditScreen with UI_DEBUG_UNSUPPORTED before changing client text or invoking its management-packet responder. ui.text.set also supports local hud.title/hud.subtitle/hud.actionbar nodes under presentation.children with a UI session Arm, not a world Arm. The resource binds the actual HUD/world/Component identities and complete native styled content plus resolved UTF-16 text, excluding naturally ticking lifetime counters. It sets bounded plain text through native local HUD setters, never player/server input or world mutation; sideEffects=native_hud_plain_text_and_lifetime explicitly does not promise rich-formatting, color-animation or lifetime rollback. USER still excludes hidden/expired messages. ui.scroll.set uses native pixel bounds for AbstractSelectionList; the creative/loom/stonecutter/merchant.scrollbar.track controls use normalized [0,1] local display offsets (only zero when disabled), synchronizing the native row or visible items without selecting a recipe/trade, acquiring items or dispatching player/server input. ui.slider.set requires a finite normalized number in [0,1], invokes the native setter and its setting callback (which may change/persist client settings), and updates the displayed label; it is not player input."
+      },
+      "DebugTitleTimesValue": {
+        "type":"object","additionalProperties":false,
+        "required":["fadeInTicks","stayTicks","fadeOutTicks"],
+        "properties":{
+          "fadeInTicks":{"type":"integer","minimum":0,"maximum":12000},
+          "stayTicks":{"type":"integer","minimum":0,"maximum":12000},
+          "fadeOutTicks":{"type":"integer","minimum":0,"maximum":12000}
+        },
+        "description":"DEBUG-only native title timing. The actual HUD/world, complete title/subtitle content and native setter generation are guarded; ordinary countdown is not a revision. Setting times resets the native remaining lifetime, not the game world. ui.hud.title.clear accepts only true and clears native title/subtitle locally; neither action dispatches player input or grants authority."
+      },
+      "DebugTitleTimesObserved": {
+        "type":"object","additionalProperties":false,
+        "required":["fadeInTicks","stayTicks","fadeOutTicks"],
+        "properties":{
+          "fadeInTicks":{"type":"integer","minimum":0,"maximum":2147483647},
+          "stayTicks":{"type":"integer","minimum":0,"maximum":2147483647},
+          "fadeOutTicks":{"type":"integer","minimum":0,"maximum":2147483647}
+        },
+        "description":"Exact observed native timing used only as an optional precondition; it is not restricted to the smaller new-write policy."
       },
       "DebugCanvasPanValue": {
         "type":"object",
@@ -13191,6 +13226,23 @@
           "cost": {"type": "integer", "enum": [1]}
         }
       },
+      "UiReadiness": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "ready", "checks", "failures"],
+        "properties": {
+          "kind": {"type":"string","enum":["screen","hud"]},
+          "ready": {"type":"boolean"},
+          "checks": {"type":"object","additionalProperties":false,"properties":{
+            "screen":{"type":"boolean"},"overlay":{"type":"boolean"},"viewport":{"type":"boolean"},
+            "selector":{"type":"boolean"},"active":{"type":"boolean"},"visible":{"type":"boolean"},
+            "action":{"type":"boolean"},"bounds":{"type":"boolean"}}},
+          "failures":{"type":"array","maxItems":8,"items":{"type":"string","enum":[
+            "SCREEN_NOT_READY","OVERLAY_PRESENT","VIEWPORT_UNAVAILABLE","TARGET_NOT_FOUND_OR_NOT_VISIBLE",
+            "TARGET_AMBIGUOUS","TARGET_INACTIVE","TARGET_NOT_VISIBLE","ACTION_UNSUPPORTED","TARGET_BOUNDS_UNAVAILABLE"]}}
+        },
+        "description":"Machine-only diagnosis from the authorized UI projection. No hidden matches, target labels, tokens or input authority. Missing target means absent or not USER-visible, not proof that hidden content exists."
+      },
       "ErrorResponse": {
         "type": "object",
         "required": [
@@ -13204,6 +13256,7 @@
           "actualRevision": {"type": "integer", "format": "int64", "minimum": 0, "description": "Only for authorized STALE_RESOURCE_REVISION with the same resource identity. Not a token or permission; reinspect instead of blindly retrying."},
           "reinspectRequired": {"type": "boolean"},
           "actualHit": {"$ref": "#/components/schemas/WorldActualHit"},
+          "readiness": {"$ref": "#/components/schemas/UiReadiness"},
           "error": {
             "type": "string"
           },

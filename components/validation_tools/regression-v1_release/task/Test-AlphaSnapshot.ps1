@@ -129,6 +129,16 @@ try{
     try{Run-Publisher|Out-Null}catch{$missingWorldRejected=$_.Exception.Message.Contains('require new installed-world Runtime proof')}
     Require $missingWorldRejected 'a dependency profile cannot publish the title-only installed proof'
     Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$latestBefore) 'missing dependency world proof must not change latest'
+    $eui=$candidateJson|ConvertFrom-Json
+    $eui.publicationProfile='e_ui_trial_v1'
+    $eui.nativeSmokeScope='e-ui-affected'
+    $eui.fullNativeSmoke=$false
+    $eui|Add-Member -NotePropertyName runtimeAcceptance -NotePropertyValue 'E_UI_affected_groups_and_installed_world_smoke' -Force
+    Write-Text (Join-Path $repo 'build/alpha-manifest.json') ($eui|ConvertTo-Json -Depth 100)
+    $missingUiWorldRejected=$false
+    try{Run-Publisher|Out-Null}catch{$missingUiWorldRejected=$_.Exception.Message.Contains('require new installed-world Runtime proof')}
+    Require $missingUiWorldRejected 'an E UI profile cannot relabel title-only installed proofs as entered-world proofs'
+    Require ((Get-Content (Join-Path $output 'latest.txt') -Raw).Trim()-eq$latestBefore) 'missing E UI world proof must not change latest'
     Write-Text (Join-Path $repo 'build/alpha-manifest.json') $candidateJson
     $pin=Run-Publisher 'Pin' $first.directory 'voxy'
     Require $pin.inUse 'explicit use protects the old snapshot even after source changes'

@@ -4,14 +4,16 @@ param(
     [Parameter(Mandatory,ParameterSetName='Batch')][switch]$All,
     [ValidateRange(0,65535)][int]$RuntimePort=0,
     [string]$BatchId,
-    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement')][string]$Scenario='all',
+    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list','hud-hardcore','hud-demo')][string]$Scenario='all',
+    [string]$CheckPrefix,
     [switch]$KeepClient,
     [switch]$DebugRead,
     [switch]$DebugUi,
     [switch]$CaptureBaseline
 )
 $ErrorActionPreference='Stop'
-if($Scenario-in@('ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement')-and-not$DebugUi){throw "$Scenario requires explicit -DebugUi authorization"}
+if($CheckPrefix-and($All-or$Scenario-eq'all')){throw 'Specific checks cannot stand in for complete scenario evidence'}
+if($Scenario-in@('ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list')-and-not$DebugUi){throw "$Scenario requires explicit -DebugUi authorization"}
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
 . (Join-Path $PSScriptRoot '../../InstanceProfiles.ps1')
@@ -148,7 +150,7 @@ function Start-Client {
     $options=Join-Path $client 'options.txt'
     $optionsText=if(Test-Path -LiteralPath $options){[IO.File]::ReadAllText($options)}else{''}
     [IO.File]::WriteAllText($options,(Get-InstanceProfileOptions $optionsText automatic),[Text.UTF8Encoding]::new($false))
-    $command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; & './gradlew.bat' ':version:$($Target):runValidationConformanceVanillaUiClient' '--offline' '--console=plain' '--init-script' 'components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle' '-PvanillaUiPort=$requestedRuntimePort'; exit `$LASTEXITCODE"
+    $command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; & './gradlew.bat' ':version:$($Target):runValidationConformanceVanillaUiClient' '--offline' '--console=plain' '--init-script' 'components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle' '-PvanillaUiPort=$requestedRuntimePort' '-PvanillaUiScenario=$Scenario'; exit `$LASTEXITCODE"
     if($DebugUi){$command="`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,fixture,debug,debug.ui.read,debug.world.read,debug.write,debug.ui'; "+$command}
     elseif($DebugRead){$command="`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,debug,debug.ui.read'; "+$command}
     $p=Start-Process -FilePath 'pwsh' -ArgumentList @('-NoProfile','-Command',$command) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'launch-out.log') -RedirectStandardError (Join-Path $root 'launch-error.log')
@@ -164,6 +166,7 @@ function Start-Client {
 function Run-Scenario($phase,[switch]$Keep) {
     $args=@($nodeScript,"--target=$Target","--phase=$phase","--port=$RuntimePort")
     if($phase-eq'test'){$args+="--scenario=$Scenario"}
+    if($phase-eq'test'-and$CheckPrefix){$args+="--check-prefix=$CheckPrefix"}
     if($Keep){$args+='--keep-client=true'}
     & node @args
     if($LASTEXITCODE-ne0){throw "UI scenario failed: $phase"}
@@ -184,7 +187,9 @@ try{
     $jcmd=Join-Path (Split-Path $java.ExecutablePath) 'jcmd.exe'
     $flags=& $jcmd $java.ProcessId VM.flags 2>&1|Out-String
     if($LASTEXITCODE-ne0-or$flags-notmatch '(?:^|\s)-XX:MaxHeapSize=4294967296(?:\s|$)'){throw 'Actual client maximum heap is not 4 GiB'}
-    $attestation=@{target=$Target;port=$RuntimePort;processId=$java.ProcessId;maximumHeapBytes=4294967296;batchId=$BatchId;titleReadyAt=[DateTime]::UtcNow.ToString('o')}
+    $demoArguments=@([regex]::Matches($java.CommandLine,'(?:^|\s)--demo(?=\s|$)')|ForEach-Object{'--demo'})
+    if($Scenario-eq'hud-demo'-and$demoArguments.Count-ne1){throw 'The actual owned Java invocation did not receive --demo exactly once'}
+    $attestation=@{target=$Target;port=$RuntimePort;processId=$java.ProcessId;maximumHeapBytes=4294967296;batchId=$BatchId;titleReadyAt=[DateTime]::UtcNow.ToString('o');validationOwned=$true;instanceDirectory=$client;gameArguments=$demoArguments;argumentCoverage='actual_java_command_line_demo_flag_only'}
     [IO.File]::WriteAllText((Join-Path $root 'launch-attestation.json'),($attestation|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
     if($BatchId){
         $deadline=[DateTime]::UtcNow.AddMinutes(10)

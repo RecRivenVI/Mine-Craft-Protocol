@@ -148,7 +148,10 @@ association=temporal_not_guaranteed明确可能混入无关消息或漏掉延迟
 
 Wait/Assert的screen条件可带ready=true及selector，组合匹配Screen、无overlay、正窗口尺寸及新鲜可见/启用的单一目标。
 readyAction默认click，必须存在于该目标公开actions；多目标要显式nth。结果evidence.pageReady描述这一次owner-thread快照，
-不是将来点击的保留许可或最终画面收敛。缺selector为INVALID_CONDITION，旧screen条件未带ready时只判断Screen，不隐式改变合同。
+不是将来点击的保留许可或最终画面收敛。除显式open=false的HUD上下文外，缺selector为INVALID_CONDITION；旧screen条件未带ready时只判断Screen，不隐式改变合同。
+无Screen时可用type=screen、open=false、ready=true等待无遮挡HUD上下文，不必编造可点击selector；仍要求正窗口/GUI尺寸、无overlay及当前screenRevision，不证明世界/区块已加载或像素收敛。
+evidence.readiness提供kind、ready、checks及有限failures；ASSERTION_FAILED与WAIT_TIMEOUT错误保留同样结构，Pipeline错误位于errorDetails.readiness，MCP同步保留。
+检查区分Screen、overlay、viewport、selector、visible、active、action和bounds；只使用已授权树，不透露隐藏USER节点的存在、数量、文字或令牌。
 block条件现有available=true表示目标块已经可读；可再加blockId验证具体内容。不加载区块、不把不可用状态当成air。
 
 USER自身玩家响应包含客户端gameMode、onGround与abilities.flying；flying不是mayfly权限。
@@ -290,7 +293,8 @@ Wait/Assert 在异步发布前复查权限/模式，结果标记 domain=UI 与 d
 旧 wait/screen 仅等待 session.screenClass 并返回会话状态，不返回 UI 树，继续按 read scope 使用；
 不能把这条状态等待接口当作语义 UI 条件或 DEBUG 树读取。
 UI DEBUG mutation 复用 debug/arm、debug/mutations 和 bounded batch，当前仅支持
-ui.widget.active.set、ui.widget.visible.set、ui.text.set、ui.scroll.set、ui.slider.set、ui.toast.reset、ui.toast.hide、ui.canvas.pan.set。
+ui.widget.active.set、ui.widget.visible.set、ui.text.set、ui.scroll.set、ui.slider.set、ui.toast.reset、ui.toast.hide、ui.canvas.pan.set、
+ui.list.selection.set、ui.hud.title.times.set与ui.hud.title.clear。
 ui.canvas.pan.set只针对当前已完成原生首次居中的真实选中进度Tab，以完整有限{x,y}设置绝对原生GUI偏移；
 DEBUG的debugPanValue/debugPanRange标明轴范围，不可移动轴须保留原生居中值，不可把正偏移强制归零。
 版本同时绑定真实Tab/Screen/内容边界、当前偏移、GUI布局和原生范围；未就绪不发可用token，失效不调用原生scroll。
@@ -318,6 +322,11 @@ ui.text.set也接受presentation.children中的hud.title/hud.subtitle/hud.action
 这些字段仅调用本地原生纯文字消息setter，inputDispatchCount=0、CLIENT_UI/DEBUG_PRIVILEGED，不改变服务器/世界状态。
 sideEffects=native_hud_plain_text_and_lifetime明确纯文字会替代富文本，原生setter可重置生命周期/颜色动画，不承诺格式或计时回滚。
 自然计时不作为文字内容版本；隐藏/过期字段仅在DEBUG捕获，USER仍按实际呈现过滤，未运行或内容编码预算不足时拒绝。
+ui.hud.title.times.set接受完整{fadeInTicks,stayTicks,fadeOutTicks}，各值为0～12000整数，使用原生标题时间设置并重新计算剩余生命周期。
+ui.hud.title.clear只接受true，清除本地标题/副标题组，不伪造单字段恢复。标题组版本绑定真实HUD/世界、完整标题/副标题内容及原生setter代次，而非普通倒计时。
+ui.list.selection.set当前只针对原生旁观菜单的合法已有索引；只改变本地高亮、不激活目标或发送输入，同索引是严格no-op，原生owner/目录或选择变化使旧条件失效。
+玩家列表页眉/页脚也可用ui.text.set修改本地纯文字，保留独立Arm/版本与零输入语义；不改远端玩家、服务器计分板或名单。
+USER的hud_text只保留实际呈现label，不带这些字段的完整DEBUG编辑value；普通可见编辑框的用户草稿value不因此移除。
 Toast操作只接受当前manager内驻留的SystemToast/TutorialToast，不允许排队对象、任意类型或创建通知。
 ui.toast.reset要求value={title:string,message:string}，两段各最多4096字符，显式重置SystemToast的两段纯文字；
 sideEffects=native_toast_plain_text_reflow_and_lifetime，不承诺恢复格式/计时。expectedValue可比较完整原生两段解析文字，不接受截断前缀冒充相等。
@@ -333,12 +342,16 @@ CUSTOM_UI_CALLBACK、未决效果在原生最终发送前拒绝（PLAYER_COMMAND
 不因minecraft命名空间就信任其服务器效果。这个拒绝不替代普通run_command链接已有的命令分类。
 presentation为USER提供有界只读HUD/Toast内容；过滤隐藏项与queuedToastCount，DEBUG另提供批准的本地typed字段与受限内部状态。
 标题/副标题/动作栏、物品热栏/副手、Boss 栏、侧边计分板、状态效果图标和 System/Tutorial/Advancement Toast 已接入。
-presentation.children 上限为 471；热栏最多 10 项、Boss 栏最多 32 项且遵循原版视口上限，
+presentation.children按原生家族分别限额，不承诺各版本的总节点数相同；热栏最多10项、Boss栏最多32项且遵循原版视口上限，
 计分板最多 15 行加标题，标题文字最多 3 项，Toast 最多 8 项，效果图标最多 64 项。
+System/Tutorial/Advancement/Recipe的有效原生绘制节点提供不透明contextKey，仅标识当前通知实例，不是账号、资源版本或授权凭据；队列换槽不改变它。
+renderPhase区分entering、fully_shown与exiting，边界来自实际绘制矩阵并裁切到视口；部分进出画面时label为空、textPhase=withheld_partial_or_occluded。
+完全显示后保留原生static/header/title/header_and_title等文字阶段；过期、上下文替换、未绘制或排队中的通知不向USER补出文字或身份。
 玩家列表最多 80 个原生显示名加页眉/页脚，controlKey 前缀为 hud.playerlist；它们没有输入 actions。
-玩家列表沿用 Vanilla 的 listed-player 筛选、排序与 getNameForDisplay，不另返回 profile、UUID、
-精确延迟、皮肤或计分数值/心形。USER 还要求列表当前实际展开；不把按住 Tab 等同于原版一定绘制列表。
-页眉/页脚与多人排序/80 人边界已有读取适配，当前单人自动矩阵未独立构造这些服务端数据。
+玩家列表沿用 Vanilla 的 listed-player 筛选、排序与 getNameForDisplay，不另返回 profile、UUID、精确延迟、皮肤或后台计分值。
+接入实际绘制采样的Target可返回屏上格式化分数/心形与ping图标的实际draw parts，而非从原始score/latency换算；旧图集版本保留真实atlas/UV，不伪造新版sprite。
+USER还要求列表当前实际展开；不把按住Tab等同于原版一定绘制列表。部分裁切文字仅返回空label及对应阶段，不用DEBUG全文补齐。
+参考端的80行边界、页眉页脚与排序采用明确标记的本地client packet夹具验证；这不证明真实多人网络，五端适用性与当次实测见状态页。
 状态图标 role=status_icon，effect 为图标所代表的效果身份；不发布界面未显示的等级、时长或隐藏效果。
 按原版倒序与增益/减益两行定位；图标从原生绘制参数读取 opacity，iconSource 为
 last_native_effect_icon_draw，renderPhase 为 drawn、transparent 或 unobserved。
@@ -350,7 +363,8 @@ iconSource=last_completed_native_hud_draw，resourceId为实际原生纹理身�
 valueSemantics=ordered_native_glyph_composition_not_raw_statistics。样本绑定世界、摄像主体、Screen及GUI尺寸，250ms过期。
 hudIconSampleStatus区分CURRENT、UNOBSERVED、STALE、CONTEXT_CHANGED、BUDGET_EXCEEDED与OCCLUDED；
 不完整、超预算或被普通Screen/Overlay遮挡的样本不进入USER。此为原生绘制参数观察，不保证第三方最终像素遮挡。
-Hook manifest单独公开passiveDrawDelegationCount=5，同时计入replacementInjectionCount；它不是玩家输入许可。
+Hook manifest以passiveDrawDelegationCount公开逐Target实际注册的原生绘制委托数，以operatorReplacementCount公开控制替换数；replacementInjectionCount为二者之和。
+各项由生产Mixin配置、真实原生descriptor及逐Target字节码测试交叉验证，不固定为跨版本相同数字；被动绘制委托不是玩家输入许可。
 26.x的host_cursor_shape_guard按MIXIN_MODIFY_VARIABLE公开，单独计入replacementInjectionCount，不增加cancellableInjectionCount；
 TAKEOVER仅归一宿主光标形状为默认箭头，不改变虚拟指针、输入坐标或捕获规则。HookDescriptor.mechanism增加此枚举值，V0消费者须更新枚举处理，不把新Hook视作未知授权。
 HookDescriptor.failureCapability是受影响功能的诊断标签，不是capabilities表的外键或授权scope；判断支持情况、当前就绪状态和调用权限时，分别使用能力声明、readiness及操作本身的准入结果。
@@ -362,6 +376,16 @@ HookDescriptor.failureCapability是受影响功能的诊断标签，不是capabi
 计分板遵循队伍专用侧栏、隐藏行与原版裁剪，label 使用实际数字格式，不额外暴露被 blank 格式隐藏的分数。
 有 Screen、Overlay 或 F1 隐藏 HUD 时，USER 保守不返回 HUD；DEBUG 仍可读有界捕获状态。
 其余 HUD、第三方渲染覆盖与所有界面组合仍未完成。
+
+物品名称、耐久/冷却与经验/跳跃等新增节点来自实际完成的原生绘制，不返回隐藏物品统计或原始经验/蓄力。
+新版纹理使用真实resourceId；旧Forge GUI atlas使用textureId、textureU/textureV、atlasWidth/atlasHeight及spriteRegion，
+spriteSemantics为native_gui_icons_atlas_region，不编造新版sprite身份。两种表示均只对应已绘制区域。
+普通HUD、晚期GUI文字与Toast各自绑定当前原生帧/上下文；Inventory效果文字、tooltip、聊天和F3的实际绘制不由HUD可见性推定。
+晚期文字使用裁剪后的实际边界；部分遮挡时不返回完整文字，Overlay、上下文变化、过期或预算不足不回退私有内容。
+
+语义hover固定目标身份、界面与几何，但允许其原生悬停高亮selected随移动改变；这是hover的结果，不是后续点击许可。
+click/activate等仍校验selected及既有全部前置条件。禁用点击在移动/按键前拒绝；失败后的安全release_all仍执行，
+即使held=0也会占用一个inputDispatchSequence，因此不能把该计数直接等同于鼠标点击次数。
 
 无 Screen 的旁观者菜单使用 `uiInputContext=spectator/spectator_menu` 与 `spectatorContextKey`。
 关闭时的 `spectator.open` 只提供 `open`，走原生中键；打开后 `spectator.slot.<0..8>`

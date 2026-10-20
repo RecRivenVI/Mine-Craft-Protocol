@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {resolve} from 'node:path';
 import {commandConfigurationProof} from './alpha-evidence.mjs';
 
 function fixture(){
@@ -23,4 +25,11 @@ test('alpha admits command configuration only as scoped development proof, inclu
 test('alpha refuses wrong target, falsely clean/complete results, executed generation, stale reads and missing consumers',()=>{
   const mutations=[r=>r.target='26.3-fabric',r=>r.fullWorldMilestone=true,r=>r.fullSmoke=true,r=>r.cleanShutdown=false,r=>r.sourceChangedDuringRun=true,r=>r.maximumHeapBytes=8589934592,r=>r.persistentWriteCalls=1,r=>r.actionSamples[3].result.result.partial=false,r=>r.actionSamples[3].result.result.commandSubmissions=[],r=>r.actionSamples[3].after.jigsawGenerationPackets++,r=>r.actionSamples[2].after.jigsawConfigurationPackets=0,r=>r.actionSamples[2].after.storedJigsawFinalStateHash='0'.repeat(64),r=>r.actionSamples[2].after.attemptId=r.actionSamples[2].initial.attemptId,r=>r.actionSamples.find(s=>s.case==='jigsaw_rejected').after.jigsawConfigurationPackets++,r=>r.actionSamples.at(-1).checked.configurationSubmissionEvents=5,r=>r.consumerChecks.pop(),r=>r.consumerChecks[0].inputUnchanged=false,r=>r.consumerChecks[0].operationId='another operation',r=>r.actionSamples[4].result.result.commandSubmissions[0].configurationPayloadType='COMMAND',r=>r.actionSamples[5].after.storedStructureSize='0,0,0',r=>r.actionSamples[5].after.structureScanPackets=0,r=>r.actionSamples.find(s=>s.case==='structure_rejected').after.structureSavePackets++,r=>r.actionSamples.find(s=>s.kind==='STRUCTURE_LOAD').after.storedStructureNameHash='wrong',r=>r.actionSamples[4].after.structureLoadPackets++];
   for(const mutate of mutations){const value=fixture();mutate(value);assert.throws(()=>commandConfigurationProof(value,'26.3-neoforge'));}
+});
+
+test('E UI generator rejects a missing historical baseline or another profile scope before reading artifacts',()=>{
+ const script=resolve(import.meta.dirname,'write-alpha-manifest.mjs');
+ for(const args of [['--profile=e_ui_trial_v1'],['--profile=e_ui_trial_v1','--scenario=full','--historical-baseline=unused'],['--profile=e_ui_trial_v1','--historical-baseline=unused','--dependency-baseline=unused'],['--profile=dependency_update_trial_v1','--historical-baseline=unused','--dependency-baseline=unused']]){
+  const result=spawnSync(process.execPath,[script,...args],{encoding:'utf8'});assert.notEqual(result.status,0);assert.match(result.stderr,/matching scope and baseline/);
+ }
 });

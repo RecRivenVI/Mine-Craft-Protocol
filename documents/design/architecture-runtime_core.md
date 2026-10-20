@@ -16,6 +16,8 @@ Companion 按明确实例目录发现并固定身份；重启后必须明确重�
 组件包含 Provider SPI 与注册表、HTTP/WebSocket 传输、认证预算、Control Lease/Debug Arm 与操作状态、
 Pipeline/Wait/Assert、观察与资源版本、Provider 执行、录制和 Artifact，以及内置诊断 Provider。
 共享执行器通过 `ProbeService` 调用 Target 原生适配器；游戏、渲染与服务端线程调度留在各 Target。
+UiToastDraw只持有原生适配器提交的有界数值/文字绘制样本及完成帧，不持有Minecraft对象；各Target负责真实Toast绘制入口与上下文身份。
+该纯Java采样同样使用core包，不在产品组件中复制Target的probe.runtime包；原生类型和绘制API不因此共享。
 
 PlayerCommandPolicy 只分类 Target 从实际原生树捕获的有限命令路径；不执行 Minecraft 命令或持有命令树。
 PlayerCommandGate 在方法入口和最终包边界复验权限、控制世代、Lease 与 Operation 的短期 InputDispatchContext 许可。

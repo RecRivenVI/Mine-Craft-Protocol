@@ -4,6 +4,9 @@ import { resolve, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { worldReadConsumers, commandOperationConsumer } from './world-read-consumers.mjs';
+import { firstCameraActions } from './first-camera-actions.mjs';
+import { blockEntitySelectorActions } from './block-entity-selector-actions.mjs';
+import { commandCollaborationActions } from './command-collaboration-actions.mjs';
 import { worldHeldActions } from './world-held-actions.mjs';
 import { worldMovementActions } from './world-movement-actions.mjs';
 import { worldBlockStateActions } from './world-block-state-actions.mjs';
@@ -58,7 +61,7 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','command-collaboration'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
@@ -116,7 +119,7 @@ async function acquire() {
   renew=setInterval(()=>{void api('POST','/v0/control/renew',{ttlMs:60000}).catch(()=>{});},20000);
 }
 async function release() { clearInterval(renew); await api('POST','/v0/control/release'); lease=undefined; }
-async function mode(value) { const current=await api('GET','/v0/control/mode'); await api('POST','/v0/control/mode',{mode:value,expectedModeVersion:current.modeVersion}); }
+async function mode(value) { const current=await api('GET','/v0/control/mode'); await api('POST','/v0/control/mode',{mode:value,expectedModeVersion:current.modeVersion}); if(value!=='TAKEOVER'){clearInterval(renew);lease=undefined;} }
 async function shutdown() {
   if (!lease) await acquire();
   for(let i=0;i<10;i++) {
@@ -146,6 +149,14 @@ async function shutdown() {
 if(args['shutdown-only']==='true'){await shutdown();process.exit(0);}
 async function sources() {
   const hashes={};
+  if(['first-camera','block-entity-selector','command-collaboration'].includes(scenario)) {
+    const path=`components/validation_tools/conformance-world_read/task/${scenario}-actions.mjs`;
+    hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
+  }
+  if(scenario==='command-collaboration') {
+    const path='components/validation_tools/conformance-world_read/task/command-collaboration.init.gradle';
+    hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
+  }
   for(const dir of [resolve(repo,'versions',target,'src'),resolve(repo,'components/runtime_safety/src/main'),resolve(repo,'components/runtime_core/src/main')]) {
     for(const entry of await readdir(dir,{recursive:true,withFileTypes:true})) if(entry.isFile()) {
       const path=resolve(entry.parentPath,entry.name);hashes[relative(repo,path).replaceAll('\\','/')]=createHash('sha256').update(await readFile(path)).digest('hex');
@@ -198,7 +209,13 @@ for(const path of ['components/protocol_schema/src/main/openapi/minecraft-contro
 const before=await sources();
 async function check(name, run) {await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}
 try {
-  if(scenario==='world-placement-receipts') {
+  if(scenario==='block-entity-selector') {
+    await blockEntitySelectorActions({api,connection,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,enterWorld:true});
+  } else if(scenario==='command-collaboration') {
+    await commandCollaborationActions({api,repo,instance,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='first-camera') {
+    await firstCameraActions({api,target,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='world-placement-receipts') {
     await worldPlacementReceiptsActions({api,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
   } else if(scenario==='region-stream') {
     await regionStreamActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});

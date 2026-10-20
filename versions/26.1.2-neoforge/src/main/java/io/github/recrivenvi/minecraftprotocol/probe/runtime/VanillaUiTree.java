@@ -22,9 +22,11 @@ final class VanillaUiTree {
     private final long screenRevision;
     private final ToLongFunction<Object> identity;
     private final Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final JsonArray recipeOverlays = new JsonArray();
     private int count;
     private boolean truncated;
     private Screen screen;
+    private VanillaInteractionRegions interactionRegions;
 
     VanillaUiTree(long screenRevision, ToLongFunction<Object> identity) {
         this.screenRevision = screenRevision;
@@ -33,6 +35,8 @@ final class VanillaUiTree {
 
     JsonArray capture(Screen screen, JsonObject root) {
         this.screen = screen;
+        interactionRegions = new VanillaInteractionRegions(screenRevision, identity);
+        JsonArray regions = interactionRegions.capture(screen);
         ScreenRectangle clip = new ScreenRectangle(0, 0, screen.width, screen.height);
         JsonArray children = captureChildren(screen.children(), clip);
         if (screen instanceof CreativeModeInventoryScreen creative) {
@@ -81,8 +85,7 @@ final class VanillaUiTree {
             children.add(value);
             count += added;
         }
-        VanillaInteractionRegions regions = new VanillaInteractionRegions(screenRevision, identity);
-        for (JsonElement value : regions.capture(screen)) {
+        for (JsonElement value : regions) {
             if (count >= 2048) {
                 truncated = true;
                 break;
@@ -90,7 +93,7 @@ final class VanillaUiTree {
             children.add(value);
             count++;
         }
-        truncated |= regions.truncated();
+        truncated |= interactionRegions.truncated();
         markOccluded(children);
         root.addProperty("treeNodeCount", count);
         root.addProperty("treeTruncated", truncated);
@@ -112,6 +115,7 @@ final class VanillaUiTree {
             JsonObject node = capture(child, clip, 0, true);
             if (node != null) children.add(node);
         }
+        children.addAll(recipeOverlays);
         return children;
     }
 
@@ -162,6 +166,20 @@ final class VanillaUiTree {
                             widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight());
             node.addProperty("hovered", widget.isHovered());
         }
+        if (child instanceof RecipeBookComponent<?> recipe) {
+            visible = recipe.isVisible();
+            if (visible) {
+                // Native drawing has a real background, but its inherited navigation rectangle is
+                // empty.
+                RecipeUiAccessor access = (RecipeUiAccessor) recipe;
+                rectangle =
+                        new ScreenRectangle(
+                                access.minecraftProtocolProbe$xOrigin(),
+                                access.minecraftProtocolProbe$yOrigin(),
+                                RecipeBookComponent.IMAGE_WIDTH,
+                                RecipeBookComponent.IMAGE_HEIGHT);
+            }
+        }
         if (child instanceof ObjectSelectionList.Entry<?> entry)
             label = entry.getNarration().getString();
         if (child instanceof ServerSelectionList.OnlineServerEntry server)
@@ -196,7 +214,22 @@ final class VanillaUiTree {
         if (child instanceof Checkbox checkbox) node.addProperty("selected", checkbox.selected());
         if (child instanceof TabButton tab) node.addProperty("selected", tab.isSelected());
         if (child instanceof RecipeBookTabButton tab) {
-            node.addProperty("label", tab.getCategory().toString());
+            var category = tab.getCategory();
+            String categoryLabel = "";
+            if (category
+                    instanceof net.minecraft.world.item.crafting.RecipeBookCategory registered) {
+                var categoryId = BuiltInRegistries.RECIPE_BOOK_CATEGORY.getKey(registered);
+                if (categoryId != null) {
+                    categoryLabel = categoryId.toString();
+                    node.addProperty("resourceId", categoryLabel);
+                }
+            } else if (category
+                    instanceof
+                    net.minecraft.client.gui.screens.recipebook.SearchRecipeBookCategory
+                            searchCategory) {
+                categoryLabel = searchCategory.name();
+            }
+            node.addProperty("label", categoryLabel);
             node.addProperty("role", "tab");
         }
         if (child instanceof RecipeButton button && button.visible) {
@@ -316,8 +349,12 @@ final class VanillaUiTree {
                 index++;
             }
         } else if (child instanceof ContainerEventHandler container) {
+            ScreenRectangle childClip =
+                    child instanceof AbstractScrollArea
+                            ? intersect(effectiveClip, rectangle)
+                            : effectiveClip;
             for (GuiEventListener next : container.children()) {
-                JsonObject descendant = capture(next, effectiveClip, depth + 1, active);
+                JsonObject descendant = capture(next, childClip, depth + 1, active);
                 if (descendant != null) nested.add(descendant);
             }
         }
@@ -337,10 +374,15 @@ final class VanillaUiTree {
                 controls.add(page.minecraftProtocolProbe$back());
             var overlay = page.minecraftProtocolProbe$overlay();
             if (overlay != null && overlay.isVisible())
-                rootRecipeOverlay(overlay, nested, effectiveClip, depth, active);
+                rootRecipeOverlay(overlay, recipeOverlays, effectiveClip, depth, active);
             for (GuiEventListener control : controls) {
                 JsonObject descendant = capture(control, effectiveClip, depth + 1, active);
-                if (descendant != null) nested.add(descendant);
+                if (descendant != null) {
+                    if (control instanceof RecipeBookTabButton tab)
+                        descendant.addProperty(
+                                "selected", access.minecraftProtocolProbe$selectedTab() == tab);
+                    nested.add(descendant);
+                }
             }
         }
         if (!nested.isEmpty()) node.add("children", nested);
@@ -357,6 +399,10 @@ final class VanillaUiTree {
                     node.getAsJsonArray("actions").add("scroll");
             }
         } else actions(node);
+        if (screen != null
+                && child instanceof AbstractStringWidget text
+                && node.get("visible").getAsBoolean()
+                && active) interactionRegions.textWidget(text, clip);
         if (screen != null)
             new RenderedUiAdapter(screenRevision, identity).annotate(screen, child, node);
         return node;

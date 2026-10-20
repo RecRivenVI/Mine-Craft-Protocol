@@ -52,13 +52,18 @@ const debugMutationBase = {
 const blockPropertiesSchema = z.record(z.string().regex(/^[a-z0-9_]{1,64}$/), z.string().regex(/^[a-z0-9_]{1,64}$/)).refine(value=>Object.keys(value).length<=64, 'At most 64 native properties');
 const toastTextSchema = z.strictObject({title:z.string().max(4096),message:z.string().max(4096)});
 const canvasPanSchema = z.strictObject({x:z.number().finite(),y:z.number().finite()});
+const titleTimesSchema = z.strictObject({fadeInTicks:z.number().int().min(0).max(12000),stayTicks:z.number().int().min(0).max(12000),fadeOutTicks:z.number().int().min(0).max(12000)});
+const observedTitleTimesSchema = z.strictObject({fadeInTicks:z.number().int().min(0).max(2147483647),stayTicks:z.number().int().min(0).max(2147483647),fadeOutTicks:z.number().int().min(0).max(2147483647)});
 const debugMutationSchema = z.discriminatedUnion('operation', [
+  z.object({operation:z.literal('ui.hud.title.times.set'),nodeId:z.string().min(1),expectedResourceVersion:resourceVersionSchema,value:titleTimesSchema,expectedValue:observedTitleTimesSchema.optional()}),
+  z.object({operation:z.literal('ui.hud.title.clear'),nodeId:z.string().min(1),expectedResourceVersion:resourceVersionSchema,value:z.literal(true),expectedValue:z.boolean().optional()}),
   z.object({operation:z.literal('ui.canvas.pan.set'),nodeId:z.string().min(1),expectedResourceVersion:resourceVersionSchema,value:canvasPanSchema,expectedValue:canvasPanSchema.optional()}),
   z.object({operation:z.literal('ui.toast.reset'),nodeId:z.string().min(1),expectedResourceVersion:resourceVersionSchema,value:toastTextSchema,expectedValue:toastTextSchema.optional()}),
   z.object({operation:z.literal('ui.toast.hide'),nodeId:z.string().min(1),expectedResourceVersion:resourceVersionSchema,value:z.literal(true),expectedValue:z.boolean().optional()}),
   z.object({ operation: z.enum(['ui.widget.active.set','ui.widget.visible.set']), nodeId:z.string().min(1), expectedResourceVersion:resourceVersionSchema, value:z.boolean(), expectedValue:z.boolean().optional() }),
   z.object({ operation: z.literal('ui.text.set'), nodeId:z.string().min(1), expectedResourceVersion:resourceVersionSchema, value:z.string().max(4096), expectedValue:z.string().optional() }),
   z.object({ operation: z.literal('ui.scroll.set'), nodeId:z.string().min(1), expectedResourceVersion:resourceVersionSchema, value:z.number().nonnegative(), expectedValue:z.number().optional() }),
+  z.object({ operation: z.literal('ui.list.selection.set'), nodeId:z.string().min(1), expectedResourceVersion:resourceVersionSchema, value:z.number().int().nonnegative(), expectedValue:z.number().int().min(-1).optional() }),
   z.object({ operation: z.literal('ui.slider.set'), nodeId:z.string().min(1), expectedResourceVersion:resourceVersionSchema, value:z.number().min(0).max(1), expectedValue:z.number().optional() }),
   z.object({ operation: z.literal('player.health.set'), ...debugMutationBase, health: z.number().min(0).max(2048), expectedHealth: z.number().optional() }),
   z.object({ operation: z.literal('player.attribute.set'), ...debugMutationBase, attributeId: z.literal('minecraft:max_health'), value: z.number().positive().max(2048), expectedValue: z.number().optional() }),

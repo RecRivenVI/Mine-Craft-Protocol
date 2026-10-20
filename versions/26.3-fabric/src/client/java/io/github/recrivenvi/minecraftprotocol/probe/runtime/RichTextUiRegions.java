@@ -17,14 +17,20 @@ final class RichTextUiRegions implements ActiveTextCollector {
 
     private final Font font;
     private final Consumer<Region> output;
+    private final ScreenRectangle outerClip;
     private Parameters parameters = new Parameters(new Matrix3x2f());
     private int glyphs;
     private Region pending;
     private final Map<Style, StringBuilder> labels = new HashMap<>();
 
     RichTextUiRegions(Font font, Consumer<Region> output) {
+        this(font, output, null);
+    }
+
+    RichTextUiRegions(Font font, Consumer<Region> output, ScreenRectangle outerClip) {
         this.font = font;
         this.output = output;
+        this.outerClip = outerClip;
     }
 
     public Parameters defaultParameters() {
@@ -90,17 +96,15 @@ final class RichTextUiRegions implements ActiveTextCollector {
                 t = Math.min(a.y, b.y),
                 r = Math.max(a.x, b.x),
                 d = Math.max(a.y, b.y);
-        ScreenRectangle clip = p.scissor();
-        if (clip != null) {
-            l = Math.max(l, clip.left());
-            t = Math.max(t, clip.top());
-            r = Math.min(r, clip.right());
-            d = Math.min(d, clip.bottom());
-        }
-        if (r <= l || d <= t) {
+        Region clipped = clip(clip(new Region(style, "", l, t, r, d), p.scissor()), outerClip);
+        if (clipped == null) {
             flush();
             return;
         }
+        l = clipped.left();
+        t = clipped.top();
+        r = clipped.right();
+        d = clipped.bottom();
         if (pending != null
                 && pending.style().equals(style)
                 && Math.abs(pending.right() - l) < 0.1
@@ -118,6 +122,23 @@ final class RichTextUiRegions implements ActiveTextCollector {
                             r,
                             d);
         }
+    }
+
+    static Region clip(Region region, ScreenRectangle clip) {
+        if (region == null) return null;
+        double left = region.left(),
+                top = region.top(),
+                right = region.right(),
+                bottom = region.bottom();
+        if (clip != null) {
+            left = Math.max(left, clip.left());
+            top = Math.max(top, clip.top());
+            right = Math.min(right, clip.right());
+            bottom = Math.min(bottom, clip.bottom());
+        }
+        return right <= left || bottom <= top
+                ? null
+                : new Region(region.style(), region.text(), left, top, right, bottom);
     }
 
     private void flush() {

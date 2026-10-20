@@ -32,6 +32,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -311,12 +312,69 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     static int formalChunkRadius(JsonObject request) {
         try {
-            return io.github.recrivenvi.minecraftprotocol.safety.DeepObservationSelector
-                    .chunkRadius(request);
+            int radius =
+                    io.github.recrivenvi.minecraftprotocol.safety.DeepObservationSelector
+                            .chunkRadius(request);
+            if (requestsBlockEntities(request)
+                    && request.has("selector")
+                    && request.getAsJsonObject("selector").has("blocks")) {
+                JsonElement blocks = request.getAsJsonObject("selector").get("blocks");
+                if (!blocks.isJsonArray())
+                    throw new IllegalArgumentException("selector.blocks must be an array");
+                List<BlockPos> positions = selectedBlockPositions(blocks.getAsJsonArray());
+                if (!positions.isEmpty()
+                        && request.has("perspective")
+                        && request.get("perspective").getAsString().equals("client_known"))
+                    throw new ProtocolState.ProtocolException(
+                            "UNSUPPORTED_DEEP_SELECTOR",
+                            400,
+                            "Client-known deep observation does not expose block entities; coordinate block-entity reads require server_authoritative or both");
+            }
+            return radius;
         } catch (IllegalArgumentException invalid) {
             throw new ProtocolState.ProtocolException(
                     "INVALID_DEEP_SELECTOR", 400, invalid.getMessage());
         }
+    }
+
+    private static boolean requestsBlockEntities(JsonObject request) {
+        if (!request.has("domains") || !request.get("domains").isJsonArray()) return true;
+        for (JsonElement domain : request.getAsJsonArray("domains"))
+            if (domain.isJsonPrimitive() && domain.getAsString().equals("block_entities"))
+                return true;
+        return false;
+    }
+
+    static List<BlockPos> selectedBlockPositions(JsonArray positions) {
+        if (positions.size() > MAX_SELECTED_BLOCKS)
+            throw new ProtocolState.ProtocolException(
+                    "PHASE9A_SELECTOR_TOO_LARGE",
+                    413,
+                    "selectedBlocks supports at most " + MAX_SELECTED_BLOCKS);
+        Set<BlockPos> selected = new LinkedHashSet<>();
+        try {
+            for (JsonElement element : positions) {
+                if (!element.isJsonObject()) throw new IllegalArgumentException();
+                JsonObject position = element.getAsJsonObject();
+                int[] coordinates = new int[3];
+                String[] axes = {"x", "y", "z"};
+                for (int index = 0; index < axes.length; index++) {
+                    JsonElement coordinate = position.get(axes[index]);
+                    if (coordinate == null
+                            || !coordinate.isJsonPrimitive()
+                            || !coordinate.getAsJsonPrimitive().isNumber())
+                        throw new IllegalArgumentException();
+                    coordinates[index] = coordinate.getAsBigDecimal().intValueExact();
+                }
+                selected.add(new BlockPos(coordinates[0], coordinates[1], coordinates[2]));
+            }
+        } catch (RuntimeException invalid) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_DEEP_SELECTOR",
+                    400,
+                    "Each selector.blocks position must contain exact integer x, y and z coordinates");
+        }
+        return List.copyOf(selected);
     }
 
     JsonObject captureFormal(MinecraftServer server, ServerPlayer player, JsonObject request) {
@@ -2118,54 +2176,70 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonArray blockEntities(ServerLevel level, JsonArray chunks, JsonObject selector) {
         JsonArray json = new JsonArray();
-        int count = 0;
         int serializedTotal = 0;
         int limit = selector.get("blockEntityLimit").getAsInt();
         boolean includeSerialized = selector.get("includeSerializedState").getAsBoolean();
         int perEntityBudget = selector.get("maxSerializedBytesPerBlockEntity").getAsInt();
         int totalBudget = selector.get("maxTotalSerializedBlockEntityBytes").getAsInt();
-        for (JsonElement element : chunks) {
-            JsonObject chunkValue = element.getAsJsonObject();
-            if (!chunkValue.get("loaded").getAsBoolean()) continue;
-            LevelChunk chunk =
-                    level.getChunkSource()
-                            .getChunkNow(
-                                    chunkValue.get("chunkX").getAsInt(),
-                                    chunkValue.get("chunkZ").getAsInt());
-            if (chunk == null) continue;
-            for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
-                if (count++ >= limit) return json;
-                BlockEntity blockEntity = entry.getValue();
-                JsonObject value = new JsonObject();
-                value.addProperty("key", key(entry.getKey()));
-                value.addProperty(
-                        "lifecycleId",
-                        this.lifecycles.lifecycleId(
-                                "block_entity", key(entry.getKey()), blockEntity));
-                value.addProperty(
-                        "type",
-                        BuiltInRegistries.BLOCK_ENTITY_TYPE
-                                .getKey(blockEntity.getType())
-                                .toString());
-                value.addProperty("loaded", true);
-                value.addProperty(
-                        "readEffects", includeSerialized ? "serialization_hooks_invoked" : "none");
-                if (includeSerialized) {
-                    CompoundTag tag = blockEntity.saveWithFullMetadata();
-                    JsonElement structured = NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag);
-                    int bytes = GSON.toJson(structured).getBytes(StandardCharsets.UTF_8).length;
-                    value.addProperty("serializedBytes", bytes);
-                    if (bytes > perEntityBudget || serializedTotal + bytes > totalBudget) {
-                        value.addProperty("serializedStateStatus", "truncated");
-                        value.addProperty("limitation", "serialized_state_byte_budget_exceeded");
-                    } else {
-                        serializedTotal += bytes;
-                        value.addProperty("serializedStateStatus", "complete");
-                        value.add("serializedState", structured);
-                    }
-                }
-                json.add(value);
+        List<BlockPos> positions =
+                selectedBlockPositions(selector.getAsJsonArray("selectedBlocks"));
+        Map<BlockPos, BlockEntity> candidates = new LinkedHashMap<>();
+        if (!positions.isEmpty()) {
+            for (BlockPos position : positions) {
+                LevelChunk chunk =
+                        level.getChunkSource()
+                                .getChunkNow(position.getX() >> 4, position.getZ() >> 4);
+                if (chunk == null) continue;
+                BlockEntity blockEntity = chunk.getBlockEntities().get(position);
+                if (blockEntity == null) continue;
+                candidates.put(position, blockEntity);
+                if (candidates.size() >= limit) break;
             }
+        } else {
+            radius:
+            for (JsonElement element : chunks) {
+                JsonObject chunkValue = element.getAsJsonObject();
+                if (!chunkValue.get("loaded").getAsBoolean()) continue;
+                LevelChunk chunk =
+                        level.getChunkSource()
+                                .getChunkNow(
+                                        chunkValue.get("chunkX").getAsInt(),
+                                        chunkValue.get("chunkZ").getAsInt());
+                if (chunk == null) continue;
+                for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
+                    candidates.put(entry.getKey(), entry.getValue());
+                    if (candidates.size() >= limit) break radius;
+                }
+            }
+        }
+        for (Map.Entry<BlockPos, BlockEntity> entry : candidates.entrySet()) {
+            BlockEntity blockEntity = entry.getValue();
+            JsonObject value = new JsonObject();
+            value.addProperty("key", key(entry.getKey()));
+            value.addProperty(
+                    "lifecycleId",
+                    this.lifecycles.lifecycleId("block_entity", key(entry.getKey()), blockEntity));
+            value.addProperty(
+                    "type",
+                    BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()).toString());
+            value.addProperty("loaded", true);
+            value.addProperty(
+                    "readEffects", includeSerialized ? "serialization_hooks_invoked" : "none");
+            if (includeSerialized) {
+                CompoundTag tag = blockEntity.saveWithFullMetadata();
+                JsonElement structured = NbtOps.INSTANCE.convertTo(JsonOps.INSTANCE, tag);
+                int bytes = GSON.toJson(structured).getBytes(StandardCharsets.UTF_8).length;
+                value.addProperty("serializedBytes", bytes);
+                if (bytes > perEntityBudget || serializedTotal + bytes > totalBudget) {
+                    value.addProperty("serializedStateStatus", "truncated");
+                    value.addProperty("limitation", "serialized_state_byte_budget_exceeded");
+                } else {
+                    serializedTotal += bytes;
+                    value.addProperty("serializedStateStatus", "complete");
+                    value.add("serializedState", structured);
+                }
+            }
+            json.add(value);
         }
         return json;
     }

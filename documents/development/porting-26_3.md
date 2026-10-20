@@ -33,8 +33,9 @@ UI 原生容器在五端分别提取。1.20.1/1.21.1 用具名 Invoker 读取受
 Accessor 读取世界行 summary，字符回调仍是 GLFW 参数；26.1.2/26.3 使用 CharacterEvent。
 26.3 NeoForge 的字符入口公开，其他端经具名 Invoker，不用 Reflection。
 Forge/NeoForge 创造标签只取当前 Loader 页内集合，Fabric 取原版可见 tabs；
-起点使用各端原生 getter/Accessor。旧端 RecipeButton 尚无新版 display stack 接口，
-不虚构物品标签；其节点与真实鼠标输入保留。
+起点使用各端原生 getter/Accessor。26.x RecipeButton使用原生display stack；
+1.20.1从当前Recipe与collection.registryAccess取得显示结果，1.21.1先解RecipeHolder.value。
+旧端仅在实际可见、启用且视口交集非空时公开物品标签/种类/数量，不调用不存在的新版接口；真实菜单填入仍须另行回读，不以显示结果证明服务器槽位变化。
 
 资源包控制使用 Native 32 像素图标命中区；旧端从父列表行边界取起点，现代端从 Entry content 坐标取值。
 切石机旧端读取 Recipe/RecipeHolder，现代端读取可见 SingleInputEntry 与 SlotDisplay；
@@ -57,6 +58,10 @@ Runtime 只关闭 SDL relative mode，不调用宿主光标定位。相对 Agent
 窗口图标保存实际 SDL surface 的像素、格式与 pitch，结束接管时重新应用，不用默认图标替代。
 
 ## 渲染与证据
+
+Forge1.20.1的ForgeGui覆盖Gui.render，F3及Demo文字实际在renderHUDText的两个String绘制点，动作栏/唱片在renderRecordOverlay的FormattedCharSequence绘制点。
+采样委托Forge自有方法时remap=false，内部Minecraft绘制保持remap=true；每次先原参数绘制一次并保留int返回值，再进入现有有界晚期帧。
+F3和Demo按真实renderDebug/isDemo分支区分，普通事件文字不伪装为这两类；不使用Gui.render、DebugScreenOverlay.renderLines或Gui.renderDemoOverlay等被绕过的出口补缓存。
 
 世界 USER 呈现通过原生 LevelRenderer 的瞄准轮廓方法只读观察。
 1.20.1/1.21.1 的 renderHitOutline 接收 Entity、BlockPos 和 BlockState，按同一原生 Shape 排除空轮廓；
@@ -258,6 +263,11 @@ Showcase的验证Toast使用原生API：1.21.1为getToasts()/ToastComponent及re
 原生API差异依据当前编译构件核对；实际执行结果只看Showcase的绑定记录，不从此表推断五端Live通过。
 
 ## UI 文本编辑器
+
+旧两端GameModeSwitcherScreen在render内发现F3已松开后才sendUnsignedCommand，26.x在keyReleased内同步发送原生游戏模式包。
+因此旧端玩家输入请求必须涵盖随后一次真实菜单render，命令仍由原scope、Lease和可取消permit检查；不能因菜单已关闭推断服务器已切换模式。
+不直接调用私有切换方法、不提前发命令，也不将授权ThreadLocal跨帧保留；取消时不得让菜单在READ下迟到提交。
+延迟render入口刷新实际世界、玩家和连接：Forge同维度respawn可能换玩家却保留该Screen，不能只校验Screen对象和旧Core代次。
 
 1.20.1/1.21.1的BookEditScreen使用pageEdit/titleEdit两个TextFieldHelper，26.1.2/26.3的页正文使用MultiLineEditBox，标题为独立EditBox。
 旧两端滚动范围使用getMaxScroll，26.x使用maxScrollAmount；旧端没有TestInstanceBlockEditScreen，不引用不存在的管理类。

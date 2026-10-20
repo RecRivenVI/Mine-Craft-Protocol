@@ -96,6 +96,7 @@ function simulation(options = {}) {
         assert.deepEqual(parts.slice(0, 2), ['execute', 'in']); assert.deepEqual(parts.slice(3, 6), ['run', 'tp', '@s']);
         if (options.commandFailure) throw new Error('native command failed before submission');
         const [x, y, z] = parts.slice(6).map(Number); Object.assign(player, {dimension: parts[2], x, y, z});
+        if (options.netherGravity && player.dimension === 'minecraft:the_nether') player.y = 128;
         cancel(); if (!options.skipEpoch) context++;
         receivingQueries = options.receivingQueries ?? 0; destinationFrames = [];
         if (options.foreignOwner) lease = 'someone-else';
@@ -164,6 +165,44 @@ test('three bounded synthetic scenes verify actual-shaped epoch, cancellation, i
   const posts = fixture.calls.filter(value => value.method === 'POST' && value.path === '/v0/pipelines');
   assert(posts.length >= 10); for (let index = 1; index < posts.length; index++) assert(posts[index].at - posts[index - 1].at >= 550);
   assert(!JSON.stringify(fixture.samples).includes('never-include-secret')); assert(fixture.counters().milliseconds < 240000);
+});
+
+test('dimension cancellation uses the fixed Nether roof instead of requiring an airborne arrival to remain at altitude', async () => {
+  const fixture = simulation({netherGravity: true}); await inputContextActions(fixture.env, fixture.services);
+  const outward = fixture.samples.find(value => value.case === 'input_context_dimensions').outward;
+  assert.equal(outward.player.y, 128);
+  assert(fixture.calls.some(value => value.path === '/v0/command/player'
+    && value.body.command === 'execute in minecraft:the_nether run tp @s 0 128 0'));
+  assert(outward.outcomes.every(value => value.state === 'cancelled'));
+  assert.equal(outward.later.inputDispatchSequence, outward.after.inputDispatchSequence);
+});
+
+test('input context waits for its asynchronous exact world row rather than just the Screen', async () => {
+  const fixture = simulation(), originalNodes = fixture.env.nodes, originalWait = fixture.env.wait;
+  const row = {worldName: 'World-Read-Alpha', nodeId: 'world-fixed'}; let clicked = 0;
+  fixture.env.nodes = tree => tree.children ?? originalNodes(tree);
+  fixture.env.wait = async (predicate, label, timeout) => {
+    if (!label.includes('context fixed world list')) return originalWait(predicate, label, timeout);
+    assert.equal(predicate({screenClass: 'SelectWorldScreen', children: []}), false);
+    assert.equal(predicate({screenClass: 'SelectWorldScreen', children: [{worldName: 'Another World'}]}), false);
+    const ready = {screenClass: 'SelectWorldScreen', children: [row]}; assert.equal(predicate(ready), true); return ready;
+  };
+  fixture.env.clickNode = async value => {assert.equal(value, row); clicked++;};
+  await inputContextActions(fixture.env, fixture.services); assert.equal(clicked, 1); assert.equal(fixture.checks.length, 3);
+});
+
+test('input context refuses duplicate exact world rows before player dispatch and releases its own Lease', async () => {
+  const fixture = simulation(), originalNodes = fixture.env.nodes, originalWait = fixture.env.wait;
+  fixture.env.nodes = tree => tree.children ?? originalNodes(tree);
+  fixture.env.wait = async (predicate, label, timeout) => {
+    if (!label.includes('context fixed world list')) return originalWait(predicate, label, timeout);
+    const ready = {screenClass: 'SelectWorldScreen', children: [originalNodes()[0], {...originalNodes()[0]}]};
+    assert.equal(predicate(ready), true); return ready;
+  };
+  fixture.env.clickNode = async () => assert.fail('Ambiguous world must not be clicked');
+  await assert.rejects(inputContextActions(fixture.env, fixture.services), /One exact fixed-world row/);
+  assert.equal(fixture.calls.filter(call => call.path === '/v0/pipelines').length, 0);
+  assert.equal(fixture.counters().releases, 1); assert.equal(fixture.state().pressedKeyCount, 0);
 });
 
 test('unverified fixture does not acquire, enter a world or send any mutation', async () => {

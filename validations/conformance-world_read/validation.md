@@ -53,6 +53,20 @@ Forge 另外使用真实 ComponentArgument 覆盖有效 JSON、损坏 JSON 与�
 ## 运行
 
 本轮按用户决定暂停性能检测；现有性能入口保留供以后明确授权，不在本轮重新执行。
+接收缺陷及命令权限协作的最小专项：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario first-camera
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario block-entity-selector
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario command-collaboration
+```
+
+first-camera在测试窗口创建时不请求宿主焦点，读取实际原生焦点，标题页接管后首次进入固定世界，只派发一次W与相对转向。
+不抢焦点、暂停返回、重放输入或直接写yaw/pitch；后台夹具目前仅适用于26.3与1.21.1 NeoForge。
+block-entity-selector验证同Chunk精确坐标、both、client_known显式拒绝及未加载位置不回退邻近对象、不加载区块。
+command-collaboration通过显式probe模拟服务器当前玩家权限降低与恢复，真实刷新命令树并核对服务器FIFO计数；
+该自动证明不等同真人协作、物理Esc或真实管理员身份变更。结果分别写固定的`<target>-<scenario>.json`。
+
 Fabric缺失的两项只补功能：同40ms单次/三连真实原生消费、单步输入、两槽语义hover与取消清理；不采集RTT、比值或分位数。
 隔离Runner恢复本验证固定副本、启动到标题并确认实例身份后，调用以下消费者；消费者正常保存退出，Runner另核验进程/端口清理：
 

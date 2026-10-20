@@ -30,6 +30,17 @@ val verifyShowcase by
         )
     }
 
+val verifyHookCompatibilityTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/compatibility-standard_gui/task/Test-Phase7HookCompatibilityGate.ps1",
+        )
+    }
+
 val verifyVanillaUiTools by
     tasks.registering(Exec::class) {
         workingDir(rootDir.parentFile.parentFile)
@@ -116,6 +127,7 @@ tasks.check {
         verifyInstalledEvidence,
         verifyInstalledCleanup,
         verifyControl,
+        verifyHookCompatibilityTools,
         verifyShowcase,
         verifyVanillaUiTools,
         verifyWorldReadTools,

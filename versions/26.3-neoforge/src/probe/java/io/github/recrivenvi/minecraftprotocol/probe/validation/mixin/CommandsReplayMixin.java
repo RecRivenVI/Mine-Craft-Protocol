@@ -2,6 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.validation.mixin;
 
 import com.mojang.brigadier.ParseResults;
 import io.github.recrivenvi.minecraftprotocol.probe.validation.ChunkPacketReplay;
+import io.github.recrivenvi.minecraftprotocol.probe.validation.CommandCollaborationFixture;
 import io.github.recrivenvi.minecraftprotocol.probe.validation.CommandConfigurationProbe;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -17,5 +18,6 @@ public abstract class CommandsReplayMixin {
             ParseResults<CommandSourceStack> parsed, String command, CallbackInfo callbackInfo) {
         ChunkPacketReplay.command(parsed.getContext().getSource(), command);
         CommandConfigurationProbe.command(parsed.getContext().getSource(), command);
+        CommandCollaborationFixture.command(parsed.getContext().getSource(), command);
     }
 }

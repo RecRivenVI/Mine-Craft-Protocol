@@ -20,10 +20,45 @@ pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-Vanill
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-toast
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-debug-advancement
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-completion
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-local
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-navigation
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-native-pages
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-world-pages
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-camera
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-toast
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-player-list
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-variants
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-late
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-camera-variants
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-saving
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-hardcore
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario hud-demo
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-breadth
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario ui-breadth -CheckPrefix 'UI recipes and hotbars:'
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Read-VanillaUiCatalog.ps1 -Target 26.3-neoforge
 ```
 
 首次由工具经标准接口创建夹具并在正常退出后保存基线；以后只恢复该基线，不覆写它。
+ui-completion只覆盖本次增量：声明的right_click/shift_click真实槽位派发、HUD组合就绪及Native/MCP结构化失败解释、
+聊天建议局部typed选择、实际完成HUD绘制中的物品装饰和上下文条。它不是all，不以目录映射或单测替代Live。
+ui-local检查本地标题整组生命周期、旁观菜单纯高亮、玩家列表页眉/页脚typed字段及适用的可见性Toast。
+ui-navigation检查有限原生设置/创建草稿/模式切换/本地Dialog页面，probe入口仅在该场景或all显式启用。
+ui-native-pages只跑有限确认/恢复/自有辅助世界/重配置页面，供相关失败局部复验；不替代导航或完整all结果。
+ui-world-pages仅复验自有辅助世界恢复与重配置页面，不重复已通过的确认及一般恢复页。
+CheckPrefix只执行所选专项中名称匹配的检查及必要的启动、世界与退出边界，结果明确标记partialScenario；不能用于all或替代完整交付证据。
+hud-camera只覆盖其列出的真实准星、攻击条、装备覆盖和望远镜输入，不由生产Hook存在推定Portal/睡眠等尚未实测分支通过。
+hud-toast检查26.3原生Friend/NowPlaying实际驻留绘制的进入、完整显示和退出；部分显示不泄露文字。
+音乐夹具仅使用自有静音副本中的公开MusicManager，不声称真实声音、Friends服务或随机曲目的事务恢复；该场景的存在不等于已通过。
+hud-player-list安排明确标记的本地原生client packet夹具，验证实际80行排序/筛选、延迟图标、分数格式/心形及其原生窄宽回退；不创建服务器玩家，不称真实多人网络验收。旧Forge仅验证原生支持的Numeric/Hearts格式与实际atlas，不伪造Fixed/Blank或listOrder。
+hud-variants、hud-late和ui-breadth分别覆盖有限生命变体/Boss与侧栏、晚期文字/原生字幕消息、特殊世界菜单及配方/热栏；结果只证明其实际执行的分支，不推定所有原版条件或参数组合。
+hud-camera-variants通过真实进入传送门、放床睡眠/醒来、恶心贴图及暗角选项/显隐证明采样；版本没有独立暗角选项时明确标记OPTION_ABSENT，不伪造设置。
+hud-saving通过项目接口的真实暂停触发一次普通保存，独立要求USER实际Native提示绘制、同PID原生保存完成/标志清除、淡出及held=0。
+Forge 47.4.28默认ForgeGui没有注册保存提示；该端只核验实际HUD/默认Overlay注册表并明确不适用，不计USER绘制PASS，其余四端保留真实绘制要求。
+probe仅在该次原生保存标志设置后安排一次最多3秒的诊断同步屏障，不写保存状态/透明度、不额外调用保存；不证明自然保存耗时或性能。单人原生没有save-all命令，不以命令回执替代绘制。
+hud-hardcore通过原生创建流程创建唯一自有Hardcore世界，观察实际心形后正常保存退出；保留在隔离目录，不改基线或现有世界。
+hud-demo独立启动真实--demo客户端，按实际Java命令行与同PID端点核验，进入Demo_World，经真实介绍页的Later按钮观察原生倒计时后正常保存退出；不点击购买或重置，不由probe布尔值模拟Demo，也不承诺跨运行保留该临时世界。
+场景前置只改自有固定副本；实际Slot和HUD Act使用GAME_ROUTED，typed建议修改单独标DEBUG且无输入Lease。
 special-menus 为独立专项：讲台翻页/取书、马鞍往返和驴胸箱货物往返均走正常语义输入。
 有自动合成器的版本另检查禁用/启用空格、菜单版本变化及旧版本拒绝；1.20.1的原生构建中没有CrafterMenu/Screen，不伪造该用例。
 前置状态只由自有固定副本中的诊断命令准备，Act 不调用菜单业务方法、不手写UI坐标；不把专项等同全部原版UI完成。

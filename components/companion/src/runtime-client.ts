@@ -38,6 +38,7 @@ export class RuntimeError extends Error {
   readonly rateLimit?: JsonObject;
   readonly actualHit?: JsonObject;
   readonly resourceRevision?: JsonObject;
+  readonly readiness?: JsonObject;
 
   constructor(code: string, status: number, message: string, requestId?: string, details?: JsonObject) {
     super(message);
@@ -45,6 +46,22 @@ export class RuntimeError extends Error {
     this.code = code;
     this.status = status;
     if (requestId !== undefined) this.requestId = requestId;
+    const readiness = details?.readiness;
+    if (['ASSERTION_FAILED', 'WAIT_TIMEOUT'].includes(code) && readiness
+        && typeof readiness === 'object' && !Array.isArray(readiness)
+        && ['screen', 'hud'].includes(String(readiness.kind)) && typeof readiness.ready === 'boolean'
+        && readiness.checks && typeof readiness.checks === 'object' && !Array.isArray(readiness.checks)
+        && Array.isArray(readiness.failures) && readiness.failures.length <= 8
+        && readiness.failures.every(value => typeof value === 'string' && [
+          'SCREEN_NOT_READY', 'OVERLAY_PRESENT', 'VIEWPORT_UNAVAILABLE',
+          'TARGET_NOT_FOUND_OR_NOT_VISIBLE', 'TARGET_AMBIGUOUS', 'TARGET_INACTIVE',
+          'TARGET_NOT_VISIBLE', 'ACTION_UNSUPPORTED', 'TARGET_BOUNDS_UNAVAILABLE'
+        ].includes(value))) {
+      const checks:JsonObject = {};
+      for (const key of ['screen', 'overlay', 'viewport', 'selector', 'active', 'visible', 'action', 'bounds'])
+        if (typeof readiness.checks[key] === 'boolean') checks[key] = readiness.checks[key];
+      this.readiness = {kind: readiness.kind!, ready: readiness.ready, checks, failures: readiness.failures};
+    }
     if (code === 'STALE_RESOURCE_REVISION' && details?.reinspectRequired === true && details.retrySafe === false
         && typeof details.expectedRevision === 'number' && Number.isSafeInteger(details.expectedRevision) && details.expectedRevision >= 0
         && typeof details.actualRevision === 'number' && Number.isSafeInteger(details.actualRevision) && details.actualRevision >= 0

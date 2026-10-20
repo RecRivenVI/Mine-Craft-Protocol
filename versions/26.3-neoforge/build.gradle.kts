@@ -1,5 +1,7 @@
 plugins { id("net.neoforged.moddev") }
 
+neoForge { accessTransformers.from("src/main/resources/META-INF/accesstransformer.cfg") }
+
 dependencies {
     testImplementation(libs.mcp.junit)
     testImplementation(libs.gson)

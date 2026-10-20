@@ -1,5 +1,6 @@
 package io.github.recrivenvi.minecraftprotocol.probe.mixin;
 
+import net.minecraft.client.gui.components.toasts.NowPlayingToast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -12,4 +13,7 @@ public interface ToastManagerUiAccessor {
     @Accessor("queued")
     java.util.Deque<net.minecraft.client.gui.components.toasts.Toast>
             minecraftProtocolProbe$queued();
+
+    @Accessor("nowPlayingToast")
+    ToastManager.ToastInstance<NowPlayingToast> minecraftProtocolProbe$nowPlaying();
 }

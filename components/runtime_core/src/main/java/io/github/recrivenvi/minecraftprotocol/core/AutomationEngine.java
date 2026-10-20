@@ -564,7 +564,14 @@ public final class AutomationEngine implements AutoCloseable {
                         bool(guard, "dragActive", false)
                                 && string(original, "role", "").equals("scrollbar_thumb")
                                 && (field.equals("y") || field.equals("height"));
+                // Native hover menus change selection while the pointer moves. Highlight is
+                // the observed result of hover, not a click precondition; identity and bounds
+                // remain pinned, and click/activation still guard selection strictly.
+                boolean hoverSelection =
+                        field.equals("selected")
+                                && string(guard, "action", "click").equals("hover");
                 if (!ownDragChange
+                        && !hoverSelection
                         && original.has(field)
                         && (!current.has(field) || !original.get(field).equals(current.get(field))))
                     throw new ProtocolState.ProtocolException(
@@ -898,6 +905,14 @@ public final class AutomationEngine implements AutoCloseable {
                                                                 buttonClick(
                                                                         button, modifiers, hold,
                                                                         execution, expected);
+                                                        case "right_click" ->
+                                                                buttonClick(
+                                                                        1, modifiers, hold,
+                                                                        execution, expected);
+                                                        case "shift_click" ->
+                                                                shiftClick(
+                                                                        modifiers, hold, execution,
+                                                                        expected);
                                                         case "type_text" ->
                                                                 typeText(
                                                                         request, expected,
@@ -1273,6 +1288,54 @@ public final class AutomationEngine implements AutoCloseable {
                 .thenCompose(
                         ignored ->
                                 execution.effect(() -> service.mouseButton(button, 0, modifiers)));
+    }
+
+    private CompletableFuture<JsonObject> shiftClick(
+            int modifiers, long hold, PipelineExecution execution, JsonObject guard) {
+        return execution
+                .effect("inputState", service::inputState, false)
+                .thenCompose(
+                        state -> {
+                            if (state == null
+                                    || !state.has("pressedKeys")
+                                    || !state.get("pressedKeys").isJsonArray())
+                                return failed(
+                                        "INPUT_STATE_UNAVAILABLE",
+                                        409,
+                                        "Runtime held keys are unavailable");
+                            boolean shiftHeld = false;
+                            for (JsonElement key : state.getAsJsonArray("pressedKeys")) {
+                                int code = key.getAsInt();
+                                if (code == 340 || code == 344) shiftHeld = true;
+                            }
+                            int shiftedModifiers = modifiers | 1;
+                            if (shiftHeld)
+                                return buttonClick(0, shiftedModifiers, hold, execution, guard);
+                            return execution
+                                    .effect(
+                                            () ->
+                                                    service.keyGuarded(
+                                                            340, 0, 1, shiftedModifiers, guard))
+                                    .thenCompose(
+                                            ignored ->
+                                                    buttonClick(
+                                                            0,
+                                                            shiftedModifiers,
+                                                            hold,
+                                                            execution,
+                                                            guard))
+                                    // The press may transfer this slot's contents. Release only the
+                                    // Shift acquired here, without revalidating that changed slot.
+                                    .thenCompose(
+                                            ignored ->
+                                                    execution.effect(
+                                                            () ->
+                                                                    service.key(
+                                                                            340,
+                                                                            0,
+                                                                            0,
+                                                                            modifiers & ~1)));
+                        });
     }
 
     private CompletableFuture<JsonObject> click(

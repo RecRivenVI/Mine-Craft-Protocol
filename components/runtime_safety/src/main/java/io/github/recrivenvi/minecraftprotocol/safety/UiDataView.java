@@ -77,6 +77,13 @@ public final class UiDataView {
                     "worldId",
                     "worldLocked",
                     "resourceId",
+                    "textureId",
+                    "textureU",
+                    "textureV",
+                    "atlasWidth",
+                    "atlasHeight",
+                    "spriteSemantics",
+                    "spriteRegion",
                     "controlKey",
                     "packId",
                     "entryIndex",
@@ -207,6 +214,8 @@ public final class UiDataView {
     public static JsonObject userNode(JsonObject node) {
         if (!visible(node)) return null;
         JsonObject result = copy(node, NODE_FIELDS);
+        // Native HUD text can have a separate unabridged DEBUG edit value.
+        if ("hud_text".equals(string(node, "role"))) result.remove("value");
         if ("slot".equals(string(node, "role")) && node.has("slotOwner")) {
             JsonElement owner = node.get("slotOwner");
             if (owner.isJsonPrimitive()

@@ -9,6 +9,7 @@
     ],
     "license": "${mod_license}",
     "environment": "${fabric_environment}",
+    "accessWidener": "minecraft_protocol_probe.accesswidener",
     "entrypoints": {
         "main": [
             "${mod_group}.probe.FabricProbeMod"

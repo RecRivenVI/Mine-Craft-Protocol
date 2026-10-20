@@ -80,7 +80,7 @@ function Assert-Snapshot([string]$Directory,[switch]$AllowWithdrawn){
     return $report
 }
 function Assert-Source($Report,[string]$Manifest){
-    if($Report.publicationProfile-cnotin@('continuous_gameplay_trial_v1','dependency_update_trial_v1')){throw 'New alpha publications require an explicit trial profile; historical snapshots are not rewritten'}
+    if($Report.publicationProfile-cnotin@('continuous_gameplay_trial_v1','dependency_update_trial_v1','e_ui_trial_v1')){throw 'New alpha publications require an explicit trial profile; historical snapshots are not rewritten'}
     if(-not$Report.sourceHashes-or-not$Report.agentGuide.sourceSha256){throw 'Source/guide provenance is missing'}
     $canonical=$Report.sourceHashes|ConvertTo-Json -Depth 3 -Compress
     $fingerprint=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($canonical))).ToLowerInvariant()
@@ -105,7 +105,7 @@ function Assert-Source($Report,[string]$Manifest){
         $live=Get-Content -LiteralPath $evidence -Raw|ConvertFrom-Json
         if($live.status-ne'PASS'-or$live.target-cne$proof.target-or$live.runtime-ne'installed_loader_release_jar'-or$live.artifactSha256-cne$proof.artifactSha256-or$live.sourceFingerprint-cne$Report.sourceFingerprint-or$live.sourceChangedDuringRun-ne$false-or$live.developmentClasspath-ne$false-or$live.externalModCount-ne1-or$live.exitCode-ne0-or$live.persistentWriteCalls-ne0){throw 'Invalid clean-install Runtime evidence'}
         foreach($field in @('freshGameDirectory','endpointVerified','handshake','readPassed','titleReady','cleanShutdown','noCrashReports')){if($live.$field-ne$true){throw "Incomplete packaged Runtime proof: $field"}}
-        if($Report.publicationProfile-ceq'dependency_update_trial_v1'-and($live.enterWorldRequested-ne$true-or$live.enteredWorld-ne$true)){throw 'Dependency updates require new installed-world Runtime proof'}
+        if($Report.publicationProfile-cin@('dependency_update_trial_v1','e_ui_trial_v1')-and($live.enterWorldRequested-ne$true-or$live.enteredWorld-ne$true)){throw 'Dependency updates and E UI trials require new installed-world Runtime proof'}
     }
     foreach($artifact in $Report.artifacts){
         $path=Assert-Within (Join-Path $repo $artifact.path) (Join-Path $repo 'build/release')

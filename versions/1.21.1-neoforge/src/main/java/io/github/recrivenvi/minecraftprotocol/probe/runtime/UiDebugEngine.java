@@ -40,7 +40,10 @@ final class UiDebugEngine {
                     "ui.slider.set",
                     "ui.toast.reset",
                     "ui.toast.hide",
-                    "ui.canvas.pan.set");
+                    "ui.canvas.pan.set",
+                    "ui.list.selection.set",
+                    "ui.hud.title.times.set",
+                    "ui.hud.title.clear");
 
     static void describe(
             JsonObject root,
@@ -89,6 +92,19 @@ final class UiDebugEngine {
         }
         describe(root, revisions, textContent);
         UiAdvancementPanDebug.describe(root, revisions, screen, identity);
+        UiSuggestionDebug.describe(root, revisions, screen, identity, contentGuard);
+        UiSpectatorSelectionDebug.describe(
+                root,
+                revisions,
+                net.minecraft.client.Minecraft.getInstance(),
+                identity,
+                contentGuard);
+        UiTitleLifecycleDebug.describe(
+                root,
+                revisions,
+                net.minecraft.client.Minecraft.getInstance(),
+                identity,
+                contentGuard);
         UiPresentationDebug.describe(
                 root,
                 revisions,
@@ -251,10 +267,27 @@ final class UiDebugEngine {
             JsonObject tree,
             JsonObject request,
             ToLongFunction<Object> identity,
-            DebugMutationAuthorization authorization) {
+            DebugMutationAuthorization authorization,
+            UiItemDataGuard contentGuard) {
         String operation = string(request, "operation");
         if (!OPERATIONS.contains(operation))
             throw error("CAPABILITY_UNAVAILABLE", "Unknown typed UI operation");
+        if (UiTitleLifecycleDebug.handles(string(request, "nodeId")))
+            return UiTitleLifecycleDebug.mutate(
+                    net.minecraft.client.Minecraft.getInstance(),
+                    tree,
+                    request,
+                    identity,
+                    contentGuard,
+                    authorization);
+        if (UiSpectatorSelectionDebug.handles(string(request, "nodeId")))
+            return UiSpectatorSelectionDebug.mutate(
+                    net.minecraft.client.Minecraft.getInstance(),
+                    tree,
+                    request,
+                    identity,
+                    contentGuard,
+                    authorization);
         if (UiPresentationDebug.handles(string(request, "nodeId")))
             return UiPresentationDebug.mutate(
                     net.minecraft.client.Minecraft.getInstance(), tree, request, authorization);
@@ -292,8 +325,14 @@ final class UiDebugEngine {
         int signLine = signLine(screen, node, identity);
         boolean screenScroll = nativeScreenScroller(screen, node, identity);
         var panTarget = UiAdvancementPanDebug.target(screen, node, identity);
+        var suggestionTarget = UiSuggestionDebug.target(screen, node, identity);
         boolean bookEditor = bookEditor(screen, node, identity);
-        if (target == null && signLine < 0 && !bookEditor && !screenScroll && panTarget == null)
+        if (target == null
+                && signLine < 0
+                && !bookEditor
+                && !screenScroll
+                && panTarget == null
+                && suggestionTarget == null)
             throw error(
                     "UI_DEBUG_UNSUPPORTED",
                     "This rendered node has no supported typed native mutation");
@@ -309,9 +348,11 @@ final class UiDebugEngine {
         JsonElement current =
                 operation.equals(UiAdvancementPanDebug.OPERATION)
                         ? node.get("debugPanValue")
-                        : operation.equals("ui.text.set") && nativeText != null
-                                ? new JsonPrimitive(nativeText)
-                                : currentValue(operation, node);
+                        : operation.equals(UiSuggestionDebug.OPERATION)
+                                ? node.get("debugSelectionIndex")
+                                : operation.equals("ui.text.set") && nativeText != null
+                                        ? new JsonPrimitive(nativeText)
+                                        : currentValue(operation, node);
         if (request.has("expectedValue") && !Objects.equals(request.get("expectedValue"), current))
             throw error("VALUE_PRECONDITION_FAILED", "UI value changed");
         JsonElement value = request.get("value");
@@ -320,6 +361,9 @@ final class UiDebugEngine {
                 switch (operation) {
                     case "ui.canvas.pan.set" ->
                             UiAdvancementPanDebug.prepare(panTarget, value, identity);
+                    case "ui.list.selection.set" ->
+                            UiSuggestionDebug.prepare(
+                                    suggestionTarget, value, identity, contentGuard);
                     case "ui.widget.active.set", "ui.widget.visible.set" -> {
                         if (!(target instanceof AbstractWidget widget)
                                 || value == null
@@ -444,6 +488,9 @@ final class UiDebugEngine {
             result.addProperty("sideEffects", "native_slider_setting_callback");
         if (operation.equals(UiAdvancementPanDebug.OPERATION))
             result.addProperty("sideEffects", "native_advancement_display_pan_only");
+        if (operation.equals(UiSuggestionDebug.OPERATION))
+            result.addProperty(
+                    "sideEffects", "native_suggestion_highlight_suffix_and_narration_only");
         if (operation.equals("ui.text.set")
                 && (signLine >= 0 || bookEditor || target instanceof MultiLineEditBox))
             result.addProperty("sideEffects", "native_editor_draft_may_submit_on_close");

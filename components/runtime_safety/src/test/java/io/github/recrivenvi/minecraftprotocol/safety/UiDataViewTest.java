@@ -9,6 +9,39 @@ import org.junit.jupiter.api.Test;
 
 class UiDataViewTest {
     @Test
+    void nativeDrawnHudTextCannotLeakItsUnclippedDebugValue() {
+        JsonObject raw =
+                object(
+                        """
+            {"children":[{"role":"text_field","visible":true,"editable":true,"value":"user draft"}],
+             "presentation":{"children":[{"role":"hud_text","visible":true,
+              "controlKey":"hud.playerlist.header","label":"drawn prefix","value":"hidden clipped suffix"}]}}
+            """);
+        JsonObject user = UiDataView.tree(raw, UiDataView.Category.USER);
+        assertFalse(user.toString().contains("hidden clipped suffix"));
+        assertEquals(
+                "drawn prefix",
+                user.getAsJsonObject("presentation")
+                        .getAsJsonArray("children")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("label")
+                        .getAsString());
+        assertEquals(
+                "user draft",
+                user.getAsJsonArray("children")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("value")
+                        .getAsString());
+        assertTrue(
+                UiDataView.tree(raw, UiDataView.Category.DEBUG)
+                        .toString()
+                        .contains("hidden clipped suffix"));
+        assertTrue(raw.toString().contains("hidden clipped suffix"));
+    }
+
+    @Test
     void visibleMenuTitleAndNativeSlotOwnersSurviveWithoutExposingBackingIndices() {
         JsonObject raw =
                 object(
@@ -333,6 +366,36 @@ class UiDataViewTest {
         for (String hidden : new String[] {"secret", "serverMaximum", "rawScore", "hidden:item"})
             assertFalse(user.toString().contains(hidden));
         assertTrue(UiDataView.tree(raw, UiDataView.Category.DEBUG).toString().contains("rawScore"));
+    }
+
+    @Test
+    void visibleLegacyAtlasDrawKeepsItsRealTextureCoordinatesWithoutInventingASpriteId() {
+        JsonObject raw =
+                object(
+                        """
+                {"children":[],"presentation":{"children":[
+                  {"visible":true,"role":"status_icon","textureId":"minecraft:textures/gui/icons.png",
+                   "textureU":0,"textureV":64,"atlasWidth":256,"atlasHeight":256,
+                   "spriteSemantics":"native_gui_icons_atlas_region","spriteRegion":"hud/experience_bar_background",
+                   "experiencePoints":900,"rawJumpCharge":0.7},
+                  {"visible":false,"textureId":"private:hidden_atlas"}]}}
+                """);
+        var rows =
+                UiDataView.tree(raw, UiDataView.Category.USER)
+                        .getAsJsonObject("presentation")
+                        .getAsJsonArray("children");
+        assertEquals(1, rows.size());
+        JsonObject row = rows.get(0).getAsJsonObject();
+        assertEquals("minecraft:textures/gui/icons.png", row.get("textureId").getAsString());
+        assertEquals(0, row.get("textureU").getAsInt());
+        assertEquals(64, row.get("textureV").getAsInt());
+        assertEquals(256, row.get("atlasWidth").getAsInt());
+        assertEquals(256, row.get("atlasHeight").getAsInt());
+        assertEquals("native_gui_icons_atlas_region", row.get("spriteSemantics").getAsString());
+        assertEquals("hud/experience_bar_background", row.get("spriteRegion").getAsString());
+        assertFalse(row.has("resourceId"));
+        assertFalse(row.has("experiencePoints"));
+        assertFalse(row.has("rawJumpCharge"));
     }
 
     @Test

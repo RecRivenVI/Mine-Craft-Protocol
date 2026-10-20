@@ -16,6 +16,15 @@ public interface HudUiAccessor {
     @Accessor("titleTime")
     int minecraftProtocolProbe$titleTime();
 
+    @Accessor("titleFadeInTime")
+    int minecraftProtocolProbe$titleFadeInTime();
+
+    @Accessor("titleStayTime")
+    int minecraftProtocolProbe$titleStayTime();
+
+    @Accessor("titleFadeOutTime")
+    int minecraftProtocolProbe$titleFadeOutTime();
+
     @Accessor("overlayMessageString")
     Component minecraftProtocolProbe$actionbar();
 

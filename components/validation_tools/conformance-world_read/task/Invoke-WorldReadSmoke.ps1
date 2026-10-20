@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
     [ValidateSet('conformance-world_read','migration-runtime_core')][string]$Validation='conformance-world_read',
-    [ValidateSet('full','input-preconditions','player-command','target-lifecycle','command-configuration','test-management','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')][string]$Scenario='full')
+    [ValidateSet('full','input-preconditions','player-command','target-lifecycle','command-configuration','test-management','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','command-collaboration')][string]$Scenario='full')
 $ErrorActionPreference='Stop'
 if($Scenario-ne'full'-and$Validation-ne'conformance-world_read'){throw 'Targeted input checks use only the world-read validation instance'}
 if($Scenario-eq'test-management'-and$Target-in@('1.20.1-forge','1.21.1-neoforge')){throw 'These pinned native versions do not provide Test management blocks or packets'}
@@ -9,6 +9,9 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
 . (Join-Path $PSScriptRoot '../../InstanceProfiles.ps1')
 . (Join-Path $PSScriptRoot 'WorldReadFixture.ps1')
+function Test-WorldReceiptOwner($Report,$Connection) {
+    return $null-ne$Connection-and$Report.runtimeConnection.runtimeInstanceId-eq$Connection.RuntimeInstanceId-and$Report.runtimeConnection.pid-eq$Connection.ProcessId-and$Report.runtimeConnection.port-eq$Connection.Port
+}
 $root=Join-Path $repo "validations/$Validation/instance/$Target"
 $client=Join-Path $root 'client'
 $port=$null
@@ -31,7 +34,7 @@ if(-not(Test-Path (Join-Path $root 'baseline'))-and(Test-Path $previous)){
 $fixtureArgs=@()
 if($Scenario-ne'full'-and-not(Test-Path (Join-Path $root 'baseline'))){throw 'Targeted checks require an existing immutable baseline; run the full bootstrap preparation first'}
 if(Test-Path (Join-Path $root 'baseline')){
-    $fixture=Restore-WorldReadFixture $root $Target $facts
+    $fixture=Restore-WorldReadFixture $root $Target $facts -AllowLoaderUpdate
     $fixtureArgs+="--fixture-hash=$($fixture.baselineSha256)"
     Write-Output "Restored immutable $Target world fixture: $($fixture.baselineSha256)"
 }else{Write-Output 'Bootstrap preparation only; the next run captures the clean passing world before restoring it'}
@@ -39,11 +42,28 @@ $runName=if($Validation-eq'migration-runtime_core'){'runValidationMigrationRunti
 $optionsText=if(Test-Path -LiteralPath $options){[IO.File]::ReadAllText($options)}else{''}
 [IO.File]::WriteAllText($options,(Get-InstanceProfileOptions $optionsText automatic),[Text.UTF8Encoding]::new($false))
 $resourceScopes=if($Scenario-eq'resource-version'){',debug.entity,debug.block_entity,debug.menu'}else{''}
-$command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; `$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,debug,debug.world.read,debug.write,debug.world,debug.player,debug.ui,debug.ui.read,debug.provider$resourceScopes'; & './gradlew.bat' ':version:$($Target):$runName' '--offline' '--console=plain'; exit `$LASTEXITCODE"
+if($Scenario-eq'command-collaboration'){$resourceScopes+=',fixture'}
+$backgroundEnvironment=if($Scenario-eq'first-camera'){"`$env:MCP_VALIDATION_BACKGROUND_WINDOW='true'; "}else{''}
+$backgroundFmlPath=$null
+if($Scenario-eq'first-camera'-and$Target-eq'1.21.1-neoforge'){
+    # The Loader splash normally hands over an already-focused window. This test
+    # creates its own ordinary GLFW window without requesting focus instead.
+    $backgroundFmlPath=Join-Path $client 'config/fml.toml'
+    $backgroundFmlExisted=Test-Path -LiteralPath $backgroundFmlPath
+    $backgroundFmlOriginal=if($backgroundFmlExisted){[IO.File]::ReadAllText($backgroundFmlPath)}else{''}
+    $backgroundFmlText=if($backgroundFmlOriginal-match'(?m)^earlyWindowControl\s*='){
+        [regex]::Replace($backgroundFmlOriginal,'(?m)^earlyWindowControl\s*=.*$','earlyWindowControl = false')
+    }else{$backgroundFmlOriginal+"`nearlyWindowControl = false`n"}
+    [IO.Directory]::CreateDirectory((Split-Path $backgroundFmlPath))|Out-Null
+    [IO.File]::WriteAllText($backgroundFmlPath,$backgroundFmlText,[Text.UTF8Encoding]::new($false))
+}
+$command="Set-Location -LiteralPath '$($repo.Replace("'","''"))'; $backgroundEnvironment`$env:MCP_RUNTIME_SCOPES='read,ui,input,capture,event,diagnostics,control,command,debug,debug.world.read,debug.write,debug.world,debug.player,debug.ui,debug.ui.read,debug.provider$resourceScopes'; & './gradlew.bat' ':version:$($Target):$runName' '--offline' '--console=plain'; exit `$LASTEXITCODE"
+if($Scenario-eq'command-collaboration'){$command=$command.Replace("'--console=plain';", "'--console=plain' '--init-script' 'components/validation_tools/conformance-world_read/task/command-collaboration.init.gradle';")}
 Write-Output "World read smoke: $Target, single owned muted client, 4 GiB maximum heap"
 $process=Start-Process pwsh -ArgumentList @('-NoProfile','-Command',$command) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'launch-out.log') -RedirectStandardError (Join-Path $root 'launch-error.log')
 $launchStarted=$process.StartTime.ToUniversalTime()
 $headers=$null
+$connection=$null
 $failure=$null
 $shutdownError=$null
 try{
@@ -85,8 +105,8 @@ try{
         [IO.File]::WriteAllText((Join-Path $root 'runtime-core-class-loader.log'),$classes,[Text.UTF8Encoding]::new($false))
     }
     $entry=switch($Scenario){'full'{'world-read-smoke.mjs'}'movement'{'world-read-smoke.mjs'}'block-state'{'world-read-smoke.mjs'}'consumer'{'world-read-smoke.mjs'}'rate-limit'{'world-read-smoke.mjs'}'command-feedback'{'world-read-smoke.mjs'}'mode-collaboration'{'world-read-smoke.mjs'}'resource-version'{'world-read-smoke.mjs'}'command-discovery-batch'{'world-read-smoke.mjs'}'server-completion'{'world-read-smoke.mjs'}'interaction-baseline'{'world-read-smoke.mjs'}'input-preconditions'{'input-precondition-smoke.mjs'}'player-command'{'player-command-smoke.mjs'}'target-lifecycle'{'target-lifecycle-smoke.mjs'}'command-configuration'{'command-configuration-smoke.mjs'}'test-management'{'test-management-smoke.mjs'}}
-    if($Scenario-in@('continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')){$entry='world-read-smoke.mjs'}
-    if($Scenario-in@('movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts')){$fixtureArgs+="--scenario=$Scenario"}
+    if($Scenario-in@('continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','command-collaboration')){$entry='world-read-smoke.mjs'}
+    if($Scenario-in@('movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','command-collaboration')){$fixtureArgs+="--scenario=$Scenario"}
     & node (Join-Path $PSScriptRoot $entry) "--target=$Target" "--validation=$Validation" @fixtureArgs
     if($LASTEXITCODE-ne0){throw 'World read Native smoke failed'}
 }catch{$failure=$_}
@@ -100,9 +120,22 @@ finally{
     elseif($port-and(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)){$shutdownError='Owned Runtime port not released'}
     elseif(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json')){$shutdownError='Owned discovery record remains after shutdown'}
     if($shutdownError){$failure=$shutdownError}
+    if($backgroundFmlPath-and-not$shutdownError){
+        if($backgroundFmlExisted){[IO.File]::WriteAllText($backgroundFmlPath,$backgroundFmlOriginal,[Text.UTF8Encoding]::new($false))}
+        else{Add-Type -AssemblyName Microsoft.VisualBasic;[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($backgroundFmlPath,[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin)}
+    }
     $suffix=if($Scenario-eq'full'){''}else{"-$Scenario"}
     $result=Join-Path $repo "validations/$Validation/result/$Target$suffix.json"
-    if(Test-Path $result){$report=Get-Content $result -Raw|ConvertFrom-Json;$report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue (-not$shutdownError) -Force;$report|Add-Member -NotePropertyName maximumHeapBytes -NotePropertyValue 4294967296 -Force;if($failure){$report.status='FAIL'};if($shutdownError){$report|Add-Member -NotePropertyName shutdownError -NotePropertyValue $shutdownError -Force};[IO.File]::WriteAllText($result,($report|ConvertTo-Json -Depth 20)+"`n",[Text.UTF8Encoding]::new($false))}
+    if(Test-Path $result){
+        $report=Get-Content $result -Raw|ConvertFrom-Json
+        if(Test-WorldReceiptOwner $report $connection){
+            $report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue (-not$shutdownError) -Force
+            $report|Add-Member -NotePropertyName maximumHeapBytes -NotePropertyValue 4294967296 -Force
+            if($failure){$report.status='FAIL'}
+            if($shutdownError){$report|Add-Member -NotePropertyName shutdownError -NotePropertyValue $shutdownError -Force}
+            [IO.File]::WriteAllText($result,($report|ConvertTo-Json -Depth 20)+"`n",[Text.UTF8Encoding]::new($false))
+        }
+    }
 }
 if($failure){throw $failure}
 Write-Output "PASS: $Target $Scenario Native smoke, clean shutdown, port released"

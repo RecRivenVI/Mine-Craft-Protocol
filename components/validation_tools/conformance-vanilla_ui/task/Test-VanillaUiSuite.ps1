@@ -30,7 +30,9 @@ try { & $runner -Target '26.3-fabric' -RuntimePort 65536; throw 'Invalid Runtime
 catch { if ($_.FullyQualifiedErrorId -notlike 'ParameterArgumentValidationError*') { throw } }
 try { & $runner -All -KeepClient; throw 'Batch KeepClient accepted' }
 catch { if ($_.Exception.Message -ne 'Batch testing requires automatic shutdown and existing immutable baselines') { throw } }
-foreach($scenario in @('editors','hud','hud-vitals','spectator','pointer','special-menus','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-toast','ui-debug-advancement')) {
+try { & $runner -Target '26.3-neoforge' -CheckPrefix 'UI special world menus:'; throw 'Specific checks accepted as complete scenario evidence' }
+catch { if ($_.Exception.Message -ne 'Specific checks cannot stand in for complete scenario evidence') { throw } }
+foreach($scenario in @('editors','hud','hud-vitals','spectator','pointer','special-menus','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list','hud-hardcore','hud-demo')) {
     try { & $runner -All -Scenario $scenario -DebugUi; throw 'Partial scenarios accepted as full batch evidence' }
     catch { if ($_.Exception.Message -ne 'Batch evidence requires the complete scenario matrix') { throw } }
 }
@@ -61,6 +63,22 @@ if ($LASTEXITCODE -ne 0) { throw 'Spectator consumers syntax failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Production editor handoff recovery failed' }
 & node --test (Join-Path $PSScriptRoot 'ui-debug-capability-audit.test.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'UI typed applicability audit failed' }
+& node --test (Join-Path $PSScriptRoot 'hud-completion-actions.test.mjs') (Join-Path $PSScriptRoot 'suggestion-debug-actions.test.mjs') (Join-Path $PSScriptRoot 'visibility-toast-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'UI completion proof contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-local-owner-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-camera-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-camera-variant-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-toast-user-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-navigation-completion-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Native local-owner, HUD and navigation proof contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-native-confirmation-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-recovery-actions.test.mjs') (Join-Path $PSScriptRoot 'player-list-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-owned-connection-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-world-recovery-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Native confirmation, cancellation and private experimental draft contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'hud-vital-variant-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-boss-score-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-late-text-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-native-message-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-special-world-menu-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-recipe-hotbar-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Finite native UI breadth and actual HUD draw contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-hardcore-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-demo-actions.test.mjs') (Join-Path $PSScriptRoot 'hud-saving-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Actual native hardcore and Demo launch contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-reconfiguration-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Native bounded reconfiguration disconnect contracts failed' }
+& node --test (Join-Path $PSScriptRoot 'ui-toast-lifecycle-actions.test.mjs') (Join-Path $PSScriptRoot 'ui-command-management-actions.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Native Toast lifecycle and management-page boundary contracts failed' }
+& (Join-Path $PSScriptRoot 'Test-VanillaUiCatalog.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Concrete native Screen catalogue validation failed' }
 & node --check (Join-Path $PSScriptRoot 'visibility-toast-actions.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'UI visibility Toast syntax failed' }
 & node --check (Join-Path $PSScriptRoot 'ui-debug-advancement-actions.mjs')

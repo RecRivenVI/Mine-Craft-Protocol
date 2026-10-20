@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.*;
 import net.minecraft.client.gui.screens.*;
 import net.minecraft.client.gui.screens.advancements.*;
+import net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen;
 import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import net.minecraft.network.chat.Style;
 
@@ -95,7 +96,32 @@ final class VanillaInteractionRegions {
                                 .content());
         }
         if (screen instanceof AdvancementsScreen advancements) advancements(advancements);
+        if (screen instanceof GameModeSwitcherScreen gameModes) gameModes(gameModes);
         return nodes;
+    }
+
+    private void gameModes(GameModeSwitcherScreen screen) {
+        int index = 0;
+        for (var slot : ((GameModeSwitcherUiAccessor) screen).minecraftProtocolProbe$slots()) {
+            JsonObject node =
+                    region(
+                            slot,
+                            "game_mode.choice." + index++,
+                            "game_mode",
+                            slot.getMessage().getString(),
+                            slot.getX(),
+                            slot.getY(),
+                            slot.getWidth(),
+                            slot.getHeight(),
+                            20,
+                            "hover");
+            node.addProperty(
+                    "selected", ((GameModeSlotUiAccessor) slot).minecraftProtocolProbe$selected());
+            node.addProperty("effect", "hover_then_release_debug_modifier");
+            if (slot.getMessage().getContents()
+                    instanceof net.minecraft.network.chat.contents.TranslatableContents translated)
+                node.addProperty("translationKey", translated.getKey());
+        }
     }
 
     private void advancements(AdvancementsScreen screen) {

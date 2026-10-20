@@ -9,8 +9,20 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(RecipeBookComponent.class)
 public interface RecipeUiAccessor {
+    @Accessor("width")
+    int minecraftProtocolProbe$width();
+
+    @Accessor("height")
+    int minecraftProtocolProbe$height();
+
+    @Accessor("xOffset")
+    int minecraftProtocolProbe$xOffset();
+
     @Accessor("tabButtons")
     List<RecipeBookTabButton> minecraftProtocolProbe$tabs();
+
+    @Accessor("selectedTab")
+    RecipeBookTabButton minecraftProtocolProbe$selectedTab();
 
     @Accessor("searchBox")
     EditBox minecraftProtocolProbe$search();

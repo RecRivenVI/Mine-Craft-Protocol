@@ -49,10 +49,18 @@ foreach ($jar in $manifest.artifacts) {
 它们不进入纯净自动基线，不是产品依赖，也不能用来补齐发行包缺失依赖。
 
 每份快照只包含已绑定验证的候选；后续开发不会改写它。新快照必须重新通过同一候选五端独立发行安装门禁。
-清单的publicationProfile区分完整连续游玩试用与依赖更新：后者须逐文件确认产品实现未改变，引用已封存试用基线，
+清单的publicationProfile区分连续游玩试用、依赖更新与E的UI试用。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
 并重新完成当前五端单发行JAR的安装、进入固定世界、USER读取与正常退出。
-旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；两种profile均不宣称完整领域里程碑完成。
+E的UI试用绑定当前有限原版UI验收套件、独立Demo、受影响输入/选择器/命令协作与五端独立安装；按所复制清单中的具体范围使用。
+旧版单人世界社交入口缺席或禁用只证明环境限制，不计社交页操作通过。游戏模式菜单的hover不提交，正常释放修饰键才提交；强停止取消Agent持有的菜单，不提交所选模式。
+旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
+
+原版配方按钮会轮播多个物品。需要稳定悬停或右键展开时，可通过正常输入持有Control暂停轮播，确认held后重新读取语义目标；
+展开后释放Control、确认输入清零，再读取并选择具体配方。不可复用过期目标或把配方幽灵预览当成服务器槽位已填充。
+这是玩家可复现路径，不表示系统会忽略轮播引发的label变化；普通左键的目标内容校验仍生效。
+宽屏原版选择配方后仍保留弹层；关闭需点击选项之外。没有专用dismiss节点动作时，从当前USER弹层和选项矩形计算空白背景点，
+以标准鼠标输入关闭，再读真实合成槽位。此步骤属于接口几何派生坐标，不是语义节点点击，也不需要截图或手写游戏坐标。
 
 `world.block.set` 支持有界 `properties`/`expectedProperties` 字符串映射，使用实际原生属性名和值；不接受 NBT。
 同类型只更新指定属性；替换类型从默认状态开始。仍需 OPERATE/TAKEOVER、世界 Arm、独立 scope、当前世界与方块 Resource Version。
@@ -164,8 +172,8 @@ pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/In
 同一现场还执行两项真实 Companion UI 条件专项，mcpScope=ui_condition_contract；不是全套 MCP Runtime 矩阵。
 pipeline 的 ui.action/ui.drag 还需 ui，wait/assert 还需 read 及对应 UI/event/DEBUG 类别授权；
 缺权限的计划不会先执行前序玩家输入，不自动补权限或重新 acquire。
-alpha发布只接受full场景和continuous_gameplay_trial_v1档案，要求同候选完整前置矩阵与当前源码/工具及JAR匹配；
-input-preconditions等专项不能代替该门禁，也不能与其他批次结果拼接。
+alpha发布按明确的publicationProfile执行对应门禁，要求同候选实际消费源码/工具、安装证明与JAR匹配；
+input-preconditions等单项不能代替所选profile的完整前置条件，也不能与其他批次结果拼接。
 
 需要复验原生指针/物品拖动时，运行独立 UI 专项；它恢复 UI 自有固定副本，并验证窗口状态、滚动条和九槽分配。
 该结果不替代完整 UI 家族目录、世界 smoke 或人工验收，准备物品仍标为诊断 Arrange。
@@ -320,7 +328,8 @@ input.released严格type-only，不接受category/expected/selector；需要read
 
 ## 连续游玩试用
 
-本批为`continuous_gameplay_trial_v1`受限试用，不是两个完整里程碑或最终人工验收。
+以下为连续游玩能力的使用配方；实际交付范围以所复制快照的publicationProfile及生成说明为准。
+`continuous_gameplay_trial_v1`绑定完整连续游玩矩阵，`e_ui_trial_v1`只绑定其明确列出的UI与受影响场景，不是两个完整里程碑或最终人工验收。
 三次攻击相对单次1.5倍的性能目标未达成，用户已允许保留该限制试用；清单保留实际比值、
 `performanceComplete=false`及`goalPerformancePass=false`。本轮性能检测按用户决定暂缓，不采集新性能样本。
 四端既有测量仅作历史；Fabric的攻击与单步/GUI基线改为功能验证，明确
@@ -337,7 +346,7 @@ input.released严格type-only，不接受category/expected/selector；需要read
 6. 用现有WS显式订阅world.player.state，先等hello/subscription.accepted，再按sequence/sourceTick消费新帧；短断线用resume续接，gap后resync，不自动重新接管。
 7. 经本项目接口停止输入；如需测试真人Esc，由用户亲手执行。应退READ、reconsentRequired=true，后续独立观察仍可继续。
 
-### 本批使用方影响
+### 连续游玩接口使用注意
 
 - Runtime和Companion须来自同批源码/依赖；24个工具数不变，`minecraft_query_world`增加typed region分支。旧Companion不会因更换Mod JAR自动升级。
 - HTTP增加`POST /v0/world/region`；续读只发送cursor，不重发初始选择器。读取响应不确定时从新查询开始，不重放输入或修改。
@@ -587,6 +596,10 @@ readyAction默认click，可显式指定目标公开actions中的动作。select
 动作发生前仍由正常UI guard重查身份、版本与几何，不复用旧nodeId来绕过失效。
 renderer READY、底层TitleScreen和一次PNG都不表示第三方画面已经收敛。
 
+无Screen的HUD组合就绪使用`{"type":"screen","open":false,"ready":true}`，不需要selector；仍不证明世界/区块读取就绪。
+页面条件失败时读取结构化readiness.checks和failures，区分overlay、Screen、目标缺失/不可见、禁用及几何，不盲目重放操作。
+错误解释只基于当前已授权投影；缺失目标不会被进一步探测成隐藏控件。Pipeline使用errorDetails.readiness，Native与MCP错误直接提供readiness。
+
 传送返回accepted或玩家XYZ变化后，继续等待目标方块可读。以下复用现有block条件，不请求加载区块。
 示例坐标仅为测试目标，实际从任务场景取值；只需区块读取就绪时不指定blockId，验证空气等内容时再加预期值。
 
@@ -828,7 +841,7 @@ locked/busy、stale、unavailable、not-found 与 corrupt 按真实错误区分�
 世界读取/语义交互、Wait/Assert/录制采证、持久化只读和取消清理可分别运行；
 案例入口存在不等于当前候选五端smoke、十七项全套、完整目录或最终人工验收已通过。
 Showcase只记录对应开发Runtime展示，不单独授权生成或发布新alpha。
-当前alpha发布必须使用full场景及continuous_gameplay_trial_v1档案，完成其同候选前置门禁；
+alpha发布须显式选择连续游玩、依赖更新或E的UI档案，并完成所选profile的同候选前置门禁；
 不把旧全套源码证据或纯Native展示冒充当前全套/MCP/独立制品证明。
 只使用 Runner 的专用实例，不连接日常客户端；运行前核对是否有本线程实例正在使用，默认结束后关闭。
 
