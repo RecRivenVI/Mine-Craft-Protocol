@@ -20,7 +20,7 @@ public enum Rule {
     L10("L-10", Level.FAIL, ".github 中只有已知的 GitHub 文件"),
     F06("F-06", Level.FAIL, "模板定义的工具版本与模板一致"),
     T02("T-02", Level.FAIL, "Target 构建脚本不写版本号"),
-    T07("T-07", Level.WARN, "多个 Target 的产品源码中相同且不引用 Minecraft 的 Java 源码移入组件"),
+    T07("T-07", Level.WARN, "多个 Target 中相同且不依赖 Minecraft 的 Java 类移入组件"),
     P01("P-01", Level.FAIL, "元数据占位符只写在双引号字符串内"),
     P03("P-03", Level.FAIL, "每个 Target 只有本加载器的元数据文件"),
     P04("P-04", Level.FAIL, "加载器元数据从占位符取值"),

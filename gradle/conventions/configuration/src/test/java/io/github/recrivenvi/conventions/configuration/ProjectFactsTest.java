@@ -40,7 +40,8 @@ class ProjectFactsTest {
                 "mod_name",
                 "mod_version",
                 "mod_group",
-                "mod_side",
+                "mod_client_side",
+                "mod_server_side",
                 "mod_authors",
                 "mod_license",
                 "mod_description"
@@ -57,11 +58,32 @@ class ProjectFactsTest {
                 message(PROJECT.replace("io.github.example", "io.github.Example"))
                         .contains("[mod_group]"));
         assertTrue(message(PROJECT.replace("0.1.0", "0.1 beta")).contains("[mod_version]"));
-        assertTrue(
-                message(PROJECT.replace("mod_side=both", "mod_side=common"))
-                        .contains("[mod_side]"));
         assertTrue(message(PROJECT + "version=1\n").contains("[version]"));
         assertTrue(message(PROJECT + "mod_id=other\n").contains("[mod_id]: 重复的键"));
+    }
+
+    @Test
+    void eachSideIsRequiredUnusedOrOptional() {
+        RepositoryConfiguration sides =
+                project(PROJECT.replace("mod_server_side=true", "mod_server_side=optional"));
+        assertEquals(SideRequirement.REQUIRED, sides.getClientSide());
+        assertEquals(SideRequirement.OPTIONAL, sides.getServerSide());
+        assertTrue(
+                message(PROJECT.replace("mod_client_side=true", "mod_client_side=yes"))
+                        .contains("[mod_client_side]: 应为 true、false 或 optional"));
+        String unused = PROJECT.replace("mod_client_side=true", "mod_client_side=false");
+        assertEquals(SideRequirement.UNUSED, project(unused).getClientSide());
+        assertTrue(
+                message(unused.replace("mod_server_side=true", "mod_server_side=false"))
+                        .contains("[mod_server_side]: 客户端与服务端不能都是 false"));
+        assertTrue(
+                message(unused.replace("mod_server_side=true", "mod_server_side=optional"))
+                        .contains("[mod_server_side]: 客户端为 false 时只能在服务端使用，写 true"));
+        assertTrue(
+                message(
+                                PROJECT.replace("mod_client_side=true", "mod_client_side=optional")
+                                        .replace("mod_server_side=true", "mod_server_side=false"))
+                        .contains("[mod_client_side]: 服务端为 false 时只能在客户端使用，写 true"));
     }
 
     @Test

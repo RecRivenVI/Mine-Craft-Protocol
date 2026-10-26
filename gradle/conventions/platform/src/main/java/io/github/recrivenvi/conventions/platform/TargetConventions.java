@@ -438,6 +438,7 @@ public abstract class TargetConventions implements Plugin<Project> {
                             task.getServer().set(instance.isServer());
                             task.getEulaAccepted().set(repository.isEulaAccepted());
                             task.getMods().set(run.launch().mods());
+                            task.getOptions().set(run.launch().options());
                             task.getConfiguration().set(repository);
                         });
         project.getTasks()

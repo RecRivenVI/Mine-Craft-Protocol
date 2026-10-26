@@ -36,6 +36,10 @@ final class Section {
         return values.containsKey(key);
     }
 
+    Object value(String key) {
+        return values.get(key);
+    }
+
     String key(String key) {
         String segment = BARE_KEY.matcher(key).matches() ? key : Json.quote(key);
         return path.isEmpty() ? segment : path + "." + segment;

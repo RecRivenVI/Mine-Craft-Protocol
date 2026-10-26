@@ -1,6 +1,6 @@
 # 验证格式
 
-项目的自动化验证适用于文件、构建产物、接口与游戏行为等对象，是否启动游戏由验证的目标决定。模板规定各部分的位置、验证目录的结构与命名，以及每项验证必须写明的工具、Target、命令与通过标准；需要启动游戏的验证由模板生成运行任务，见下文"验证运行"。模板不提供探针代码、验证逻辑或验证项目（I-03）。新增验证的步骤见 [procedure-add_validation](../development/procedure-add_validation.md)。
+项目的自动化验证适用于文件、构建产物、接口与游戏行为等对象，是否启动游戏由验证的目标决定。模板规定各部分的位置、验证目录的结构与命名，以及每项验证必须写明的工具、Target、命令与通过标准；需要启动游戏的验证由模板生成运行任务，见下文"验证运行"。模板不提供探针代码、验证逻辑或验证项目（I-03）。验证目录只放可以反复执行的验证；一次性的对照，例如套用模板前后的比较，结论写进 `documents/research/` 的审计记录，原始证据不进仓库。新增验证的步骤见 [procedure-add_validation](../development/procedure-add_validation.md)。
 
 ## 各部分的位置
 
@@ -78,7 +78,7 @@ game-args = ["--quickPlayMultiplayer", "127.0.0.1:25565"]
 | 角色 | `client`、`client-multiplayer` 或 `server`，即内置的日常实例；`instances.toml` 中的额外实例不能作为角色 |
 | 实例设置 | 只取这张表与默认值，不继承 `instances.toml` 与 `local.toml` 中的实例设置，结果不随个人偏好变化；空表表示全部使用默认值。可写的键、取值规则与校验见 [configuration-repository](configuration-repository.md) 的"验证实例" |
 | 任务 | `:version:<target>:runValidation<验证名><角色>`，名称由验证目录名与角色名的各个单词首字母大写拼成，如 `smoke-launch` 的 `client-multiplayer` 角色为 `runValidationSmokeLaunchClientMultiplayer`；两项验证拼出相同名称时构建失败 |
-| 实例目录 | `validations/<name>/instance/<target>/<角色>/`；首次运行的处理与日常实例相同：客户端跳过无障碍引导，服务端关闭在线验证与白名单，使用者接受 EULA 时写入 `eula.txt`，实例设置 `mods` 中的本地输入按相同规则同步进 `mods/` |
+| 实例目录 | `validations/<name>/instance/<target>/<角色>/`；准备方式与日常实例相同：客户端写入游戏选项，预置为静音并且失去焦点时不暂停；服务端关闭在线验证与白名单，使用者接受 EULA 时写入 `eula.txt`；实例设置 `mods` 中的本地输入按相同规则同步进 `mods/` |
 | 加载的模组 | 产品模组；Target 有 `src/probe/` 时还有探针模组 |
 | IDE 运行配置 | 不生成；验证运行由 `validation.md` 的"运行"一节或验证工具启动 |
 

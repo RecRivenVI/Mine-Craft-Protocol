@@ -57,7 +57,7 @@ git ls-files --cached --others --exclude-standard -- AGENTS.md gradlew gradlew.b
 | [检查] | 输出"失败"，构建失败 |
 | [提示] | 输出"警告"，构建继续；严格模式下构建失败 |
 
-提示用于"有建议但允许例外"的规则，例如文档类型词，以及 T-07 对多个 Target 中相同 Java 源码的提醒：T-07 只比较产品源码 `src/main/java/` 与 `src/client/java/` 下去掉回车后的完整内容，含有 `net.minecraft`、`com.mojang`、`net.neoforged`、`net.minecraftforge`、`net.fabricmc`、`cpw.mods` 或 `org.spongepowered` 的文件以及 `package-info.java` 不参与比较。项目可以登记补充词来消除反复出现的提示，也可以开启严格模式把提示当作错误；两者都在 `settings.gradle.kts` 的 `compliance {}` 中设置。
+提示用于"有建议但允许例外"的规则，例如文档类型词，以及 T-07 对多个 Target 中相同 Java 源码的提醒：T-07 按类比较产品源码 `src/main/java/` 与 `src/client/java/`：一个类在含有它的每个 Target 中去掉回车后的内容都相同，自身不含 `net.minecraft`、`com.mojang`、`net.neoforged`、`net.minecraftforge`、`net.fabricmc`、`cpw.mods` 或 `org.spongepowered`，并且它用到的本项目其他类（导入的类、同一个包中按简单名称使用的类与写出全名的类）也满足同样的条件时才提示；`src/<源码集>/templates/` 中的类按 Target 展开，组件里没有它们，引用它们的类不提示；`package-info.java` 与 `module-info.java` 不参与比较。项目可以登记补充词来消除反复出现的提示，也可以开启严格模式把提示当作错误；两者都在 `settings.gradle.kts` 的 `compliance {}` 中设置。
 
 ## 检查范围
 

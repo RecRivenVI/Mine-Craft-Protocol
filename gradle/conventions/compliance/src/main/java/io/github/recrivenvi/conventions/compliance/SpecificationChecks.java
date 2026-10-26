@@ -19,7 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class SpecificationChecks {
-    static final String VERSION = "2.0.2";
+    static final String VERSION = "3.0.0";
     // 模板插件与规范附件都在这个目录中，整体属于模板（G-08）。
     static final String TEMPLATE_DIRECTORY = "gradle/conventions";
     static final String SPECIFICATION = TEMPLATE_DIRECTORY + "/specification";

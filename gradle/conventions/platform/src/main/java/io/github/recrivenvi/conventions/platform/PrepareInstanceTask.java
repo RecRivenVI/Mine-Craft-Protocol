@@ -9,6 +9,7 @@ import java.util.Map;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
@@ -29,6 +30,9 @@ public abstract class PrepareInstanceTask extends DefaultTask {
     @Input
     public abstract ListProperty<String> getMods();
 
+    @Input
+    public abstract MapProperty<String, String> getOptions();
+
     @Internal
     public abstract Property<RepositoryConfiguration> getConfiguration();
 
@@ -38,10 +42,7 @@ public abstract class PrepareInstanceTask extends DefaultTask {
         Files.createDirectories(directory);
         mods(directory);
         if (!getServer().get()) {
-            // 新实例首次启动时，无障碍引导会挡在标题界面前等待点击；之后仍可在游戏设置中打开。
-            Path options = directory.resolve("options.txt");
-            if (Files.notExists(options))
-                Files.writeString(options, "onboardAccessibility:false\n");
+            InstanceOptions.write(directory.resolve("options.txt"), getOptions().get());
             return;
         }
         Path properties = directory.resolve("server.properties");

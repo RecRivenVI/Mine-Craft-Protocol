@@ -1,6 +1,6 @@
 # 仓库规范
 
-规范版本：2.0.2
+规范版本：3.0.0
 
 本文件是采用本模板的仓库共用的规范，写给 Agent，也约束人类开发者；它与其他模板文件（G-08）随模板版本固定，项目内不修改。项目的信息与补充规则写在项目规范 [documents/AGENTS.md](documents/AGENTS.md)，它对整个仓库生效，只能补充本规范，不能放宽或改写。开始工作前读完这两份文件。
 
@@ -111,12 +111,12 @@
 - **T-04** [判断] 源码、资源与代码风格遵循对应加载器生态的惯例。Target 之间不共享 Minecraft 相关源码，不使用预处理器或条件编译。
 - **T-05** [判断] 业务改动先在项目规范指定的参考 Target 上完成并在游戏中确认，再逐个移植到其他 Target；版本或加载器之间的 API 差异记录在 `documents/development/porting-<topic>.md`。
 - **T-06** [判断] 加载器选择支持该 Minecraft 版本的最新版本：Forge 不按推荐版本选择，NeoForge 包括 Beta。具体版本固定在 `target.properties`，不使用动态版本。
-- **T-07** [提示] 多个 Target 的产品源码（`main` 与 Fabric 的 `client` 源码集）中内容相同、且不引用 Minecraft 与加载器的 Java 源码，移入 `product` 组件，各 Target 不各留一份。
+- **T-07** [提示] 多个 Target 的产品源码（`main` 与 Fabric 的 `client` 源码集）中都有、各处内容相同，且它与它用到的本项目其他类都不引用 Minecraft 与加载器的 Java 类，移入 `product` 组件，各 Target 不各留一份。
 
 ## 6. 产品
 
 - **P-01** [检查] 加载器元数据文件（`META-INF/mods.toml`、`META-INF/neoforge.mods.toml`、`fabric.mod.json`、`pack.mcmeta`）中的 `${...}` 占位符只写在双引号字符串内；`${mod_id}` 另可用于 TOML 表名。
-- **P-02** [判断] `mod_side` 决定产品模组的运行端：`both` 两端都必须安装，`client` 仅客户端、可加入未安装本模组的服务器，`server` 仅服务端、原版客户端可以加入。限定运行端的代码按加载器原生方式组织：Fabric 放在 `client` 源码集，NeoForge 与 Forge 用 `Dist` 区分。切换步骤见 [procedure-switch_side](gradle/conventions/specification/development/procedure-switch_side.md)。
+- **P-02** [判断] `mod_client_side` 与 `mod_server_side` 分别写明产品模组在客户端与服务端的安装要求：`true` 必须安装，`false` 不需要安装、装了也不起作用，`optional` 可装可不装；一端为 `false` 时另一端写 `true`，两端不能都是 `false`。限定运行端的代码按加载器原生方式组织：Fabric 放在 `client` 源码集，NeoForge 与 Forge 用 `Dist` 区分；一端不是 `true` 时，两端之间的网络负载声明为可选。切换步骤见 [procedure-switch_side](gradle/conventions/specification/development/procedure-switch_side.md)。
 - **P-03** [检查] 每个 Target 的 `src/main/resources/` 只有与加载器对应的元数据文件：`forge` 为 `META-INF/mods.toml`，`neoforge` 为 `META-INF/neoforge.mods.toml`，`fabric` 为 `fabric.mod.json`。
 - **P-04** [检查] 加载器元数据中的模组身份、版本、作者、许可、描述、Forge 与 Fabric 的运行端、入口类所在的包，以及对 Minecraft、加载器与 Java 的版本要求，都用占位符从第 4 节的来源取值；字段与占位符的对应见 [format-metadata](gradle/conventions/specification/reference/format-metadata.md)。
 - **P-05** [检查] Target 的资源与数据生成产物中，`assets/` 与 `data/` 下的路径符合 Minecraft 资源位置规则：只用小写英文字母、数字、`_`、`-`、`.` 与目录分隔符。

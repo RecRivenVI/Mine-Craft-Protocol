@@ -8,6 +8,7 @@
 独立服务器Runtime使用各Loader的SERVER_STARTED/STOPPING生命周期，不在集成服创建第二入口。
 Forge1.20.1的服务器目录为File、命令结果回调为三参Brigadier ResultConsumer；其余Target目录为Path、回调为两参CommandResultCallback。
 Fabric原版CommandSourceStack.source为private，反馈委托给DedicatedServer自身，不使用NeoForge扩宽访问或新access widener。
+Fabric的access widener由全局元数据声明，文件放在src/main/resources中，使原生开发客户端和独立服务端都能解析；声明内容及发行JAR中的路径一致，不改变客户端访问规则。
 所有命令仍经服务器自身任务队列和原生分发器，普通终端输入不被替换；未持客户端Lease不影响独立操作员命令。
 
 生命HUD采样：26.3在Hud/Renderpearl的extract方法观察GuiGraphicsExtractor.blitSprite；

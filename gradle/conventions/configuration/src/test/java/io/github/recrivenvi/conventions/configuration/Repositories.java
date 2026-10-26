@@ -14,7 +14,8 @@ final class Repositories {
             mod_name=Example Mod
             mod_version=0.1.0
             mod_group=io.github.example
-            mod_side=both
+            mod_client_side=true
+            mod_server_side=true
             mod_authors=Example
             mod_license=MIT
             mod_description=Example description

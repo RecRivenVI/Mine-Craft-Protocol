@@ -33,7 +33,7 @@
    | ModDevGradle 与 Loom | 最新稳定版；Loom 的大版本变化需要 Target 脚本改写时，先向使用者说明 |
    | 构建工具与 GitHub Actions（模板） | 最新稳定版，不使用 beta、snapshot 或 alpha；格式化工具取当前 Spotless 支持的最新版 |
 
-3. （模板）升级 Gradle 时执行下面的命令，`<sha256>` 取自 `https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`；命令执行两次，第二次由新版本的 Gradle 重新生成 `gradlew`、`gradlew.bat` 与 `gradle/wrapper/gradle-wrapper.jar`。然后把 `NOTICE` 中的 Gradle 版本改为新版本：
+3. （模板）升级 Gradle 时执行下面的命令，`<sha256>` 取自 `https://services.gradle.org/distributions/gradle-<version>-bin.zip.sha256`；命令执行两次，第二次由新版本的 Gradle 重新生成 `gradlew`、`gradlew.bat` 与 `gradle/wrapper/gradle-wrapper.jar`：
 
    ```powershell
    .\gradlew.bat wrapper --gradle-version <version> --distribution-type bin --gradle-distribution-sha256-sum <sha256>

@@ -47,7 +47,7 @@ export function eWorldRunProof(result,target,scenario){
 export function eWorldCandidateSourceProof(result,target,scenario,required,current,full){
  const bindings=result.sourceHashes??{},supplemental=[];
  const metadata=new Set(['META-INF/mods.toml','META-INF/neoforge.mods.toml','META-INF/accesstransformer.cfg','pack.mcmeta'].map(path=>`versions/${target}/src/main/resources/${path}`));
- metadata.add(`versions/${target}/src/client/resources/minecraft_protocol_probe.accesswidener`);
+ metadata.add(`versions/${target}/src/main/resources/minecraft_protocol_probe.accesswidener`);
  for(const path of required){
   if(bindings[path]===undefined&&scenario==='player-command'&&metadata.has(path)){
    // This recorder hashes Java/JSON/TS only. The required full-world run records

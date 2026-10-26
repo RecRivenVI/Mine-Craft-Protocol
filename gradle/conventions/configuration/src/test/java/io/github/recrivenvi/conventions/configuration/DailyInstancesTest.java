@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -153,6 +154,47 @@ class DailyInstancesTest {
                 lines.toString());
         assertTrue(lines.contains("height = 480  (默认值)"), lines.toString());
         assertTrue(lines.stream().noneMatch(line -> line.startsWith("port")));
+    }
+
+    @Test
+    void optionsStartFromPresetsAndWrittenKeysOverrideThem() {
+        RepositoryConfiguration properties =
+                daily(
+                        "[all]\noptions = { soundCategory_master = 0.25, renderDistance = 8 }\n",
+                        "[client.options]\nlang = \"zh_cn\"\nfullscreen = false\n");
+        assertEquals(
+                Map.of(
+                        "onboardAccessibility", "false",
+                        "soundCategory_master", "0.25",
+                        "soundCategory_music", "0.0",
+                        "renderDistance", "8"),
+                properties.launchSettings(NEOFORGE, CLIENT_MULTIPLAYER).options());
+        assertEquals(
+                Map.of(
+                        "onboardAccessibility", "false",
+                        "soundCategory_master", "0.5",
+                        "soundCategory_music", "0.0",
+                        "lang", "zh_cn",
+                        "fullscreen", "false"),
+                properties.launchSettings(NEOFORGE, CLIENT).options());
+        assertEquals(Map.of(), properties.launchSettings(NEOFORGE, SERVER).options());
+        List<String> lines = properties.describeLaunchSettings(NEOFORGE, CLIENT);
+        assertTrue(lines.contains("options.soundCategory_master = 0.5  (默认值)"), lines.toString());
+        assertTrue(lines.contains("options.lang = zh_cn  (local.toml [client])"), lines.toString());
+    }
+
+    @Test
+    void optionsAreWrittenAsOptionsTxtLines() {
+        assertTrue(
+                message("[server.options]\nlang = \"en_us\"\n", "")
+                        .contains("options 不适用于 server"));
+        assertTrue(
+                message("[all.options]\n\"key:jump\" = 1\n", "")
+                        .contains("options.txt 的键只能使用字母、数字、_ 与 ."));
+        assertTrue(
+                message("[all.options]\nlang = [\"zh_cn\"]\n", "")
+                        .contains("应为字符串、数字或 true、false"));
+        assertTrue(message("[all.options]\nlang = \"a\\nb\"\n", "").contains("取值不能换行"));
     }
 
     @Test

@@ -34,7 +34,7 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 
 五个已有 Target 是独立实现，不通过构建继承推断行为等价。
 不要求内部代码共享率最大化，不恢复全局 expectedWorldRevision。
-产品 ID、显示名、版本、包与许可保持现有事实；三部署实施须先解决符合模板的产物/安装表达，不以文档改写当前 mod_side=both。
+产品 ID、显示名、版本、包与许可保持现有事实；mod_client_side=true、mod_server_side=true，三部署实施仍须完成相应产物与互通验收，不以文档改写双端必装要求。
 
 ## 两个首个里程碑
 

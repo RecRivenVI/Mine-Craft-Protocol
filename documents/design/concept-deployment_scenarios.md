@@ -8,7 +8,7 @@
 
 ## 当前实现与差距
 
-当前产品事实仍是 mod_side=both，不能据可选 Peer channel 宣称单端安装已受支持。
+当前产品事实为 mod_client_side=true、mod_server_side=true，不能据可选 Peer channel 宣称单端安装已受支持。
 五端除客户端 Runtime 外，独立服务器在 SERVER_STARTED 建立自己的认证 loopback Runtime，
 SERVER_STOPPING 关闭。只在 DedicatedServer 启动，集成服不会再创建第二个 endpoint。
 原 DedicatedPeerServer 仍依赖已连接 ServerPlayer 接收游戏负载，与独立入口分开。
@@ -21,8 +21,8 @@ hello/hello_ack 不等于细粒度授权、启动身份绑定或完成配对证�
 
 当前固定Alpha保持既有both安装说明；本地开发候选已支持独立服务端控制台，不要求有玩家连接。
 仅客户端互通、无模组客户端加入及完整可选协商不因可选Peer或本次零玩家测试就成为已验安装承诺。
-用户已批准保持模板文件不变、以可选协商推进部署实现；不以模板三值缺少“可选双端”继续阻止服务端工作。
-当前 mod_side=both 和 Loader 元数据未改；零玩家控制台可用不代表无模组客户端加入或全部单端互通已验收。
+用户已批准以可选协商推进部署实现；模板允许独立声明两端可选，是否启用仍须完成对应运行与互通证明，并明确安装承诺。
+当前 mod_client_side=true、mod_server_side=true，双端必装要求不变；零玩家控制台可用不代表无模组客户端加入或全部单端互通已验收。
 正式安装承诺仍按逐 Target 实机证明收口，不把有限 Peer 或代表端结果当作所有组合通过。
 当前安装说明见[使用指南](../usage/guide-installation.md)，本设计不修改运行端或元数据。
 

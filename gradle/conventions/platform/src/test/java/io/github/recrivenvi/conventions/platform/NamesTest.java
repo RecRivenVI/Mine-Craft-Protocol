@@ -2,6 +2,7 @@ package io.github.recrivenvi.conventions.platform;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.github.recrivenvi.conventions.configuration.SideRequirement;
 import org.junit.jupiter.api.Test;
 
 class NamesTest {
@@ -18,6 +19,22 @@ class NamesTest {
         assertEquals(
                 "runValidationSmokeLaunchServer",
                 Names.task("run", Names.validation("SmokeLaunch", "server")));
+    }
+
+    @Test
+    void sidesExpandToLoaderMetadata() {
+        SideRequirement required = SideRequirement.REQUIRED;
+        SideRequirement unused = SideRequirement.UNUSED;
+        SideRequirement optional = SideRequirement.OPTIONAL;
+        assertEquals("client", Metadata.fabricEnvironment(unused));
+        assertEquals("*", Metadata.fabricEnvironment(optional));
+        assertEquals("*", Metadata.fabricEnvironment(required));
+        assertEquals("MATCH_VERSION", Metadata.displayTest(required, required));
+        assertEquals("IGNORE_ALL_VERSION", Metadata.displayTest(required, unused));
+        assertEquals("IGNORE_ALL_VERSION", Metadata.displayTest(required, optional));
+        assertEquals("IGNORE_SERVER_VERSION", Metadata.displayTest(unused, required));
+        assertEquals("IGNORE_SERVER_VERSION", Metadata.displayTest(optional, required));
+        assertEquals("IGNORE_SERVER_VERSION", Metadata.displayTest(optional, optional));
     }
 
     @Test

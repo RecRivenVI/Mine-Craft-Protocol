@@ -1,10 +1,13 @@
 package io.github.recrivenvi.conventions.configuration;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 final class Values {
     private static final Pattern MEMORY = Pattern.compile("[1-9][0-9]*[KMG]");
+    private static final Pattern OPTION_KEY = Pattern.compile("[A-Za-z0-9_.]+");
     private static final List<String> MANAGED_JVM_OPTIONS = List.of("-Xms", "-Xmx");
     private static final List<String> REMOVED_JVM_OPTIONS =
             List.of("-XX:PermSize=", "-XX:MaxPermSize=");
@@ -56,6 +59,27 @@ final class Values {
                 if (value.equals(option) || value.startsWith(option + "="))
                     throw section.error(key, option + " 由构建设置；改用对应的实例设置");
         return values;
+    }
+
+    // options.txt 的每一行写作"键:值"，所以键不能含冒号，值不能换行。
+    static Map<String, String> options(Section section, String key) {
+        Section table = required(section, key, section.table(key));
+        Map<String, String> options = new LinkedHashMap<>();
+        for (String option : table.keys()) {
+            if (!OPTION_KEY.matcher(option).matches())
+                throw table.error(option, "options.txt 的键只能使用字母、数字、_ 与 .");
+            String text =
+                    switch (table.value(option)) {
+                        case String string -> string;
+                        case Long number -> number.toString();
+                        case Double number -> number.toString();
+                        case Boolean flag -> flag.toString();
+                        default -> throw table.error(option, "应为字符串、数字或 true、false");
+                    };
+            if (text.contains("\n") || text.contains("\r")) throw table.error(option, "取值不能换行");
+            options.put(option, text);
+        }
+        return options;
     }
 
     private static <T> T required(Section section, String key, T value) {

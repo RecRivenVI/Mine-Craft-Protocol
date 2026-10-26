@@ -10,7 +10,7 @@ Companion 的 Node 依赖单独见[Companion 依赖](dependency-companion.md)。
 Loader 可以采用已发布的 Beta，但版本必须固定，不能使用动态版本。
 Fabric API 从 Fabric Target 的事实读取；ModDev、Loom 和 Wrapper 从各自构建事实读取。
 已有最低 Loader 要求与编译用版本分离，新 Minecraft Target 不沿用旧端的运行下限。
-本轮保持Minecraft、最低Loader要求及模板2.0.2不变，更新现有Target兼容的稳定Loader、Fabric API与项目拥有的Loom。
+Minecraft、最低Loader要求及项目拥有的依赖保持已登记事实；模板规则以[仓库规范](../../AGENTS.md)为准，模板升级不自动升级Loader、Fabric API或Loom。
 Fabric Loader最新稳定为0.19.5，0.20.x标为非稳定，本批不采用。
 
 2026-10-20更新范围与官方来源如下；版本事实仍只从Target文件与版本目录读取。

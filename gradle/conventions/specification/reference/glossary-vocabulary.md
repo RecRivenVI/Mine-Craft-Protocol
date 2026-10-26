@@ -106,7 +106,7 @@
 | `proposal` | 提案 | 尚未决定的方案 |
 | `roadmap` | 路线图 | 未来一段时间的方向与里程碑顺序 |
 | `milestone` | 里程碑 | 一个里程碑的内容与完成条件 |
-| `plan` | 计划 | 给 Agent 执行的分步计划，有固定小节（D-06） |
+| `plan` | 计划 | 给 Agent 执行的分步计划，有固定小节（D-06）；执行中改写步骤状态，不追加执行日志，需要保留的过程写进阶段记录 |
 | `status` | 进度 | 项目整体的当前状态；内容过时时立即更新 |
 | `backlog` | 待办 | 已记录但尚未排期的需求、想法与后续事项 |
 | `debt` | 技术债 | 已知需要偿还的技术债 |
@@ -153,6 +153,7 @@
 | `release/upgrade-*` 与 `release/migration-*` | 前者是升级要做的操作，后者是格式变化引起的数据、配置或接口迁移 |
 | `development/debugging-*` 与 `research/investigation-*` | 前者是长期有效的排查方法，后者是一次具体调查的过程与结论 |
 | `development/testing-*`、`validations/` 与 `research/audit-*` | 测试文档讲如何运行测试与人工测试清单；验证目录是可重复执行的自动化验证；审计是一次性的系统检查 |
+| `validations/migration-*` 与 `research/audit-*` | 前者反复验证旧存档、旧配置能否正确升级；一次性的对照，例如套用模板前后的比较，是审计，原始证据不进仓库 |
 | `design/principle-*` 与 `adr-*` | 前者是长期适用的取舍原则，后者是一次具体决策及其背景 |
 | `project/status-*` 与 `project/handoff-*` | 前者是项目整体进度，后者是一项进行中工作的交接 |
 | `project/backlog-*` 与 `project/debt-*` | 前者是尚未排期的需求与想法，后者是已知需要偿还的技术债 |

@@ -1,6 +1,7 @@
 package io.github.recrivenvi.conventions.platform;
 
 import com.diffplug.gradle.spotless.SpotlessExtension;
+import com.diffplug.spotless.LineEnding;
 import io.github.recrivenvi.conventions.component.ComponentConventions;
 import java.io.File;
 import java.util.ArrayList;
@@ -19,11 +20,28 @@ import org.gradle.api.tasks.TaskProvider;
 final class Formatting {
     private static final String RUMDL_RELEASES =
             "https://github.com/rvben/rumdl/releases/download/";
+    // 根项目只格式化仓库根、文档、许可、.github 与验证目录中的文本；其余目录在遍历时直接跳过，
+    // 被忽略的大型实例目录因此不会被逐个列出。Target、组件与模板插件由各自的构建格式化。
+    private static final List<String> ROOT_SKIPPED =
+            List.of(
+                    ".git/**",
+                    ".gradle/**",
+                    "build/**",
+                    "instances/**",
+                    "versions/**",
+                    "components/**",
+                    "gradle/conventions/**",
+                    "local.toml",
+                    "validations/*/instance/**",
+                    "validations/*/result/**");
 
     private Formatting() {}
 
     static void target(Project project) {
         SpotlessExtension spotless = project.getExtensions().getByType(SpotlessExtension.class);
+        // Target 与根项目的文本只用 LF（C-02），批处理文件不在它们的格式范围内；
+        // 固定换行符也免去按 .gitattributes 判定时对整个仓库的遍历。
+        spotless.setLineEndings(LineEnding.UNIX);
         spotless.java(
                 java -> {
                     java.target("src/*/java/**/*.java", "src/*/templates/**/*.java");
@@ -48,16 +66,20 @@ final class Formatting {
                     List<String> files = new ArrayList<>(List.of("*.properties"));
                     for (String extension : ComponentConventions.TEXT_EXTENSIONS)
                         if (!extension.equals("json")) files.add("src/**/*." + extension);
-                    misc.target(files.toArray());
+                    misc.target(
+                            project.fileTree(
+                                    project.getProjectDir(),
+                                    tree -> tree.include(files).exclude("build/**", ".gradle/**")));
                     ComponentConventions.whitespace(misc);
                 });
     }
 
     static void root(Project project) {
         SpotlessExtension spotless = project.getExtensions().getByType(SpotlessExtension.class);
+        spotless.setLineEndings(LineEnding.UNIX);
         spotless.kotlinGradle(
                 kotlin -> {
-                    kotlin.target("*.gradle.kts");
+                    kotlin.target(rootFiles(project, List.of("*.gradle.kts")));
                     kotlin.ktfmt(ComponentConventions.version(project, "ktfmt")).kotlinlangStyle();
                 });
         spotless.format(
@@ -86,9 +108,7 @@ final class Formatting {
                                             "documents/**/*.md"));
                     for (String extension : ComponentConventions.TEXT_EXTENSIONS)
                         files.add("validations/**/*." + extension);
-                    misc.target(files.toArray());
-                    misc.targetExclude(
-                            "local.toml", "validations/*/instance/**", "validations/*/result/**");
+                    misc.target(rootFiles(project, files));
                     ComponentConventions.whitespace(misc);
                 });
         TaskProvider<Sync> rumdl = installRumdl(project);
@@ -101,6 +121,12 @@ final class Formatting {
         project.getTasks()
                 .matching(task -> task.getName().equals("spotlessMiscApply"))
                 .configureEach(task -> task.mustRunAfter(fix));
+    }
+
+    // 一次遍历取得全部文件：交给 Spotless 的每个通配符都会从项目目录起各遍历一次，排除项在遍历之后才剔除。
+    private static FileTree rootFiles(Project project, List<String> include) {
+        return project.fileTree(
+                project.getProjectDir(), tree -> tree.include(include).exclude(ROOT_SKIPPED));
     }
 
     // rumdl 是发布在 GitHub Releases 上的原生程序。Gradle 把发布包当作依赖解析，

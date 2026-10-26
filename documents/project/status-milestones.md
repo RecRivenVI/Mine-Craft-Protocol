@@ -16,7 +16,8 @@ UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验�
 服务端READ日志/OPERATE原生命令需独立server_console授权；不持玩家Lease，TAKEOVER不适用。
 目录和限制见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)，
 五端当前单JAR证据见[服务端验证](../../validations/integration-server_peer/validation.md)的result/<target>-console.json。
-首批世界DEBUG证据为同项result/<target>-server-debug.json，均匹配当前发行JAR；读取不要求Arm/Lease，OPERATE修改仍需完整独立授权。
+首批世界DEBUG证据为同项result/<target>-server-debug.json，绑定其原始JAR；模板升级会重新生成发行JAR，既有功能结果不自动证明新制品，仍须按发布范围重新验证。
+读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮模板启动验证不替代五端完整功能验收。
 修改回执需要DEBUG读取scope，在执行前检查，不借server_console；旧版本/原值/非法原生属性及未加载拒绝、批次恢复和disarm均已实测。
 其余维度、玩家/实体/容器/Provider目录和完整Peer委托、无模组客户端互通仍待实施；新代码尚未发布到固定Alpha。
 check/verifyRelease和严格合规通过；本地发行JAR已更新，旧固定Alpha及清单不变。
@@ -90,7 +91,7 @@ M-09的产品方向已获用户批准，不再等模板决策；完整部署矩�
   USER/DEBUG独立读取授权，模式不授予scope/Arm；Esc仅撤销接管并持续要求重新同意，合法独立DEBUG由模型结合用户决定。
 - UI USER只读实际呈现；世界USER为有界客户端缓存，不自动加载Chunk、读存档或开放服务器内部数据。
   PLAYTEST、FIXTURE、DEBUG_PRIVILEGED不混淆，Operator UI不进入默认截图/录制。
-- mod_side=both及Loader元数据未改；M-09独立Runtime/初始控制台已五端验证，有限Peer仍依赖在线ServerPlayer。
+- mod_client_side=true、mod_server_side=true，双端必装要求不变；M-09独立Runtime/初始控制台已五端验证，有限Peer仍依赖在线ServerPlayer。
   命令统一USER，原生可见性不代表授权或执行成功，不提升主体。
 - 第三方Sodium/自绘UI存在语义缺口，授权后可截图/坐标回退；不宣称自动适配。模板/Target/依赖固定，不开展整合包测试。
 - 自动测试1920×1080静音、4GiB、一次一个自有客户端；禁止Computer-Use/宿主输入注入/操作用户Prism或重要存档。

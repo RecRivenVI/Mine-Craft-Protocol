@@ -29,9 +29,10 @@
 | `mod_name` | 显示名称 |
 | `mod_version` | 版本号，不含空格 |
 | `mod_group` | 小写 Java 包名，同时作为 Maven group |
-| `mod_side` | `both`、`client` 或 `server`，含义见 P-02 |
+| `mod_client_side` | 客户端的安装要求：`true` 必须安装，`false` 不需要安装，`optional` 可装可不装，含义见 P-02 |
+| `mod_server_side` | 服务端的安装要求，取值同上；一端为 `false` 时另一端写 `true`，两端不能都是 `false` |
 | `mod_authors` | 作者显示文本 |
-| `mod_license` | 许可名称，建议使用 SPDX 标识符 |
+| `mod_license` | 许可名称，建议使用 SPDX 标识符；不开源时写 `All Rights Reserved` |
 | `mod_description` | 一句话描述 |
 
 以上键全部必需，同一个键不能出现两次。可以另加以 `mod_` 开头的小写键作为模板变量。`org.gradle.*` 由 Gradle 按原生规则处理；模板启用配置缓存，并把 `org.gradle.workers.max` 设为 2。
@@ -82,8 +83,8 @@ dependencies {
 | 全部 `mod_*` | `gradle.properties` |
 | 全部 Target 事实 | `target.properties` |
 | `target`、`minecraft_version`、`loader` | Target 目录名 |
-| `fabric_environment` | `mod_side` 为 `client` 时是 `client`，否则是 `*` |
-| `display_test` | `both` → `MATCH_VERSION`，`client` → `IGNORE_ALL_VERSION`，`server` → `IGNORE_SERVER_VERSION`；只用于 Forge 的元数据 |
+| `fabric_environment` | `mod_server_side` 为 `false` 时是 `client`，否则是 `*` |
+| `display_test` | 两端都是 `true` 时是 `MATCH_VERSION`；客户端为 `true`、服务端不是 `true` 时是 `IGNORE_ALL_VERSION`；其余是 `IGNORE_SERVER_VERSION`；只用于 Forge 的元数据 |
 | `loader_minimum` | `target.properties` 中的同名键，未写时等于 `loader_version` |
 
 ## 日常实例
@@ -118,6 +119,7 @@ memory-max = "6G"
 | `jvm-args` | 字符串数组 | 全部 | 空 | 追加的 JVM 参数 |
 | `game-args` | 字符串数组 | 全部 | 空 | 追加的游戏参数 |
 | `mods` | 字符串数组 | 全部 | 空 | 只在该实例中加载的模组，元素为 `inputs.toml` 中的输入名称 |
+| `options` | 表 | 客户端 | 见下文"游戏选项" | 每次启动前写入 `options.txt` 的游戏选项 |
 
 默认值取自 Minecraft 官方资料：官方启动器给客户端 2G 最大堆；官方服务端下载页的启动命令让服务端最小堆与最大堆都为 1G；游戏窗口默认 854×480；服务端默认端口 25565。玩家名没有官方默认值，模板取 `DevPlayer` 与 `DevGuest`，让两个客户端可以同时进入同一服务器。
 
@@ -138,7 +140,31 @@ memory-max = "6G"
 
 因此，个人覆盖要写在与共享预设相同的表中才能替换它；写在更宽泛的表中不会压过共享的具体设置。写在实例表中的键必须适用于该实例，例如 `[server]` 中的 `width` 会报错；`[all]` 与 `[targets."<target>".all]` 中的键只作用于适用的实例。所有写出的值都会被校验，不存在"被覆盖所以不校验"的值。
 
-独立服务端总是带 `--nogui` 启动。客户端实例首次启动前没有 `options.txt` 时，准备任务写入 `onboardAccessibility:false`，跳过新实例的无障碍引导界面；已有的 `options.txt` 不会被改动。
+独立服务端总是带 `--nogui` 启动。
+
+### 游戏选项
+
+客户端实例每次启动前，准备任务把游戏选项写进实例的 `options.txt`：只改动列出的键，其余行与顺序保持原样；文件不存在时新建。模板提供一组预置，实例设置 `options` 中写出的键覆盖或补充它们：
+
+| 键 | 日常实例 | 验证实例 | 作用 |
+| --- | --- | --- | --- |
+| `onboardAccessibility` | `false` | `false` | 跳过新实例的无障碍引导界面 |
+| `soundCategory_master` | `0.5` | `0.0` | 主音量；验证实例静音 |
+| `soundCategory_music` | `0.0` | `0.0` | 关闭音乐 |
+| `pauseOnLostFocus` | 不写 | `false` | 窗口失去焦点时不暂停，无人值守的验证照常运行 |
+
+```toml
+[all.options]
+renderDistance = 8
+lang = "zh_cn"
+```
+
+| 规则 | 内容 |
+| --- | --- |
+| 键 | `options.txt` 中的键，只用字母、数字、`_` 与 `.`；键名随游戏版本而定，模板不核对 |
+| 值 | 字符串、整数、小数或 `true`、`false`，按原样写成一行 `<键>:<值>`；不能换行 |
+| 取值顺序 | 与其他设置相同：最具体的表中的 `options` 整表生效，不与更宽泛的表合并；预置按键被覆盖 |
+| 适用实例 | 客户端；写在 `[server]` 中会报错 |
 
 ### 额外实例
 
@@ -197,7 +223,7 @@ game-args = ["--quickPlayMultiplayer", "127.0.0.1:25580"]
 
 | 规则 | 内容 |
 | --- | --- |
-| 可写的键 | 与日常实例的表相同，取值规则、默认值与"实例中的模组"的同步规则也相同 |
+| 可写的键 | 与日常实例的表相同，取值规则、默认值与"实例中的模组"的同步规则也相同；游戏选项使用验证实例的预置 |
 | 取值来源 | 只有这张表与默认值；`instances.toml` 与 `local.toml` 的 `[all]`、`[targets]`、角色表与 `[variants]` 都不参与 |
 | 本机设置 | `eula` 与 `[inputs]` 中的本机路径仍从 `local.toml` 读取 |
 | 失败的写法 | 未知的角色、额外实例名、不适用于该角色的键、`memory-min` 大于 `memory-max`、未登记的本地输入；`targets` 为空或缺失时写了 `[instances]` |

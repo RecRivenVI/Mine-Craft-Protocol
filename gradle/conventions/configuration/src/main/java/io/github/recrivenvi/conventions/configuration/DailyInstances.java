@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,14 +27,38 @@ final class DailyInstances implements Serializable {
                     "port",
                     "jvm-args",
                     "game-args",
-                    "mods");
+                    "mods",
+                    "options");
     private static final List<String> RESERVED =
             List.of("all", "targets", "variants", "inputs", "eula");
 
+    // 客户端每次启动前写入 options.txt 的预置：跳过新实例的无障碍引导并关闭音乐；日常实例的主音量减半，
+    // 验证实例静音，失去焦点时也不暂停，无人值守时照常运行。
+    private static final Map<String, String> DAILY_OPTIONS =
+            options(
+                    "onboardAccessibility",
+                    "false",
+                    "soundCategory_master",
+                    "0.5",
+                    "soundCategory_music",
+                    "0.0");
+    private static final Map<String, String> VALIDATION_OPTIONS =
+            options(
+                    "onboardAccessibility",
+                    "false",
+                    "soundCategory_master",
+                    "0.0",
+                    "soundCategory_music",
+                    "0.0",
+                    "pauseOnLostFocus",
+                    "false");
+
     private final Map<String, Instance> instances = new LinkedHashMap<>();
     private final Map<Scope, Map<String, Value>> values = new LinkedHashMap<>();
+    private final boolean validation;
 
-    private DailyInstances() {
+    private DailyInstances(boolean validation) {
+        this.validation = validation;
         for (Variant variant : Variant.values())
             instances.put(variant.id(), new Instance(variant.id(), variant));
     }
@@ -43,7 +68,7 @@ final class DailyInstances implements Serializable {
             Map<String, Object> local,
             Collection<String> targets,
             Collection<String> inputs) {
-        this();
+        this(false);
         Section sharedRoot = new Section(SHARED_FILE, "", shared);
         Section localRoot = new Section(LOCAL_FILE, "", local);
         variants(sharedRoot);
@@ -56,7 +81,7 @@ final class DailyInstances implements Serializable {
 
     // 验证的 [instances.<角色>] 只使用内置实例，不继承 instances.toml 与 local.toml 中的偏好，结果可以复现。
     static DailyInstances validation(Section roles, Collection<String> inputs) {
-        DailyInstances daily = new DailyInstances();
+        DailyInstances daily = new DailyInstances(true);
         for (String role : roles.keys())
             if (!daily.instances.containsKey(role))
                 throw roles.error(
@@ -120,7 +145,22 @@ final class DailyInstances implements Serializable {
             option(game, "--port", lookup(target, instance, "port"));
         }
         game.addAll(strings(lookup(target, instance, "game-args")));
-        return new LaunchSettings(directory, jvm, game, strings(lookup(target, instance, "mods")));
+        return new LaunchSettings(
+                directory,
+                jvm,
+                game,
+                strings(lookup(target, instance, "mods")),
+                options(target, instance));
+    }
+
+    // 预置在前，实例设置中写出的键覆盖或补充它们；服务端没有 options.txt。
+    private Map<String, String> options(String target, Instance instance) {
+        Map<String, String> options = new LinkedHashMap<>();
+        if (instance.isServer()) return options;
+        options.putAll(validation ? VALIDATION_OPTIONS : DAILY_OPTIONS);
+        Value written = lookup(target, instance, "options");
+        if (written != null) options.putAll(table(written));
+        return options;
     }
 
     List<String> describe(String target, Instance instance) {
@@ -128,6 +168,24 @@ final class DailyInstances implements Serializable {
         if (!instance.builtIn()) lines.add("base = " + instance.base().id());
         for (String property : PROPERTIES) {
             if (!applies(property, instance)) continue;
+            if (property.equals("options")) {
+                Value written = lookup(target, instance, property);
+                Map<String, String> own = written == null ? Map.of() : table(written);
+                options(target, instance)
+                        .forEach(
+                                (key, setting) ->
+                                        lines.add(
+                                                "options."
+                                                        + key
+                                                        + " = "
+                                                        + setting
+                                                        + "  ("
+                                                        + (own.containsKey(key)
+                                                                ? written.source()
+                                                                : "默认值")
+                                                        + ")"));
+                continue;
+            }
             Value value = lookup(target, instance, property);
             lines.add(
                     value == null
@@ -209,6 +267,7 @@ final class DailyInstances implements Serializable {
                         case "port" -> section.integer(key, 1, 65535);
                         case "jvm-args" -> Values.jvmArguments(section, key);
                         case "mods" -> mods(section, key, inputs);
+                        case "options" -> Values.options(section, key);
                         default -> Values.gameArguments(section, key);
                     };
             table.put(key, new Value(value, section.file() + " [" + section.path() + "]"));
@@ -239,7 +298,7 @@ final class DailyInstances implements Serializable {
         boolean server = instance != null && instance.isServer();
         boolean client = instance != null && instance.isClient();
         return switch (property) {
-            case "width", "height", "player-name" -> !server;
+            case "width", "height", "player-name", "options" -> !server;
             case "port" -> !client;
             default -> true;
         };
@@ -280,6 +339,17 @@ final class DailyInstances implements Serializable {
 
     private static void option(List<String> arguments, String option, Value value) {
         if (value != null) arguments.addAll(List.of(option, value.value().toString()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> table(Value value) {
+        return (Map<String, String>) value.value();
+    }
+
+    private static Map<String, String> options(String... pairs) {
+        Map<String, String> options = new LinkedHashMap<>();
+        for (int i = 0; i < pairs.length; i += 2) options.put(pairs[i], pairs[i + 1]);
+        return Collections.unmodifiableMap(options);
     }
 
     @SuppressWarnings("unchecked")

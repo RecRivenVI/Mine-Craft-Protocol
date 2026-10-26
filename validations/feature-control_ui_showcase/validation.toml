@@ -8,6 +8,10 @@ width = 2560
 height = 1440
 jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]
 
+[instances.client.options]
+soundCategory_master = 0.5
+soundCategory_music = 0.0
+
 [instances.client-multiplayer]
 memory-min = "1G"
 memory-max = "4G"

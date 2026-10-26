@@ -16,7 +16,7 @@
 - 原生属性校验与相邻更新保留；未加载传播明确部分失败，恢复原状态不承诺撤销全部副作用。
 - 控制台USER与世界DEBUG分别授权，Operation结果不因新增DEBUG而继承控制台scope/命令回执。
 - 默认服务端仍不授予控制台或DEBUG权限；真人Esc、重新同意、客户端输入与截图合同不变。
-- 用户已批准不修改模板文件而推进可选部署；mod_side与Loader元数据本轮不改，单端互通仍须实机证明。
+- 用户已批准推进可选部署；当前mod_client_side=true、mod_server_side=true，双端必装要求不变，单端互通仍须实机证明。
 - 不实施Fake Player、第二界面、Persistent Write、后续Phase、E1/E2/E3、寻路、整合包或UI美术调整。
 
 ## 步骤

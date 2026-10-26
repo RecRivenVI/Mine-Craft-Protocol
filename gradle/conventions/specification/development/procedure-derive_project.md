@@ -28,7 +28,7 @@
    3. 把 `RavensModTemplate` 重命名为 `<Entry>`。
 5. 把 `fabric.mod.json` 入口中的类名改为 `<Entry>`；包名由 `${mod_group}` 取值，不需要修改。
 6. 用新模组的业务替换入口中的示例日志。
-7. 为新模组选择许可。来自模板的文件仍受模板的 MIT 许可约束：先把模板的 `LICENSE` 复制为 `licenses/ravens_mod_template-mit.txt`，再更新 `gradle.properties` 的 `mod_license` 与根目录的 `LICENSE`，并在 `NOTICE` 开头写明本项目的许可，以及模板插件与规范来自 Raven's Mod Template。
+7. 为新模组选择许可。来自模板的文件仍受模板的 MIT 许可约束：先把模板的 `LICENSE` 复制为 `licenses/ravens_mod_template-mit.txt`，再更新 `gradle.properties` 的 `mod_license` 与根目录的 `LICENSE`，并在 `NOTICE` 开头写明本项目的许可，以及模板插件与规范来自 Raven's Mod Template。`NOTICE` 中的来源只写名称与网址，不写版本号：`NOTICE` 随许可文件打包进模组，升级模板时发行 JAR 不因此改变。
 8. 重写项目规范 `documents/AGENTS.md`、`README.md` 及其各语言版本、`documents/usage/` 与 `documents/release/`；新的更新日志从 `## [未发布]` 开始；至少保留一篇玩家文档与一份更新日志（D-17）。项目规范与根目录 `AGENTS.md` 合计不超过 32 KiB（S-07），项目规范只写项目信息、Target 表与项目特有的约束，操作细节写进 `documents/development/` 的规程。
 9. 删除描述模板示例代码的 `documents/development/porting-entrypoint.md`，并删除其他文档中指向它的链接（D-05）。
 10. 执行 `.\gradlew.bat spotlessApply`，再执行 `.\gradlew.bat check`。

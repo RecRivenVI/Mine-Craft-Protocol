@@ -1,6 +1,6 @@
 plugins { id("net.fabricmc.fabric-loom") }
 
-loom { accessWidenerPath = file("src/client/resources/minecraft_protocol_probe.accesswidener") }
+loom { accessWidenerPath = file("src/main/resources/minecraft_protocol_probe.accesswidener") }
 
 dependencies {
     testImplementation(libs.mcp.junit)

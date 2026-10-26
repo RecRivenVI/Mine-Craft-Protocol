@@ -99,6 +99,28 @@ class ValidationTest {
     }
 
     @Test
+    void validationClientsAreMutedAndKeepRunningUnfocused() {
+        RepositoryConfiguration repository =
+                repository(
+                        "",
+                        "[all.options]\nsoundCategory_master = 0.8\n",
+                        "",
+                        Map.of(
+                                "smoke-launch",
+                                HEADER + "[instances.client.options]\nrenderDistance = 6\n"));
+        assertEquals(
+                Map.of(
+                        "onboardAccessibility", "false",
+                        "soundCategory_master", "0.0",
+                        "soundCategory_music", "0.0",
+                        "pauseOnLostFocus", "false",
+                        "renderDistance", "6"),
+                repository
+                        .launchSettings(repository.validation("smoke-launch"), NEOFORGE, CLIENT)
+                        .options());
+    }
+
+    @Test
     void describeNamesTheValidationFile() {
         RepositoryConfiguration repository =
                 repository(HEADER + "[instances.server]\nmemory-max = \"2G\"\n");

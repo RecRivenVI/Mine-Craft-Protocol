@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Properties;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.VersionCatalogsExtension;
+import org.gradle.api.file.FileTree;
 import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.testing.Test;
@@ -51,15 +52,13 @@ public final class ComponentConventions {
         spotless.format(
                 "misc",
                 misc -> {
-                    misc.target(TEXT);
-                    misc.targetExclude(EXCLUDED);
+                    misc.target(files(project, TEXT));
                     whitespace(misc);
                 });
         spotless.format(
                 "windows",
                 windows -> {
-                    windows.target(WINDOWS_TEXT);
-                    windows.targetExclude(EXCLUDED);
+                    windows.target(files(project, WINDOWS_TEXT));
                     windows.setLineEndings(LineEnding.WINDOWS);
                     whitespace(windows);
                 });
@@ -85,6 +84,13 @@ public final class ComponentConventions {
                                     .withType(Test.class)
                                     .configureEach(Test::useJUnitPlatform);
                         });
+    }
+
+    // 一次遍历取得全部文件并在遍历时跳过排除的目录：交给 Spotless 的每个通配符都会从项目目录起各遍历一次，
+    // 排除项在遍历之后才剔除。
+    private static FileTree files(Project project, List<String> include) {
+        return project.fileTree(
+                project.getProjectDir(), tree -> tree.include(include).exclude(EXCLUDED));
     }
 
     public static void whitespace(FormatExtension format) {

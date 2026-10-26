@@ -60,22 +60,33 @@
 
 ## 运行端
 
-`gradle.properties` 的 `mod_side` 决定产品模组需要安装在哪里（P-02），Fabric 的 `environment` 与 Forge 的 `displayTest` 由它展开，取值见 [configuration-repository](configuration-repository.md) 的"模板变量"：
+`gradle.properties` 的 `mod_client_side` 与 `mod_server_side` 写明产品模组在两端的安装要求（P-02），Fabric 的 `environment` 与 Forge 的 `displayTest` 由它们展开，取值见 [configuration-repository](configuration-repository.md) 的"模板变量"。允许的组合：
 
-| `mod_side` | 含义 | 单人游戏 | 加入服务器的客户端 | 独立服务端 |
-| --- | --- | --- | --- | --- |
-| `both` | 客户端与服务端都必须安装 | 安装 | 必须安装 | 必须安装 |
-| `client` | 仅客户端，可加入未安装本模组的服务器 | 安装 | 安装 | 不需要；安装了也不执行客户端逻辑 |
-| `server` | 仅服务端，原版客户端可以加入 | 安装 | 不需要；安装了照常加载 | 安装 |
+| `mod_client_side` | `mod_server_side` | 含义 |
+| --- | --- | --- |
+| `true` | `true` | 客户端与服务端都必须安装 |
+| `true` | `false` | 仅客户端，可加入未安装本模组的服务器；装在服务端也不执行客户端逻辑 |
+| `false` | `true` | 仅服务端，原版客户端可以加入；单人游戏中由客户端内置的服务端运行 |
+| `true` | `optional` | 客户端必须安装；服务端可装可不装，装了提供额外功能 |
+| `optional` | `true` | 服务端必须安装；客户端可装可不装 |
+| `optional` | `optional` | 两端都可装可不装，各自单独可用，两端都装时联动 |
+
+一端不是 `true` 时，两端之间的网络负载必须声明为可选，否则缺少本模组的一端会被拒绝连接：
+
+| 加载器 | 运行端的体现 |
+| --- | --- |
+| Fabric | 元数据 `environment`：服务端为 `false` 时只在客户端加载；使用 Fabric API 发送网络负载前用 `canSend` 确认对端能接收 |
+| 1.20.1 Forge | 元数据 `displayTest` 决定服务器列表中的兼容标记；网络频道的版本检查接受对端缺失，例如 `NetworkRegistry.acceptMissingOr` |
+| NeoForge | 元数据不写运行端；入口的 `dist` 参数决定客户端代码在哪里加载，注册网络负载时调用 `optional()` |
 
 日常实例始终加载产品（I-01），在游戏中确认产品时按下表判断，其中 `runClientMultiplayer` 加入 `runServer`。"产品已加载"指日志中加载器列出的模组里有产品；产品在初始化时输出日志的，还应出现这一输出。
 
-| `mod_side` | `runClient` | `runServer` | `runClientMultiplayer` |
+| `mod_server_side` | `runClient` | `runServer` | `runClientMultiplayer` |
 | --- | --- | --- | --- |
-| `both` 或 `server` | 产品已加载 | 产品已加载 | 产品已加载，并加入服务器 |
-| `client` | 产品已加载 | 正常启动，产品的客户端逻辑不执行：Fabric 不加载产品，NeoForge 不构造客户端入口 | 产品已加载，并加入服务器 |
+| `true` 或 `optional` | 产品已加载 | 产品已加载 | 产品已加载，并加入服务器 |
+| `false` | 产品已加载 | 正常启动，产品的客户端逻辑不执行：Fabric 不加载产品，NeoForge 不构造客户端入口 | 产品已加载，并加入服务器 |
 
-三个实例本次运行都不应产生新的崩溃报告，日志中也不应有缺少模组的报错；日常实例长期保留，以前的崩溃报告不算。与未安装本模组的一端互通不能用日常实例确认，需要另行测试：`client` 时用加载本模组的客户端加入原版服务端，`server` 时用普通启动器中的原版客户端加入 `runServer`。
+三个实例本次运行都不应产生新的崩溃报告，日志中也不应有缺少模组的报错；日常实例长期保留，以前的崩溃报告不算。与未安装本模组的一端互通不能用日常实例确认，需要另行测试：服务端不是 `true` 时，用加载本模组的客户端加入原版服务端；客户端不是 `true` 时，用普通启动器中的原版客户端加入 `runServer`。
 
 切换运行端的步骤见 [procedure-switch_side](../development/procedure-switch_side.md)。
 

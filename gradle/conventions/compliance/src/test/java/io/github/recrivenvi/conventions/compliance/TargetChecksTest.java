@@ -86,4 +86,81 @@ class TargetChecksTest extends ComplianceFixture {
                 hints.stream().map(Finding::path).toList());
         assertTrue(new Report(hints, false, files.size()).passed());
     }
+
+    @Test
+    void classesThatReachTheGameOrDifferBetweenTargetsStay() throws IOException {
+        compliant();
+        String second = "1.21.1-neoforge";
+        String third = "26.3-fabric";
+        targets = Set.of(target, second, third);
+        String root = "src/main/java/io/github/example/";
+        for (String version : List.of(target, second, third)) {
+            String sources = "versions/" + version + "/" + root;
+            files.put(
+                    sources + "api/Holder.java",
+                    "package io.github.example.api;\n\npublic final class Holder {\n"
+                            + "    private Provider provider;\n}\n");
+            files.put(
+                    sources + "api/Provider.java",
+                    "package io.github.example.api;\n\nimport net.minecraft.client.model.Model;\n\n"
+                            + "public interface Provider {}\n");
+            files.put(
+                    sources + "util/Lists.java",
+                    "package io.github.example.util;\n\nimport io.github.example.api.*;\n\n"
+                            + "public final class Lists {}\n");
+            files.put(
+                    sources + "math/Curve.java",
+                    "package io.github.example.math;\n\npublic final class Curve {}\n");
+            files.put(
+                    sources + "math/Spline.java",
+                    "package io.github.example.math;\n\n/** Uses Holder only in this comment. */\n"
+                            + "public final class Spline {\n    private Curve curve;\n}\n");
+            files.put(
+                    sources + "item/Stack.java",
+                    "package io.github.example.item;\n\npublic interface Stack {\n"
+                            + (version.startsWith("1.") ? "    boolean trident();\n" : "")
+                            + "}\n");
+            files.put(
+                    sources + "item/Living.java",
+                    "package io.github.example.item;\n\npublic interface Living {\n"
+                            + "    Stack hand();\n}\n");
+        }
+        List<String> hinted =
+                run(Map.of()).stream()
+                        .filter(finding -> finding.rule() == Rule.T07)
+                        .map(Finding::path)
+                        .toList();
+        String first = "versions/" + second + "/" + root;
+        assertEquals(List.of(first + "math/Curve.java", first + "math/Spline.java"), hinted);
+    }
+
+    @Test
+    void classesThatUseTemplateSourcesStay() throws IOException {
+        compliant();
+        String other = "1.21.1-neoforge";
+        targets = Set.of(target, other);
+        for (String version : List.of(target, other)) {
+            String java = "versions/" + version + "/src/main/java/io/github/example/api/";
+            String templates = "versions/" + version + "/src/main/templates/io/github/example/api/";
+            files.put(
+                    java + "Holder.java",
+                    "package io.github.example.api;\n\npublic final class Holder {\n"
+                            + "    private Provider provider;\n}\n");
+            files.put(
+                    templates + "Provider.java",
+                    "package io.github.example.api;\n\nimport net.minecraft.client.model.Model;\n\n"
+                            + "public interface Provider {}\n");
+            files.put(
+                    java + "Named.java",
+                    "package io.github.example.api;\n\npublic final class Named {\n"
+                            + "    String id = Identity.ID;\n}\n");
+            files.put(
+                    templates + "Identity.java",
+                    "package io.github.example.api;\n\npublic final class Identity {\n"
+                            + "    public static final String ID = \"${mod_id}\";\n}\n");
+        }
+        assertEquals(
+                List.of(),
+                run(Map.of()).stream().filter(finding -> finding.rule() == Rule.T07).toList());
+    }
 }

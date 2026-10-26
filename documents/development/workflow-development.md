@@ -21,7 +21,7 @@ pwsh -File components/validation_tools/feature-control_ui_showcase/task/Prepare-
 
 首次构建允许依赖下载；Java 工具链由 Target Facts 与 Gradle 管理。
 `check` 包含五个 Target、工具/产品组件、格式、Markdown 与仓库规范检查。
-根格式配置保留模板相同的文件范围，但使用一次剪枝文件树遍历，避免 Windows 对每个 glob 重复扫描大型验证实例。
+模板格式配置使用一次剪枝文件树遍历，避免 Windows 对每个 glob 重复扫描大型验证实例。
 实例、结果和 local.toml 在遍历阶段排除；不会以禁用格式检查或改模板文件绕过。文本继续为 LF，bat/cmd 由原任务保持 CRLF。
 产品与工具的依赖版本见 `gradle/libs.versions.toml`，不在文档维护第二份权威。
 内部试用 JAR 由 `verifyRelease` 收集到 `build/release/<mod_version>/`。
@@ -58,7 +58,8 @@ GitHub Actions 先按该版本要求准备 Node，再执行 `npm ci --include=de
 自动客户端固定1920×1080，全局游戏音量0；保留各验证的隔离玩家名、世界和纯净Mod集合。
 用户观察/验收客户端固定2560×1440，全局音量0.5、音乐音量0，玩家名RecRivenVI。
 日常预设来自instances.toml，本机玩家名与输入路径在local.toml；Showcase的两种角色在其validation.toml中独立声明。
-标准Native prepare任务通过工具组件统一准备声音，不修改产品Runtime或模板；仅处理本仓库已停止的标准实例，保留其他选项与存档。
+标准Native prepare任务按模板的options预置写入声音；人工Showcase通过validation.toml显式保持50%音量，独立运行工具沿用项目声音预设。
+只处理本仓库已停止的标准实例，保留其他选项与存档，不修改产品Runtime。
 独立发行安装使用同一自动标准，但仍只安装一个最终产品JAR，不用附加Mod掩盖依赖错误。
 
 Custom Skin Loader与Zume只用于用户验收，不打包进产品、不加入自动基线。

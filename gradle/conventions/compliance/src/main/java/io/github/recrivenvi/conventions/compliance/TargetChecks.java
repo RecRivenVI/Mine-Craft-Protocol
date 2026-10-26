@@ -1,7 +1,5 @@
 package io.github.recrivenvi.conventions.compliance;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,10 +15,19 @@ final class TargetChecks {
     private static final Pattern COORDINATE = Pattern.compile("\"[\\w.${}-]+:[\\w.${}-]+:.*");
     private static final Pattern VERSION_NUMBER = Pattern.compile("\\d+\\.\\d+");
     private static final Pattern PLUGIN_VERSION = Pattern.compile("\\)\\s*version\\b");
-    // 只比较随模组发布的源码集；probe、test 等源码集中的代码不属于 product 组件。
+    // 只比较随模组发布的源码集；probe、test 等源码集中的代码不属于 product 组件。第 1 组为 Target，
+    // 第 2 组为 java 或 templates，第 3 组为类名对应的路径。
     private static final Pattern SHARED_SOURCE =
             Pattern.compile(
-                    "versions/[^/]+/src/(?:main|client)/java/(?:.+/)?(?!package-info|module-info)[^/]+\\.java");
+                    "versions/([^/]+)/src/(?:main|client)/(java|templates)/((?:[^/]+/)*(?!package-info\\.|module-info\\.)[^/]+)\\.java");
+    private static final Pattern IMPORT =
+            Pattern.compile(
+                    "^\\s*import\\s+(?:static\\s+)?([\\w.]+?)(\\.\\*)?\\s*;", Pattern.MULTILINE);
+    private static final Pattern TYPE_NAME = Pattern.compile("\\b[A-Z]\\w*\\b");
+    private static final Pattern COMMENT_OR_LITERAL =
+            Pattern.compile(
+                    "//[^\\n]*|/\\*.*?\\*/|'(?:[^'\\\\\\n]|\\\\.)*'|\"(?:[^\"\\\\\\n]|\\\\.)*\"",
+                    Pattern.DOTALL);
     private static final Pattern GAME_REFERENCE =
             Pattern.compile(
                     "\\b(?:net\\.minecraft|com\\.mojang|net\\.neoforged|net\\.minecraftforge"
@@ -84,29 +91,94 @@ final class TargetChecks {
         return code.toString();
     }
 
+    // 一个类在含有它的每个 Target 中内容都相同、自身不引用游戏与加载器的包，并且它引用的本项目其他类也
+    // 满足同样的条件时，才能原样移入 product 组件；各 Target 内容不同的类与依赖它们的类留在 Target 中。
+    // templates/ 中的类按 Target 展开，组件里没有它们，所以它们与依赖它们的类都不提示。
     private static void duplicates(Repository repository, List<Finding> findings) {
-        Map<String, List<String>> groups = new TreeMap<>();
+        Map<String, Map<String, String>> classes = new TreeMap<>();
+        Set<String> templated = new TreeSet<>();
+        Map<String, String> paths = new TreeMap<>();
         for (String file : repository.filesUnder("versions")) {
-            if (!SHARED_SOURCE.matcher(file).matches()) continue;
-            String text = repository.text(file).replace("\r", "");
-            if (GAME_REFERENCE.matcher(text).find()) continue;
-            groups.computeIfAbsent(
-                            SpecificationChecks.sha256(text.getBytes(StandardCharsets.UTF_8)),
-                            key -> new ArrayList<>())
-                    .add(file);
+            Matcher matcher = SHARED_SOURCE.matcher(file);
+            if (!matcher.matches()) continue;
+            String name = matcher.group(3).replace('/', '.');
+            if (matcher.group(2).equals("templates")) {
+                templated.add(name);
+                continue;
+            }
+            classes.computeIfAbsent(name, key -> new TreeMap<>())
+                    .put(matcher.group(1), repository.text(file).replace("\r", ""));
+            paths.merge(
+                    name, file, (first, second) -> first.compareTo(second) <= 0 ? first : second);
         }
-        for (List<String> files : groups.values()) {
-            Set<String> targets = new TreeSet<>();
-            for (String file : files) targets.add(file.split("/")[1]);
-            if (targets.size() < 2) continue;
+        Set<String> known = new TreeSet<>(classes.keySet());
+        known.addAll(templated);
+        Map<String, Set<String>> packages = new TreeMap<>();
+        for (String name : known)
+            packages.computeIfAbsent(packageOf(name), key -> new TreeSet<>()).add(name);
+        Map<String, Set<String>> movable = new TreeMap<>();
+        classes.forEach(
+                (name, copies) -> {
+                    Set<String> texts = new TreeSet<>(copies.values());
+                    String text = texts.iterator().next();
+                    if (copies.size() >= 2
+                            && texts.size() == 1
+                            && !templated.contains(name)
+                            && !GAME_REFERENCE.matcher(text).find())
+                        movable.put(name, references(name, text, known, packages));
+                });
+        boolean changed = true;
+        while (changed)
+            changed = movable.values().removeIf(used -> !movable.keySet().containsAll(used));
+        for (String name : movable.keySet())
             findings.add(
                     Finding.of(
                             Rule.T07,
-                            files.getFirst(),
+                            paths.get(name),
                             "在 "
-                                    + String.join(", ", targets)
-                                    + " 中内容相同，且没有直接引用 Minecraft 与加载器的包；"
+                                    + String.join(", ", classes.get(name).keySet())
+                                    + " 中内容相同，它与它引用的本项目其他类都不引用 Minecraft 与加载器的包；"
                                     + "确认它不依赖游戏后移入 product 组件"));
+    }
+
+    // 类引用的本项目其他类：导入（包括静态导入与通配导入）、同一个包中按简单名称使用的类，以及写出全名的类。
+    private static Set<String> references(
+            String name, String text, Set<String> classes, Map<String, Set<String>> packages) {
+        String code = COMMENT_OR_LITERAL.matcher(text).replaceAll(" ");
+        Set<String> used = new TreeSet<>();
+        Matcher imports = IMPORT.matcher(code);
+        while (imports.find()) {
+            String imported = imports.group(1);
+            if (imports.group(2) != null) {
+                used.addAll(packages.getOrDefault(imported, Set.of()));
+                continue;
+            }
+            while (!classes.contains(imported) && imported.contains("."))
+                imported = packageOf(imported);
+            if (classes.contains(imported)) used.add(imported);
         }
+        Set<String> words = new TreeSet<>();
+        TYPE_NAME.matcher(code).results().forEach(word -> words.add(word.group()));
+        for (String other : packages.getOrDefault(packageOf(name), Set.of()))
+            if (words.contains(other.substring(other.lastIndexOf('.') + 1))) used.add(other);
+        for (String other : classes) if (mentions(code, other)) used.add(other);
+        used.remove(name);
+        return used;
+    }
+
+    private static boolean mentions(String code, String name) {
+        for (int at = code.indexOf(name); at >= 0; at = code.indexOf(name, at + 1)) {
+            int after = at + name.length();
+            boolean start = at == 0 || !Character.isJavaIdentifierPart(code.charAt(at - 1));
+            boolean end =
+                    after == code.length() || !Character.isJavaIdentifierPart(code.charAt(after));
+            if (start && end) return true;
+        }
+        return false;
+    }
+
+    private static String packageOf(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(0, dot);
     }
 }

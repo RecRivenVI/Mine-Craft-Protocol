@@ -22,18 +22,19 @@ public final class RepositoryConfiguration implements Serializable {
                     "mod_name",
                     "mod_version",
                     "mod_group",
-                    "mod_side",
+                    "mod_client_side",
+                    "mod_server_side",
                     "mod_authors",
                     "mod_license",
                     "mod_description");
-    private static final List<String> SIDES = List.of("both", "client", "server");
     private static final Set<String> DERIVED_TARGET_FACTS =
             Set.of("target", "minecraft_version", "loader");
     private static final List<String> MAPPINGS = List.of("mojang", "yarn");
 
     private final File rootDirectory;
     private final Map<String, String> projectFacts;
-    private final Side side;
+    private final SideRequirement clientSide;
+    private final SideRequirement serverSide;
     private final Map<String, TargetFacts> targets;
     private final Inputs inputs;
     private final DailyInstances daily;
@@ -50,7 +51,8 @@ public final class RepositoryConfiguration implements Serializable {
             Map<String, Map<String, Object>> validationTomls) {
         this.rootDirectory = rootDirectory.getAbsoluteFile();
         this.projectFacts = projectFacts(gradleProperties);
-        this.side = Side.of(projectFacts.get("mod_side"));
+        this.clientSide = SideRequirement.of(projectFacts.get("mod_client_side"));
+        this.serverSide = SideRequirement.of(projectFacts.get("mod_server_side"));
         Map<String, TargetFacts> targets = new LinkedHashMap<>();
         targetProperties.forEach((name, values) -> targets.put(name, targetFacts(name, values)));
         this.targets = Collections.unmodifiableMap(targets);
@@ -74,8 +76,12 @@ public final class RepositoryConfiguration implements Serializable {
         return projectFacts.get("mod_id");
     }
 
-    public Side getSide() {
-        return side;
+    public SideRequirement getClientSide() {
+        return clientSide;
+    }
+
+    public SideRequirement getServerSide() {
+        return serverSide;
     }
 
     public Set<String> getTargetNames() {
@@ -228,9 +234,25 @@ public final class RepositoryConfiguration implements Serializable {
             throw new ConfigurationException(file, "mod_group", "应为小写的 Java 包名");
         if (facts.get("mod_version").contains(" "))
             throw new ConfigurationException(file, "mod_version", "版本号不能包含空格");
-        if (!SIDES.contains(facts.get("mod_side")))
-            throw new ConfigurationException(file, "mod_side", "应为 both、client 或 server");
+        sides(file, facts);
         return Collections.unmodifiableMap(facts);
+    }
+
+    // 每种安装组合只有一种写法：一端无效时，另一端只能是必装。
+    private static void sides(String file, Map<String, String> facts) {
+        for (String key : List.of("mod_client_side", "mod_server_side"))
+            if (SideRequirement.of(facts.get(key)) == null)
+                throw new ConfigurationException(file, key, "应为 true、false 或 optional");
+        SideRequirement client = SideRequirement.of(facts.get("mod_client_side"));
+        SideRequirement server = SideRequirement.of(facts.get("mod_server_side"));
+        if (client == SideRequirement.UNUSED && server == SideRequirement.UNUSED)
+            throw new ConfigurationException(file, "mod_server_side", "客户端与服务端不能都是 false");
+        if (server == SideRequirement.UNUSED && client == SideRequirement.OPTIONAL)
+            throw new ConfigurationException(
+                    file, "mod_client_side", "服务端为 false 时只能在客户端使用，写 true");
+        if (client == SideRequirement.UNUSED && server == SideRequirement.OPTIONAL)
+            throw new ConfigurationException(
+                    file, "mod_server_side", "客户端为 false 时只能在服务端使用，写 true");
     }
 
     private static TargetFacts targetFacts(String name, Map<String, String> values) {

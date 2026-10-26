@@ -69,7 +69,7 @@ Operator UI/Pointer 在 framebuffer evidence 之后渲染，不能污染截图�
 
 三种部署目标（仅客户端、仅服务端、双端联动）的主体、权限、能力矩阵和里程碑要求，
 统一见[部署场景设计](concept-deployment_scenarios.md)。新增部署合同为 DESIGN/PENDING，
-当前 mod_side=both、客户端启动的 HTTP 入口及有限 Peer 不等于已实现三场景。
+当前 mod_client_side=true、mod_server_side=true、客户端启动的 HTTP 入口及有限 Peer 不等于已实现三场景。
 
 现有 Server Peer 基于游戏玩家连接提供有限服务器读取，mutation 另按服务端开关/operator 检查，
 客户端 HTTP 入口保留自己的授权；这不等于服务端已完整验证 scope/Arm/资源版本委托。

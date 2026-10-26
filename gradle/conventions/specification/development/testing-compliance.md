@@ -37,7 +37,7 @@
 
 3. 希望所有提示都被当作错误时，在 `compliance {}` 中写入 `strict = true`。
 
-T-07 的提示说明多个 Target 的产品源码（`main` 与 Fabric 的 `client`）中有完全相同、且不引用游戏或加载器的 Java 源码；`probe`、`test` 等源码集不参与比较。处理方式是把它移进 `product` 组件，见 [procedure-add_component](procedure-add_component.md)；只是暂时相同、之后会按版本分化的源码可以保留，提示不会让构建失败。
+T-07 的提示说明多个 Target 的产品源码（`main` 与 Fabric 的 `client`）中有内容都相同、并且它与它用到的本项目其他类都不引用游戏或加载器的 Java 类；`probe`、`test` 等源码集不参与比较。处理方式是把它移进 `product` 组件，见 [procedure-add_component](procedure-add_component.md)；只是暂时相同、之后会按版本分化的源码可以保留，提示不会让构建失败。
 
 ## 持续集成
 
