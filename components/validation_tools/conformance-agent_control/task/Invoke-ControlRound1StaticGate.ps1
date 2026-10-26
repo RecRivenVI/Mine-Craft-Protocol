@@ -44,7 +44,7 @@ foreach($target in $targets){
 }
 $server=Get-Content (Join-Path $root 'components/companion/src/server.ts') -Raw
 $meta=[regex]::Matches($server,"minecraft/modePolicy").Count
-Require ($meta-eq24) 'all 24 MCP tools must declare mode policy'
+Require ($meta-eq25) 'all 25 MCP tools must declare mode policy'
 Require ($server-match'controlToolSchema'-and$server-match"action: z.literal\('set_mode'\)") 'MCP typed mode discriminator missing'
 Require ($server-notmatch'state.debugArmId = undefined;[\s\S]{0,60}return result;[\s\S]{0,60}const active') 'Lease release must not impersonate Debug disarm'
 [pscustomobject]@{Result='PASS';Targets=5;ClassifiedHttpOperations=$count;ClassifiedMcpTools=$meta;WireProtocolV1='NOT_FROZEN';NewCursorModel='IMPLEMENTED_PENDING_UNIFIED_ACCEPTANCE'}

@@ -107,6 +107,25 @@ public final class WorldClientModel {
                                 "usingItem",
                                 "usingHand",
                                 "riding",
+                                "vehicleType",
+                                "vehicleControllerIsPlayer",
+                                "pose",
+                                "crouching",
+                                "sprinting",
+                                "swimming",
+                                "fallFlying",
+                                "inWater",
+                                "underWater",
+                                "inLava",
+                                "onFire",
+                                "sleeping",
+                                "deadOrDying",
+                                "eyeHeight",
+                                "maxAir",
+                                "experienceLevel",
+                                "experienceProgress",
+                                "cameraType",
+                                "cameraIsPlayer",
                                 "useTicks"));
         for (String field : Set.of("gameMode", "onGround", "flying")) {
             var value = knownPlayer.get(field);
@@ -275,6 +294,10 @@ public final class WorldClientModel {
                                     "leashHeldByPlayer",
                                     "itemId",
                                     "itemCount",
+                                    "displayedItemId",
+                                    "displayedItemCount",
+                                    "displayedRotation",
+                                    "partName",
                                     "targetRef",
                                     "targetTtlMs")));
         }

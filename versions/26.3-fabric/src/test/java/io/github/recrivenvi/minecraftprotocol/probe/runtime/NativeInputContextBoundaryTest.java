@@ -31,6 +31,135 @@ final class NativeInputContextBoundaryTest {
     private static final String MINECRAFT_ARGUMENT = "(L" + MINECRAFT + ";)";
 
     @Test
+    void cinematicTailUsesTheActualNativeFrameConsumerWithoutGrantingCallbackAdmission()
+            throws Exception {
+        String mouse = "net/minecraft/client/MouseHandler";
+        var nativeFrame = method(compiled(MINECRAFT), "runTick", "(Z)V");
+        assertEquals(1, calls(nativeFrame, mouse, "handleAccumulatedMovement").size());
+        var wrapper =
+                method(
+                        compiled(MIXIN + "MinecraftMixin"),
+                        "minecraftProtocolProbe$virtualMouseFrameConsumption",
+                        "(L" + mouse + ";)V");
+        assertEquals(
+                List.of("runTick"),
+                value(
+                        annotation(wrapper, "Lorg/spongepowered/asm/mixin/injection/Redirect;"),
+                        "method"));
+        assertEquals(1, calls(wrapper, RUNTIME, "isAgentControlActive").size());
+        assertEquals(1, calls(wrapper, RUNTIME, "ensureExclusiveOwnerState").size());
+        assertEquals(1, calls(wrapper, ROOT + "safety/AgentInputContext", "routed").size());
+        assertEquals(1, calls(wrapper, mouse, "handleAccumulatedMovement").size());
+        int callbacks = 0;
+        for (var instruction : wrapper.instructions)
+            if (instruction instanceof InvokeDynamicInsnNode dynamic)
+                for (var argument : dynamic.bsmArgs)
+                    if (argument instanceof Handle handle && handle.getOwner().equals(mouse)) {
+                        assertEquals("handleAccumulatedMovement", handle.getName());
+                        assertEquals("()V", handle.getDesc());
+                        callbacks++;
+                    }
+        assertEquals(1, callbacks);
+        assertFalse(calls(wrapper).stream().anyMatch(call -> call.name.equals("dispatch")));
+        var nativeMouse = compiled(mouse);
+        assertTrue(
+                calls(method(nativeMouse, "turnPlayer", "(D)V")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.equals("net/minecraft/util/SmoothDouble")
+                                                && call.name.equals("getNewDeltaValue")));
+        var runtime = compiled(RUNTIME);
+        var reset = method(runtime, "resetNativeCameraFilters", MINECRAFT_ARGUMENT + "V");
+        assertEquals(2, calls(reset, "net/minecraft/util/SmoothDouble", "reset").size());
+        assertEquals(
+                1,
+                calls(
+                                method(
+                                        runtime,
+                                        "finishNativeInputCleanup",
+                                        "(L" + MINECRAFT + ";Ljava/lang/String;)V"),
+                                RUNTIME,
+                                "resetNativeCameraFilters")
+                        .size());
+        assertTrue(
+                runtime.methods.stream()
+                        .filter(value -> value.name.startsWith("lambda$controlPresenceChanged$"))
+                        .anyMatch(
+                                value ->
+                                        !calls(value, RUNTIME, "resetNativeCameraFilters")
+                                                .isEmpty()));
+        assertEquals(
+                1,
+                calls(
+                                method(runtime, "syncPointerContext", MINECRAFT_ARGUMENT + "V"),
+                                RUNTIME,
+                                "resetNativeCameraFilters")
+                        .size());
+    }
+
+    @Test
+    void keyBindingRowsUseTheirActualNativeActionAndButtonIdentities() throws Exception {
+        ClassNode nativeRow =
+                compiled("net/minecraft/client/gui/screens/options/controls/KeyBindsList$KeyEntry");
+        ClassNode accessor = compiled(MIXIN + "KeyEntryUiAccessor");
+        ClassNode tree = compiled(ROOT + "probe/runtime/VanillaUiTree");
+        for (String member : List.of("key", "name", "changeButton", "resetButton")) {
+            var field =
+                    nativeRow.fields.stream()
+                            .filter(value -> value.name.equals(member))
+                            .findFirst()
+                            .orElseThrow();
+            var getter = method(accessor, "minecraftProtocolProbe$" + member, "()" + field.desc);
+            assertEquals(
+                    member,
+                    value(
+                            annotation(getter, "Lorg/spongepowered/asm/mixin/gen/Accessor;"),
+                            "value"));
+            assertTrue(
+                    tree.methods.stream()
+                            .anyMatch(
+                                    value ->
+                                            !calls(
+                                                            value,
+                                                            MIXIN + "KeyEntryUiAccessor",
+                                                            "minecraftProtocolProbe$" + member)
+                                                    .isEmpty()));
+        }
+    }
+
+    @Test
+    void callbackReentryCannotRepublishHeldInputAfterNativeContextDiscard() throws Exception {
+        var runtime = compiled(RUNTIME);
+        var key =
+                method(
+                        runtime,
+                        "keyGuardedNow",
+                        "(IIIILcom/google/gson/JsonObject;)Lcom/google/gson/JsonObject;");
+        int keyCallback = callIndex(key, RUNTIME, "trackNativeInput");
+        assertTrue(keyCallback > callIndex(key, "java/util/Map", "put"));
+        assertTrue(callIndex(key, "java/util/Map", "put") >= 0);
+        var button =
+                method(
+                        runtime,
+                        "mouseButtonGuardedNow",
+                        "(IIILcom/google/gson/JsonObject;)Lcom/google/gson/JsonObject;");
+        int buttonCallback = callIndex(button, RUNTIME, "trackNativeInput");
+        assertTrue(buttonCallback > callIndex(button, "java/util/Set", "add"));
+        assertTrue(callIndex(button, "java/util/Set", "add") >= 0);
+        assertTrue(buttonCallback > callIndex(button, ROOT + "safety/AgentPointer", "button"));
+        for (var consumer : List.of(key, button)) {
+            int callback = callIndex(consumer, RUNTIME, "trackNativeInput");
+            assertTrue(
+                    calls(consumer).stream()
+                            .noneMatch(
+                                    call ->
+                                            consumer.instructions.indexOf(call) > callback
+                                                    && (call.name.equals("add")
+                                                            || call.name.equals("put"))));
+        }
+    }
+
+    @Test
     void registeredTickHeadFenceCallsTheActualRuntimeBeforeNativeTickWork() throws Exception {
         assertRegisteredHeadFence(
                 "MinecraftMixin", MINECRAFT, "tick", "beforeClientInput", MINECRAFT_ARGUMENT + "V");
@@ -110,6 +239,12 @@ final class NativeInputContextBoundaryTest {
         assertTrue(callIndex(refresh, "net/minecraft/network/Connection", "isConnected") >= 0);
         assertTrue(fieldIndex(refresh, "level", Opcodes.GETFIELD) >= 0);
         assertTrue(fieldIndex(refresh, "player", Opcodes.GETFIELD) >= 0);
+        assertTrue(
+                java.util.Arrays.stream(refresh.instructions.toArray())
+                        .filter(MethodInsnNode.class::isInstance)
+                        .map(MethodInsnNode.class::cast)
+                        .anyMatch(call -> call.name.equals("isAlive")),
+                "Death and recovery must fence input even when native identity objects stay the same");
         assertEquals(
                 3L,
                 java.util.Arrays.stream(refresh.instructions.toArray())
@@ -119,7 +254,7 @@ final class NativeInputContextBoundaryTest {
         var observe = calls(refresh, ROOT + "safety/InputContextEpoch", "observe");
         assertEquals(1, observe.size());
         assertEquals(
-                "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)L"
+                "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Z)L"
                         + ROOT
                         + "safety/InputContextEpoch$Snapshot;",
                 observe.get(0).desc);

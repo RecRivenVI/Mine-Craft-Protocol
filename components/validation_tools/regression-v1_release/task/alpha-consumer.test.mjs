@@ -14,10 +14,81 @@ import {verifyEvidenceSources,candidateBindingRequired} from './alpha-evidence.m
 import {DEPENDENCY_PROFILE,DEPENDENCY_SCOPE,readDependencyBaseline,dependencySourceProof,dependencyPerformance} from './dependency-proof.mjs';
 import {E_UI_PROFILE,E_UI_REQUIRED_CASE_CONTRACTS,eUiRegressionProof,eUiDemoProof,eUiKnownCompletionProof,eUiFiniteOperationProof,blockEntitySelectorProof,firstCameraProof,commandCollaborationProof,eUiProofSlots,eUiScenarioSources,verifyEUiEvidenceSources,verifyEUiCandidateBindings,collectEUiProof} from './alpha-evidence.mjs';
 import {historicalTrialBaseline} from './dependency-proof.mjs';
+import {E_WORLD_PROFILE,E_WORLD_GROUPS,eWorldProofSlots,eWorldRunProof,eWorldUnexecutedReadinessUpdate,eWorldCandidateSourceProof} from './e-world-proof.mjs';
 
 const publicationFixtureMode=process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)&&process.argv[2]==='--write-publication-fixture';
 // The explicit fixture CLI does not register tests or emit TAP. Production never imports this file.
 const test=publicationFixtureMode?()=>{}:nodeTest;
+
+test('E world reuse reverse-hashes only the exact unexecuted list readiness fix in real tools',async()=>{
+ const root=resolve(import.meta.dirname,'../../../..'),base='components/validation_tools/conformance-world_read/task/';
+ const digest=value=>createHash('sha256').update(value).digest('hex');
+ for(const kind of ['relations','boundary','transfer','providers','continuous-input']){
+  const name=kind==='continuous-input'?kind:`world-debug-${kind}`,source=base+name+'-actions.mjs',current=await readFile(resolve(root,source)),text=current.toString('utf8');
+  const previous=kind==='continuous-input'?text.replace(" && nodes(value).some(row => row.worldName === 'World-Read-Alpha')",'').replace('continuous world list populated','continuous world list'):text.replace("&&nodes(t).some(n=>n.worldName==='World-Read-Alpha')",'').replace('fixed world list populated','fixed world list');
+  assert.notEqual(text,previous);const recorded=digest(previous);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'player-command'),true);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'command-configuration'),true);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,name),false);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'full'),kind==='continuous-input');
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,Buffer.concat([current,Buffer.from('// unrelated change\n')]),recorded,'player-command'),false);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,'0'.repeat(64),'player-command'),false);
+ }
+ assert.equal(eWorldUnexecutedReadinessUpdate(base+'world-read-smoke.mjs',Buffer.from('changed'),'0'.repeat(64),'player-command'),false);
+});
+
+test('E world reuses only exact optimizer error-diagnostic changes without claiming new diagnostics',async()=>{
+ const source='components/validation_tools/conformance-vanilla_ui/task/ui-world-recovery-actions.mjs';
+ const current=await readFile(resolve(import.meta.dirname,'../../../..',source)),text=current.toString('utf8');
+ const changed="          value.cancelInputError = {code: error.code, message: error.message,\n            ...(error.httpStatus ? {httpStatus: error.httpStatus} : {}), ...(error.nativeError ? {nativeError: error.nativeError} : {})};\n          if (!['UI_TARGET_INVALIDATED', 'UI_NODE_NOT_FOUND'].includes(error.code)) throw error;";
+ const former="          assert(['UI_TARGET_INVALIDATED', 'UI_NODE_NOT_FOUND'].includes(error.code),\n            'Only native page replacement, not permission or other failures, can be an early-finish race');\n          value.cancelInputError = {code: error.code, message: error.message};";
+ const previous=text.replace(changed,former);assert.notEqual(previous,text);const recorded=createHash('sha256').update(previous).digest('hex');
+ for(const code of ['UI_TARGET_INVALIDATED','UI_NODE_NOT_FOUND']){
+  const result={status:'PASS',navigationCompletionSamples:[{case:'world_recovery_optimize',cancelInputError:{code},returned:{callbackAction:'optimize_finished',storageAccessClosed:true,directoryLockReacquiredAndClosed:true}}]};
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'all',result),true);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'all',{...result,status:'FAIL'}),false);
+  assert.equal(eWorldUnexecutedReadinessUpdate(source,Buffer.concat([current,Buffer.from('// extra\n')]),recorded,'all',result),false);
+  result.navigationCompletionSamples[0].cancelInputError.code='SCOPE_REQUIRED';assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'all',result),false);
+ }
+});
+
+test('Configuration receipts bind the actual Runtime owner; only unexecuted player-command bindings may reuse the metadata-only update',async()=>{
+ const source='components/validation_tools/conformance-world_read/task/command-configuration-smoke.mjs';
+ const current=await readFile(resolve(import.meta.dirname,'../../../..',source)),text=current.toString('utf8');
+ const identity='runtimeConnection:{runtimeInstanceId:connection.instanceId,port:connection.port,pid:connection.pid},';
+ assert.equal(text.split(identity).length,2);
+ const connection={instanceId:'owned-runtime',port:43210,pid:1234};
+ const receipt=new Function('connection','return ({'+identity+'})')(connection);
+ assert.deepEqual(receipt.runtimeConnection,{runtimeInstanceId:connection.instanceId,port:connection.port,pid:connection.pid});
+ const previous=text.replace(identity,''),recorded=createHash('sha256').update(previous).digest('hex');
+ assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,'player-command'),true);
+ for(const scenario of ['command-configuration','full','all'])assert.equal(eWorldUnexecutedReadinessUpdate(source,current,recorded,scenario),false);
+ assert.equal(eWorldUnexecutedReadinessUpdate(source,Buffer.concat([current,Buffer.from('// extra\n')]),recorded,'player-command'),false);
+ assert.equal(eWorldUnexecutedReadinessUpdate(source,current,'0'.repeat(64),'player-command'),false);
+});
+
+test('Command recorder omissions require current same-Target full-world Loader evidence and never waive code or changed resources',()=>{
+ const target='1.20.1-forge',metadata=`versions/${target}/src/main/resources/META-INF/mods.toml`,code=`versions/${target}/src/main/java/Product.java`;
+ const current={[metadata]:'metadata-current',[code]:'code-current'},result={sourceHashes:{[code]:current[code]}};
+ const full={target,scenario:'full',sourceChangedDuringRun:false,cleanShutdown:true,persistentWriteCalls:0,status:'PASS',checks:[{status:'PASS'}],evidence:'development_runtime_native',fixturePolicy:'immutable_baseline_restored',fixtureInput:{target,role:'client',credentialsCopied:false,baselineSha256:'a'.repeat(64),restoredSha256:'a'.repeat(64)},sourceHashes:current};
+ const proof=eWorldCandidateSourceProof(result,target,'player-command',Object.keys(current),current,full);
+ assert.deepEqual(proof.resourceBindingsFrom.sources,[metadata]);assert.equal(result.sourceHashes[metadata],undefined);
+ for(const changed of [{...full,target:'26.3-neoforge'},{...full,status:'FAIL'},{...full,cleanShutdown:false},{...full,sourceHashes:{...current,[metadata]:'old'}}])assert.throws(()=>eWorldCandidateSourceProof(result,target,'player-command',Object.keys(current),current,changed));
+ assert.throws(()=>eWorldCandidateSourceProof({sourceHashes:{}},target,'player-command',Object.keys(current),current,full));
+ assert.throws(()=>eWorldCandidateSourceProof({sourceHashes:{...result.sourceHashes,[metadata]:'old'}},target,'player-command',Object.keys(current),current,full));
+ assert.throws(()=>eWorldCandidateSourceProof(result,target,'command-configuration',Object.keys(current),current,full));
+ const unknown=`versions/${target}/src/main/resources/unknown.txt`;
+ assert.throws(()=>eWorldCandidateSourceProof(result,target,'player-command',[unknown],{[unknown]:'current'},full));
+});
+
+test('E world publication rejects partial, failed and unclean current-run evidence',()=>{
+ const targets=['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'];
+ assert.equal(E_WORLD_PROFILE,'e_world_trial_v1');assert.equal(Object.keys(E_WORLD_GROUPS).length,18);const slots=eWorldProofSlots(targets);assert.equal(new Set(slots.map(row=>row.target+':'+row.scenario)).size,slots.length);assert.throws(()=>eWorldProofSlots(targets.slice(1)));
+ const result={target:targets[0],scenario:'lifecycle',sourceChangedDuringRun:false,cleanShutdown:true,persistentWriteCalls:0,status:'PASS',checks:[{status:'PASS'}],evidence:'development_runtime_native',fixturePolicy:'immutable_baseline_restored',fixtureInput:{target:targets[0],role:'client',credentialsCopied:false,baselineSha256:'a'.repeat(64),restoredSha256:'a'.repeat(64)}};
+ assert.equal(eWorldRunProof(result,targets[0],'lifecycle').cleanShutdown,true);
+ for(const[key,value]of Object.entries({status:'FAIL',cleanShutdown:false,sourceChangedDuringRun:true,persistentWriteCalls:1,scenario:'range-tail'}))assert.throws(()=>eWorldRunProof({...result,[key]:value},targets[0],'lifecycle'));
+ assert.throws(()=>eWorldRunProof({...result,actionSamples:[{case:'world_lifecycle_cleanup_failure'}]},targets[0],'lifecycle'));
+});
 
 async function dependencyFixture(){
  const root=resolve(import.meta.dirname,'../../build/test/dependency-proof-'+randomUUID()),repo=resolve(root,'repository');
@@ -246,6 +317,8 @@ function validResourceVersion(){
 }
 
 test('resource alpha requires fourteen checks and all five formal typed chains plus the actual MCP Menu consumer',()=>{
+ const expanded=validResourceVersion(); expanded.actionSamples.find(row=>row.case==='resource_inspection_contract').contract.operations.push({operation:'player.inventory.slot.set'});
+ assert.equal(collaborationIncrementProof(expanded,'fixture-target','resource-version').checks,14,'Additive discovery does not claim a test of the new operation');
  assert.equal(collaborationIncrementProof(validResourceVersion(),'fixture-target','resource-version').checks,14);
  for(const sample of validResourceVersion().actionSamples){
   const result=validResourceVersion();result.actionSamples=result.actionSamples.filter(row=>row.case!==sample.case||(row.case==='resource_version_typed_chain'&&row.operation!==sample.operation));
@@ -1102,7 +1175,8 @@ test('E UI current evidence binds real executed bytes but excludes test files an
 
 test('Controlled source fixtures permit only the reverse-hashed unexecuted Forge count update, not Live proof',async()=>{
  const repo=resolve(import.meta.dirname,'../../build/test/e-ui-forge-count-'+randomUUID()),runner='components/validation_tools/conformance-vanilla_ui/task/run-vanilla-ui.mjs',path=resolve(repo,runner),digest=bytes=>createHash('sha256').update(bytes).digest('hex');
- const current=await readFile(resolve(import.meta.dirname,'../../../..',runner),'utf8'),updated="'1.20.1-forge':[34,6]",previous="'1.20.1-forge':[35,5]";
+ // This controlled historical byte fixture is not the current Runtime hook count or Live evidence.
+ const current=(await readFile(resolve(import.meta.dirname,'../../../..',runner),'utf8')).replace("'1.20.1-forge':[34,7]","'1.20.1-forge':[34,6]").replace("'1.21.1-neoforge':[37,7]","'1.21.1-neoforge':[37,6]"),updated="'1.20.1-forge':[34,6]",previous="'1.20.1-forge':[35,5]";
  assert.equal(current.split(updated).length-1,1);assert.equal(current.includes(previous),false);
  assert(current.includes("if(args.phase!=='quit'&&args.scenario==='hud-demo'){"));assert(current.includes("}else if(args.phase!=='quit'){"));assert(current.includes("}[target];"));
  const before=current.replace(updated,previous),oldDigest=digest(before),raw=(target,scenario,source=runner)=>({target,scenario,sourceHashes:{[source]:oldDigest}});
@@ -1124,7 +1198,8 @@ test('Controlled source fixtures permit only the reverse-hashed unexecuted Forge
 });
 
 test('Known legacy operator-count changes require exact unexecuted bytes and never bypass either legacy all or Runtime bindings',async()=>{
- const repo=resolve(import.meta.dirname,'../../build/test/e-ui-legacy-counts-'+randomUUID()),runner='components/validation_tools/conformance-vanilla_ui/task/run-vanilla-ui.mjs',path=resolve(repo,runner),digest=bytes=>createHash('sha256').update(bytes).digest('hex'),current=await readFile(resolve(import.meta.dirname,'../../../..',runner),'utf8');
+ // This controlled historical byte fixture is not the current Runtime hook count or Live evidence.
+ const repo=resolve(import.meta.dirname,'../../build/test/e-ui-legacy-counts-'+randomUUID()),runner='components/validation_tools/conformance-vanilla_ui/task/run-vanilla-ui.mjs',path=resolve(repo,runner),digest=bytes=>createHash('sha256').update(bytes).digest('hex'),current=(await readFile(resolve(import.meta.dirname,'../../../..',runner),'utf8')).replace("'1.20.1-forge':[34,7]","'1.20.1-forge':[34,6]").replace("'1.21.1-neoforge':[37,7]","'1.21.1-neoforge':[37,6]");
  const forge="'1.20.1-forge':[34,6]",neo="'1.21.1-neoforge':[37,6]";
  for(const value of [forge,neo])assert.equal(current.split(value).length-1,1);
  await mkdir(dirname(path),{recursive:true});await writeFile(path,current);

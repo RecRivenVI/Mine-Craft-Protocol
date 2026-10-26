@@ -28,6 +28,10 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Compan
     throw new Error('Choose instance discovery OR explicit BASE_URL and TOKEN credentials; do not mix connection authorities');
   }
   const discovery = instanceDirectory ? readRuntimeDiscovery(instanceDirectory, environment.MCP_MINECRAFT_TARGET) : undefined;
+  const role = environment.MCP_MINECRAFT_ROLE;
+  if (role && (!['CLIENT', 'DEDICATED_SERVER'].includes(role) || !discovery || (discovery.deploymentRole ?? 'CLIENT') !== role)) {
+    throw new Error('Runtime deployment role does not match the explicitly selected instance');
+  }
   if (!discovery && !environment.MCP_MINECRAFT_BASE_URL) throw new Error('Set MCP_MINECRAFT_INSTANCE_DIR or explicit MCP_MINECRAFT_BASE_URL and TOKEN credentials');
   const baseUrl = new URL(discovery?.baseUrl ?? environment.MCP_MINECRAFT_BASE_URL!);
   if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') throw new Error('Runtime requires HTTP or HTTPS');

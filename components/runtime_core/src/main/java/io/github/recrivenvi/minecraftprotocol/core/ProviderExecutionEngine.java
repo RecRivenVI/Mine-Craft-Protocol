@@ -965,30 +965,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
 
     private static JsonObject result(
             AgentDataProviderV2.Descriptor descriptor, String status, String reason) {
-        JsonObject json = new JsonObject();
-        json.addProperty("providerId", descriptor.providerId());
-        json.addProperty("schemaVersion", descriptor.schemaVersion());
-        json.addProperty("snapshotSchema", descriptor.snapshotSchema());
-        json.addProperty("querySchema", descriptor.querySchema());
-        json.addProperty("threadAffinity", descriptor.threadAffinity());
-        json.addProperty("readEffects", descriptor.readEffects());
-        json.addProperty("snapshotSafe", descriptor.snapshotSafe());
-        json.addProperty("mayInitialize", descriptor.mayInitialize());
-        json.addProperty("mayLoadData", descriptor.mayLoadData());
-        json.addProperty("mayAccessStorage", descriptor.mayAccessStorage());
-        json.addProperty("mayMutate", descriptor.mayMutate());
-        json.addProperty("revisionSource", descriptor.revisionSource());
-        json.addProperty("revisionScope", descriptor.revisionScope());
-        json.addProperty("revisionSchema", descriptor.revisionSchema());
-        json.addProperty("revisionQueryInvariant", descriptor.revisionQueryInvariant());
-        json.addProperty("deltaCapability", descriptor.deltaCapability());
-        json.addProperty("debugSupported", descriptor.debugDeclaration().supported());
-        JsonArray perspectives = new JsonArray();
-        descriptor.perspectives().forEach(perspectives::add);
-        json.add("perspectives", perspectives);
-        JsonArray scopes = new JsonArray();
-        descriptor.requiredScopes().forEach(scopes::add);
-        json.add("requiredScopes", scopes);
+        JsonObject json = ProviderInspection.descriptor(descriptor);
         json.addProperty("status", status);
         if (!reason.isEmpty()) json.addProperty("reason", reason);
         return json;

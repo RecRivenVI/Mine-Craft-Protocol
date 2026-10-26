@@ -4,6 +4,9 @@
     "package": "io.github.recrivenvi.minecraftprotocol.probe.mixin",
     "compatibilityLevel": "JAVA_21",
     "refmap": "minecraft_protocol_probe.refmap.json",
+    "mixins": [
+        "DebugLoadedChunkAccessMixin"
+    ],
     "client": [
         "ConnectionMixin",
         "CommandBlockInputAccessor",
@@ -11,6 +14,7 @@
         "PlayerCommandMixin",
         "WorldPickInvoker",
         "WorldChunkRevisionMixin",
+        "LegacyEnvironmentRevisionMixin",
         "HudUiAccessor",
         "HudPresentationMixin",
         "HudCameraPresentationMixin",
@@ -20,6 +24,7 @@
         "SpectatorGuiUiAccessor",
         "SpectatorMenuUiAccessor",
         "KeyBindingUiAccessor",
+        "KeyEntryUiAccessor",
         "EffectIconRenderMixin",
         "HudVitalIconsMixin",
         "BossOverlayUiAccessor",
@@ -78,6 +83,8 @@
         "InputConstantsMixin",
         "KeyboardHandlerMixin",
         "LevelTicksAccessor",
+        "AttributeMapAccessor",
+        "MobEffectInstanceAccessor",
         "MinecraftMixin",
         "LocalPlayerMixin",
         "GameRendererMixin",

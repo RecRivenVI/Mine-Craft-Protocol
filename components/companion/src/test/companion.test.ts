@@ -100,6 +100,77 @@ test('MCP typed USER region pages forward fixed queries, continuations and cance
   } finally {await client.close().catch(()=>undefined);await runtime.close();}
 });
 
+test('DEBUG block entity continuation survives real MCP validation without acquiring input', async () => {
+  const runtime = await startRuntime();
+  const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client = new Client({name:'block-entity-pages',version:'0.0.1'});
+  try {
+    await client.connect(transport);
+    const body = {category:'DEBUG',perspective:'server_authoritative',domains:['block_entities'],
+      selector:{chunkRadius:0,blockEntityCursor:'opaque-continuation'},budgets:{maxBlockEntities:128}};
+    const result = await client.callTool({name:'minecraft_deep_observe',arguments:body});
+    assert.notEqual(result.isError,true,JSON.stringify(result));
+    const received = (result.structuredContent as {data:{request:Record<string,unknown>}}).data.request;
+    assert.deepEqual(received.selector,body.selector); assert.deepEqual(received.budgets,body.budgets);
+    const count = runtime.deepObserveDeadlines.length;
+    for (const blockEntityCursor of ['',0,true,'a'.repeat(97)]) {
+      const denied = await client.callTool({name:'minecraft_deep_observe',arguments:{...body,selector:{blockEntityCursor}}});
+      assert.equal(denied.isError,true);
+    }
+    assert.equal(runtime.deepObserveDeadlines.length,count); assert.equal(runtime.leases.length,0);
+  } finally {await client.close().catch(()=>undefined); await runtime.close();}
+});
+
+test('typed player and container item mutations forward explicit data without acquiring input', async () => {
+  const runtime = await startRuntime();
+  const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client = new Client({name:'typed-items',version:'0.0.1'});
+  try {
+    await client.connect(transport);
+    await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode:'OPERATE'}});
+    const base = {worldFingerprint:'a'.repeat(64),expectedResourceVersion:{sessionEpoch:recordingId,resourceType:'player',resourceKey:'player',lifecycleId:'current',revision:1,revisionSource:'snapshot_change_sequence',revisionScope:'resource',mutationPreconditionEligible:true},itemId:'minecraft:iron_pickaxe',count:1,itemData:{customName:'Test',damage:2}};
+    for(const fields of [{operation:'player.inventory.slot.set',slot:9},{operation:'player.equipment.set',equipmentSlot:'offhand'},{operation:'block_entity.slot.set',x:1,y:64,z:2,slot:0}]) {
+      const mutation = {...base,...fields};
+      const reply = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation}});
+      assert.notEqual(reply.isError,true,JSON.stringify(reply)); assert.deepEqual(runtime.debugMutations.at(-1),mutation);
+    }
+    const count = runtime.debugMutations.length;
+    const denied = await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation:{...base,operation:'player.inventory.slot.set',slot:9,itemData:{rawNbt:'{}'}}}});
+    assert.equal(denied.isError,true); assert.equal(runtime.debugMutations.length,count); assert.equal(runtime.leases.length,0);
+  } finally {await client.close().catch(()=>undefined); await runtime.close();}
+});
+
+test('entity lifecycle typed schema preserves membership identity and fractional position without player input', async () => {
+  const runtime=await startRuntime(),transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'typed-entity-lifecycle',version:'0.0.1'});
+  try {await client.connect(transport);await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode:'OPERATE'}});
+    const ref={sessionEpoch:recordingId,resourceType:'entity_registry',resourceKey:'dimension@entity_chunk:-1,0',lifecycleId:'chunk-a',revision:1,revisionSource:'snapshot_change_sequence',revisionScope:'resource',mutationPreconditionEligible:true};
+    const mutation={operation:'entity.spawn',worldFingerprint:'a'.repeat(64),expectedResourceVersion:ref,value:{entityType:'minecraft:pig',position:{x:-0.125,y:70.5,z:2.5},yaw:20.5},expectedEntityCount:0};
+    const result=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation}});assert.notEqual(result.isError,true,JSON.stringify(result));assert.deepEqual(runtime.debugMutations.at(-1),mutation);
+    const read={category:'DEBUG',perspective:'server_authoritative',domains:['entities'],selector:{entityChunk:{x:-1,z:0}}};
+    const observed=await client.callTool({name:'minecraft_deep_observe',arguments:read});assert.notEqual(observed.isError,true,JSON.stringify(observed));
+    assert.deepEqual((observed.structuredContent as {data:{request:Record<string,unknown>}}).data.request.selector,read.selector);
+    const count=runtime.debugMutations.length;
+    for(const extra of [{nbt:'{}'},{uuid:recordingId},{position:{x:1e100,y:70,z:0}}]){const denied=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation:{...mutation,value:{...mutation.value,...extra}}}});assert.equal(denied.isError,true);}
+    assert.equal(runtime.debugMutations.length,count);assert.equal(runtime.leases.length,0);
+  } finally {await client.close().catch(()=>undefined);await runtime.close();}
+});
+
+test('typed environment forwarding preserves independent clocks weather timers and native rule value types',async()=>{
+  const runtime=await startRuntime(),transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}}),client=new Client({name:'typed-environment',version:'0.0.1'});
+  try{await client.connect(transport);await client.callTool({name:'minecraft_control',arguments:{action:'set_mode',mode:'OPERATE'}});
+    const version={sessionEpoch:recordingId,resourceType:'world_time',resourceKey:'minecraft:overworld',lifecycleId:'clock',revision:1,revisionSource:'runtime_event_sequence',revisionScope:'resource',mutationPreconditionEligible:true};
+    for(const fields of [
+      {operation:'world.time.set',clockId:'minecraft:overworld',value:12345,expectedValue:12000},
+      {operation:'world.weather.set',value:{clearWeatherTime:0,rainTime:6000,thunderTime:3000,raining:true,thundering:false}},
+      {operation:'world.rule.set',ruleId:'minecraft:keep_inventory',value:true,expectedValue:false}
+    ]){const mutation={worldFingerprint:'a'.repeat(64),expectedResourceVersion:{...version,resourceType:fields.operation==='world.time.set'?'world_time':fields.operation==='world.weather.set'?'world_weather':'world_rule'},...fields};const response=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation}});assert.notEqual(response.isError,true,JSON.stringify(response));assert.deepEqual(runtime.debugMutations.at(-1),mutation);}
+    const count=runtime.debugMutations.length;
+    for(const fields of [{operation:'world.time.set',clockId:'minecraft:overworld',value:1.5},{operation:'world.rule.set',ruleId:'native',value:'true'},{operation:'world.weather.set',value:{raining:true}}]){const denied=await client.callTool({name:'minecraft_debug',arguments:{action:'mutate',debugArmId:'mock-arm',mutation:{...fields,worldFingerprint:'a'.repeat(64),expectedResourceVersion:version}}});assert.equal(denied.isError,true);}
+    assert.equal(runtime.debugMutations.length,count);assert.equal(runtime.leases.length,0);
+  }finally{await client.close().catch(()=>undefined);await runtime.close();}
+});
+
 test('Debug batch automatic wait always selects DEBUG without adding world authority to UI-only batches', async () => {
   const runtime = await startRuntime();
   const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
@@ -284,6 +355,7 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
         type: 'deep_observation.snapshot',
         formal: true,
         perspective: payload.perspective,
+        request: payload,
         providers: []
       });
     }
@@ -617,7 +689,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(client.getServerVersion()?.version, companionPackage.version, 'Actual MCP initialize serverInfo.version must come from package.json');
 
     const listed = await client.listTools();
-    assert.equal(listed.tools.length, 24);
+    assert.equal(listed.tools.length, 25);
     const diagnosticsTool = listed.tools.find(tool => tool.name === 'minecraft_diagnostics')!;
     assert.ok(diagnosticsTool.inputSchema.required?.includes('kind'));
     assert.match(diagnosticsTool.description ?? '', /kind is required/);
@@ -773,7 +845,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(JSON.stringify(pipeline.structuredContent).includes('completed'), true);
     const worldAction = await client.callTool({ name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'world:test',action:'aim'}],waitForCompletion:true} });
     assert.equal(worldAction.isError,undefined);
-    const newActions=[{type:'world.action',targetRef:'world:test',action:'mine',holdMs:8000},{type:'world.action',targetRef:'world:test',action:'use_hold',hand:'off_hand',holdMs:1200},{type:'world.action',targetRef:'world:test',action:'place',face:'west',hit:{u:.25,v:.75},expectedDestinationBlockId:'minecraft:air'}];
+    const newActions=[{type:'world.action',targetRef:'world:test',action:'mine',holdMs:8000},{type:'world.action',targetRef:'world:test',action:'use_hold',hand:'off_hand',holdMs:1200},{type:'world.action',targetRef:'world:test',action:'place',face:'west',hit:{u:.25,v:.75},expectedDestinationBlockId:'minecraft:air'},{type:'world.action',targetRef:'world:test',action:'use',face:'north',hit:{u:5/6,v:.75}},{type:'world.action',targetRef:'world:test',action:'use',entityHit:{x:.5,y:.9,z:.05}}];
     for(const step of newActions){const reply=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[step],waitForCompletion:true}});assert.equal(reply.isError,undefined);assert.deepEqual((runtime.pipelines.at(-1)!.steps as unknown[])[0],step);}
     const invalidHeld=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'world:test',action:'mine',holdMs:10001}]}});assert.equal(invalidHeld.isError,true);
     const invalidWorldAction = await client.callTool({ name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'world.action',targetRef:'ui:foreign',action:'teleport'}]} });

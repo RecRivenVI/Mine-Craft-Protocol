@@ -15,6 +15,7 @@ public final class ForgeProbeMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public ForgeProbeMod() {
+        io.github.recrivenvi.minecraftprotocol.probe.server.DedicatedServerRuntime.initialize();
         MinecraftProtocolProviders.register(new ProbeEchoReadProvider(MOD_ID));
         ProbeV2Providers.registerAll(MOD_ID);
         PeerNetworking.initialize();

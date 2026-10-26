@@ -3,6 +3,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.mixin;
 import io.github.recrivenvi.minecraftprotocol.probe.runtime.NeoForgeProbeRuntime;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentInputContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,6 +40,20 @@ abstract class MinecraftMixin {
             NeoForgeProbeRuntime.ensureExclusiveOwnerState();
             AgentInputContext.routed(this::handleKeybinds);
         } else this.handleKeybinds();
+    }
+
+    @Redirect(
+            method = "runTick",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lnet/minecraft/client/MouseHandler;handleAccumulatedMovement()V"))
+    private void minecraftProtocolProbe$virtualMouseFrameConsumption(MouseHandler mouse) {
+        if (NeoForgeProbeRuntime.isAgentControlActive()) {
+            NeoForgeProbeRuntime.ensureExclusiveOwnerState();
+            AgentInputContext.routed(mouse::handleAccumulatedMovement);
+        } else mouse.handleAccumulatedMovement();
     }
 
     @Inject(method = "tick", at = @At("TAIL"))

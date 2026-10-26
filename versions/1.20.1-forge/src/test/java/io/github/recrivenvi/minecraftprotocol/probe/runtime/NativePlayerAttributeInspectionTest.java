@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -17,48 +16,49 @@ class NativePlayerAttributeInspectionTest {
     private static final String ATTRIBUTES = "net/minecraft/world/entity/ai/attributes/";
 
     @Test
-    void productionPlayerInspectionUsesBothNativeDefaultReadersWithoutCreatingInstances()
+    void productionPlayerInspectionUsesNativeCatalogDefaultsWithoutCreatingInstances()
             throws Exception {
+        var engine =
+                compiled("io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine");
         MethodNode player =
-                compiled("io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine")
-                        .methods
-                        .stream()
+                engine.methods.stream()
                         .filter(method -> method.name.equals("player"))
                         .findFirst()
                         .orElseThrow();
-        List<AbstractInsnNode> instructions =
+        assertTrue(
                 Arrays.stream(player.instructions.toArray())
-                        .filter(instruction -> instruction.getOpcode() >= 0)
+                        .filter(MethodInsnNode.class::isInstance)
+                        .map(MethodInsnNode.class::cast)
+                        .anyMatch(call -> call.name.equals("nativeAttributes")));
+        MethodNode attributes =
+                engine.methods.stream()
+                        .filter(method -> method.name.equals("nativeAttributes"))
+                        .findFirst()
+                        .orElseThrow();
+        var calls =
+                Arrays.stream(attributes.instructions.toArray())
+                        .filter(MethodInsnNode.class::isInstance)
+                        .map(MethodInsnNode.class::cast)
                         .toList();
-        for (String getter : List.of("getBaseValue", "getValue")) {
-            List<MethodInsnNode> calls =
-                    instructions.stream()
-                            .filter(MethodInsnNode.class::isInstance)
-                            .map(MethodInsnNode.class::cast)
+        for (String getter : List.of("hasAttribute", "getBaseValue", "getValue"))
+            assertEquals(
+                    1,
+                    calls.stream()
                             .filter(
                                     call ->
                                             call.owner.equals(ATTRIBUTES + "AttributeMap")
                                                     && call.name.equals(getter))
-                            .toList();
-            assertEquals(1, calls.size(), getter);
-            int at = instructions.indexOf(calls.get(0));
-            FieldInsnNode argument =
-                    assertInstanceOf(FieldInsnNode.class, instructions.get(at - 1));
-            assertEquals(ATTRIBUTES + "Attributes", argument.owner);
-            assertEquals("MAX_HEALTH", argument.name);
-        }
-        List<MethodInsnNode> calls =
-                instructions.stream()
-                        .filter(MethodInsnNode.class::isInstance)
-                        .map(MethodInsnNode.class::cast)
-                        .toList();
+                            .count(),
+                    getter);
         assertTrue(
-                calls.stream()
+                Arrays.stream(attributes.instructions.toArray())
+                        .filter(FieldInsnNode.class::isInstance)
+                        .map(FieldInsnNode.class::cast)
                         .anyMatch(
-                                call ->
-                                        call.owner.equals("java/util/stream/Stream")
-                                                && call.name.equals("noneMatch")),
-                "Existing native id must be checked before adding the supplier-backed default");
+                                field ->
+                                        field.owner.equals(
+                                                        "net/minecraft/core/registries/BuiltInRegistries")
+                                                && field.name.equals("ATTRIBUTE")));
         assertTrue(
                 calls.stream()
                         .anyMatch(
@@ -69,8 +69,12 @@ class NativePlayerAttributeInspectionTest {
                 calls.stream()
                         .anyMatch(
                                 call ->
-                                        call.name.equals("getInstance")
-                                                || call.name.equals("setBaseValue")));
+                                        List.of(
+                                                        "getInstance",
+                                                        "createInstance",
+                                                        "setBaseValue",
+                                                        "computeIfAbsent")
+                                                .contains(call.name)));
     }
 
     @Test

@@ -11,6 +11,63 @@ import org.junit.jupiter.api.Test;
 
 class WorldClientModelTest {
     @Test
+    void ownVehicleFeedbackDoesNotExposeServerRelationshipIdentityOrInventAbsentFields() {
+        View view =
+                new View() {
+                    public JsonObject player() {
+                        return json(
+                                "{\"x\":0,\"y\":64,\"z\":0,\"riding\":true,\"vehicleType\":\"minecraft:boat\",\"vehicleControllerIsPlayer\":false,\"vehicleUuid\":\"private\",\"serverPassengers\":[\"private\"]}");
+                    }
+                };
+        var projected = WorldClientModel.capture("player", new JsonObject(), view);
+        assertEquals("minecraft:boat", projected.get("vehicleType").getAsString());
+        assertFalse(projected.get("vehicleControllerIsPlayer").getAsBoolean());
+        assertFalse(projected.has("vehicleUuid"));
+        assertFalse(projected.has("serverPassengers"));
+        var absent = WorldClientModel.capture("player", new JsonObject(), new View() {});
+        assertFalse(absent.has("vehicleType"));
+        assertFalse(absent.has("vehicleControllerIsPlayer"));
+    }
+
+    @Test
+    void ownNativeMovementFeedbackSurvivesWithoutPublishingServerOrEquipmentInternals() {
+        View view =
+                new View() {
+                    public JsonObject player() {
+                        return json(
+                                "{\"x\":0,\"y\":64,\"z\":0,\"pose\":\"swimming\",\"crouching\":false,\"sprinting\":true,\"swimming\":true,\"fallFlying\":false,\"inWater\":true,\"underWater\":true,\"inLava\":false,\"onFire\":false,\"sleeping\":false,\"deadOrDying\":false,\"eyeHeight\":0.4,\"maxAir\":300,\"experienceLevel\":3,\"experienceProgress\":0.25,\"cameraType\":\"third_person_back\",\"cameraIsPlayer\":true,\"serverPermission\":4,\"inventory\":{\"secret\":1},\"mayfly\":true}");
+                    }
+                };
+        JsonObject projected = WorldClientModel.capture("player", new JsonObject(), view);
+        for (String field :
+                java.util.List.of(
+                        "pose",
+                        "crouching",
+                        "sprinting",
+                        "swimming",
+                        "fallFlying",
+                        "inWater",
+                        "underWater",
+                        "inLava",
+                        "onFire",
+                        "sleeping",
+                        "deadOrDying",
+                        "eyeHeight",
+                        "maxAir",
+                        "experienceLevel",
+                        "experienceProgress",
+                        "cameraType",
+                        "cameraIsPlayer")) {
+            assertEquals(view.player().get(field), projected.get(field), field);
+        }
+        assertFalse(projected.has("serverPermission"));
+        assertFalse(projected.has("inventory"));
+        assertFalse(projected.has("mayfly"));
+        assertFalse(projected.get("storageAccessed").getAsBoolean());
+        assertEquals("CLIENT_KNOWN", projected.get("authority").getAsString());
+    }
+
+    @Test
     void clientVelocityKeepsFiniteFractionalComponentsWithoutOpeningInternalFields() {
         View view =
                 new View() {
@@ -115,6 +172,55 @@ class WorldClientModelTest {
                         .getAsJsonObject()
                         .get("invisible")
                         .getAsBoolean());
+    }
+
+    @Test
+    void nativePartNameDoesNotExposeParentServerHealthOrInternalData() {
+        View view =
+                new View() {
+                    public Iterator<JsonObject> entities() {
+                        return java.util.List.of(
+                                        json(
+                                                "{\"type\":\"minecraft:ender_dragon\",\"x\":1,\"y\":64,\"z\":0,\"partName\":\"head\",\"health\":200,\"parentNbt\":\"secret\"}"))
+                                .iterator();
+                    }
+                };
+        for (String kind : java.util.List.of("entities", "scene")) {
+            var value =
+                    WorldClientModel.capture(kind, new JsonObject(), view)
+                            .getAsJsonArray("entities")
+                            .get(0)
+                            .getAsJsonObject();
+            assertEquals("head", value.get("partName").getAsString());
+            assertFalse(value.has("health"));
+            assertFalse(value.toString().contains("secret"));
+        }
+    }
+
+    @Test
+    void visibleFrameDisplayIsNotADroppedStackOrAHiddenInventory() {
+        View view =
+                new View() {
+                    public Iterator<JsonObject> entities() {
+                        return java.util.List.of(
+                                        json(
+                                                "{\"type\":\"minecraft:item_frame\",\"x\":1,\"y\":64,\"z\":0,\"displayedItemId\":\"minecraft:diamond\",\"displayedItemCount\":1,\"displayedRotation\":3,\"components\":\"secret\",\"inventory\":\"secret\",\"uuid\":\"secret\"}"))
+                                .iterator();
+                    }
+                };
+        for (String kind : java.util.List.of("entities", "scene")) {
+            var value =
+                    WorldClientModel.capture(kind, new JsonObject(), view)
+                            .getAsJsonArray("entities")
+                            .get(0)
+                            .getAsJsonObject();
+            assertEquals("minecraft:diamond", value.get("displayedItemId").getAsString());
+            assertEquals(1, value.get("displayedItemCount").getAsInt());
+            assertEquals(3, value.get("displayedRotation").getAsInt());
+            assertFalse(value.has("itemId"));
+            assertFalse(value.has("itemCount"));
+            assertFalse(value.toString().contains("secret"));
+        }
     }
 
     @Test

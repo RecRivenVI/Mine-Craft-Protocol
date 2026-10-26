@@ -268,6 +268,28 @@ final class VanillaUiTree {
                     bounds(row, bounds, listClip, active, visible);
                     row.addProperty("role", "list_item");
                     row.addProperty("entryIndex", index);
+                    if (entry instanceof KeyEntryUiAccessor binding) {
+                        String key =
+                                "key_binding." + binding.minecraftProtocolProbe$key().getName();
+                        row.addProperty("controlKey", key);
+                        row.addProperty(
+                                "label",
+                                bounded(binding.minecraftProtocolProbe$name().getString()));
+                        JsonArray controls = row.getAsJsonArray("children");
+                        if (controls != null)
+                            for (JsonElement value : controls) {
+                                JsonObject control = value.getAsJsonObject();
+                                long id = control.get("elementIdentity").getAsLong();
+                                if (id
+                                        == identity.applyAsLong(
+                                                binding.minecraftProtocolProbe$changeButton()))
+                                    control.addProperty("controlKey", key + ".change");
+                                else if (id
+                                        == identity.applyAsLong(
+                                                binding.minecraftProtocolProbe$resetButton()))
+                                    control.addProperty("controlKey", key + ".reset");
+                            }
+                    }
                     row.addProperty("selected", list.getSelected() == entry);
                     row.addProperty("scrollParentId", node.get("nodeId").getAsString());
                     row.addProperty("contentY", bounds.top());

@@ -16,6 +16,26 @@
 
 ## 个人设置示例
 
+独立服务器 Runtime 默认只给 read/event/control/diagnostics，不授予控制台所有者能力。
+所有者决定开放时，可在服务器的 jvm-args 显式加入既有 scope 配置：
+
+```text
+-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console
+```
+
+启动后从该服务器目录的 minecraft-protocol/endpoint.json 发现自动分配端口，token 在同目录的 token 文件，不能复制到聊天或证据。
+Companion 设置 MCP_MINECRAFT_INSTANCE_DIR 为此实例目录，并可设 MCP_MINECRAFT_ROLE=DEDICATED_SERVER 防止选错客户端。
+控制台授权不开放玩家输入、DEBUG、存档或全部管理命令；完整初始目录见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)。
+
+独立世界DEBUG使用自己的scope，不需要server_console或command：
+
+```text
+-Dminecraft.protocol.scopes=read,event,control,diagnostics,debug,debug.world.read,debug.write,debug.world
+```
+
+只读用途可省略debug.write/debug.world；修改仍须显式OPERATE与world Arm、指纹及资源版本。
+首批只支持主世界有界读取和已加载方块修改，具体请求见[Native合同](../reference/protocol-native_v0.md#独立服务器世界-debug)。
+
 日常客户端（含多人客户端）与 Control UI Showcase 默认以 2560×1440 启动。
 日常实例仍可通过 `local.toml` 覆盖窗口尺寸；Showcase 使用自己的验证配置。
 启动尺寸在下次启动时生效，不调整当前已经打开的窗口。

@@ -234,7 +234,11 @@ class SurfaceContractCatalogueTest {
                 expected,
                 actual,
                 "Formal routes cannot silently outgrow or disagree with the catalogue");
-        assertEquals(80, actual.size());
+        assertEquals(82, actual.size());
+        assertEquals("readServerConsole:READ_COMPATIBLE", actual.get("GET /v0/server/console"));
+        assertEquals(
+                "executeServerConsoleCommand:OPERATE_OR_TAKEOVER",
+                actual.get("POST /v0/server/console/commands"));
         assertEquals("readWorldRegion:READ_COMPATIBLE", actual.get("POST /v0/world/region"));
         assertEquals("releaseAllInput:TAKEOVER_REQUIRED", actual.get("POST /v0/input/release-all"));
         assertEquals(actual.size(), ids.size());

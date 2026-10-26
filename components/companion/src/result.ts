@@ -44,6 +44,7 @@ export async function asToolResult(operation: () => Promise<JsonValue>): Promise
         ...(runtime?.executionOutcome ? {
           executionOutcome: runtime.executionOutcome, retrySafe: runtime.retrySafe
         } : {}),
+        ...(runtime?.partialMutation ? {partialMutation:runtime.partialMutation} : {}),
         ...(runtime?.rateLimit ? {
           retryAfterMillis: runtime.retryAfterMillis, rateLimit: runtime.rateLimit
         } : {}),

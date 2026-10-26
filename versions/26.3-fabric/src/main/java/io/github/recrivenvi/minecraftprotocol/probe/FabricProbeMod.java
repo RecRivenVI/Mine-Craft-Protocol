@@ -12,6 +12,7 @@ public final class FabricProbeMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        io.github.recrivenvi.minecraftprotocol.probe.server.DedicatedServerRuntime.initialize();
         PeerNetworking.initializeCommon();
         LOGGER.info("Mine-Craft-Protocol Phase 8 Fabric 26.3 common V1 Runtime loaded");
     }

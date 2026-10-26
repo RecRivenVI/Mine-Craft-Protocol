@@ -258,9 +258,9 @@ export async function worldRecoveryUiActions({api, repo, instance, target, tree,
         catch (error) {
           // The worker may finish after the USER tree read but before click dispatch.
           // Never replay the click, extend the world, or count this race as Cancel.
-          assert(['UI_TARGET_INVALIDATED', 'UI_NODE_NOT_FOUND'].includes(error.code),
-            'Only native page replacement, not permission or other failures, can be an early-finish race');
-          value.cancelInputError = {code: error.code, message: error.message};
+          value.cancelInputError = {code: error.code, message: error.message,
+            ...(error.httpStatus ? {httpStatus: error.httpStatus} : {}), ...(error.nativeError ? {nativeError: error.nativeError} : {})};
+          if (!['UI_TARGET_INVALIDATED', 'UI_NODE_NOT_FOUND'].includes(error.code)) throw error;
           const observed = await returned(); assert.equal(observed.callbackAction, 'optimize_finished'); value.returned = observed;
         }
       }

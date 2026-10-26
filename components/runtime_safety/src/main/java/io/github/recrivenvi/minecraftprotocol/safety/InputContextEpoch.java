@@ -2,11 +2,14 @@ package io.github.recrivenvi.minecraftprotocol.safety;
 
 import java.util.UUID;
 
-/** Native owner-thread identities, deliberately independent of Screen, menu and GUI scale. */
+/**
+ * Native owner-thread identities and player liveness, independent of Screen, menu and GUI scale.
+ */
 public final class InputContextEpoch {
     private Object world;
     private Object player;
     private Object connection;
+    private boolean playerAlive;
     private volatile Snapshot snapshot = new Snapshot(0, UUID.randomUUID().toString(), false);
 
     public record Snapshot(long generation, String opaqueId, boolean worldAvailable) {
@@ -21,12 +24,15 @@ public final class InputContextEpoch {
     }
 
     /** Called only by the native client owner, before consuming or dispatching input. */
-    public Snapshot observe(Object world, Object player, Object connection) {
-        if (this.world == world && this.player == player && this.connection == connection)
-            return snapshot;
+    public Snapshot observe(Object world, Object player, Object connection, boolean playerAlive) {
+        if (this.world == world
+                && this.player == player
+                && this.connection == connection
+                && this.playerAlive == playerAlive) return snapshot;
         this.world = world;
         this.player = player;
         this.connection = connection;
+        this.playerAlive = playerAlive;
         snapshot =
                 new Snapshot(
                         Math.incrementExact(snapshot.generation()),

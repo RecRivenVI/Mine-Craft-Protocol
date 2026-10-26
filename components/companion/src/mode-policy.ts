@@ -1,5 +1,6 @@
 // Static discovery metadata only. Native Runtime performs authorization and intent checks.
 export const TOOL_MODE_POLICY = {
+  "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
   "minecraft_get_session": {
     "default": "READ_COMPATIBLE"
   },

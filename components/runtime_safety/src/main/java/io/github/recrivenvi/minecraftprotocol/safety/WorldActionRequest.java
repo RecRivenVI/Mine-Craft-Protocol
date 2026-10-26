@@ -21,6 +21,7 @@ public record WorldActionRequest(String targetRef, String action, int holdMs, Js
                         "hand",
                         "face",
                         "hit",
+                        "entityHit",
                         "expectedDestinationBlockId")
                 .containsAll(step.keySet()))
             throw new IllegalArgumentException("Unknown world action field");
@@ -51,10 +52,11 @@ public record WorldActionRequest(String targetRef, String action, int holdMs, Js
                 throw new IllegalArgumentException("hand must be main_hand or off_hand");
             options.addProperty("hand", hand);
         } else if (step.has("hand")) throw new IllegalArgumentException("hand belongs to use_hold");
-        if (action.equals("place")) {
+        boolean place = action.equals("place");
+        if (place || action.equals("use") && step.has("face")) {
             String face = text(step, "face", "");
             if (!FACES.contains(face))
-                throw new IllegalArgumentException("place requires a named face");
+                throw new IllegalArgumentException("A valid named face is required");
             options.addProperty("face", face);
             double u = .5, v = .5;
             if (step.has("hit")) {
@@ -69,13 +71,32 @@ public record WorldActionRequest(String targetRef, String action, int holdMs, Js
             options.addProperty("u", u);
             options.addProperty("v", v);
             if (step.has("expectedDestinationBlockId")) {
+                if (!place)
+                    throw new IllegalArgumentException("Destination preconditions belong to place");
                 String id = text(step, "expectedDestinationBlockId", "");
                 if (id.length() > 256 || !id.matches("[a-z0-9_.-]+:[a-z0-9_./-]+"))
                     throw new IllegalArgumentException("Invalid expected block ID");
                 options.addProperty("expectedDestinationBlockId", id);
             }
         } else if (step.has("face") || step.has("hit") || step.has("expectedDestinationBlockId"))
-            throw new IllegalArgumentException("Face/destination fields belong to place");
+            throw new IllegalArgumentException(
+                    "Face coordinates require place or an explicit use face; destination preconditions belong to place");
+        if (step.has("entityHit")) {
+            if (place
+                    || action.equals("mine")
+                    || step.has("face")
+                    || step.has("hit")
+                    || !step.get("entityHit").isJsonObject())
+                throw new IllegalArgumentException(
+                        "entityHit belongs to an entity aim/attack/use/use_hold");
+            JsonObject hit = step.getAsJsonObject("entityHit");
+            if (!hit.keySet().equals(Set.of("x", "y", "z")))
+                throw new IllegalArgumentException("entityHit requires normalized x/y/z");
+            JsonObject point = new JsonObject();
+            for (String axis : List.of("x", "y", "z"))
+                point.addProperty(axis, coordinate(hit, axis));
+            options.add("entityHit", point);
+        }
         return new WorldActionRequest(ref, action, duration, options);
     }
 

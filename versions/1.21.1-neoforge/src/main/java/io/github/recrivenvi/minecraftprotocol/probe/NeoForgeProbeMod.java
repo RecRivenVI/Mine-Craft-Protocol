@@ -16,6 +16,7 @@ public final class NeoForgeProbeMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public NeoForgeProbeMod(IEventBus modBus) {
+        io.github.recrivenvi.minecraftprotocol.probe.server.DedicatedServerRuntime.initialize();
         MinecraftProtocolProviders.register(new ProbeEchoReadProvider(MOD_ID));
         ProbeV2Providers.registerAll(MOD_ID);
         modBus.addListener(PeerNetworking::register);

@@ -294,3 +294,50 @@ test('only the existing death check invokes the explicit boundary and result rec
   assert.match(source, /result\.respawnSamples=respawnSamples;/);
   assert.match(source, /check\('death: native respawn button and live world restored'/);
 });
+
+const deathStart = source.indexOf('async function arrangeNativeDeath(');
+const deathEnd = source.indexOf('\nasync function respawnFromDeath(', deathStart);
+assert(deathStart >= 0 && deathEnd > deathStart);
+const deathArrange = new vm.Script('(' + source.slice(deathStart, deathEnd) + ')');
+
+function deathFixture({error, afterPatch = {}, playerPatch = {}, controlPatch = {}} = {}) {
+  const samples = [], commands = [];
+  const before = {inputGeneration: 4, inputContextGeneration: 2, inputContextId: 'alive', inputCleanupPending: false, inputCleanupFailed: false};
+  const after = {...before, inputGeneration: 5, inputContextGeneration: 3, inputContextId: 'dead', inputContextAvailable: true, pressedKeyCount: 0, pressedButtonCount: 0, ...afterPatch};
+  const control = {mode: 'TAKEOVER', leaseId: 'owned-lease', reconsentRequired: false, takeoverActive: true, modeVersion: {controlSessionId: 'owned', generation: 2}};
+  const page = {screenClass: 'net.minecraft.client.gui.screens.DeathScreen', children: [{translationKey: 'deathScreen.respawn', active: true}]};
+  let inputs = 0, players = 0, controls = 0;
+  const context = {assert, lease: 'owned-lease', deathSamples: samples, nodes: tree => tree.children,
+    command: async value => {commands.push(value); if (error) throw error; return {effectConfirmed: false};},
+    wait: async predicate => {assert(predicate(page)); return page;},
+    api: async (method, path) => {
+      if (path === '/v0/input/state') return inputs++ === 0 ? before : after;
+      if (path === '/v0/player?category=USER') return players++ === 0 ? {dataCategory: 'USER', available: true, health: 20} : {dataCategory: 'USER', available: true, health: 0, ...playerPatch};
+      if (path === '/v0/control/status') return controls++ === 0 ? control : {...control, ...controlPatch};
+      assert.equal(method, 'POST'); assert.equal(path, '/v0/wait/until'); return {passed: true};
+    }};
+  return {samples, commands, run: deathArrange.runInContext(vm.createContext(context))};
+}
+
+test('native death setup preserves unconfirmed cancellation and independently proves state without replay', async () => {
+  for (const code of ['REQUEST_CANCELLED', 'CONTROL_INPUT_GENERATION_CHANGED']) {
+    const body = {error: code, executionOutcome: 'not_confirmed', retrySafe: false};
+    const fixture = deathFixture({error: Object.assign(new Error(code), {httpStatus: 409, nativeError: body})});
+    await fixture.run(); assert.deepEqual(fixture.commands, ['kill @s']); assert.equal(fixture.samples.length, 1);
+    assert.equal(fixture.samples[0].requestOutcome, 'not_confirmed'); assert.equal(fixture.samples[0].requestReplayed, false);
+    assert.equal(fixture.samples[0].requestEffectConfirmed, false); assert.equal(fixture.samples[0].error.body, body);
+  }
+});
+
+test('acknowledged native death setup still requires independent death and input cleanup', async () => {
+  const fixture = deathFixture(); await fixture.run(); assert.equal(fixture.samples[0].requestOutcome, 'response_received');
+});
+
+test('death setup never swallows unrelated errors or accepts unchanged, alive, held or revoked state', async () => {
+  const unrelated = new Error('authorization denied');
+  const rejected = deathFixture({error: unrelated}); await assert.rejects(rejected.run(), error => error === unrelated); assert.equal(rejected.samples.length, 0);
+  for (const options of [{playerPatch: {health: 20}}, {afterPatch: {inputContextGeneration: 2}}, {afterPatch: {inputContextId: 'alive'}},
+    {afterPatch: {pressedKeyCount: 1}}, {afterPatch: {inputCleanupPending: true}}, {controlPatch: {leaseId: 'other'}}, {controlPatch: {reconsentRequired: true}}]) {
+    const fixture = deathFixture(options); await assert.rejects(fixture.run()); assert.equal(fixture.samples.length, 0);
+  }
+});

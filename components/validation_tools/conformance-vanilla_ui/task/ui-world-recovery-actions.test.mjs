@@ -173,7 +173,8 @@ test('a native page that finishes before request target resolution reports NODE_
 
 test('natural completion cannot reclassify an authorization failure as a page-replacement race', async () => {
   const fixture = await controlledNative({finishDuringClick: true, finishErrorCode: 'SCOPE_REQUIRED'});
-  await assert.rejects(worldRecoveryUiActions(fixture.ctx), /Only native page replacement/);
+  await assert.rejects(worldRecoveryUiActions(fixture.ctx), error => error.code === 'SCOPE_REQUIRED');
+  assert.equal(fixture.samples.find(value => value.case === 'world_recovery_optimize').cancelInputError.code, 'SCOPE_REQUIRED');
   assert.equal(fixture.samples.some(value => value.case === 'world_recovery_cleanup' && value.failed), true);
   assert.equal(fixture.actions.filter(value => value === 'cancel').length, 1);
 });

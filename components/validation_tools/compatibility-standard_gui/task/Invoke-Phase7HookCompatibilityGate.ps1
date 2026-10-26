@@ -257,12 +257,26 @@ $targets = @(
 $results = foreach ($target in $targets) {
     $mixinDirectory = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\mixin"
     $files = @(Get-ChildItem -LiteralPath $mixinDirectory -Filter '*.java' -File)
+    if ($target.Name -eq '26.3-fabric') {
+        $files += Get-Item -LiteralPath (Join-Path $repositoryRoot 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DebugLoadedChunkAccessMixin.java')
+    }
     Assert-True ($files.Count -gt 0) "$($target.Name) must own concrete Hook sources"
     $texts = @($files | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw })
     $combined = $texts -join "`n"
 
     Assert-True ($combined -notmatch '@Overwrite') "$($target.Name) must not use Overwrite"
     $operatorFiles = @('KeyboardHandlerMixin.java', 'MouseHandlerMixin.java', 'MinecraftMixin.java', 'WindowMixin.java', 'InputConstantsMixin.java', 'SDLEventHandlerMixin.java', 'WorldGestureMixin.java', 'PlayerCommandMixin.java', 'ConnectionMixin.java', 'CommandCompletionConnectionMixin.java', 'GameModeScreenRenderMixin.java')
+    $debugMutationFiles = @('DebugLoadedChunkAccessMixin.java')
+    $worldDelegationFiles = @(if ($target.Name.StartsWith('1.')) { 'LegacyEnvironmentRevisionMixin.java' })
+    $passiveWorldCount = $worldDelegationFiles.Count
+    if ($passiveWorldCount) {
+        $worldTime = Get-Content -LiteralPath (Join-Path $mixinDirectory $worldDelegationFiles[0]) -Raw
+        $worldTimeCompact = [regex]::Replace($worldTime, '\s+', '')
+        Assert-True (([regex]::Matches($worldTime, '@Redirect')).Count-eq1 -and $worldTimeCompact.Contains('target="Lnet/minecraft/server/level/ServerLevel;setDayTime(J)V"') -and $worldTimeCompact.Contains('try{level.setDayTime(ticks);}finally{minecraftProtocol$naturalDayTimeUpdate=false;}') -and $worldTime-notmatch'cancellable\s*=\s*true|@Overwrite|@Modify') "$($target.Name) world clock revision must delegate the unchanged native setter once and unwind its natural-tick marker"
+    }
+    $loadedGuard = Get-Content -LiteralPath ($files | Where-Object Name -eq $debugMutationFiles[0]).FullName -Raw
+    $compactGuard = [regex]::Replace($loadedGuard, '\s+', '')
+    Assert-True ($compactGuard.Contains('@Mixin(ServerChunkCache.class)') -and $compactGuard.Contains('if(scope==null||!create)return;') -and $compactGuard.Contains('.getChunkNow(x,z)') -and $compactGuard.Contains('scope.reject(') -and ([regex]::Matches($loadedGuard,'cancellable\s*=\s*true')).Count-eq1 -and $loadedGuard-notmatch'@Redirect|@Overwrite|@Modify') "$($target.Name) DEBUG dependency guard must preserve ordinary native access and reject unknown chunks only inside its explicit scope"
     $drawContracts = Get-PassiveDrawContracts $target.Name
     $drawFiles = @($files | Where-Object { $drawContracts.ContainsKey($_.Name) } | Select-Object -ExpandProperty Name)
     foreach ($required in @('HudVitalIconsMixin.java', 'HudPresentationMixin.java', 'ItemDecorationPresentationMixin.java', 'ContextualBarPresentationMixin.java', 'BossBarPresentationMixin.java')) {
@@ -326,7 +340,7 @@ $results = foreach ($target in $targets) {
         $lateTest = Join-Path $repositoryRoot "versions/$($target.Name)/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/LateGuiPresentationTest.java"
         Assert-LegacyTooltipScope $target.Name (Get-Content -LiteralPath $decoderPath -Raw) (Get-Content -LiteralPath $lateTest -Raw)
     }
-    $observationCode = ($files | Where-Object { $_.Name -notin $operatorFiles -and $_.Name -notin $drawFiles } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
+    $observationCode = ($files | Where-Object { $_.Name -notin $operatorFiles -and $_.Name -notin $drawFiles -and $_.Name -notin $debugMutationFiles -and $_.Name -notin $worldDelegationFiles } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
     Assert-True ($observationCode -notmatch 'cancellable\s*=\s*true|\.cancel\s*\(|@Redirect') "$($target.Name) observation Hooks must not change control flow"
     $lateSource = Join-Path $mixinDirectory 'GuiLatePresentationMixin.java'
     $snapshotSource = Join-Path $mixinDirectory '../runtime/UiPresentationSnapshot.java'
@@ -343,11 +357,15 @@ $results = foreach ($target in $targets) {
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
     $replacementCount = $redirectCount + $cursorArgumentCount
-    $expectedCancellable=if($target.Name.StartsWith('26.3-')){26}elseif($target.Name.StartsWith('26.')){23}else{21}
-    $operatorRedirectCount = $redirectCount - $passiveDrawCount
+    $expectedCancellable=if($target.Name.StartsWith('26.3-')){27}elseif($target.Name.StartsWith('26.')){24}else{22}
+    $operatorRedirectCount = $redirectCount - $passiveDrawCount - $passiveWorldCount
     $operatorReplacementCount = $operatorRedirectCount + $cursorArgumentCount
-    $expectedOperatorRedirect=if($target.Name.StartsWith('1.')){6}elseif($target.Name.StartsWith('26.3-')){4}else{5}
-    Assert-True ($cancellableCount -eq $expectedCancellable -and $operatorRedirectCount -eq $expectedOperatorRedirect) "$($target.Name) must match exclusive input/polling/warp guards and native-ingress/icon/keymapping redirects"
+    $expectedOperatorRedirect=if($target.Name.StartsWith('1.')){7}elseif($target.Name.StartsWith('26.3-')){5}else{6}
+    Assert-True ($cancellableCount -eq $expectedCancellable -and $operatorRedirectCount -eq $expectedOperatorRedirect) "$($target.Name) must match the scoped DEBUG dependency guard, exclusive input/polling/warp guards and native-ingress/icon/keymapping/mouse-frame redirects"
+    $mouseConsumer=if($target.Name-eq'1.20.1-forge'){'turnPlayer'}else{'handleAccumulatedMovement'}
+    $minecraftHook=Get-Content -LiteralPath (Join-Path $mixinDirectory 'MinecraftMixin.java') -Raw
+    $minecraftCompact=[regex]::Replace($minecraftHook,'\s+','')
+    Assert-True (([regex]::Matches($minecraftHook,'@Redirect')).Count-eq2-and$minecraftCompact.Contains('target="Lnet/minecraft/client/MouseHandler;'+$mouseConsumer+'()V"')-and$minecraftCompact.Contains('AgentInputContext.routed(mouse::'+$mouseConsumer+');')-and$minecraftCompact.Contains('elsemouse.'+$mouseConsumer+'();')) "$($target.Name) native mouse-frame delegate must preserve one unchanged native call in either origin branch"
     $runtime=(Get-ChildItem -LiteralPath (Join-Path $mixinDirectory '../runtime') -Filter '*ProbeRuntime.java'|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw}) -join "`n"
     if ($target.Name.StartsWith('1.')) {
         $deferred = Get-Content -LiteralPath (Join-Path $mixinDirectory 'GameModeScreenRenderMixin.java') -Raw
@@ -378,10 +396,11 @@ $results = foreach ($target in $targets) {
     Assert-True ($chatPacketGuard-and$runtime-match'NativePlayerCommands.configuration\(packet\)'-and$runtime-match'gate.allowConfiguration\('-and$commandAdapter-match'ServerboundSetCommandBlockPacket'-and$commandAdapter-match'ServerboundSetCommandMinecartPacket') "$($target.Name) final typed chat/block/minecart admission must remain in production adapters"
     Assert-True ($runtime -match 'worldTargeting.holdActive\(\)' -and $runtime -match 'worldTargeting.permit\(kind\)') "$($target.Name) semantic veto must only apply while the Runtime owns a bounded gesture"
     Assert-True ($runtime -match ('"cancellableInjectionCount",\s*'+$cancellableCount+'\)') -and $runtime -match ('"replacementInjectionCount",\s*'+$replacementCount+'\)')) "$($target.Name) production Hook counts must match actual sources"
+    Assert-True ($runtime -match ('"passiveWorldDelegationCount",\s*'+$passiveWorldCount+'\)')) "$($target.Name) world delegation count must remain separate from native draw and input replacement counts"
     if ($cursorArgumentCount -gt 0) {
         Assert-True ($runtime -match 'host_cursor_shape_guard' -and $runtime -match 'MIXIN_MODIFY_VARIABLE' -and $runtime -match 'default_host_shape_during_takeover') "$($target.Name) must disclose its host cursor argument replacement, not mislabel it as cancellation or redirect"
     }
-    Assert-True ($runtime -match ('"operatorReplacementCount",\s*'+$operatorReplacementCount+'\)') -and $runtime -match ('"passiveDrawDelegationCount",\s*'+$passiveDrawCount+'\)') -and $runtime -match 'operator_control_and_exact_hud_draw_delegation' -and $runtime -match 'passive_draw_observation') "$($target.Name) production manifest must disclose passive draw delegation separately from operator control"
+    Assert-True ($runtime -match ('"operatorReplacementCount",\s*'+$operatorReplacementCount+'\)') -and $runtime -match ('"passiveDrawDelegationCount",\s*'+$passiveDrawCount+'\)') -and $runtime -match 'operator_control_debug_mutation_and_exact_hud_draw_delegation' -and $runtime -match '"debugMutationGuardCount",\s*1\)' -and $runtime -match '"DEBUG_MUTATION"' -and $runtime -match 'scoped_native_chunk_dependency_guard' -and $runtime -match 'passive_draw_observation') "$($target.Name) production manifest must disclose passive draw delegation separately from operator control and DEBUG mutation"
     $windowHook = Get-Content -LiteralPath (Join-Path $mixinDirectory 'WindowMixin.java') -Raw
     $iconApi=if($target.Name.StartsWith('26.3-')){'SDL_SetWindowIcon'}else{'glfwSetWindowIcon'}
     Assert-True ($windowHook -match $iconApi -and $windowHook -match 'onVanillaWindowIcon') "$($target.Name) icon redirect must preserve actual Vanilla pixels"
@@ -422,6 +441,7 @@ $results = foreach ($target in $targets) {
         'GameModeSwitcherUiAccessor.java' = @('net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen')
         'HudUiAccessor.java' = @($hud)
         'KeyBindingUiAccessor.java' = @('net.minecraft.client.KeyMapping')
+        'KeyEntryUiAccessor.java' = @($(if($target.Name-eq'1.20.1-forge'){'net.minecraft.client.gui.screens.controls.KeyBindsList.KeyEntry'}else{'net.minecraft.client.gui.screens.options.controls.KeyBindsList.KeyEntry'}))
         'LoomUiAccessor.java' = @('net.minecraft.client.gui.screens.inventory.LoomScreen')
         'MerchantUiAccessor.java' = @('net.minecraft.client.gui.screens.inventory.MerchantScreen')
         'PackEntryUiAccessor.java' = @('net.minecraft.client.gui.screens.packs.TransferableSelectionList.PackEntry')
@@ -475,6 +495,11 @@ $results = foreach ($target in $targets) {
         $text = Get-Content -LiteralPath $file.FullName -Raw
         if ($text -match '@Mixin\s*\(\s*targets\s*=') {
             $match = [regex]::Match($text, '@Mixin\s*\(\s*targets\s*=\s*"([^"]+)"\s*\)')
+            if ($file.Name-eq'ClockInstanceAccessor.java') {
+                $clockCompact=[regex]::Replace($text,'\s+','')
+                Assert-True ($target.Name-eq'26.1.2-neoforge'-and$match.Success-and$match.Groups[1].Value-ceq'net.minecraft.world.clock.ServerClockManager$ClockInstance'-and$clockCompact.Contains('@Accessor("paused")booleanminecraftProtocol$paused();')-and$clockCompact.Contains('@Accessor("rate")floatminecraftProtocol$rate();')-and([regex]::Matches($text,'@Accessor')).Count-eq2-and$text-notmatch'@Inject|@Redirect|@Overwrite|@Invoker|@Mutable') "$($target.Name) private native clock playback accessor must remain the exact two read-only fields"
+                continue
+            }
             if ($privateDrawTargets.ContainsKey($file.Name)) {
                 Assert-True ($match.Success -and $match.Groups[1].Value -ceq $privateDrawTargets[$file.Name] -and $file.Name -in $drawFiles -and $text -notmatch '@Accessor|@Invoker|@Inject') "$($target.Name)/$($file.Name) private draw target must match its separately reviewed native delegation contract"
                 $nativeMethod = if ($file.Name -eq 'ToastResidentPresentationMixin.java') { 'extractRenderState' } else { 'handleMessage' }
@@ -517,8 +542,14 @@ $results = foreach ($target in $targets) {
     $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
     Assert-True ([bool]$config.required) "$($target.Name) Mixin config must fail visibly when a required Hook cannot apply"
     Assert-True ($config.injectors.defaultRequire -eq 1) "$($target.Name) Hook injections must not silently skip"
-    Assert-True (@($config.client).Count -eq $files.Count) "$($target.Name) Mixin config and owned Hook source count must agree"
-    Assert-True (((@($config.client) | Sort-Object) -join ',') -ceq ((@($files | ForEach-Object BaseName) | Sort-Object) -join ',')) "$($target.Name) Mixin config must register each audited source exactly once"
+    $registered = @(@($config.client) + @($config.mixins) | Where-Object { $_ })
+    if ($target.Name -eq '26.3-fabric') {
+        $serverConfig = Get-Content -LiteralPath (Join-Path $repositoryRoot 'versions/26.3-fabric/src/main/resources/minecraft_protocol_probe.server.mixins.json') -Raw | ConvertFrom-Json
+        Assert-True ($serverConfig.required -and $serverConfig.injectors.defaultRequire -eq 1 -and (@($serverConfig.mixins) -join ',') -ceq 'DebugLoadedChunkAccessMixin') 'Fabric server guard must be required on the common source set'
+        $registered += @($serverConfig.mixins)
+    }
+    Assert-True ($registered.Count -eq $files.Count) "$($target.Name) Mixin config and owned Hook source count must agree"
+    Assert-True ((($registered | Sort-Object) -join ',') -ceq ((@($files | ForEach-Object BaseName) | Sort-Object) -join ',')) "$($target.Name) Mixin config must register each audited source exactly once"
 
     [pscustomobject]@{
         Target = $target.Name
@@ -532,6 +563,7 @@ $results = foreach ($target in $targets) {
         CursorArgumentReplacement = $cursorArgumentCount
         OperatorReplacement = $operatorReplacementCount
         PassiveDrawDelegation = $passiveDrawCount
+        PassiveWorldDelegation = $passiveWorldCount
         Replacement = $replacementCount
         CompiledDelegationTests = 'REQUIRED_NOT_EXECUTED_BY_STATIC_GATE'
         ThirdPartyTargets = 0

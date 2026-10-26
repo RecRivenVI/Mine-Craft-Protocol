@@ -38,7 +38,7 @@ public final class RuntimeEndpoint implements AutoCloseable {
     private final JsonObject identity = new JsonObject();
     private boolean closed;
 
-    private RuntimeEndpoint(Path gameDirectory, String target) throws IOException {
+    private RuntimeEndpoint(Path gameDirectory, String target, String role) throws IOException {
         Path game = gameDirectory.toRealPath();
         this.directory = game.resolve("minecraft-protocol");
         Files.createDirectories(this.directory);
@@ -74,6 +74,7 @@ public final class RuntimeEndpoint implements AutoCloseable {
         this.identity.addProperty("schemaVersion", 1);
         this.identity.addProperty("runtimeInstanceId", UUID.randomUUID().toString());
         this.identity.addProperty("target", target);
+        this.identity.addProperty("deploymentRole", role);
         this.identity.addProperty("gameDirectory", game.toString());
         this.identity.addProperty("pid", ProcessHandle.current().pid());
         this.identity.addProperty(
@@ -84,8 +85,14 @@ public final class RuntimeEndpoint implements AutoCloseable {
     }
 
     public static RuntimeEndpoint acquire(Path gameDirectory, String target) {
+        return acquire(gameDirectory, target, "CLIENT");
+    }
+
+    public static RuntimeEndpoint acquire(Path gameDirectory, String target, String role) {
+        if (!Set.of("CLIENT", "DEDICATED_SERVER").contains(role))
+            throw new IllegalArgumentException("Invalid Runtime deployment role");
         try {
-            return new RuntimeEndpoint(gameDirectory, target);
+            return new RuntimeEndpoint(gameDirectory, target, role);
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot own Runtime instance directory", exception);
         }

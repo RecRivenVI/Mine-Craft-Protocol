@@ -19,7 +19,7 @@ final class InputGenerationStateTest {
         var epoch = new InputContextEpoch();
         var cleanup = new CompletableFuture<JsonObject>();
         try (var state = state(cleanup)) {
-            var world = epoch.observe(new Object(), new Object(), new Object());
+            var world = epoch.observe(new Object(), new Object(), new Object(), true);
             state.nativeInputContextChanged(world);
             assertFalse(state.nativeInputLeaseActive(world));
             String lease = acquire(state);
@@ -29,7 +29,7 @@ final class InputGenerationStateTest {
             assertFalse(state.nativeInputLeaseActive(world));
             cleanup.complete(released(0, 0));
             assertTrue(state.nativeInputLeaseActive(world));
-            var next = epoch.observe(new Object(), new Object(), new Object());
+            var next = epoch.observe(new Object(), new Object(), new Object(), true);
             state.nativeInputContextChanged(next);
             assertFalse(state.nativeInputLeaseActive(world));
             assertTrue(state.nativeInputLeaseActive(next));
@@ -60,7 +60,7 @@ final class InputGenerationStateTest {
             var old = state.captureInputGuard(lease);
             try (var independent = state.beginOperate()) {
                 state.nativeInputContextChanged(
-                        nativeEpoch.observe(new Object(), new Object(), new Object()));
+                        nativeEpoch.observe(new Object(), new Object(), new Object(), true));
                 assertEquals("CONTROL_INPUT_GENERATION_CHANGED", code(old));
                 assertEquals(
                         "CONTROL_INPUT_CLEANUP_PENDING",
@@ -84,6 +84,33 @@ final class InputGenerationStateTest {
     }
 
     @Test
+    void nativeDeathDrainsOldInputButRetainsTheLeaseForNewDeathScreenInput() {
+        var epoch = new InputContextEpoch();
+        Object world = new Object(), player = new Object(), connection = new Object();
+        var cleanup = new CompletableFuture<JsonObject>();
+        try (var state = state(cleanup)) {
+            state.nativeInputContextChanged(epoch.observe(world, player, connection, true));
+            String lease = acquire(state);
+            var old = state.captureInputGuard(lease);
+            var version = state.modeStatus().get("modeVersion").deepCopy();
+            state.nativeInputContextChanged(epoch.observe(world, player, connection, false));
+            assertEquals("CONTROL_INPUT_GENERATION_CHANGED", code(old));
+            assertEquals(
+                    "CONTROL_INPUT_CLEANUP_PENDING", code(() -> state.captureInputGuard(lease)));
+            assertTrue(
+                    state.inputStateMetadata(new JsonObject())
+                            .get("inputContextAvailable")
+                            .getAsBoolean());
+            cleanup.complete(released(1, 0));
+            state.captureInputGuard(lease).run();
+            assertEquals("TAKEOVER", state.modeStatus().get("mode").getAsString());
+            assertEquals(lease, state.leaseStatus().get("leaseId").getAsString());
+            assertEquals(version, state.modeStatus().get("modeVersion"));
+            assertFalse(state.modeStatus().get("reconsentRequired").getAsBoolean());
+        }
+    }
+
+    @Test
     void replacementsDuringCleanupJoinEveryOldDrainBeforeNewInputCanStart() {
         var nativeEpoch = new InputContextEpoch();
         var first = new CompletableFuture<JsonObject>();
@@ -99,8 +126,8 @@ final class InputGenerationStateTest {
             String lease = acquire(state);
             var old = state.captureInputGuard(lease);
             state.nativeInputContextChanged(
-                    nativeEpoch.observe(new Object(), new Object(), new Object()));
-            state.nativeInputContextChanged(nativeEpoch.observe(null, null, null));
+                    nativeEpoch.observe(new Object(), new Object(), new Object(), true));
+            state.nativeInputContextChanged(nativeEpoch.observe(null, null, null, false));
             assertEquals(2, cleanups.get());
             second.complete(released(0, 0));
             assertEquals(
@@ -124,7 +151,7 @@ final class InputGenerationStateTest {
             state.nativeInputContextChanged(title);
             String lease = acquire(state);
             state.nativeInputContextChanged(
-                    nativeEpoch.observe(new Object(), new Object(), new Object()));
+                    nativeEpoch.observe(new Object(), new Object(), new Object(), true));
             assertThrows(
                     IllegalArgumentException.class, () -> state.nativeInputContextChanged(title));
             cleanup.completeExceptionally(new IllegalStateException("native cleanup failure"));

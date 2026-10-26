@@ -19,6 +19,7 @@
         ]
     },
     "mixins": [
+        "minecraft_protocol_probe.server.mixins.json",
         {
             "config": "minecraft_protocol_probe.client.mixins.json",
             "environment": "client"

@@ -10,6 +10,8 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"GET","path":"/v0/server/console","operationId":"readServerConsole","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"POST","path":"/v0/server/console/commands","operationId":"executeServerConsoleCommand","modeRequirement":"OPERATE_OR_TAKEOVER"},
     {"method":"POST","path":"/v0/world/region","operationId":"readWorldRegion","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/input/release-all","operationId":"releaseAllInput","modeRequirement":"TAKEOVER_REQUIRED"},
     {"method":"GET","path":"/v0/world/scene","operationId":"getWorldScene","modeRequirement":"READ_COMPATIBLE"},
@@ -558,6 +560,7 @@
     "optionalControlLeaseBinding": "existing control channel; disconnect ends TAKEOVER, unbound readers do not change intent"
   },
   "mcp": {
+    "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
     "minecraft_get_session": {
       "default": "READ_COMPATIBLE"
     },

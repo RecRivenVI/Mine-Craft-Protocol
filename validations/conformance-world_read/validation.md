@@ -10,6 +10,14 @@ mode-collaboration专项验证三模式的独立类别读取、TAKEOVER同请求
 server-completion专项验证显式服务器补全、独立事务/真人future隔离、单飞/预算、草稿焦点保留、实际MCP与退出失效。
 这不是命令执行、真人并发Live或零服务器预算影响证明；已提交查询不可撤回，取消后不发布结果。
 resource-version专项覆盖六个已批准typed操作的正式inspect、原值/版本条件、safe stale、回读与受控恢复；
+world-debug-state专项对照原生玩家食物/空气/经验/速度/能力、实体生命/标志、原生属性/效果/装备setter，验证独立Arm、模式拒绝、原值/版本、真实MCP与恢复。
+world-debug-entities专项对照原生factory/addFreshEntity/discard，验证完整已加载Chunk成员版本、重复创建拒绝、未加载拒绝、身份tombstone、实际MCP与精确UUID清理；不证明完整WD目录。
+world-debug-environment对照原生时钟/天气与规则setter及argument/callback，验证具名控制版本与自然推进分离、独立Arm/模式/值拒绝、恢复和实际MCP；不提供模拟暂停或Persistent Write。
+world-debug-relations对照原生非强制骑乘、牵引及驯服归属，验证专用关系版本、旧/新参与者、循环/容量拒绝、双命名空间授权、实际MCP及显式副作用恢复；不重置原版骑乘冷却。
+world-debug-loading在自有固定副本用正式typed batch产生65个实际原生排队流体tick，对照64项预算/计数/截断与只读模拟，验证无读副作用、部分失败前缀、未加载目标拒绝及真实MCP。
+world-debug-boundary由自有、显式开启的probe准备加载岛和原生红石，正式typed API分别验证直接邻域提前拒绝、传播中拒绝隐式加载、实际部分修改及批次/MCP/Recording污染回执；Arrange不是USER或产品加载能力。
+world-debug-transfer对照原生teleportTo验证玩家/实体同维度小数定位、跨维度重建及旧身份拒绝、明确外维度读取、Arm/模式/原值/未加载拒绝和实际MCP/批次；副本Arrange用可移除的内存票据保持往返目标已加载，不创建持久票据或给产品隐式加载授权。
+world-debug-providers核对真实注册的Provider声明/schema/policy、独立修改条件、原生版本失败前缀、MCP及恢复；Fixture仍为独立authority，检查记录与活动验收窗口的污染。Provider自有诊断状态不替代原版世界能力。
 本地隔离夹具通过原生暂停稳定动态资源，Arrange输入与零输入DEBUG Act分别计数，未知外部改值/版本不覆盖。
 本增量增加 USER 语义目标、原版相对输入瞄准、实际键位 attack/use 短按、持续 mine/use_hold、六面精确 place 与独立效果观察。
 新增含水方块、双格植物连锁破坏、副手盾牌持续使用/取消与手冲突拒绝、喂食和原版乘坐/潜行退出。
@@ -52,18 +60,140 @@ Forge 另外使用真实 ComponentArgument 覆盖有效 JSON、损坏 JSON 与�
 
 ## 运行
 
+多部件使用原生Hover初始化后静止的自有末影龙，对照客户端8个真实部位、语义neck攻击及父死亡旧引用拒绝。Act不替换为父实体、不直接调用伤害方法；NoAI在初始化前会使原版部位位置停留原点，不能作有效几何对照。动态Boss追踪或被其他部位遮挡的head不保证命中，Native拒绝保持原样。
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario entity-parts
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario range-branches
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario entity-social
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario lifecycle
+```
+
+entity-social对照种属食物/原生RNG、坐姿及喂食；range-branches包含实际盾牌伤害、珍珠/钓鱼/激流/磁石与版本武器。lifecycle含原生点火/入门、锚、自然死亡/重生、旧输入取消及F3恢复；没有物理Esc或性能测量。entity-tail/range-tail仅供增量定位，不代替完整场景。
+
+世界方块资源与战斗/物品使用各用独立固定副本，不把DEBUG断言写成USER字段：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario station-use
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario combat-use
+```
+
+station-use核验红石灯真实反馈、炼药锅流体/瓶、蛋糕/蜡烛及篝火自然烹饪；不缩短原版烹饪时间。
+combat-use先核验持走中的语义攻击、原版近战冷却/受伤无敌帧、弩/三叉戟、投掷、饮用与号角/望远镜。近战内部生命断言明确为SERVER_AUTHORITATIVE DEBUG，不能称为USER实体生命；动作为原版输入，不直接调用hurt或物品业务。
+这两项为增量，不取代05e的其他版本专有武器与剩余战斗分支；未执行声音/视觉人工验收或性能测量。
+
+05d世界/UI桥接先在参考端验证原生打开、状态变化及取出，不直接创建Screen或调用菜单业务：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario block-bridge
+```
+
+覆盖原生容器/工作站入口、门类/日照反转、唱片、堆肥、书台与睡眠/背包/聊天/暂停桥接。准备使用显式NATIVE诊断命令，Act使用语义目标和真实键位；不从声音日志推定音频验收。
+同场景还核对雕纹书架六格、实际MCP与既有Lease、READ/OPERATE/实体面误用拒绝，以及26.x置物架三格和原生供电热栏交换。`surface-use`仅运行这些表面分支供增量定位，不冒充完整桥接场景。
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario surface-use
+```
+
+05c放置与挖掘分支对照原生轮廓和实际输入，不以预检通过代替放置效果：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario placement-branches
+```
+
+覆盖半砖/箱子的实际面、潜行交互、碰撞/无支撑拒绝、流体替换与原生方向，以及冒险/不可破坏挖掘超时和创造破坏。原版单人无第三方保护区，该扩展不在本场景的证明范围。
+
+05c物品/工具增量使用固定场景的原生快捷键与语义世界目标，不改库存/工具业务代码：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario item-utility
+```
+
+它核对热栏/滚轮/双手、丢弃单件与整堆、普通Pick Block、创造热栏、剪切/点火/熄灭/蜡、骨粉、瓶/桶与刷扫。
+原版物品自行处理流体拾取，语义瞄准水下已知支撑面，不让产品按物品ID猜射线；刷扫先语义aim，再普通持续右键，记录实际dusted状态和完成。
+后者是明确的非原子字面输入，不伪称保持targetRef不变的强守卫手势；不手改进度、热栏文件或注入战利品。Minecraft自身保存热栏不等于Runtime Persistent Write。
+
+05b特殊移动通过语义登乘、原生相对视角和真实按键检验，不调用飞行、摄像机或载具速度setter：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario special-movement
+```
+
+覆盖创造/旁观、船/矿车/马、骆驼冲刺与满座、羊驼不可驾驶、猪/炽足兽道具驾驶与HUD耐久消耗，以及鞘翅起降、烟花、取消与自然降落。
+26.x还包括快乐恶魂升降/前进/四座满载拒绝、鹦鹉螺水下驾驶/冲刺及实际HUD冷却；`modern-mounts`只用于这两条新坐骑的增量定位。
+自身vehicleType/vehicleControllerIsPlayer须在Native、USER State Frame和实际MCP一致；非驾驶乘客与满座拒绝不可改写为已取得控制。
+原版会将首位客户端玩家排在NPC前方，NPC预占不冒充双客户端第二座位；真实玩家座位若未实测须单独保留缺口。
+准备命令、归属与安全效果均为诊断Arrange，Act仍为玩家输入；旁观目标使用真实attack/spectate与潜行退出，不直接设相机。
+
+双玩家座位专项为必要的两个真实客户端对照，两者均只用本验证的client/client-multiplayer目录、独立Runtime与Lease、4GiB、1920×1080静音：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-seats
+```
+
+显式probe Fixture只在自有副本以原生IntegratedServer打开127.0.0.1诊断监听，不对外暴露无认证服务器，不新增产品部署能力。
+第二客户端通过原版Direct Connection GUI加入；船/骆驼及适用快乐恶魂须分别观察驾驶者/第二Player身份、乘客输入不驾驶、驾驶带动双方与正常下车。
+不创建Fake Player，不直接修改Act乘客关系/相机/速度；第二客户端先断开退出，随后主客户端正常保存退出，检查双方端口/endpoint和held清理。
+
+05a移动组使用实际原生键位与设置界面，覆盖攀爬/爬行/流体、自身反馈、改键、相机、取消及Lease结束：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario movement
+```
+
+电影相机余量须自然消费，取消/Lease结束及重新接管后不得恢复旧余量；语义aim在平滑开启时明确拒绝。
+旧版无X反转记NATIVE_ABSENT，不假造支持；普通退出须保持held=0，遇到未确认响应则独立核验新上下文与标题页，不重放。
+`movement-branches`只供分支定位，不替代含基础移动与队列取消的完整movement组。
+
 本轮按用户决定暂停性能检测；现有性能入口保留供以后明确授权，不在本轮重新执行。
+05h 使用纯功能场景，不运行 region-stream 内的吞吐比较或位姿流速率采样：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-region-functional
+```
+
+它比较实际客户端 section 页与独立 USER 点查，核对无重复/遗漏、固定查询、单用/取消游标、预算/半径拒绝和真实闲置到期。
+硬时限、未知 cell 与取消中断用确定性 owner-clock/原生适配单测核验，不将模拟未知 cell 冒充现场卸载。
+实际采样时间/tick 保留为来源信息，不报告新吞吐或延迟结论；结果固定为 `<target>-world-region-functional.json`。
+
+独立分支盘点从当前运行版本的原生注册表、feature flags、实际键位及Item/Block使用方法来源采集，不按类名相同推定行为相同。现代物品另记录默认组件类型，避免把普通Item类中的数据驱动武器/消耗逻辑漏掉；实体注册包装类型不冒充实际生成对象的行为类。
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-user-catalog
+```
+
+目录来自显式开启的probe Fixture，只有归属正确的固定实例才生成world-user-catalog.json；不是正式USER读取面，也不是成员操作已通过的证据。
+同一场景核对自身客户端动作/视角字段、USER State Frame、Assert及实际MCP保留；Act覆盖仍由各WU分支负责。
+
 接收缺陷及命令权限协作的最小专项：
 
 ```powershell
 pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario first-camera
 pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario block-entity-selector
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario block-entity-pages
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-items
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-state
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-entities
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-environment
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-relations
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-loading
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-boundary
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-transfer
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario world-debug-providers
 pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario command-collaboration
 ```
 
 first-camera在测试窗口创建时不请求宿主焦点，读取实际原生焦点，标题页接管后首次进入固定世界，只派发一次W与相对转向。
 不抢焦点、暂停返回、重放输入或直接写yaw/pitch；后台夹具目前仅适用于26.3与1.21.1 NeoForge。
 block-entity-selector验证同Chunk精确坐标、both、client_known显式拒绝及未加载位置不回退邻近对象、不加载区块。
+block-entity-pages使用固定副本160个原版容器对照Native和真实MCP分页，要求无遗漏/重复、预算内、查询/authority变更拒绝、零输入及恢复160格原始空气。
+world-debug-items在原生暂停的固定副本中检验三项typed物品操作、inspect/版本/原值拒绝与恢复、Arm/模式边界、原生堆叠上限和raw metadata拒绝；实际MCP消费者另确认结构化stale及零输入。
+world-debug-entities要求工厂与移除通过独立entity Arm/资源版本；未加载无可写版本、不请求加载，旧成员版本不重复创建，移除后旧身份拒绝，MCP保留小数位置且不接受NBT/UUID注入。所有本轮创建UUID均discard清理，DEBUG Act零玩家输入，正常保存退出、端口释放及Persistent Write调用0。
+world-debug-environment要求原生时钟/天气计时器和boolean/integer规则修改、stale/原值/类型/原生域负控及恢复成立；真实MCP使用正式time版本往返。自然tick实际推进时控制版本保持，DEBUG Act无输入Lease及输入派发，正常退出、端口释放和Persistent Write调用0。
+world-debug-relations要求原生骑乘、挂绳/断绳和驯服归属链及受影响参与者版本成立；原版容量、循环和冷却不绕过，玩家双命名空间授权及Native批次/MCP实测。原生下马、绳索掉落和驯服补血如实观察并显式清理，自有实体归零、DEBUG输入派发0、正常退出及Persistent Write调用0。
+world-debug-loading要求实际65个排队条目只返回64项且明确截断/原生计数，多次只读不改变队列；有界batch部分失败保留已应用前缀，READ/无Arm/65项预算和未加载目标拒绝，无输入Lease，真实MCP字段一致。恢复65个原有方块并等待原生队列自然排空，退出/端口清理及Persistent Write调用0。
+world-debug-boundary要求未知邻区块始终未加载、直接拒绝时源不变，原生红石传播部分应用时保留真实after/revision、禁止重试及污染；批次与真实MCP回执一致，Recording manifest/Timeline保留诊断效果。只清理自有夹具、零玩家输入副作用、正常退出与端口释放，Persistent Write调用0。
+首个响应缺少分页信息的修前失败保留于阶段索引；不以USER区域页替代DEBUG容器页。
 command-collaboration通过显式probe模拟服务器当前玩家权限降低与恢复，真实刷新命令树并核对服务器FIFO计数；
 该自动证明不等同真人协作、物理Esc或真实管理员身份变更。结果分别写固定的`<target>-<scenario>.json`。
 

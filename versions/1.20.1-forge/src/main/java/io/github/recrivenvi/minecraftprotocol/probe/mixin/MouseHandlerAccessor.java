@@ -6,6 +6,12 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(MouseHandler.class)
 public interface MouseHandlerAccessor {
+    @Accessor("smoothTurnX")
+    net.minecraft.util.SmoothDouble minecraftProtocolProbe$smoothTurnX();
+
+    @Accessor("smoothTurnY")
+    net.minecraft.util.SmoothDouble minecraftProtocolProbe$smoothTurnY();
+
     @Accessor("isLeftPressed")
     void minecraftProtocolProbe$setLeftPressed(boolean value);
 

@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory,ParameterSetName='Batch')][switch]$All,
     [ValidateRange(0,65535)][int]$RuntimePort=0,
     [string]$BatchId,
-    [ValidateSet('all','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list','hud-hardcore','hud-demo')][string]$Scenario='all',
+    [ValidateSet('all','respawn','editors','hud','hud-vitals','spectator','pointer','special-menus','world-selection','ui-debug','ui-debug-editors','ui-debug-consumers','ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list','hud-hardcore','hud-demo')][string]$Scenario='all',
     [string]$CheckPrefix,
     [switch]$KeepClient,
     [switch]$DebugRead,

@@ -49,9 +49,10 @@ foreach ($jar in $manifest.artifacts) {
 它们不进入纯净自动基线，不是产品依赖，也不能用来补齐发行包缺失依赖。
 
 每份快照只包含已绑定验证的候选；后续开发不会改写它。新快照必须重新通过同一候选五端独立发行安装门禁。
-清单的publicationProfile区分连续游玩试用、依赖更新与E的UI试用。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
+清单的publicationProfile区分连续游玩试用、依赖更新与E的UI/世界试用。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
 并重新完成当前五端单发行JAR的安装、进入固定世界、USER读取与正常退出。
 E的UI试用绑定当前有限原版UI验收套件、独立Demo、受影响输入/选择器/命令协作与五端独立安装；按所复制清单中的具体范围使用。
+E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受影响UI/连续输入及五端单JAR独立安装入世界；不代表M-01/M-09、完整领域里程碑或人工验收完成，历史性能目标仍未达成。
 旧版单人世界社交入口缺席或禁用只证明环境限制，不计社交页操作通过。游戏模式菜单的hover不提交，正常释放修饰键才提交；强停止取消Agent持有的菜单，不提交所选模式。
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
@@ -297,7 +298,7 @@ Pipeline的cleanupOnComplete默认为true，会清理该Agent持有的输入，�
 原始鼠标按钮仍按同Lease流持有；开始另一普通gesture前须先原始松开或release_inputs，否则返回POINTER_HELD，不抢占尚未完成的拖拽。
 需要保持时仍必须显式松开/清理并检查held=0；Lease loss/退出接管继续执行安全清理。它不是带逐帧序号或独立失联期限的持续流，不盲重放相对增量。
 输入另绑定原生world/player/connection引用代次，GET input/state中的inputContextId/Generation/Available可供核对。
-普通Screen切换不推进该代次，真正替换/断连会取消旧active/queued并清理Runtime自有held；不会向替换后的Screen补发旧mouse-up。
+普通Screen切换不推进该代次，真正替换/断连以及玩家死亡/恢复会取消旧active/queued并清理Runtime自有held；不会向替换后的Screen补发旧mouse-up。死亡页仍能接收新代次GUI输入，模式、Lease、观察与人工撤销latch不因此改变。
 清理也跟踪Runtime实际改变过的原生KeyMapping：强停止/取消/失权/换epoch会清除已松开但未消费的queued click，
 不按held集合推定原生队列已空。正常成功pipeline completion保留已提交的原生点击供游戏消费，不将终态冒充效果完成。
 没有新Lease或自动重放；仍建议主动切换前release_inputs并等待input.released。世界切换操作返回取消且效果未确认时，独立检查目标世界/页面和输入，不重放旧动作。
@@ -324,12 +325,19 @@ input.released严格type-only，不接受category/expected/selector；需要read
 同一条件可用于minecraft_assert及pipeline的wait.until/assert.that，后者仍需整个TAKEOVER计划的授权。
 第一人称mouse.delta的dx/dy是原生窗口相对像素增量，不是GUI缩放坐标或角度；每轴接受有限数值-8192..8192。
 它走原版灵敏度、反向与相机处理，0.15不是跨玩家设置或Target的通用换算常量。
+电影相机由原版逐帧消费平滑余量，成功输入终态不代表转头已停止；此设置下语义aim明确拒绝。
+取消、租约结束及输入上下文或GUI/世界指针平面切换会清理余量，不直接修改朝向。
 双门两扇分别为原生目标，一次use不保证另一扇打开；连续Space可能切换创造飞行，使用USER player.flying独立核验。
+
+纯aim使用32格内的原生射线，可以看向近身交互距离之外的已知目标；攻击、使用、放置与挖掘仍受原版交互pick限制。抛投时先aim、再真实按键并独立观察效果，不把远距aim当作远程点击许可。
+实体aim/attack/use/use_hold可附entityHit={x,y,z}，值为0.05..0.95的原生pick盒内归一化位置，例如盔甲架部位；不要传屏幕坐标。展示框的displayedItemId/Count/Rotation仅描述客户端已同步的可见内容。
+原生多部件实体的partName和targetRef标识实际可pick部位，例如末影龙neck；不把主体替换成命中的部位。被其他原生部位遮挡仍拒绝，动态瞄准可达到有界超时，不能据Operation成功或某部位名字推定伤害；不保证追踪高速Boss。
+新换武器可能仍处于原版最低蓄力/冷却，Operation完成不是伤害证明；按USER状态或有独立授权的DEBUG后置条件核验，不能盲重放。
 
 ## 连续游玩试用
 
 以下为连续游玩能力的使用配方；实际交付范围以所复制快照的publicationProfile及生成说明为准。
-`continuous_gameplay_trial_v1`绑定完整连续游玩矩阵，`e_ui_trial_v1`只绑定其明确列出的UI与受影响场景，不是两个完整里程碑或最终人工验收。
+`continuous_gameplay_trial_v1`绑定完整连续游玩矩阵，`e_ui_trial_v1`绑定列出的UI与受影响场景，`e_world_trial_v1`绑定M-05/M-06各适用世界组、受影响UI/连续输入及五端单JAR入世界；它们不是两个完整里程碑或最终人工验收。
 三次攻击相对单次1.5倍的性能目标未达成，用户已允许保留该限制试用；清单保留实际比值、
 `performanceComplete=false`及`goalPerformancePass=false`。本轮性能检测按用户决定暂缓，不采集新性能样本。
 四端既有测量仅作历史；Fabric的攻击与单步/GUI基线改为功能验证，明确
@@ -350,7 +358,7 @@ input.released严格type-only，不接受category/expected/selector；需要read
 
 - Runtime和Companion须来自同批源码/依赖；24个工具数不变，`minecraft_query_world`增加typed region分支。旧Companion不会因更换Mod JAR自动升级。
 - HTTP增加`POST /v0/world/region`；续读只发送cursor，不重发初始选择器。读取响应不确定时从新查询开始，不重放输入或修改。
-- 世界/玩家/连接替换会取消旧epoch输入；普通GUI换页不属于该替换。Save & Quit可能返回明确的未确认取消，应独立观察目标页，不自动再次点击。
+- 世界/玩家/连接替换以及玩家死亡/恢复边界会取消旧epoch输入；死亡页可继续提交新GUI输入，Lease和模式不因此释放，普通GUI换页不属于该替换。Save & Quit或重生可能返回明确的未确认取消，应独立观察新上下文和目标状态，不自动再次点击。
 - 位姿流必须显式选择USER与`world.player.state`，默认全事件订阅不隐式增加每tick流量；序号重放不计作新tick，gap须处理。
 - 持有输入需同一Lease、成功中间pipeline显式`cleanupOnComplete=false`及主动停止。HTTP短连接结束不是新增失联租约；Lease过期及已绑定控制WS关闭仍清理。
 - 放置结果新增原生返回和客户端预测，`effectConfirmed=false`不等于动作失败，也不等于服务器接受；应独立读取目的格及成对方块。
@@ -530,7 +538,7 @@ batch只走NATIVE，需要OPERATE/TAKEOVER和command scope，1～32条、合计�
 不是原子事务，不自动重试，不承诺服务器执行成功、逐条聊天回执或回滚。超时/退出的executionOutcome=not_confirmed必须独立核对世界。
 Session/control状态的authorization给出scope、Lease和Arm剩余时间摘要，不包含凭据；contextValidated=false表示仍须实际请求校验世界和资源。
 
-正式debug capabilities的resourceInspection列出六类既有修改的deep selector与resourceRevisionRefs映射。
+正式debug capabilities的resourceInspection列出当前typed修改的deep selector与resourceRevisionRefs映射。
 Deep需要显式DEBUG；domains=["blocks"]才请求指定方块，domains=["world"]是环境域而非所有数据的通配符。
 获取block资源版本的最小Native请求如下，坐标须换为本实例已确认加载的目标：
 
@@ -618,6 +626,8 @@ client_world_unavailable、outside_user_radius和chunk_not_loaded均不可当成
 
 USER玩家的gameMode/onGround/flying来自当前客户端；flying是正在飞行而不是允许飞行。
 不可得时为字符串unknown，不能按false判断。Native、client/player Provider、State Frame及MCP使用同一投影。
+乘坐时vehicleType给出当前本地载具类型，vehicleControllerIsPlayer比较原生控制者与自身；riding=true不等于能驾驶。
+这两个字段不返回关系UUID、不授予输入权限，离开载具后不再返回；语义登乘会自然改变瞄准视角，后续相对转向须读取实际pitch/yaw。
 WORLD_TARGET_NOT_HIT可在Operation.errorDetails.actualHit给出实际有界命中；source区分原生准星/持续使用射线/outline候选遮挡。
 据此重新观察目标或调整正常玩家位置，不跳过遮挡/距离/形状，也不把unknown当miss或把失败动作盲目重放。
 CHAT（含TAKEOVER下AUTO）命令需要command/control/input、TAKEOVER及当前Lease；当前界面/草稿未处理或超原生256个UTF-16单位时输入前拒绝。
@@ -723,7 +733,7 @@ action 支持 aim、attack、use、mine、use_hold、place。attack/use 先通�
 
 WORLD_TARGET_STALE 表示引用过期、对象/世界变化、Chunk 实例更换或有界变更历史失效，重新读取目标，不自动重放攻击。
 WORLD_TARGET_NOT_HIT 表示原版命中不符，可能是形状中心、距离或遮挡；不要改用 Debug 冒充成功。
-WORLD_ACTION_CONTEXT_CHANGED 表示 Screen、相机、物品或玩家位置等改变；WORLD_AIM_TIMEOUT 表示有界校正未收敛。
+WORLD_ACTION_CONTEXT_CHANGED表示Screen、相机、物品或Viewport等上下文改变；普通移动本身不结束语义动作，当前视点/距离与真实命中仍逐次复验。WORLD_AIM_TIMEOUT表示有界校正未收敛。
 电影相机、不支持的自定义键位或非第一人称明确拒绝，不改写用户设置。
 同 Chunk 其他位置的原生更新不直接使旧方块引用失效；目标自己变化、A-B-A 或历史预算淘汰仍拒绝，下一动作重新发现。
 变更记录最多 4096 项且只弱引用 Chunk；这不替代当前世界、Chunk 实例、BlockState 和原版命中复验，也不放宽同步挖掘连锁校验。
@@ -758,6 +768,11 @@ nativeBreakChanges/breakProvenance 只说明客户端预测来源，仍需另读
 
 place 需要主手方块物品和新鲜方块引用，face 指定六个表面之一，hit 为该表面的归一化 u/v（0.05..0.95）。
 上下表面 u=x/v=z，南北 u=x/v=y，东西 u=z/v=y；不传时为中心。不自动换物品、潜行、走近或改世界。
+u/v按方块局部轴投影到实际原生轮廓：例如下半砖顶面为局部y=0.5，箱子顶面为y=0.875，而非一律y=1；穿过空洞的面坐标拒绝，实际原生pick仍是最终判据。
+普通方块use也可显式传face/hit以选择原生表面的小格；这是新鲜targetRef上的语义表面，不是屏幕坐标。实体use及mine/use_hold/attack不接受面坐标，use不接受放置目的格条件；不传面时原有行为不变。
+实体aim/attack/use/use_hold可用entityHit:{x:.5,y:.9,z:.05}选择原生pick box部位，三轴均在0.05..0.95；例如先移开视线再取盔甲架头盔。
+它仍要求新鲜实体引用、原生转向和精确命中，不自动修改装备，不与方块face/hit或place/mine混用。结果须用HUD/菜单或独立授权观察确认。
+展示框USER读取的displayedItemId/displayedItemCount/displayedRotation是客户端同步显示，不是掉落物itemId/itemCount或隐藏物品数据。
 
 ```json
 {"tool":"minecraft_run_input_pipeline","arguments":{"steps":[{"type":"world.action","targetRef":"world:<新鲜支撑方块引用>","action":"place","face":"west","hit":{"u":0.25,"v":0.75},"expectedDestinationBlockId":"minecraft:air"}],"timeoutMs":10000,"waitForCompletion":true}}
@@ -796,6 +811,63 @@ world.action use 打开工作站后改用当前 UI 树的语义槽位/文本框�
 检查付款数量、真实 carriedStack 和存入玩家背包的结果，不把报价中的输出预览计成已得到的物品。
 测试场景准备或自定义报价属于诊断 Arrange；只有正常输入是 PLAYTEST Act，不能清除前置污染记录。
 代表性验证不是全部物种、交易/声望/折扣、牵引距离/断裂或生物 AI 的完整覆盖。
+
+## DEBUG 玩家与实体状态
+
+player.state.set在OPERATE/TAKEOVER独立授权后可设置食物、饱和度、空气、吸收、经验等级/等级内点数、有界逻辑速度及已有mayFly许可下的flying；不会授予飞行权限。
+entity.state.set对当前维度已加载非玩家对象提供生命/吸收、空气、silent/noGravity/glowing、Mob的noAi及速度；Runtime在native setter前拒绝不适用字段，不直接改brain对象。
+使用DEBUG深读取回实际字段、资源版本及worldFingerprint，带对应player/entity Arm与expectedResourceVersion提交；可附expectedValue部分原值条件。
+经验等级与等级内点数分开提交，点数不能越过当前native等级需求；totalExperience、mayFly/instabuild等授权能力和身份仍只读。
+player/entity的attributes包含实际注册项、base/value、已实例化modifiers及可得有效范围；typedBaseWritable为true时可用player.attribute.set/entity.attribute.set，base限定在native有效范围，不写任意modifier。
+entity.equipment.set使用独立entity Arm和完整实体版本，slot取实际nativeEquipmentSlots，按native适用性检查；玩家仍为六个标准位置，itemData合同一致，不用UI槽位代替。
+player.effect.set/entity.effect.set接收effectId与value（null移除）；对象为duration/amplifier、ambient/showParticles/showIcon和最多16项hidden链，按Native schema构造，不传只读id/hiddenChainComplete或NBT。
+从effects读取后先确认hiddenChainComplete=true，再按新资源版本修改或恢复；不完整链只读拒绝，原生回调/属性改变、到期与图形渐变不保证事务恢复。
+不占输入Lease，不使用玩家按键；真实before/after及native clamp为准，普通模拟会继续改变速度/空气等，不自动重试stale或保证无限维持。
+恢复先重读版本与值，不覆盖未知外部改动；health=0等原版后果不因取消而回滚。完整WD目录的其他家族仍以状态页为准。
+
+## DEBUG 时间、天气与规则
+
+以DEBUG深读domains=["world"]取得server.world.environment及resourceRevisionRefs；使用实际clockId/ruleId，不猜测旧版camelCase与新版原生ID的映射。
+独立world Arm后，world.time.set接受总tick整数，world.weather.set接受完整flags/计时器对象，world.rule.set接受对应原生boolean/integer；三者不需要输入Lease。
+使用各自world_time/world_weather/world_rule版本，不借用玩家或方块版本。读取revisionCoverage：自然时间/倒计时推进不等于控制编辑，精确expectedValue仍可能因推进而拒绝。
+规则先检查typedWritable和minimum/maximum；不把rate/paused、gameTime或seed等只读诊断字段当成可写字段。
+恢复先重读实际值和版本，不自动重试过期请求，不覆盖其他操作者修改；完整字段与Target差异见[Native协议](../reference/protocol-native_v0.md#debug-世界环境)。
+
+## Provider 与 Fixture 证据
+
+从Deep capabilities或Provider结果读取实际debugDeclaration；debugSupported不授予scope/Arm或可写资源版本，payload遵循Provider自己的注册schema和说明。
+核心世界能力不依赖第三方Provider；safe Provider的temperature只是诊断样本，不是游戏温度。精确规则见[Native目录](../reference/protocol-native_v0.md#provider-批准目录与-fixture)。
+Fixture是独立授权的准备路径，不获取玩家键鼠，也不自动取得Debug权限。在Gameplay Act开始前做完Arrange；窗口内做Fixture再恢复，仍不能算普通玩家验收，Fixture与Debug计数分别保留。
+
+## DEBUG LIVE 转移
+
+使用player.transform.set或entity.transform.set；后者必须给sourceDimension，value={dimension,position:{x,y,z},yaw?,pitch?}。
+从DEBUG深读取得实际资源版本，独立Arm/原值/版本合同不变，不需要输入Lease。
+外维度对象用selector.entityTargets=[{dimension,entityUuid}]、entities域和显式server_authoritative读取；只查现有已加载对象。
+目的区块须由既有世界状态提供，不能用此API探索或加载未知目的地。先解除骑乘/牵引；不提供force参数。
+玩家跨维度后必须重新获取worldFingerprint和Arm；实体重建必须使用新的lifecycle和版本，失败时先读实际状态而非重放。
+完整字段、原生副作用及部分应用见[Native转移合同](../reference/protocol-native_v0.md#debug-live-转移)。
+
+## DEBUG 实体创建与移除
+
+创建前以DEBUG深读domains=["entities"]、selector.entityChunk={x,z}取得server.entityRegistry及entity_registry版本，Chunk取计划位置而不是玩家位置。
+只有available=true且完整成员集才能用作entity.spawn前置条件；value={entityType,position:{x,y,z},yaw?,pitch?}，允许小数、不允许NBT/UUID/任意组件。
+带独立entity Arm、worldFingerprint、expectedResourceVersion，可附expectedEntityCount；无输入Lease，OPERATE/TAKEOVER独立授权。
+创建使用原生工厂默认值，不承诺召唤初始化；无工厂、未加载边界或超额成员明确拒绝，不自动加载。
+回执createdEntity.uuid和createdEntityResourceVersion用于后续读取/修改；旧成员版本不能重复创建。
+entity.remove按刚读的完整entity资源版本及UUID操作，可附expectedEntityType；原生discard不可恢复，不删玩家、不走死亡战利品流程，但原生关系清理可能产生绳索等附带副作用。
+清理只删除本任务刚创建的明确UUID，不用通配命令；不把删除后的tombstone版本继续当可写授权。
+
+## DEBUG 方块实体分页
+
+密集容器读取使用minecraft_deep_observe或POST /v0/observe/deep，显式DEBUG及server_authoritative/both、domains=["block_entities"]。
+需要容器内容时显式includeSerializedBlockEntities=true；检查各项serializedStateStatus，字节截断时重新以更小页开始，不把实体列表完整等同内容完整。
+第一次不传游标，budgets.maxBlockEntities最多128；读取server.blockEntitiesResult.hasMore，非空nextCursor原样放进下一次selector.blockEntityCursor。
+查询其他字段和玩家所在Chunk保持不变；每页是LIVE采样，不是跨页一致的世界快照。
+同一页数据不依赖原生Map顺序；对象在已读位置之前新增时须重新开始查询，不能把动态世界拼页当事务。
+游标60秒、每Runtime最多32个；DEEP_PAGE_CURSOR_STALE需重新开始，DEEP_PAGE_SCAN_LIMIT_EXCEEDED需缩小chunkRadius。
+读取不占玩家Lease、不加载Chunk或读存档，不因TAKEOVER/OPERATE获得额外DEBUG权限。
+详细字段与边界见[Native协议](../reference/protocol-native_v0.md#debug-方块实体分页)。
 
 ## Debug、录制与持久化注意事项
 
@@ -860,6 +932,23 @@ pwsh -NoProfile -File $showcase -Target 26.3-fabric -Case wait-evidence -HoldSec
 报告绑定本次工具/产品源码、实际堆上限及清理，不把脚本完成写成观感 PASS。
 入口、完整 Case 索引、诊断与 gameplay 边界及安全前提见[功能展示](../../validations/feature-control_ui_showcase/validation.md)。
 
+## 世界加载与模拟诊断
+
+DEBUG深读domains=["world","chunks"]及selector.chunkRadius=0可读当前Chunk的原生调度数组及scheduledBlockTicksResult/scheduledFluidTicksResult；半径仅接受0～2，越界明确拒绝。
+每类最多64项；检查truncated及queuedCount，不将containerCount中的待展开条目或已收集待执行队列当作读出的条目。原生数组迭代不是触发时间排序，读取不会推进、重排或新增tick。
+world.simulation区分集成暂停和可用的原生tick控制状态；configuredTickRate不是实测吞吐，不提供模拟控制setter。1.20.1的原生tick管理器缺失会明确说明。
+  Native批次仍需各项scope/Arm、资源版本与原值，务必检查逐项结果和partial；已应用前缀不会自动回滚。边缘传播加载限制以[当前Native说明](../reference/protocol-native_v0.md#debug-加载与模拟诊断)为准。
+遇到DEBUG_MUTATION_PARTIAL_NOT_LOADED时，检查partialMutation.before/after/afterResourceVersion和blockedChunk；这是原生传播被阻断前的实际效果，不能盲重试或当作干净Gameplay。批次会停止余项；恢复前重新读取，其他邻居变化不由源方块回执穷举。
+
+## 世界关系诊断
+
+先以DEBUG深读domains=["player","entities"]、selector.entityRadius读取relationships及entity_relationship版本，再使用明确的entity.vehicle.set/entity.leash.set/entity.owner.set或player.vehicle.set。
+主对象使用expectedResourceVersion，relatedResourceVersions必须包含实际受影响旧/新参与者；不要用完整entity/player版本替代关系版本，也不要遗漏原生自动下马/断绳的参与者。
+玩家骑乘需同时arm player和entity，不需要TAKEOVER或输入Lease。其他操作只在各自独立调试授权和OPERATE/TAKEOVER内可用。
+只解除时显式传value=null；主人设值为{ownerUuid,tamed}。不强制突破原版容量、冷却或牵引资格，不会自动加载对象或区块。
+回读beforeEntity/afterEntity和relatedAfter，恢复前重新检查版本；狼驯服补血、骑乘断绳等原生副作用不会因关系恢复而自动回滚。
+精确字段、只读目录和限制见[Native关系](../reference/protocol-native_v0.md#debug-关系)，可重复案例为world-debug-relations。
+
 ## 人工撤销和故障收尾
 
 真人物理 Esc 结束 TAKEOVER、取消玩家输入、退回 READ，并保留 USER_MANUALLY_ENDED_CONTROL/reconsentRequired。
@@ -878,9 +967,15 @@ Agent Routed Esc 仅为正常游戏按键，不视为人类撤销。
 清单的packagedRuntime记录五端全新正常Loader、单个发行JAR的标题/握手/USER读取及正常退出，且绑定源码和JAR哈希；
 它不证明进入世界后的全部功能或人工观感。nativeSmokeScope=packaged-runtime时，没有完整世界或MCP功能验收。
 其他范围的开发Runtime结果单独列出，不能与独立安装或完整领域验收混为一谈。
-UI 与世界首个里程碑均在推进、尚未完成；剩余 UI 家族、声音/反馈适配、玩家命令效果分类、完整操作目录及五端/Peer 场景验收仍有缺口。
+26.1.2曾一次未等到原生红石灯熄灭；唯一复测及独立客户端/服务器读回正常，根因未定。此项不是已修复保证，交互后仍应等待实际状态，不以输入完成代替效果确认。
+1.21.1优化器取消曾一次丢失原始错误代码；唯一定位复测及随后完整UI通过，但根因仍未定位，不宣称修复。遇到错误保留原回执，不盲重放。
+UI与世界批准的有限自动目录已完成本批回归，但两个完整里程碑仍未READY；分类/权限、完整部署/Peer、最终人工体验等仍有缺口。
 不要从有界客户端模型或已有输入接口推定“所有原版 UI/世界操作已覆盖”。
 E1/E2/E3、Persistent Write 和其他未授权阶段不在本手册试用授权内。
+
+集中真人验收尚未执行，本手册不授权自动代验：在同批26.3-neoforge自有人工实例中，核验OPERATE原生命令与真人移动/转向/聊天草稿并行；
+在自有普通服务器核验deop/op及原角色恢复；最后核验active及两项queued中的物理Esc、held清零、8秒无迟到和重新同意后reacquire。
+详细前置和通过条件见[集中真人步骤](../project/plan-execution.md#集中真人步骤)；缺前置的项目保持待验，不以单人probe或Agent Esc替代。
 
 - [Native 协议](../reference/protocol-native_v0.md)
 - [MCP Companion 接口](../reference/api-companion.md)

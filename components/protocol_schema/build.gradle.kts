@@ -87,9 +87,31 @@ val test by tasks.registering {
                 "DebugCanvasPanValue",
                 "DebugCanvasPanRange",
                 "DebugCanvasPanAxis",
+                "DebugTransferValue",
+                "DebugPlayerTransformMutation",
+                "DebugEntityTransformMutation",
+                "DeepEntityTarget",
+                "LiveDimensionRef",
+                "ProviderDebugDeclaration",
             )) {
             check(javaRoot.resolve("$model.java").isFile) { "Missing Java model: $model" }
             check(tsRoot.resolve("$model.ts").isFile) { "Missing TypeScript model: $model" }
+        }
+        for ((model, field) in
+            mapOf(
+                "DeepObservationServerSnapshot" to "entityTargets",
+                "WorldSnapshot" to "dimensions",
+                "EntitySnapshot" to "dimension",
+                "ProviderV2Result" to "debugDeclaration",
+                "GameplayActEvidence" to "fixtureMutationCount",
+            )) {
+            val getter = "get" + field.replaceFirstChar { it.uppercase() } + "()"
+            check(javaRoot.resolve("$model.java").readText().contains(getter)) {
+                "Java model drops LIVE transfer field: $model.$field"
+            }
+            check(tsRoot.resolve("$model.ts").readText().contains("'$field':")) {
+                "TypeScript model drops LIVE transfer field: $model.$field"
+            }
         }
         for (model in
             listOf(
@@ -167,7 +189,35 @@ val test by tasks.registering {
         }
         for ((model, field, getter) in
             listOf(
+                Triple("ErrorResponse", "partialMutation", "getPartialMutation()"),
+                Triple(
+                    "HookManifestResponse",
+                    "debugMutationGuardCount",
+                    "getDebugMutationGuardCount()",
+                ),
+                Triple(
+                    "HookManifestResponse",
+                    "passiveWorldDelegationCount",
+                    "getPassiveWorldDelegationCount()",
+                ),
+                Triple("HookDescriptor", "plane", "getPlane()"),
+                Triple(
+                    "DebugMutationResult",
+                    "nativeEffectsComplete",
+                    "getNativeEffectsComplete()",
+                ),
+                Triple("DebugMutationResult", "blockedChunk", "getBlockedChunk()"),
                 Triple("PlayerCommandExecuteRequest", "command", "getCommand()"),
+                Triple("WorldUserPlayerResponse", "pose", "getPose()"),
+                Triple("WorldUserPlayerResponse", "cameraType", "getCameraType()"),
+                Triple("WorldUserPlayerResponse", "vehicleType", "getVehicleType()"),
+                Triple(
+                    "WorldUserPlayerResponse",
+                    "vehicleControllerIsPlayer",
+                    "getVehicleControllerIsPlayer()",
+                ),
+                Triple("WorldUserPlayerResponse", "swimming", "getSwimming()"),
+                Triple("WorldUserPlayerResponse", "experienceProgress", "getExperienceProgress()"),
                 Triple("PlayerCommandDiscoveryRequest", "input", "getInput()"),
                 Triple(
                     "PlayerCommandDiscoveryRequest",

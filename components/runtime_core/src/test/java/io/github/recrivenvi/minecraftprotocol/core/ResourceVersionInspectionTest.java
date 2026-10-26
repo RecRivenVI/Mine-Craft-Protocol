@@ -180,22 +180,26 @@ class ResourceVersionInspectionTest {
         assertFalse(contract.get("automaticRetry").getAsBoolean());
         assertFalse(contract.get("grantsMutationPermission").getAsBoolean());
         assertTrue(contract.get("requiresMutationPreconditionEligible").getAsBoolean());
-        assertEquals(6, contract.getAsJsonArray("operations").size());
+        assertEquals(27, contract.getAsJsonArray("operations").size());
         for (var entry : contract.getAsJsonArray("operations")) {
             JsonObject descriptor = entry.getAsJsonObject();
             JsonObject query = descriptor.getAsJsonObject("readRequest");
             assertEquals("DEBUG", query.get("category").getAsString());
             assertEquals("server_authoritative", query.get("perspective").getAsString());
-            assertEquals(1, query.getAsJsonArray("domains").size());
+            assertEquals(
+                    descriptor.get("resourceType").getAsString().equals("entity_relationship")
+                            ? 2
+                            : 1,
+                    query.getAsJsonArray("domains").size());
             assertTrue(descriptor.get("requiredMutationScope").getAsString().startsWith("debug."));
-            if (descriptor.get("operation").getAsString().equals("block_entity.custom_name.set")) {
+            if (descriptor.get("operation").getAsString().startsWith("block_entity.")) {
                 assertTrue(query.get("includeSerializedBlockEntities").getAsBoolean());
                 assertEquals(
                         "block_entity_serialized", descriptor.get("resourceType").getAsString());
             }
         }
         contract.remove("operations");
-        assertEquals(6, WorldDebugInspection.contract().getAsJsonArray("operations").size());
+        assertEquals(27, WorldDebugInspection.contract().getAsJsonArray("operations").size());
     }
 
     private static JsonObject state(int value) {

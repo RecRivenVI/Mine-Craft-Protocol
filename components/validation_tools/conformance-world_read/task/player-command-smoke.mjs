@@ -5,6 +5,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {connectRuntime} from '../../runtime-connection.mjs';
 import {playerCommandConsumer} from './world-read-consumers.mjs';
+import {contextExitEvidence} from './context-exit-evidence.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const args=Object.fromEntries(process.argv.slice(2).map(arg=>arg.replace(/^--/,'').split('=')));
@@ -30,7 +31,7 @@ async function api(method,path,body,expected){
   const response=await connection.fetch(path,{method,headers:{...(lease?{'x-mcp-control-lease':lease}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
   const value=await response.json();
   if(expected){assert(!response.ok,JSON.stringify(value));assert.equal(value.error,expected,JSON.stringify(value));}
-  else if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error});
+  else if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error,status:response.status,runtimeError:value});
   return value;
 }
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]);
@@ -50,7 +51,7 @@ try{
   await acquire();
   await check('semantic GUI enters the restored fixed world',async()=>{
     await wait(t=>t.screenClass.endsWith('TitleScreen'),'title');await click('menu.singleplayer');
-    const tree=await wait(t=>t.screenClass.endsWith('SelectWorldScreen'),'world selection');
+    const tree=await wait(t=>t.screenClass.endsWith('SelectWorldScreen')&&nodes(t).some(n=>n.worldName==='World-Read-Alpha'),'world selection populated');
     const world=nodes(tree).filter(n=>n.worldName==='World-Read-Alpha');assert.equal(world.length,1);
     await api('POST','/v0/ui/action',{selector:{nodeId:world[0].nodeId},action:'click'});await click('selectWorld.select');
     await wait(t=>!t.screenClass,'enter fixed world',150000);
@@ -180,8 +181,21 @@ finally{
     if(!lease)await acquire();
     for(let i=0;i<8;i++){
       const tree=await api('GET','/v0/ui/tree');
-      if(tree.screenClass.endsWith('TitleScreen')){shutdownResponse='requested';try{await click('menu.quit');shutdownResponse='acknowledged';}catch(error){if(error.code!=='CancellationException')throw error;shutdownResponse='cancelled_at_runtime_close_requires_runner_exit_attestation';}break;}
-      if(nodes(tree).some(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey))){const n=nodes(tree).find(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey));await api('POST','/v0/ui/action',{selector:{nodeId:n.nodeId},action:'click'});await wait(t=>t.screenClass.endsWith('TitleScreen'),'saved and quit',60000);}
+      if(tree.screenClass.endsWith('TitleScreen')){
+        shutdownResponse='requested';
+        try{await click('menu.quit');shutdownResponse='acknowledged';}catch(error){
+          if(!['CancellationException','RUNTIME_SHUTTING_DOWN'].includes(error.code))throw error;
+          if(error.code==='RUNTIME_SHUTTING_DOWN'){assert.equal(error.status,503);assert.equal(error.runtimeError.executionOutcome,'not_confirmed');assert.equal(error.runtimeError.retrySafe,false);}
+          shutdownResponse='cancelled_at_runtime_close_requires_runner_exit_attestation';actionSamples.push({case:'shutdown_request_unconfirmed',error:error.runtimeError??{error:error.code},requestReplayed:false,requiresRunnerExitAttestation:true});
+        }
+        break;
+      }
+      if(nodes(tree).some(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey))){
+        const n=nodes(tree).find(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey)),beforeExit=await clean();let unconfirmed;
+        try{await api('POST','/v0/ui/action',{selector:{nodeId:n.nodeId},action:'click'});}catch(error){if(error.status!==409||!['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(error.code))throw error;unconfirmed={status:error.status,body:error.runtimeError};}
+        const title=await wait(t=>t.screenClass.endsWith('TitleScreen'),'saved and quit',60000);
+        if(unconfirmed){const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});assert.equal(released.passed,true);actionSamples.push({case:'shutdown_context_exit',...contextExitEvidence(beforeExit,await clean(),title,unconfirmed),released});}
+      }
       else await key(256);
     }
     assert.notEqual(shutdownResponse,'not_requested');

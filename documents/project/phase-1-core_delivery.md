@@ -2185,3 +2185,450 @@ Forge完整all126项随后通过并正常退出，forge-e-ui-final-proof.log三�
 独立安装首端26.3 NeoForge在官方安装器下载Guava listenablefuture时发生TLS EOF，尚未进入游戏，neo263-official-installer-tls-before.log/.json保留。一次原样复试通过，未关闭证书验证、改TLS或补开发类路径。至2026-10-21 00:06五端均在全新自有目录、单产品最终JAR及官方Loader/正常运行库下完成Title、endpoint/握手、USER客户端世界读取、同Lease进世界、正常保存退出与exit0，端点移除且无新崩溃报告；实际制品及747份当前事实均绑定，不外推成制品全UI验收。
 
 e-ui-alpha-publication.log发布七文件20261021-0006-90123ba7并更新latest，warnings为空；仅回收其自有旧latest备份，三份最新与在用旧批次保留。e-ui-published-seven-file-independent-audit.log独立校验七文件列表、五JAR/手册/清单与build逐字节及SHA-256一致、latest路径、32开发/5安装的37份原证据及当前源码。profile=e_ui_trial_v1，humanAcceptance=NOT_PERFORMED、performanceAcceptance=NOT_MET且无新性能测量、fullMilestonesComplete=false、Persistent Write调用0。七个反馈编号同步为已交付/待使用方复测，不通知其他线程；M-07真人组及完整双里程碑未通过，集中人工步骤交用户后停止。此后无新增提交、推送或标签。
+
+### 2026-10-21 E世界：检查点与CF-022
+
+59号按原文创建Goal并读回一致，先核对三处风险：DEBUG分页漏项/authority/加载边界，持续输入取消后的迟到，既有代表流程与原版独立分支的覆盖差异。
+唯一检查点82f0b0599cee874773c87e46feea0a8b58ff0d24正常推送develop；604份项目文件，Update无正文、SSH签名已验证、作者/提交日期均2026-10-21T01:17:37+08:00，HEAD与实际远程一致。
+原始result、世界、构建产物和本机配置未纳入；剩余历史结果工作区不清理、不覆盖。此Goal不再提交/推送。
+
+参考端同一固定副本用原生命令准备160个原版木桶，三批DEBUG方块读取对照确认160格；旧接口只返回128项且没有续页元数据，实际FAIL、sourceChangedDuringRun=false。
+失败记录保留在D:/Workspaces/Artifacts/MineCraftProtocol/Investigations/20261021-e-world/cf022-reference-before.json；160格均恢复为空气，正常Save & Quit、exit0及endpoint移除。
+修复为每页最多128项、8192已加载候选上限及按坐标key字典序seek续页；单Runtime32个游标、60秒TTL，绑定弱引用的实际世界/玩家及anchor/query。
+每页LIVE，不伪装跨页快照；上限超出明确拒绝而非截断宣称完整。无原生Map顺序依赖，不在已删除前项后按offset跳过目标；序列化权限/预算与authority不变。
+
+五端block-entity-pages专项逐端运行，160个容器通过Native及真实MCP stdio续读完整返回、无重复；查询变更与client_known续页拒绝，零输入派发，恢复160格及干净退出。
+实际固定结果为validations/conformance-world_read/result/<target>-block-entity-pages.json，包含原生命令准备、原版缓存对照、各页及恢复样本；不以USER区域分页代替容器DEBUG分页。
+共享分页/selector及五端实际编译派发边界测试通过，Companion转发/校验测试通过；OpenAPI首次错误使用3.1的const被3.0.3生成器拒绝，改为合法enum后Java/TypeScript生成与build通过，不关闭校验。
+本项只关闭CF-022，不提前关闭整个06b或世界里程碑；无性能测量、真人验收、快照发布或Persistent Write。
+
+06b增量新增player.inventory.slot.set、player.equipment.set及block_entity.slot.set，沿现有namespace Arm、owner-thread permit、资源版本与原值条件提交，不申请输入Lease。
+替换仅支持id/count和literal customName/damage，按原生堆叠/耐久域校验；玩家物品读取新增名称/耐久投影，旧六项inspection加三项至九项，既有六链证明不宣称新三项已验。
+参考端先编译及Native实机通过，再移植其他四端：五端world-debug-items各六项通过，包含Arm/READ拒绝、三种原生setter的修改/版本stale/原值拒绝/恢复、非法堆叠/raw metadata负控及真实MCP结构化回执。
+Native Pause用于稳定测试资源，Arrange输入单记，DEBUG Act派发数0；槽位与头部均从实际空位置开始，恢复后比对原生容器序列化，再移除自有测试木桶。各端sourceChangedDuringRun=false、正常退出、端口/endpoint清理及Persistent Write=0。
+比较标准为原版ItemStack、库存/装备/Container setter和原版序列化，不以自己计数器或业务直接写入冒充USER输入；本组是DEBUG测试，非玩法或人工验收。
+实际26.3原版RandomizableContainerBlockEntity字节码确认getItem/setItem会unpackLootTable，序列化键为LootTable；因此待展开容器在访问槽位前明确DEBUG_CONTAINER_LOOT_UNRESOLVED，避免隐式生成整箱战利品。
+这一例外已有共享Java及编译派发边界约束，未在本增量宣称未开奖励容器的五端实机负控完成；06b与M-06仍保持进行中。原始结果为各Target固定world-debug-items.json，不发布快照或扩大到M-01/M-09。
+
+随后五端world-debug-items各七项通过，新增真实pending loot原版容器负控，拒绝前后完整序列化/版本不变，再经专用Fixture恢复；探针只用于Arrange且不进入发行JAR。
+Forge首次七项均通过但关闭Fixture后仍在原版父Pause页，清理失败，world-items-forge-loot-before.json保留。工具改为读取实际Screen并逐层关闭已知父页，不盲发额外Esc；修后Forge及其余端恢复、保存退出、endpoint清理通过。
+强化CF-022用例将唯一stone7标记放在首128项之外，再通过真实MCP以32项序列化分页读全160容器。该用例先揭露outer metadata错误声称无副作用；cf022-serialized-effects-before.json保留。
+修复原生捕获副作用传播后五端均读全并与原版Items序列化一致；空/未序列化原生读仍为none，Provider副作用另行记录。实际生产formalizer及capabilities五端测试核对，不用新常量自证。
+06b按批准物品/容器目录及明确只读边界闭合，M-06其余七组仍待；最终冻结回归和制品交付尚未执行，不以当前专项冒充整个M-06或新快照。
+
+06a第一增量新增player.state.set与entity.state.set，使用既有独立namespace Arm、完整资源版本和typed部分原值条件；值域/类型/原生适用性在任何setter前校验，不借用输入Lease。
+玩家新增饱和度、最大空气和等级内经验点精确投影；实体新增空气、吸收及silent/glowing，现有native位置/速度、生命/装备保留。公开vitals/living/common_state投影同步包含对应字段，不把默认全量读取通过冒充显式投影已验。
+五端world-debug-state各六项实际通过，读取/修改/版本stale/原值拒绝/恢复与真实MCP回执对照native setter和深读取；Native Pause只稳定诊断Arrange，不作为USER玩法。
+食物/饱和度/空气、等级与点数分步、逻辑速度、已加载ArmorStand生命/标志分别恢复，所有DEBUG Act输入派发差0，保存退出、端点释放、sourceChangedDuringRun=false及Persistent Write=0。
+初次共享编译因固定Gson无JsonObject.isEmpty失败，改用size()==0后参考端及五端编译/生产声明测试通过；没有升级依赖。当前11项inspection是目录，不将其计为11条完整新验收链。
+06a尚缺完整属性/效果等目录，不关闭该组；本轮不测性能、不进行真人验收、不再提交推送，也未发布59号快照。
+
+随后属性读取改为枚举主体实际拥有的注册项，通过只读AttributeMap accessor读取已实例化修饰符，不为观察调用getInstance/getAttribute创建默认实例。
+player.attribute.set拓展原生minecraft属性有效范围，保留原有max_health别名；entity.attribute.set及entity.equipment.set使用独立entity Arm和完整实体版本，不借玩家namespace。
+API的base批准域比原生可存储再clamp的范围更窄，越界明确拒绝；modifier与effective value只读，文档明确此差异。六个实体标准装备位置本增量已验，其他Native位置及效果仍未据此宣称通过。
+参考端先完成八项world-debug-state，再移植与逐端实测其余四端，各八项通过；包含显式字段组与完整Native捕获对照、非max-health玩家属性、实体属性、Native有效域拒绝及真实MCP装备名称/耐久/版本stale/恢复。
+world-attributes-five-compile.log及world-attributes-five-contract.log记录五端编译/实际capabilities与commit顺序测试、Companion通过；生产读路径禁止实例化属性的编译测试覆盖五端。
+最终各端sourceChangedDuringRun=false、cleanShutdown=true、held=0、endpoint清理及Persistent Write=0。13项inspection只作为批准目录，不冒充13个完整新场景。06a及M-06仍未闭合，下一步是效果与其余家族，不发布快照。
+
+06a随后增加player.effect.set/entity.effect.set，原生active effect完整批准字段及有界hidden链读写；1.20.1按原生八参数/FactorData factory构造，现代七参数，不用NBT反序列化或复用虚假图形缓存。
+实体装备按实际Native enum名字与canUseSlot判适用，玩家六位置不变；Mob noAi可恢复修改、aiTargetUuid只读。flying仅在原有mayFly为true时允许启用，不更改授权能力。
+参考端先实际通过扩展场景，再移植四端。最终五端world-debug-state各11项通过：保留此前状态/属性/装备/投影链，新增双主体效果/hidden/移除、真实MCP效果null往返、Mob标志及Survival飞行拒绝/恢复Creative。
+Mob准备与discard清理使用现有legacy debug scenario，明确只算诊断Arrange/cleanup，不用它冒充正式WD-03生命周期API；所有Act仍无输入Lease，inputDispatchSequence差0。
+world-state-full-five-contract.log记录五端编译/生产方法及Shared/Companion验证通过。每端sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0；15项inspection为目录，不等同15个完整新场景。
+06a按当前批准字段目录和只读理由闭合，位置/生命周期/关系分别归06g/06c/06e；M-06仍剩六组。当前Peer仍限原声明的旧health/block，新正式typed能力不外推到Peer/无Peer。
+原生getter/setter/构造与回读一致；base批准域较native存储域更窄的差异已明确记录；真人、任意AI对象、完整世界与最终候选/单JAR均不据此宣称通过。未刷新alpha或额外提交推送。
+
+### 2026-10-21 E世界实体生命周期
+
+06c新增正式entity.spawn/entity.remove。创建使用原生类型工厂、精确位置/朝向及addFreshEntity，不接受NBT/UUID或调用finalizeSpawn；相较summon初始化的差异已在Native/手册登记。
+显式selector.entityChunk读取完整已加载成员集和entity_registry版本，最多4096，溢出不给部分可写版本；对象边界所触及Chunk均必须已加载。原生有界getEntities与getChunkNow路径不请求加载。
+创建前检查成员版本/可选数量条件，创建使旧版本失效；移除要求对应实体版本及可选类型，拒绝玩家，走discard而非击杀。移除回执保留身份及实际DISCARDED，tombstone不可写，不提供同UUID重建。
+参考端先通过后逐端移植，五端world-debug-entities各四个有限验收组通过：模式/Arm/类型/指纹/原值负控、未加载、原生创建与stale/删除/旧身份拒绝、真实MCP创建及清理。
+固定副本原生暂停用于诊断稳定；所有创建UUID均单独discard，成员集恢复原值但版本继续递增，DEBUG Act输入差0、held=0。sourceChangedDuringRun=false、cleanShutdown=true、端点释放、Persistent Write=0。
+证据为conformance-world_read/result中的五份world-debug-entities.json；构建/组件与生产声明/提交顺序验证见外部world-entities-five-contract.log。初次26.3 ChunkPos字段访问与26.1.2标识类移植编译错误已按实际API修正，无运行失败。
+与原生factory/discard及实际成员读回一致；无Peer、任意NBT、召唤初始化、删除回滚不被宣称支持。06c批准目录闭合，定位及关系分别归06g/06e，M-06剩五组；没有新制品发布或额外Git写入。
+
+### 2026-10-21 E世界环境
+
+06d新增world.time.set/world.weather.set/world.rule.set及实际world.environment目录，使用既有world scope/Arm、指纹与独立资源版本，不申请输入Lease。
+时钟版本取具名原生修改事件，自然tick不令其失效；天气版本覆盖具名修改和当前flags，倒计时独立推进。明确revisionCoverage，不将控制版本冒充完整环境CAS；可选expectedValue仍精确比较。
+1.x只发布真实可写Overworld主时间，DerivedLevelData的其他维度setter为空；自然tick与显式setDayTime在确切native调用点区分。26.x按实际WorldClock注册项读取与设置，26.1.2使用只读private实例/播放字段accessor，26.3使用公开实例。
+游戏规则枚举实际可用boolean/integer，发布真实ID与argument域，通过原生setter/callback修改；1.x完整int域与现代有界参数的差异如实保留，不附加现代范围。播放控制/gameTime/seed/worldgen/调度不在批准写目录。
+参考端先通过，随后四端逐个实测，各world-debug-environment六组通过，包含真实MCP time往返、Arm/模式/类型/原值/原生域拒绝、时钟ABA拒绝、天气独立计时器和规则恢复。所有DEBUG Act输入差0、held=0、sourceChangedDuringRun=false、cleanShutdown=true、端点释放及Persistent Write=0。
+原始自然推进样本五端均记录gameTime与天气计时器实际变化，控制版本保持；后补的“必须观察天气倒计时变化”断言对这五份原始样本独立复核，不改写JSON或重签结果。冻结交付仍将运行当前工具，不把本增量说成最终候选证明。
+首轮参考端负控误将无Arm预期为模式错误；Forge首轮用例假定必有非负整数域，均按真实安全顺序/原生类型修正测试，原失败保留world-environment-reference-before.json及world-environment-forge-domain-before.json。
+world-environment-five-contract.log、world-environment-shared-check.log记录生产字节码、五端编译/测试、Shared/Schema/Companion与工具通过；26.1.2私有API移植编译差异已消除。新三项Native行为与native setter/argument/回读一致，播放/派生数据边界按上文差异说明。
+06d批准目录闭合，M-06剩四组；未发布59号快照、未额外提交推送，人工及最终单JAR仍待冻结阶段。
+
+### 2026-10-21 E世界关系
+
+06e新增entity.vehicle.set/player.vehicle.set、entity.leash.set及entity.owner.set，读取实际vehicle/passengers、牵引缓存和原生驯服归属。专用entity_relationship版本不绑定走动或生命；受影响旧/新参与者也必须提供版本，不接受重复或忽略额外项。
+玩家骑乘在同一取消屏障内校验player/entity双scope和Arm，未嵌套取得StampedLock；其他既有单命名空间路径委派同一实现。DebugCombinedAuthorizationTest验证缺授权拒绝、单屏障持有及取消后不再准入；没有新Lease或输入路径。
+非强制startRiding/stopRiding保留原版容量、循环和60tick重上车冷却；按原生牵引资格设置/清除，拒绝未解析关系与循环。下马前检查原生邻格/尺寸逃离包络已加载，读取不调用惰性owner/leash解析或存档钩子。
+原生副作用与回读一致：挂绳自动下马、骑乘断绳并产生一个实际掉落物、狼驯服补血及解除驯服不恢复生命。测试明确恢复批准生命字段，按新UUID清理掉落；不改原版行为假装自动回滚。
+参考端先确认，再移植四端；1.20.1用只读Mob缓存accessor及原生旧签名，1.21.1用Leashable/ownerUUID，26.x用当前原生引用与牵引接口。未构造假玩家或扩大Peer能力。
+五端world-debug-relations各六个有限组通过，包含真实MCP、Native调试批次、模式/Arm/参与者负控、stale/原值链、容量/循环拒绝、实际副作用及恢复。自有实体归零，DEBUG输入差0、held=0、sourceChangedDuringRun=false、cleanShutdown=true、端口释放、Persistent Write=0。
+原始摘要为conformance-world_read/result五份world-debug-relations.json；world-relations-five-contract.log记录四端移植编译/生产接线测试，参考端与共享、Schema/Companion测试在world-relations-reference-ready.log和world-relations-authorization.log；格式与工具门禁见world-relations-format-tools.log。
+测试初期分别误传不支持类型的预期owner对象、未规范化省略null、将夹具放到原生绳长外及假定解除驯服会还原生命，均按实际Native/传输合同修正，不重试掩盖差异；首份失败保留world-relations-reference-before.json。实体discard的当前说明改为“不走死亡战利品但可有原生关系清理副作用”，不改写旧结果。
+06e批准目录闭合，M-06剩三组；本增量不是冻结候选或独立单JAR验收，未刷新Alpha、额外提交或推送。
+
+### 2026-10-21 E世界调度读取与中心批次
+
+06f修前参考端实际创建65个原生排队流体tick：world.fluidScheduledTickCount为65，Chunk数组只有64项，缺少省略说明；world-loading-reference-before.json保留真实失败。65个方块已恢复，队列自然排空，客户端正常退出。
+新增scheduledBlockTicksResult/scheduledFluidTicksResult，保留数组形状，区分原生getAll排队项、container.count含待展开项、预算和省略；不调用unpack/poll/schedule，不包括已收集待执行阶段，原生迭代顺序不承诺时间排序。共享ScheduledTickRead只负责该元数据和64项上限。
+world.simulation只读地区分集成暂停、可用的原生TickRateManager和WorldClock；configuredTickRate不是性能测量。1.20.1没有管理器且暂停字段私有，使用只读accessor；其余端公开getter。不新增模拟控制、输入或权限。
+正式快照本来已过滤旧REQUIRES_NEW_HOOK占位；本增量清理产生这些无效字段的旧读取层及对应删除分支，不把它描述为刚修复的正式API错误。OpenAPI保留兼容的可选元数据，生成/Companion构建测试通过。
+参考端确认后四端逐个实际运行world-debug-loading，各四个有限组通过，包含READ/Arm/65项预算负控、真实65条队列和多次读取不改变、部分失败保留已应用前缀、未加载目标拒绝及真实MCP。所有测试方块恢复，原生调度自然排空；DEBUG Act输入差0、held=0、sourceChangedDuringRun=false、cleanShutdown=true、端口释放及Persistent Write=0。
+结果为conformance-world_read/result五份world-debug-loading.json。world-loading-reference-contract.log、world-loading-schema.log、world-loading-five-contract.log及world-loading-forge-offline-contract.log记录实际生产字节码、共享和各端测试；Forge在线HEAD遇到TLS断连，使用既有官方缓存离线构建成功，不改依赖或TLS安全设置，未将环境重试称为修复。
+原版NeighborUpdater会读邻居状态，Level.getBlockState可达允许创建的getChunk；中心场景和直接未加载目标拒绝不能证明任意传播均不加载。当前尚无该边缘的现场证明/阻断，06f仍为P，不将上述四组代替整组关闭。Native说明与计划保留此项。
+本增量未测性能、未刷新Alpha或额外提交推送，不证明最终候选、单JAR或完整世界领域验收。
+
+### 2026-10-21 E世界原生传播加载边界
+
+06f修前参考端加载岛实证：正式world.block.set的目标已加载、东邻Chunk未加载，普通石头修改却令邻Chunk变为可用；失败原文保留world-boundary-reference-before.json。根因为原生邻居更新经Level.getBlockState到可创建的ServerChunkCache.getChunk，不是读取接口主动加载。
+正式typed block增加直接邻域先验检查及同步原生Chunk入口约束；LoadedChunkMutationScope仅在已授权的实际setter内生效，普通Vanilla调用不变。不阻止后续普通模拟，不提供Fixture或Peer新授权。
+原生红石传播可在更远的依赖处停止，此前源方块已变为redstone_block。单项DEBUG_MUTATION_PARTIAL_NOT_LOADED保留实际before/after、资源版本、blockedChunk与retrySafe=false；批次失败项保留同一result并停止余项，即使CONTINUE_ON_FAILURE。Native、真实MCP、证据窗口和Recording manifest/Timeline均保留诊断污染，不误称回滚或干净Gameplay。
+参考端确认后移植四端；五份world-debug-boundary.json分别证明直接拒绝源不变、传播中源已变而邻Chunk仍未加载、MCP结构化部分效果、录制污染、夹具恢复及退出。DEBUG Act输入差0、held=0、sourceChangedDuringRun=false、cleanShutdown=true，端口/endpoint释放及Persistent Write=0。其余四端实测含批次余项不启动；参考端在声明同步后又确认当前工具与该余项条件。
+收尾发现Hook总数声明遗漏世界守卫，且旧两端06d的原生时间setter委托尚未分列。现将DEBUG_MUTATION、被动世界委托、HUD委托和玩家控制分别公开，保留普通原生setter参数/调用次数及finally；26.1.2的private clock只读accessor纳入精确审查。Reference实际HTTP Hook manifest与当前生产声明一致；其余四端新声明有编译/静态证明，当前功能实测不被冒称其新声明已Live验证，冻结时按现行用例补齐。
+world-boundary-five-contract.log、world-boundary-error-contract.log、world-boundary-format.log及world-boundary-hook-contract.log记录各端生产字节码、实际HTTP错误/批次污染、Schema生成及Companion通过；world-boundary-hook-static.log、world-boundary-hook-negative.log和world-boundary-control-static.log记录原生接线与正反例门禁。测试首轮误用blockedChunk字段名、录制停止HTTP方法及门禁错误子串，按实际合同修正工具，不改产品迎合预期。
+06f批准目录闭合，M-06剩06g/h两组；当前35组仍未构成领域READY。未发布新Alpha、未额外提交推送；冻结候选、五端独立单JAR及真人项仍待后续步骤。
+
+### 2026-10-21 E世界原生LIVE转移
+
+06g新增当前玩家及明确非玩家实体的原生teleportTo定位/跨维度路径，value保留小数坐标和可选朝向；维度必须已存在，源与目的包络已加载，先解除骑乘/牵引及跨维度摄像机跟随。独立scope/Arm/资源版本、原值及同步原生加载守卫不放宽，不产生玩家输入或存档API调用。
+DEBUG world列出现存维度；selector.entityTargets按明确维度/UUID查已加载对象，不隐式追加半径扫描，超maxEntities拒绝。投影前计算完整资源版本；Native schema及Java/TypeScript生成模型保留维度和目标字段，Companion使用相同封闭载荷。
+与原生一致：非玩家跨维度重建对象、UUID保留但lifecycle更新；当前玩家换维度改变世界指纹，旧Arm拒绝，必须显式重新授权。速度/摄像机/物品使用和维度触发器保持版本原生行为，返回坐标不代表全部副作用回滚。其同步依赖若触及未知Chunk，沿用部分应用错误/污染合同；后续普通Vanilla模拟和视距加载不受冻结。
+
+参考端先确认再移植四端。首轮返程因原目的Chunk被自然卸载而拒绝，world-transfer-reference-before.json保留失败；改测试Arrange为自有、非持久内存票据，退出前按同类型/位置移除，不为产品增加加载许可。Forge首次返程读取时原生状态仍在推进，旧版本被正确拒绝，失败保留world-transfer-forge-before.json；工具改为等待原生页面完成并真实暂停后读取，不自动重试旧token。MCP重新Arm替换原凭据后，Native批次明确重新申请，不伪装两套Arm同时有效。
+当前五份conformance-world_read/result的world-debug-transfer.json各五组通过：准入/未知目标、玩家小数定位、实体重建与精确身份、玩家换维度Arm链、真实MCP及Native batch。还包含精确选择不混入附近实体和预算拒绝。DEBUG Act输入差0、held=0、自有实体0、临时票据0、sourceChangedDuringRun=false、cleanShutdown=true，端口/endpoint释放，Persistent Write=0。
+world-transfer-five-contract.log、world-transfer-selected-contract.log及world-transfer-companion.log记录生产接线/共享测试、Schema生成模型字段及Companion通过；world-transfer-probe-ports.log记录各端夹具编译。收尾发现Schema重复sideEffects键，已合并回既有字段后重新生成，不绕过规范校验；world-transfer-docs-strict.log为当前文档80文件通过、严格合规0失败0警告。后续阶段仍按实际影响补验，不把这些专项结果当最终发行或真人验收。
+06g批准目录五端闭合，M-06剩06h，当前剩34组；未刷新Alpha，未额外提交或推送，完整领域仍未READY。
+
+### 2026-10-21 E世界Provider与Fixture目录
+
+06h核对批准typed目录与既有独立Fixture路径；原版世界能力不依赖第三方Provider补齐。Provider cap缺少实际修改schema、revision约束与只读原因，现由runtime_core的ProviderInspection统一生产cap和读取声明，保留debugSupported兼容字段，公开debugDeclaration及其独立scope/Arm/版本、只读或不可用理由，不授予新权限。核心inspection目录纳入既有provider.mutate，五端不再各自追加重复来源；注册的可执行validator仍由Provider提供，不承诺任意字段或JSON Schema自动导出。
+实际Provider政策保持一致：加载/存档观察被skipped，隐藏修改被permission_denied，不调用采集或发可写token。safe Provider仅为自有诊断计数状态；实际MCP修改/恢复、schema拒绝和原生版本失败前缀已证，不被当作Minecraft温度或第三方兼容证明。Operation完成与batch.result.status=partial分别检查；工具初期混淆两者及政策status，已按实际生产合同校正，不将这些工具预期错误归为产品缺陷。
+
+参考端发现真实Fixture证据遗漏：录制manifest已污染，但活动Gameplay Act仍contaminated=false；world-provider-reference-before.json保留同一次原始结果、实际移动/恢复及计数。ProtocolState现在独立记录活动窗口的Fixture次数/请求，不改Debug计数；两个正式Fixture入口先完成观察再成功响应，响应取消不直接取消已提交上游的观察阶段，继续协作取消未完成上游。原值恢复不抹除窗口污染，窗口开始前已完成的Arrange不污染新窗口；权限、Mode、Lease、Arm和类别不变。
+参考端确认后逐端运行world-debug-providers，五份结果均通过声明/政策与拒绝、实际Provider版本/batch前缀、真实MCP、Fixture独立授权/恢复及录制/窗口污染。每端Fixture计数2、Debug计数0、恢复后新窗口干净，DEBUG输入差0、held=0、cleanupErrors为空、sourceChangedDuringRun=false、cleanShutdown=true，端口/endpoint释放及Persistent Write=0。
+world-provider-reference-contract.log、world-provider-evidence-contract.log、world-provider-reference-schema.log、world-provider-evidence-schema.log及world-provider-five-compile.log记录共享/真实生产路径测试、生成模型与五端编译；world-provider-companion.log为Companion通过。world-provider-static.log和world-provider-control-static.log分别通过Typed Debug及80HTTP/24MCP门禁，人工标为NOT_SIMULATED/UnifiedAcceptance PENDING；文档门禁见world-provider-docs-strict.log。
+M-06的06a～h批准目录五端专项闭合，全局剩33组；M-05八组仍待分支盘点与闭合。此次未刷新Alpha或额外提交推送，不等同冻结候选、独立最终JAR或完整里程碑/人工验收。
+
+### 2026-10-21 E世界05h区域纯功能闭合
+
+对照原生ClientLevel缓存/ChunkStatus.FULL(false)和独立USER点查，新增world-region-functional而不运行region-stream中的吞吐/WS速率比较。五端分别重建跨section的75格，检查无遗漏/重复、原生状态属性、固定查询与单用游标、预算/32格半径拒绝、取消幂等及实际等待30秒闲置到期后的续读拒绝。硬生命周期、未知cell/已知空气区分、取消中断由既有WorldRegionPages确定性时钟测试和实际Native适配边界测试核验，不冒充现场卸载。
+
+Forge首个请求实际返回WORLD_REGION_BUDGET_NO_PROGRESS，未提交游标；修前结果仅保留一份world-region-forge-before.json。新消费者按正式retryAfterMillis、同查询、最多三次处理此明确无进展，不重放成功页、不重试未知失败、不放宽Runtime预算。另一次世界列表刚创建但尚未异步填充，改为等待实际具名世界行出现，不改产品或固定副本。参考端已通过路径不因消费者增加该拒绝处理而重复运行。
+
+五份result/<target>-world-region-functional.json均PASS、sourceChangedDuringRun=false、cleanShutdown=true，正常退出、端口/endpoint释放、Persistent Write=0；未做性能测量。world-region-functional-contract.log记录共享region与参考端Native边界测试通过，资源/运行摘要见既有limited-<target>-world-region-functional。05h关闭，全局剩32组、M-05剩05a～g；尚未冻结最终候选、刷新Alpha或额外提交推送。
+
+### 2026-10-21 世界USER自身反馈与原生分支盘点
+
+WorldClientSnapshot与WorldClientModel补充自身原生姿态、潜行/冲刺/游泳/滑翔、流体/着火/睡眠/死亡、眼高/空气上限、经验及相机类型/是否自身；不增加服务器权限、原始库存、NBT、实体身份或修改授权。参考端实际Native路径确认后逐端移植，OpenAPI及Java/TypeScript模型、玩家说明同步。USER State Frame、Assert与真实MCP在五端保留字段，READ无输入副作用。
+
+独立probe通过既有Fixture Screen的明确按钮采集实际注册表/feature flags/键位及Item/Block使用方法来源。现代物品记录默认组件类型和原生使用动画/时长，1.20.1记录其实际旧版食物/使用模型，不假造现代组件。26.3的矛实际为普通Item加kinetic/piercing等组件，证明不能按类名直接推断覆盖；EntityType包装类也不冒充实例行为。该目录不是产品USER读取面或成员Act已通过证明。
+
+五份<target>-world-user-catalog.json均PASS、源未变化、正常退出且Persistent Write=0。实际items/blocks/entities依次为：Forge 1255/1003/124；1.21.1 1333/1060/130；26.1.2 1506/1168/157；26.3两端均1658/1286/161。world-user-catalog-five-contract.log记录五端实际适配字节码/共享投影、WorldRead及探针编译通过；world-user-feedback-companion.log与world-user-feedback-schema-strict.log分别记录Companion、生成模型/80篇Markdown/严格合规通过。完整WU分支仍待Act，不降低M-05剩余七组。
+
+### 2026-10-21 E世界05a移动与原生相机闭合
+
+movement补齐藤蔓/脚手架、活板门强制爬行与退出、游泳/出水/溺水/熔岩反馈、三视角、实际W到R改键及恢复、灵敏度/适用反转、电影相机和望远镜。设置操作通过原生可见KeyEntry行与更改/重置按钮身份；看不到的行须实际滚动，不读取隐藏行代替操作。1.x原生无X反转，明确NATIVE_ABSENT；非默认设置下语义aim仍通过原版相对输入命中。准备命令为诊断Arrange，Act与独立USER反馈不依赖截图、屏幕坐标或直接姿态修改。
+
+参考端电影相机修前实际派发相对输入后朝向不变，原始失败保留world-cinematic-reference-before.json。对照原生MouseHandler：平滑余量须逐帧消费，不能仅在一次输入回调期间提供逻辑捕获。现委托Minecraft.runTick中的原生鼠标消费者，并复用已有routed来源而不签发回调许可；取消、Lease/接管/原生上下文及GUI/世界平面切换重置原生SmoothDouble。语义aim在电影相机下仍诚实拒绝，不重写平滑算法或yaw/pitch。参考端实际确认后移植四端。
+
+Forge首次完整场景动作通过，但Save & Quit后input.released超时，失败保留world-movement-forge-before.json。原生GUI回调可重入主循环卸载世界；回调返回后再登记held会把已清理状态复活。键/按钮与逻辑按下现在在原生回调前登记，重入清理不再被后续add/put覆盖。参考端input-context验证维度、活动/排队清理、真实Lease绑定WebSocket关闭及退出后，再移植四端；Forge复测完整movement含原失败节点通过，未放宽清零判据或重放退出点击。
+
+五份<target>-movement.json各20项分支通过、sourceChangedDuringRun=false、cleanShutdown=true、held=0、端口/endpoint释放及Persistent Write=0；参考端完整movement先于登记顺序修复，后续input-context为该修复的直接实测，不伪称五份均来自最终冻结候选。world-cinematic-reference-contract.log、world-movement-five-contract.log、world-movement-five-native-contract.log及world-reentrant-input-five-contract.log为实际生产字节码/字段、来源隔离与回调顺序测试。Hook静态与94项隔离正反例通过，实际声明区分原生HUD/世界委托及控制替换；静态不冒充Live。
+
+05a专项闭合，M-05剩05b～g六组、全局31组；冻结候选仍按影响复验。未做新性能或真人验收、未刷新Alpha、未额外提交推送。旁观目标、载具和滑翔继续按原生独立分支验证，不从普通移动推定支持。
+
+### 2026-10-21 E世界05b参考端特殊移动与载具反馈
+
+参考端special-movement在原版GUI进入固定副本后，通过真实键位完成创造飞行、旁观穿墙/语义瞄准后的原生spectate、船/矿车/马驾驶、骆驼冲刺/满座、羊驼乘客、猪/炽足兽道具控制和耐久消耗、鞘翅起降/烟花及取消后自然滑翔。旁观瞄准修前被WorldTargeting.valid整体拒绝，保留world-special-reference-before.json；移除重复的旁观模式禁令后由原版pick/输入/服务器决定行为，不增权限或直接设置相机。五端编译后的Native边界检查通过。
+
+WorldClientSnapshot读取自身getVehicle及其getControllingPassenger，USER投影/模型保留vehicleType/vehicleControllerIsPlayer，离开载具不伪造默认值，不发布UUID。参考端Native、Frame和真实Companion消费者一致，再移植四端；world-vehicle-feedback-five.log为其相关编译/测试，不冒充四端Live。
+
+骆驼测试的NPC预占不等同第二真人：原版Entity.addPassenger将首位Player放到NPC前，实际测试据此改为首真人优先与满座拒绝；修正前world-camel-fixture-reference-before.json保留失败。modern-mounts参考端另完成快乐恶魂原生升降/前进/四座拒绝和鹦鹉螺水下操控及真实绘制的冲刺冷却。鹦鹉螺初次登乘语义瞄准已朝下，固定小量抬头仍未转为朝上；该场景前提修正而非产品改值，world-nautilus-fixture-reference-before.json保留失败。
+
+上述参考端运行sourceChangedDuringRun=false、正常退出、held=0、端口释放及Persistent Write=0；Native准备命令/安全效果与USER Act分列，不以派发成功代替效果。原版拒绝、自然惯性及视角变化保持。05b未关闭：其余四端、双玩家座位和最终冻结仍待，不刷新Alpha或宣称M-05闭合。
+
+### 2026-10-21 E世界05b五端特殊移动与真实双玩家座位闭合
+
+special-movement五端均通过：船桨、矿车实际微小前进、马跳跃、骆驼冲刺/原生玩家优先与满座拒绝、羊驼不可驾驶、猪/炽足兽持道具控制及真实HUD耐久消耗，26.x快乐恶魂与鹦鹉螺按适用性实测。鞘翅取消只停止输入、不直接终止自然滑翔，正常下降与落地独立回读；创造/旁观仍经原版输入。Snapshot的自身载具字段在五端实际Native、Frame与Companion保留，不公开关系UUID。
+
+world-seats改用两个真实客户端，不创建Fake Player或以NPC冒充第二Player。显式probe仅在自有固定副本使用原生IntegratedServer诊断准备，监听强制127.0.0.1、临时关闭Minecraft网络认证供两个开发玩家加入；不是Runtime认证或正式三部署能力。新旧版本分别委托MultiplayerScope.LAN与GameType原生发布签名，Runtime模式/scope/Lease不变。角色各4GiB、1920×1080静音、独立发现与Lease，第二端只取必要USER输入和诊断scope，无DEBUG授权。
+
+五端分别用真实Direct Connection GUI连接，船和骆驼、26.x快乐恶魂的第二Player确认不是原生驾驶者；其转头/W输入不移动载具，第一驾驶者的输入带动双方，随后分别正常下车、第二端断开退出、主端保存退出。原版登陆出生点可能在y=-60而测试平台为y=80，先诊断准备到共同区域并等待有界客户端同步，不能用一个客户端缓存当服务器玩家名册。首次错误计数与缺少diagnostics导致的清理失败保留world-seats-reference-arrange-before.json；该失败的第二端随后通过原生返回列表/标题/退出正常关闭，未改写失败为通过。探针签名首次启动失败保留world-seats-reference-startup-before.txt；精确重载签名后修正。
+
+十份<target>-special-movement.json与<target>-world-seats.json均PASS、sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0；双方held清理、端口/endpoint释放，Actor读到的是CLIENT_KNOWN而非服务器确认。后四端world-seats的seatPartner记录额外的实际堆上限与退出检查；参考端相同检查在外层Runner实际执行，未为了加记录字段重跑已通过分支。world-vehicle-feedback-five.log、world-special-five-offline-contract.log与world-seats-five-probe.log记录相应生产适配/原生边界/探针编译通过。新场景与角色均仅属于验证，没有升级依赖、改变产品权限或新增部署承诺。
+
+05b专项闭合，M-05剩05c～g五组、全局30组。最终冻结候选、受影响回归、五端单JAR入世界和试用发布仍待；未做性能或人工验收，未额外提交推送。
+
+### 2026-10-21 E世界05c物品工具与非完整轮廓
+
+item-utility五端专项通过：原生数字/滚轮热栏、双手交换、单件与整堆丢弃、普通Pick Block与创造热栏，剪切、点火/熄灭、去蜡/刮铜、骨粉及瓶桶流体处理。刷扫由语义aim接普通持续右键，实际dusted逐步变化并自然转成沙；这是非原子字面输入，不伪称持续targetRef守卫。原版保存热栏是游戏输出，不是Runtime Persistent Write。
+
+Fabric首次被pipeline原有限流拒绝，保留item-utility-fabric-rate-before.json；测试发送间隔调整为遵循每秒2项预算后通过，未改生产限流、权限或重放失败输入。五份结果均sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0；不是最终冻结制品证明。
+
+placement-branches参考端修前在下半砖顶面放置报WORLD_TARGET_NOT_HIT，原始失败保留world-partial-face-reference-before.json。显式面坐标按单位立方体计算是根因；现沿请求法线与实际原生VoxelShape求交，u/v仍为局部轴投影，最终原生pick与上下文保护不变，空洞和空形状拒绝。参考端实际半砖、箱子潜行与原版碰撞/支撑拒绝通过后移植四端；world-partial-face-five-tests.log记录五端生产几何/Native边界测试通过。
+
+首个流体测试因水流推动玩家而被WORLD_ACTION_CONTEXT_CHANGED正确中止，失败保留world-fluid-fixture-reference-before.json；仅测试水槽与站位改为稳定前提，未放宽位移保护。
+
+五份<target>-placement-branches.json均PASS、sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0，分别实测实际轮廓、潜行、碰撞/无支撑、流体/方向以及Adventure/不可破坏超时和Creative破坏。既有held含水/连锁/六面与placement-receipts多格受阻/同ID预测保留，冻结时按轮廓影响复验，不将增量写为最终制品证明。05c专项闭合，M-05剩05d～g四组、全局29组，未做性能或人工验收、未刷新Alpha或额外提交。
+
+### 2026-10-21 E世界05d参考端桥接与语义表面
+
+参考端block-bridge实际从世界打开22类原生存储/工作站，继而完成门/活板门/栅栏门、日照反转、唱片存取、堆肥、书台取书、床睡眠/起身及背包/聊天/暂停桥接。world-block-bridge-reference-before-surfaces.json保存该增量；未直接创建Screen或调用菜单业务，未据静音日志宣称音频验收。
+
+指定雕纹书架小格的修前请求报INVALID_WORLD_ACTION，保留world-surface-use-reference-before.json。原实现只允许place携带面坐标，无法区分use的小格；现为普通方块use增加可选face/hit，沿真实轮廓求交和原版pick，不接受实体面或放置目的格条件，不增加权限、Lease或DEBUG回退。world-surface-use-reference-contract.log记录共享Parser、参考端Native、生成模型和Companion测试通过；实际参考端确认后再移植其余四端，相关测试记录world-surface-use-five-tests.log。
+
+surface-use参考端实测六书位逐一存取、真实MCP发现/操作与worldContract声明、复用显式已有Lease且不自动acquire；READ/OPERATE仍拒绝，实体面请求明确失败。26.x置物架三个位置实际物品存取及单架供电交换原生热栏6～8、再次交换恢复均通过。原生类核对1.20.1/1.21.1没有ShelfBlock，26.1.2有；不把缺少原生内容写成已实测。所有运行源未变化、正常退出、held=0、端口释放、Persistent Write=0。
+
+spotlessApply/lintMarkdown/verifyCompliance --strict在05c及桥接工具首版通过，80篇文档无问题、2353文件严格合规零失败零警告；此结果早于表面use扩展，后续须复验。05d尚未关闭：完整五端桥接、重生锚及其他明确剩余分支仍待，不发布快照或宣称全里程碑通过。
+
+### 2026-10-21 E世界五端桥接与表面输入一致
+
+五份<target>-block-bridge.json均PASS、sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0。各端实际从世界进入适用容器/工作站，完成开关、唱片/堆肥/书台、睡眠与玩家菜单桥接，以及六书位存取、MCP和模式/目标拒绝；26.x另完成三格置物与供电热栏交换。Native Scope、Lease、Arm与证据未调整；实体不能携带方块面，READ/OPERATE无输入副作用，MCP使用显式现有Lease且不自动申请。
+
+该组不替代重生锚与其他资源/战斗/生命周期分支，05d～g仍为待闭合。接续station-use与combat-use按最小参考端核验，不为相同输入反复运行已通过的桥接组；最终冻结仍按实际影响复验。
+
+### 2026-10-21 E世界交互站与移动攻击
+
+station-use参考端实际完成开关驱动红石灯、熔岩/细雪炼药锅、瓶与水药水转移、蛋糕进食、蜡烛蛋糕点燃/上表面熄灭，以及原生600tick营火烹饪与真实掉落。初始Hunger夹具未先耗尽饱和度，随后普通难度短效果仍不足；失败保留world-station-hunger-fixture-before.json及world-station-normal-hunger-before.json。工具改为明确自有副本难度、观察食物实际降低并等待残余饥饿稳定，不直接修改食物或烹饪进度。
+
+combat-use参考端修前，跨请求持有冲刺/前进后语义攻击被WORLD_ACTION_CONTEXT_CHANGED拒绝，原始结果world-moving-attack-reference-before.json。固定初始位置被当作身份是根因；WorldTargeting现在保持世界/玩家/相机/目标身份、物品与视口保护，每次从当前眼位计算并用原生pick确认，不因正常移动拒绝。没有自动移动、直接转向或权限变化。参考端真实移动攻击、原生剑冷却/受伤免疫、弩与三叉戟、蛋/雪球、药水/奶、号角/望远镜通过，随后input-context确认活动/排队取消、同Lease维度变化和实际控制WebSocket断开清理；再移植其余四端。
+
+world-moving-attack-reference-tests.log与world-moving-attack-five-tests.log记录五端生产路径与原生边界测试通过。当前其余四端station-use、combat-use及input-context矩阵进行中；不能据参考端或编译宣称五端Live。内部伤害断言明确SERVER_AUTHORITATIVE DEBUG，USER Act仍为真实输入；没有测量新的攻击性能，Persistent Write=0。
+
+### 2026-10-21 E世界交互站与战斗增量五端复验
+
+五端station-use、combat-use及input-context均PASS、sourceChangedDuringRun=false、cleanShutdown=true、Persistent Write=0；自有客户端正常退出、端口/endpoint释放，held输入清理。原生营火自然完成，剑伤害与免疫、跨请求冲刺中的语义攻击、蓄力/投掷/饮用效果分别独立观察。维度变化取消活动和排队输入并保留同Lease，真实Lease绑定WebSocket正常关闭退READ；没有用普通HTTP连接结束冒充控制断线。
+
+这些具名增量不代表05d/e整组关闭：重生锚、特殊武器/其余物品、实体及生命周期仍待。后续新增entity-branches路由只用于实体分支，不改写本次已通过的原始结果，最终冻结门禁另计。
+
+### 2026-10-21 E世界实体部位缺口与显示反馈
+
+entity-branches首次头盔取回通过，是因为前次操作的视线仍击中头部，不能证明能选择部位。增加真实语义转向地面再取回后，原版操作完成但头盔未取回；world-entity-body-point-before.json保存失败。对照原生ArmorStand.interactAt/getClickedSlot：头部、胸部、腿脚按实际命中高度选槽；WorldTargeting默认仅瞄准实体中心且只比较实体身份，无法表达该意图。
+
+参考端增加可选entityHit归一化原生pick box点，选定点投射到原生射线入口，最终EntityHitResult位置也须一致；不接受方块、face/hit或place/mine混用，不是屏幕坐标或直接换装备。Scope、Lease、来源及新鲜原生命中不变。共享Parser、参考端原生几何和边界测试通过；Native/OpenAPI与Companion载荷/说明同步，真实六部位取放仍待本次运行结果，其余四端尚未移植。
+
+展示框读取新增客户端同步的displayedItemId/displayedItemCount/displayedRotation，以原生getItem/getRotation为来源；不复用掉落物itemId字段混淆实体类型，不暴露NBT或隐藏库存。羊染色/剪毛实测原生消耗和红羊毛掉落；桶捕捉首次成功、放回时水流/站位导致原生pick miss，失败保留world-entity-bucket-fixture-before.json。测试改为有围墙水槽及干燥墙顶站位，不为产品加fluid ID执行分支或放宽reach。
+
+### 2026-10-21 E世界实体部位参考端实测与四端移植
+
+参考端entity-branches实际完成六部位装备取放、羊染色/剪毛、鱼和美西螈桶捕捉/释放、铁傀儡修复、牛奶与蘑菇煲、蘑菇牛转化与雪傀儡剪切、犰狳刷取、展示框插入/旋转/取下及破坏。显示物与旋转由独立客户端同步观察，修复伤害用显式DEBUG断言，不混入USER生命字段。没有直接调用生物交互或装备业务方法。
+
+展示框首个夹具在原生命令仍未同步到客户端时读取了空气引用，world-entity-frame-arrange-before.json保留失败；改为等待实际石头与targetRef。拾取首轮固定短步后库存计数0，失败保留world-entity-pickup-fixture-before.json；原记录不足以精确追溯当时位置/拾取延迟，不能据此判产品缺陷。改为等待四十个实际客户端tick让物品自由落地，并独立确认HUD取回、经验增长与库存内容后通过，不改拾取延迟或强制拾取。
+
+entity-tail仅隔离复验拾取/真实MCP，不重复此前通过的分支；随后参考端完整entity-branches含自然剑损坏通过。MCP实际发现实体并携带entityHit，使用显式已有Lease，取回头盔后Lease未变，没有自动acquire。参考端结果源未变、正常退出、held=0、端口释放与Persistent Write=0。
+
+参考端确认后移植其余四端Native几何/显示读取及原生几何测试；world-entity-point-five-tests.log记录四端编译/原生边界通过，参考端相应结果在world-entity-point-frame-tests.log。world-entity-point-contract.log记录Schema生成和Companion通过。当前四端完整Live矩阵进行中，05f未关闭；未刷新Alpha或额外提交推送。
+
+world-entity-point-format-strict.log为本增量格式、80篇Markdown及严格合规通过，2374文件零失败零警告；该结果早于后续接口说明和本段追加，交付前仍须复核。
+
+### 2026-10-21 E世界实体部位五端与补充种属分支
+
+entity-branches五份结果均PASS、sourceChangedDuringRun=false、cleanShutdown=true、held清理、端口释放与Persistent Write=0。各端实际覆盖装备部位、桶/奶/煲、原生特殊剪切、展示框同步旋转/取物、掉落/经验拾取、自然剑损坏，以及真实MCP明确复用Lease。1.20.1没有犰狳，该分支仅在其余四端运行；不把Native缺类写为通过。
+
+后续entity-social参考端已确认猫/鹦鹉按物种食物和原生RNG驯服。狼坐姿首次因NoAI夹具而不运行原生Sit Goal，world-entity-sitting-fixture-before.json保留失败；改为保留AI、原生movement_speed设0，仅限制夹具移动。坐姿随后通过，喂食断言因假定消耗一件而失败，world-entity-healing-fixture-before.json保留原始结果。
+
+对照本批实际Loader原生字节码：1.20.1/1.21.1的Wolf.mobInteract一次消耗；26.1.2/26.3的TamableAnimal.feed调用两次usePlayerItem。参考端实际两件耗尽与该原生路径一致，不据此认定Runtime重复输入，也不修改游戏行为来消除差异。测试按这些已核对的原生分支比较，生命为独立DEBUG断言；种属/坐姿/喂食补充及其余战斗/生命周期仍待完成。
+
+### 2026-10-21 E世界原生门户与死亡输入缺陷
+
+参考端lifecycle修前真实点火进入原生门户已通过，但环境岩浆死亡后旧S仍held=1，管线尾部还未取消；world-death-held-input-before.json保存原始输入、死亡页与旧epoch。InputContextEpoch只跟踪world/player/connection对象，死亡时这些对象未变是根因。
+
+共享epoch现在额外跟踪原生玩家存活边界，五端调用均传当前LocalPlayer.isAlive；不按Screen类白名单判断。死亡/恢复更换输入代次并沿既有路径取消活动/排队和清理按住，不使死亡GUI不可用，不释放Lease、改模式或设置人工撤销；服务器LIVE/存档生命周期不由该输入边界改变。共享/Core新增同对象死亡/复活及死亡GUI可继续输入、Lease/模式不变测试；world-death-context-reference-tests.log通过。
+
+参考端修后lifecycle完成真实点火/行走入门、锚充能与设定重生、持有S进入岩浆自然死亡、活动/排队均取消、held=0/无尾部派发、同Lease语义重生与锚充能消耗。Lease从实际control/status取证，不用mode中不存在的字段互相比对。重生请求实际REQUEST_CANCELLED且retrySafe=false，world-respawn-context-exit-before.json保留初次响应；工具不重发，独立核验新epoch、存活状态、维度与锚后确认效果。
+
+补充工具错误已按正式合同更正：Operation的executing可包含等待输入队列，排队通过无派发与待终态证明，不虚构queued枚举；USER玩家用deadOrDying/health而非未声明alive字段。参考端最终lifecycle.json为PASS、源未变、正常退出、端口释放及Persistent Write=0。其余四端运行及快捷键/命令冻结回归仍待，05d/g不提前关闭。
+
+world-death-five-contract-strict.log记录五端Native几何/读取边界、共享epoch及Core代次/状态流测试、格式/文档和严格合规通过；此为构建及契约证明，不冒充四端死亡实测。参考端正在补range-branches，盾牌夹具先举盾再生成真实攻击者，避免准备阶段已受伤；原失败world-shield-arrange-before.json保留，不改伤害或屏蔽原版攻击。
+
+### 2026-10-21 E世界远距瞄准与真实玩家对照
+
+参考端range-branches首先在9格珍珠目标处复现WORLD_TARGET_NOT_HIT，world-ranged-aim-before.json保留原生4.5格MISS。WorldTargeting将纯aim纳入既有32格原生客户端射线；attack/use/place/mine仍用近身native pick。五端代码同步，Native测试核对实际分支只含aim/use_hold；参考端实测远距aim成功、同目标use仍拒绝且珍珠未消耗，随后真实投掷产生位置与生命变化。
+
+参考端另外完成盾防御与解除后受伤、抛投药水/经验瓶、钓鱼收放、地面烟花、重锤落击。长矛初次刚换装备后刺击无伤害，world-spear-feedback-before.json保留。对照Player.cannotAttackWithItem及MINIMUM_ATTACK_CHARGE，等待原生tick使装备蓄力就绪后，range-tail实际刺击及持续使用通过；不降低原版冷却或由Runtime强制造伤。
+
+world-seats增加两个真实客户端的友伤开关和盾/斧对照。首次普通剑伤害的正常击退使后续盾测试目标超距，world-duel-knockback-fixture-before.json保留；独立场景重新准备站位后，参考端友伤拒绝/放行、前盾挡剑与冲刺斧禁用盾均通过，同时载具真实驾驶/乘客比较及双客户端正常退出通过。没有Fake Player或强制关系/伤害Act。
+
+剩余utility补充激流、磁石指南针及特殊消耗品。激流实际位移后切下一夹具清空水体导致原版摔死，world-riptide-fall-fixture-before.json保留；改为下一Arrange先安全创造过渡、落地后恢复生存，Act仍按原版生存输入。该次结果不计通过，正按新前置复验；尚未以此关闭05e。E世界专用发布profile已接入原发布器，拒绝失败/清理不完整及尾部场景代替整组；未执行发布。
+
+### 2026-10-21 E世界参考分支收口与冻结门禁
+
+参考端range-tail修后通过实际长矛、激流、磁石指南针、蜂蜜移除毒效果与紫颂果自然传送，正常保存退出、源未变与端口清理均通过。蜂蜜前置改为原生命令显示毒效果图标，避免隐藏粒子参数同时隐藏HUD图标，不扩大USER读取范围。lifecycle补充原生F3+B/G/H的实际HUD反馈和二次切换恢复；与门户、锚、自然死亡重生同组通过。
+
+正式全仓门禁首次暴露过时检查：NativeInputContextBoundaryTest仍要求三参数epoch，NativePlayerAttributeInspectionTest仍在player内只找MAX_HEALTH默认读；测试分别改为四参数存活边界及实际nativeAttributes完整原生目录读取。保留默认读取不创建实例、不写属性的原版对照，并新增实际isAlive调用断言。world静态检查的骑乘反馈从isPassenger改为核对实际getVehicle及riding字段；不修改生产行为迎合测试。
+
+E UI历史计数单元夹具固定自己的历史计数，不再把当前新增相机Hook计数当作该历史字节夹具；不据此接受任何旧Live结果。world-alpha-publication-tests.log的66项通过，world-tool-tests.log、76份实际mjs语法检查通过；world-final-five-java-tests.log记录五端全量Java测试通过。
+
+world-candidate-build-check-release-strict.log最终spotlessApply、build、check、verifyRelease与verifyCompliance --strict全部通过，五端发行内容/元数据与probe排除通过，严格合规0失败0警告。此后冻结产品及执行工具；仅参考端lifecycle/world-seats因与当前生产和实际工具逐项一致可复用，其余相关组按冻结候选运行，不重跑65旧逻辑场景。冻结矩阵与本Goal固定快照尚未完成，不将构建门禁写为M-05闭合或领域READY。
+
+### 2026-10-21 E世界多部件目标目录缺口
+
+冻结参考端full、range-branches及entity-social均通过；随后目录核验发现原生ClientLevel的主体遍历不包含独立part列表，EnderDragon主体不可pick，而真正可点击的八个部位未进入USER语义发现。Native字节码确认各端原生部位列表及父子生命周期，非按实体ID新增业务白名单。
+
+初始entity-parts用NoAI夹具得到0/8；修正发现后仍0，因为原版NoAI会跳过部位位置更新，初始化部位停留原点并被合法半径过滤。因此该初始0不能单独作为发现缺陷的唯一因果证据，world-multipart-discovery-before.json保留原始上下文。改为原生Hover阶段先初始化，参考端已真实发现8个独立部位与引用；该次动态头部追踪实际WORLD_AIM_TIMEOUT，world-multipart-moving-aim-before.json保存，未计攻击成功。
+
+当前在原生初始化后静止的对照中，核验真实部位pick/攻击及父死亡失效；不放宽近身距离，不以父实体替换命中部位或调用伤害业务接口。新增partName仅来自客户端原生部位名，不含父实体内部数据；共享投影及参考端Native/schema测试通过。此实际缺口使候选重新打开，四端移植、最终构建及矩阵仍待，不沿用上一候选构建或安装证明新代码。
+
+参考端静止对照先请求head实际得到不同原生部位遮挡，world-multipart-native-occlusion-before.json保留坐标和实际射线，未将其放行或替换为父实体。选择该姿态实际暴露的neck后，真实鼠标攻击使父生命下降，kill Arrange后旧引用WORLD_TARGET_STALE；安全清理使dispatch序号增加1，不是再次攻击。断言改为原生攻击计数不变、held=0及清理后300ms无迟到，参考端最终entity-parts通过。
+
+四端按其原生getPartEntities或dragonParts接口移植，Fabric使用原版父引用，Forge/NeoForge使用原生PartEntity；world-multipart-four-ports-tests.log记录编译与实际Native入口检查通过。Forge 1.20.1随后实际部位、伤害、失效、正常退出通过，其余端按顺序运行；尚不宣称五端多部件Live全部通过。
+
+后续NeoForge 1.21.1、26.1.2及Fabric 26.3依次完成同一entity-parts场景。五端当前结果均PASS、源未变、正常退出与端口释放、Persistent Write=0；这是已初始化静止部位的Native输入对照，不外推动态Boss追踪或人工游玩。代码与接口覆盖五端，候选重新进入构建及最终相关矩阵；没有发布新快照。
+
+多部件修复纳入后，world-candidate-build-check-release-strict.log再次完成spotlessApply/build/check/verifyRelease/严格合规，0失败0警告、五端发行检查通过。既有五份entity-parts与当前实际源码/工具全部一致，不为重复确认重跑。其余既定相关组开始冻结矩阵，顺序先lifecycle、entity-social、range-branches及world-seats；仅world-seats使用两个真实自有客户端，其余单实例。当前参考端lifecycle完成，其他组仍在执行；没有发布或将领域READY。
+
+冻结lifecycle随后五端全部通过：真实门户进入、锚充能/重生、自然死亡时取消活动/排队、held=0及无迟到、旧引用失效、同Lease新代次GUI，以及原生F3状态恢复；源未变、正常退出与端口释放。请求未确认时保留原回执、独立观察、不重放；没有物理Esc或新性能测量。05g仍需命令相关冻结组，05d还需桥接组，不由这五份结果替代。
+
+### 2026-10-21 E世界原生喂食差异
+
+冻结entity-social先在四个Forge/NeoForge端通过，Fabric断言失败，原始结果保留在world-fabric-native-feeding-difference-before.json。对照实际Fabric 26.3 TamableAnimal.feed字节码只有一次usePlayerItem，NeoForge 26.x原生实现有两次；不是产品重复派发。测试按真实Loader实现区分消耗量，不修改产品输入或喂食业务。Fabric修正预期后猫/鹦鹉原生随机驯服、狼坐/站/治疗与物品消耗通过，正常退出、端口释放及Persistent Write=0。
+
+entity-social最终五端均通过；range-branches也完成五端适用武器、盾牌挡伤、药水/经验、珍珠、钓鱼、烟花、激流/磁石/消耗品及清理。原版不存在的武器按注册目录排除，不以新版本反推旧端。
+
+world-seats参考端通过友伤、盾/冲刺斧与驾驶/乘客，Forge随后在第二客户端即时取载具语义目标处失败，world-seat-forge-mount-before.json保留。主客户端看到原生spawn不等于另一客户端已同步；改为等待各自客户端目标可用后交互。Forge修正后完整战斗/船/骆驼、双方输入清理与正常退出通过，生产代码未改；其余端继续按当前脚本运行。
+
+### 2026-10-22 E世界冻结矩阵恢复
+
+系统重启后核对固定结果、实际生产与执行工具绑定：world-seats的Fabric结果已在上次最后一条汇报后正常完成，五端真实友伤/盾斧与驾驶/乘客均通过、正常关闭且源未变，不重跑。entity-parts、lifecycle、entity-social、range-branches的五端也仍对应当前候选；旧快照latest不变，新快照尚未发布。
+
+恢复后从其余单客户端组继续。movement本身完整调用worldMovementBranches，发布组取消重复要求单独movement-branches，不删实际分支或用尾部用例替代整组。发布器相关66项单元检查通过；不因这一未被Runtime消费的发布目录调整使已通过的游戏结果失效。
+
+block-bridge随后五端通过。station-use参考端、Forge及NeoForge 1.21.1通过；26.1.2首次在灯熄灭轮询失败，world-station-26.1-lamp-before.json保留，正常退出不等于用例通过。对照实际RedstoneLampBlock的原生邻居信号、四tick调度和关断逻辑，只做一次原样复测；外置只读观察同时记录客户端与服务器方块、调度数及冻结状态。复测完整通过，world-station-26.1-native-observation.jsonl显示原生开关关断、调度自然排空、客户端与服务端最终一致，未修改生产或测试代码。首次原因未定位，不宣称修复；保留开放项并继续剩余端，不再重复碰运气。
+
+E世界发布仍引用的历史验收基线通过现有Pin入口登记为mine_craft_protocol_trial_baseline，避免发布保留最近三份时回收实际依赖；未改任何已发布七文件或其他使用方登记。
+
+恢复后的block-bridge、station-use与combat-use均完成五端当前候选回归、正常退出及端口清理。05d桥接/原生交互站和05e新增战斗/蓄力/消耗专项收口；既有full持续流程仍需冻结回归。26.1.2灯熄灭首次失败仍为未复现开放项，复试不是修复声明。USER Act均为真实语义/原生输入，伤害内部读回明确为SERVER_AUTHORITATIVE DEBUG，不混入USER数据；不测性能，不外推动态Boss或真人验收。其余冻结组与独立安装、发布尚待。
+
+entity-branches随后也完成五端冻结回归。player-command参考端全部功能检查通过后，保存退出因当前world epoch撤销旧请求而返回REQUEST_CANCELLED，旧独立命令Runner未处理这一既有合同，world-player-command-context-exit-before.json保留失败。仅修改player-command/command-configuration两个Runner：保留真实HTTP错误体，不重放退出，复用contextExitEvidence严格校验409、未确认/不可重试、新epoch、标题页及held清零/清理完成。主世界Runner和生产代码不变；已通过世界组没有消费这两个脚本，不重跑。world工具测试及66项发布器测试通过，两命令组按当前工具重新运行。
+
+### 2026-10-22 v3第一检查点与05g收口
+
+按76号恢复入口改用共同规则v3、预先授权v3及Minecraft/Web附则。用户撤回全部子代理批准，主线程核查接手已有文件；不操作任何Goal或线程控制接口，只完成05g及受影响冻结回归后停下。恢复时本仓库无残留游戏进程；原Fabric玩家命令日志仅到中途，旧结果不匹配当前候选，因此不计通过。
+
+独立player-command Runner另有两项真实失败：标题页退出返回RUNTIME_SHUTTING_DOWN，异步世界列表尚空时就检查唯一世界。分别保留world-player-command-runtime-close-before.json和world-player-command-list-loading-before.json。前者只接收实际503未确认/不可重试响应并要求外层独立进程退出证明；后者等待真实目标列表项，仍要求唯一固定世界，不使用内部world-open或坐标。生产代码不变，不重放退出或吞掉其他错误。
+
+五端player-command、command-configuration、command-collaboration及input-context随后均在当前源码/实际工具上通过，源未变、固定副本恢复、4GiB、正常退出与端口/endpoint释放、Persistent Write=0。结合当前五端lifecycle，05g自动专项收口；原生配置拒绝保留零服务器副作用及部分/未确认回执，实际服务器权限变化不替代普通服务器或真人协作验收。world工具测试及66项发布器测试再次通过。其余冻结组仍在执行；单JAR安装、最终发行检查和七文件发布均留后续检查点，本记录不证明当前制品独立可安装或领域READY。
+
+后续Forge关系组在进入世界前失败，world-relations-forge-entity-before.json保留失败上下文：SelectWorldScreen已出现，但其异步世界列表尚未含固定世界，唯一世界断言得到0而非1；并非实体关系读取失败。只将world-debug-relations-actions.mjs的等待条件改为页面及真实World-Read-Alpha条目同时就绪，仍断言唯一世界，不增加固定延迟、自动重试、内部world-open或坐标绕过。相关单元/工具检查通过，参考端修后整组通过；五端关系组按新工具核验。其余已通过场景没有记录或消费该函数，不重跑；生产代码未改。
+
+Forge传播边界Runner随后也在异步世界列表处得到0，world-boundary-forge-list-before.json保留失败；不是加载防护断言失败。边界及尚未运行的转移、Provider、连续输入采用同一真实条目就绪条件。关系与边界均完成修后五端，世界目录及连续输入最终五端冻结通过，生产代码未改。
+
+记录器对独立命令收集整个世界工具目录，并在共享场景中记录未调用的continuous-input模块；直接按全部字节差异作废会反复重跑无关组。E世界发布验证只对本次五个具名就绪改动做精确全文件反向哈希复核，且只允许实际未执行的场景函数；执行过的分支、任何额外变动、错误哈希仍拒绝。旧结果及其绑定字节不改，复用条目单列recordedUnexecutedReadinessUpdates，不声称原始工具字节全部匹配。真实工具文件正负例在67项发布测试中通过，已完成世界组无未解释绑定差异。
+
+UI参考端首次all执行到死亡准备时，kill命令触发原生死亡和输入代次失效，旧请求返回REQUEST_CANCELLED，Runner在测试重生按钮之前失败；ui-reference-respawn-context-before.json保留原始失败。只改验证准备路径：一次提交、不重放，保留409未确认/不可重试错误，以DeathScreen、USER生命0、新代次、同Lease/模式和输入清零独立核对死亡，再执行原有真实重生按钮检查及500ms无迟到观察。死亡准备不作为gameplay验收，也不改命令类别或运行时合同。20项直接提取Runner函数的单元正负例通过；新增respawn定向结果与all分离，参考端实际死亡、重生、保存退出通过。当前完整UI矩阵仍待收口，不将定向结果代替整组。
+
+参考端与Forge随后完整UI all通过。1.21.1在优化器取消处失败，ui-1.21-world-recovery-before.json保留：原Runner以断言覆盖原始异常，只能确认返回自有Fixture页、资源关闭且未获得Cancel覆盖，无法确定最初错误代码。唯一ui-world-pages定向复测通过，不宣称修复或用它替代all。错误路径现先记录原始错误、HTTP状态和Runtime回执；仍只接受原有UI_TARGET_INVALIDATED/UI_NODE_NOT_FOUND早结束，其他错误原样抛出，未放宽白名单。13项世界恢复单元通过；完整1.21.1 UI按当前工具核验。
+
+参考端/Forge实际早结束为上述两个已允许错误，native worker自然完成，未计Cancel覆盖；只增加错误诊断字段和保留原始失败不会改变这些成功路径的请求或准入。发布验证通过精确全文件反向哈希和原始样本核对复用，单列recordedToolUpdates、newDiagnosticsCovered=false，不把旧回执说成包含新诊断。68项发布验证正负例通过；其余更改仍拒绝，旧结果不手改。
+
+最终收集器复核发现五端command-configuration虽然功能与外层退出日志通过，独立Runner漏写runtimeConnection，外层Test-WorldReceiptOwner因此拒绝附入cleanShutdown和实际4GiB证明。严格门禁正确拒绝这五份缺失记录，不以日志补写JSON。仅在该Runner结果中记录实际已连接的实例ID/PID/端口，沿用外层身份一致检查、进程退出/端口/endpoint核验；其他结果不放宽。五端仅该组按修后工具重跑。player-command未导入此文件，其记录目录中的唯一元数据变动以精确全文件反向哈希复用；实际执行的配置组不得复用。69项发布验证正负例通过，生产代码未改。
+
+### 2026-10-22第一检查点结果
+
+第一检查点PASS，限59号批准的M-05/M-06及受影响开发Runtime回归，不代表两个完整里程碑READY。以下每格均有实际游戏结果；同一场景覆盖多组时只运行/接收一份，不按表格重复执行。具体场景映射由[发布目录](../../components/validation_tools/regression-v1_release/task/e-world-proof.mjs)中的E_WORLD_GROUPS定义。
+
+| 组 | Forge 1.20.1 | NeoForge 1.21.1 | NeoForge 26.1.2 | NeoForge 26.3 | Fabric 26.3 |
+| --- | --- | --- | --- | --- | --- |
+| 05a 移动/上下文 | PASS | PASS | PASS | PASS | PASS |
+| 05b 特殊移动/双玩家载具 | PASS | PASS | PASS | PASS | PASS |
+| 05c 物品/破坏/放置/工具 | PASS | PASS | PASS | PASS | PASS |
+| 05d 方块交互/UI桥接/生命周期 | PASS | PASS | PASS | PASS | PASS |
+| 05e 战斗/蓄力/消耗 | PASS | PASS | PASS | PASS | PASS |
+| 05f 实体/自然反馈 | PASS | PASS | PASS | PASS | PASS |
+| 05g 生命周期/命令/配置/协作 | PASS | PASS | PASS | PASS | PASS |
+| 05h 有界区域读取 | PASS | PASS | PASS | PASS | PASS |
+| 06a 玩家/实体状态 | PASS | PASS | PASS | PASS | PASS |
+| 06b 库存/方块实体分页 | PASS | PASS | PASS | PASS | PASS |
+| 06c 实体生命周期 | PASS | PASS | PASS | PASS | PASS |
+| 06d 环境 | PASS | PASS | PASS | PASS | PASS |
+| 06e 关系 | PASS | PASS | PASS | PASS | PASS |
+| 06f 加载/传播边界 | PASS | PASS | PASS | PASS | PASS |
+| 06g LIVE转移 | PASS | PASS | PASS | PASS | PASS |
+| 06h Provider/Fixture | PASS | PASS | PASS | PASS | PASS |
+| 受影响连续输入 | PASS | PASS | PASS | PASS | PASS |
+| 受影响UI all有限目录 | PASS | PASS | PASS | PASS | PASS |
+
+正式collectEWorldProof接收32场景×5端的160份当前候选记录：全部正常退出、执行期间源未变、Persistent Write=0；记录来自world_read及vanilla_ui的固定result路径。这是冻结目录覆盖，不以测试数量宣称所有原版或第三方行为已验收。
+
+复用以实际生产源码、Target事实和执行工具为依据，不重跑已通过且未受影响的组。132份记录涉及精确工具差异复核：未执行世界列表就绪改动150处、未执行配置记录字段5处、成功路径不变的优化器错误诊断2处；这些是记录引用次数，不是新增测试。反向全文件哈希、场景准入及原始样本严格核对，任何额外改动仍拒绝；旧JSON不改。
+
+player-command记录器只哈希Java/JSON/TypeScript，未记录的9个Loader资源绑定由同端本来就必需且通过的full世界记录提供，收集结果明确resourceBindingsFrom，不假称玩家命令记录含这些字段。只允许具名元数据/访问配置；遗漏代码、已记录但改变的哈希、其他Target、失败或未正常关闭的full均拒绝。70项发布器单元正负例通过。五端配置命令按补齐身份的Runner重新通过，关闭/堆上限证明由外层真实核验产生。
+
+本次spotlessApply/check/verifyCompliance严格模式通过，合规0失败0警告；检查日志为外置Investigations/20261021-e-world/checkpoint1-check-strict.log，验证工具最终复核另记checkpoint1-final-tool-check.log。此前当前生产候选完整build/check/verifyRelease/严格合规仍见world-candidate-build-check-release-strict.log，本次不把它写成新安装证据。生产Java、协议与权限合同没有在本检查点改动。
+
+未复现开放项仍保留：26.1.2交互站灯熄灭一次失败，1.21.1优化器取消一次原始错误丢失。后续通过不等于已修复；原失败及必要读回保留于外置Investigations。历史三攻击性能目标NOT_MET，本批不测性能。物理Esc、真人协作与普通服务器权限三项均未执行。
+
+本次停止于第一检查点。第二检查点待安排：五端全新独立游戏目录，仅对应Loader及一份最终产品JAR，实际进入世界、握手/读取、保存退出/关闭，再做最终发行检查；不含开发classpath、额外模组或手工依赖。第三检查点待安排：同批清单/手册、不可变七文件快照、latest及集中人工清单。当前latest仍为20261021-0006-90123ba7，本次没有刷新清单、手册或发布快照，不操作任何Goal、子代理或Git写操作。
+
+### 2026-10-22 E世界单JAR与Alpha交付
+
+按106号合并原安装/发布检查点：同候选五端全新单JAR进入世界通过后直接交付Alpha并停止。候选完整身份、五个构件SHA、开发/安装原始结果引用集中在D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261022-1722-0ea052cb/alpha-manifest.json；同目录AGENT_GUIDE.md为使用入口，latest已指向该不可变七文件目录。profile=e_world_trial_v1，不代表完整领域、性能或真人验收通过。
+
+本次先复核当前生产源码与第一检查点冻结目录仍一致，不重跑世界/UI矩阵；spotlessApply/build/check/verifyRelease/严格合规通过，五端各261个必需发行条目核验通过，合规0失败0警告。包装静态门禁另通过。随后参考端先证明入口有效，再串行其余四端；总计五次客户端启动，均1920×1080静音、最大堆4GiB、低优先级/4逻辑核，不向宿主发输入、不激活窗口，不改系统或用户实例。
+
+| Target | 单JAR标题/握手 | 进入世界/USER读取 | 保存退出/关闭 | 实际HTTP来源 |
+| --- | --- | --- | --- | --- |
+| 1.20.1-forge | PASS | PASS | PASS | 产品Jar-in-Jar，4.1.82.Final |
+| 1.21.1-neoforge | PASS | PASS | PASS | 产品Jar-in-Jar，4.1.97.Final |
+| 26.1.2-neoforge | PASS | PASS | PASS | 原版安装库，4.2.7.Final |
+| 26.3-neoforge | PASS | PASS | PASS | 原版安装库，4.2.16.Final |
+| 26.3-fabric | PASS | PASS | PASS | 原版安装库，4.2.16.Final |
+
+每端使用官方Loader的全新目录和仅一份外部产品JAR，不带开发classpath或手工补库；共享Transport、公开Provider SPI和HTTP实际类来源已记录。固定世界仅从既有不可变基准校验后复制，不修改原基准；通过正式GUI语义进入，USER玩家读取为CLIENT_KNOWN、非存档/非强制加载。保存退出独立确认标题、新输入上下文、held=0和Lease释放回READ，再从标题正常退出，进程码0、Stopping日志、无崩溃报告且endpoint删除。
+
+首次发布被真实CLI门禁拒绝：alpha-evidence入口await世界校验，世界收集器又动态import尚在执行的同一入口，产生未完成顶层await。publish-alpha.log保留原失败，当时latest未变、未发布。仅将验证函数改为静态函数绑定，不改生产或验收断言；70项发布器单元和实际CLI通过后，由既有发布器发布已准备好的同批七文件。安装和冻结结果未消费该验证模块变化，不重复启动游戏。
+
+日志集中于外置Investigations/20261022-e-world-release：candidate-build-check-release-strict.log、packaging-gate.log、五端limited安装摘要、publication-cli-fix-tests.log、publication-cli-fixed.log与publish-alpha-fixed.log；安装原始结果在integration-packaged_runtime固定result，清单记录其哈希。上批五份安装报告移入该外置目录的previous-installed-results保留，未手改。五份旧自有安装按owner/锁/路径校验后进入回收站；发布器无警告，保留最近三份及所有使用登记，包括历史验收基线，仅回收自己的latest备份。
+
+新增可用范围为批准的世界USER/DEBUG目录及CF-022分页，细节见生成手册与清单的eWorldTrial；本次独立安装只证明Loader/连接/读取/进退生命周期，不能替代最终JAR内所有功能或第三方组合验证。26.1.2灯熄灭、1.21.1优化器取消两项未复现异常仍开放；三攻击性能仍为历史NOT_MET，本轮未测。OPERATE真人协作、普通服务器deop/op及物理Esc三项集中待用户，未自动代验。M-01/M-09/F/第三方兼容范围未扩大，未操作Goal或子代理，未提交/推送/tag，Persistent Write=0。
+
+## 2026-10-23 独立服务器控制台基础
+
+用户批准开始服务端开发，本批落地有限初始目录，不代表两个完整里程碑或所有三部署组合已交付。
+五端用原生服务器生命周期建立同一ProbeTransport/ProtocolState/RuntimeEndpoint；零玩家可用，集成服不额外创建第二入口。
+默认不授予server_console，操作员身份不借玩家OP/Lease；READ分页读取已发布日志，OPERATE经服务器任务队列和原生分发器执行。
+首批命令根help/list/say/seed/time/weather，停服/权限/保存/重载/间接或未知根发送前拒绝；全部仍是USER，不自动获得DEBUG授权。
+
+参考端先单JAR实测，再移植四端。Forge1.20.1适配File目录与三参结果回调；Fabric不借用NeoForge的source访问扩宽，反馈委托DedicatedServer。
+控制台输出从SERVER_STARTED接入后开始，INFO及以上、256条环、每条4096字符、每页最多128条，显式gap/截断；不读旧日志或还原终端像素。
+语法错误实测只产生反馈而不保证结果回调；Operation completed只表示分发返回，worldEffectConfirmed=false，取消不承诺回滚。
+直接native source反馈关联唯一Operation ID；普通日志不按时间伪装为命令反馈。
+
+五端对应integration-server_peer/result/<target>-console.json全部PASS：只装各自官方Loader和最终产品JAR，无实验probe、开发classpath或在线玩家，
+真实Companion握手及命令、错误Bearer/实例pin、READ拒绝写、TAKEOVER不适用、原控制台输入并存、时间设置后独立原生回读、语法错误回执及正常停止。
+五份证明的JAR哈希与build/libs和build/release对应构件逐一相等，进程退出码均0。
+生产引擎及真实HTTP测试证明默认scope拒绝、排队取消/关闭后不派发、执行时授权重查，既有客户端回归保持。
+check/verifyRelease、OpenAPI/Java及TypeScript生成、Companion、Control/Hook/结构/文档门禁及严格合规通过，规范2.0.2失败0警告0。
+原生编译弃用提示仍保留，不属于合规失败。
+
+参考端integration-packaged_runtime的当前最终JAR已另行通过进入固定世界、USER读取、保存退出及关闭；结果为26.3-neoforge.json。
+旧自有安装目录按既有owner/锁/路径检查进入回收站，新安装未触碰用户实例或原基准。
+这不是五端新客户端运行矩阵、物理Esc或统一UI/UX验收。完整可选单端互通、Peer委托与服务器DEBUG/存档/录制/补全仍待实施。
+本轮未使用Computer-Use、未操作Goal/子代理、未提交/推送/tag、未发布Alpha。固定快照20261022-1722-0ea052cb保持原样，Persistent Write调用0。
+本轮构建日志在build/server-console-final-gates.log，参考端客户端日志在build/server-console-client-regression.log；不以本地build目录作为稳定分发路径。
+
+## 2026-10-23 首批独立服务器世界 DEBUG
+
+用户授权继续服务端DEBUG。主线程复用正式Deep Observation、Arm、ResourceVersion和typed mutation/batch，
+完成零在线玩家主世界world/blocks读取及world.block.set；其余目录/维度和完整Peer委托不在本批实现中。
+修改回执需读取权限，执行前拒绝缺scope；不借控制台scope或玩家Lease，不以命令包装冒充typed DEBUG。
+资源版本绑定服务器epoch和区块对象生命周期，身份使用弱引用，不保留已卸载区块；仍是观察变化序列，不是全世界事务令牌。
+Fabric区块守卫进入main及common Mixin配置，保留客户端集成服路径，原生图形Hook没有移位。
+
+五端integration-server_peer/result/<target>-server-debug.json均PASS，绑定本次最终JAR：实际Companion读取、Arm、修改、
+旧版本/原值/非法属性拒绝、未加载无加载、批次恢复、disarm及正常关闭；对应JAR哈希逐一匹配build/release。
+原生控制台只为自有夹具准备loaded区域和正常关闭；这是Fixture/收尾，不是产品自动加载或玩家验收。
+密集负控曾命中既有DEBUG预算，Runner按2/s补充节奏，不修改产品限流；属性案例按实际before选择不同值，避免把正确的NO_STATE_CHANGE当作失败。
+生产HTTP及引擎测试覆盖无console scope的合法DEBUG、默认/缺读取权限拒绝、排队取消/disarm/关闭和生命周期失效。
+仅切回READ/交回玩家输入不取消既有独立DEBUG，仍使用明确取消或disarm。
+
+spotlessApply后check/verifyRelease及严格合规通过；当前日志为build/server-debug-frozen-gates.log。
+参考端及Fabric最终单JAR客户端已进入固定世界、USER读取、正常保存退出，结果为integration-packaged_runtime/result下对应JSON；
+自有旧安装目录按owner/锁/路径检查移入回收站，可恢复，不触碰用户实例/存档。
+未执行新五端完整客户端矩阵、真人验收或全部部署组合，不宣称两领域READY。
+固定Alpha保持20261022-1722-0ea052cb，不更新旧清单配新JAR；未发布Alpha、未提交/推送/tag，Persistent Write调用0。

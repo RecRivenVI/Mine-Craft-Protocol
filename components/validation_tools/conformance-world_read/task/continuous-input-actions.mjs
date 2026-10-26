@@ -142,7 +142,7 @@ export async function continuousInputActions({api, connection, repo, instance, t
     });
     await check('continuous enters the restored world by USER semantic UI without coordinate fallback', async () => {
       await take(); await click('menu.singleplayer', 'Singleplayer');
-      const tree = await wait(value => value.screenClass.endsWith('SelectWorldScreen'), 'continuous world list', remaining(20000));
+      const tree = await wait(value => value.screenClass.endsWith('SelectWorldScreen') && nodes(value).some(row => row.worldName === 'World-Read-Alpha'), 'continuous world list populated', remaining(20000));
       const row = nodes(tree).find(value => value.worldName === 'World-Read-Alpha'); assert(row);
       await clickNode(row); await click('selectWorld.select', 'Play Selected World');
       await wait(value => !value.screenClass, 'continuous restored world entered', remaining(60000));

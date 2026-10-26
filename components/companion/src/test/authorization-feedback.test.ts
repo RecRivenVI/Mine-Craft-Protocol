@@ -49,3 +49,20 @@ test('Companion does not imply a deadline rolls back native commands or authoriz
   assert.equal(error.executionOutcome, 'not_confirmed');
   assert.equal(error.retrySafe, false);
 });
+
+test('Companion retains authorized partial native mutation receipts, not arbitrary error details', async () => {
+  const partial = {namespace:'world', operation:'world.block.set', nativeEffectsComplete:false,
+    mutationMayHaveApplied:true, evidenceContaminated:true, gameplayEvidence:false,
+    afterResourceVersion:{revision:3}};
+  const details = {executionOutcome:'partial',retrySafe:false,partialMutation:partial,privateData:'not forwarded'};
+  const result = await asToolResult(async () => {
+    throw new RuntimeError('DEBUG_MUTATION_PARTIAL_NOT_LOADED',409,'Native propagation stopped','partial-request',details);
+  });
+  const error = (result.structuredContent as {error:Record<string,unknown>}).error;
+  assert.equal(result.isError,true);
+  assert.equal(error.executionOutcome,'partial');
+  assert.equal(error.retrySafe,false);
+  assert.deepEqual(error.partialMutation,partial);
+  assert.equal(error.privateData,undefined);
+  assert.equal(new RuntimeError('SCOPE_DENIED',403,'denied',undefined,details).partialMutation,undefined);
+});

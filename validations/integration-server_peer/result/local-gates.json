@@ -1,6 +1,6 @@
 {
   "Result": "PASS",
-  "Checks": 39,
+  "Checks": 42,
   "Cases": [
     {
       "Gate": "Invoke-ServerPeerLocalGate.ps1",
@@ -168,7 +168,7 @@
       "Expected": "FAIL",
       "Outcome": "FAIL",
       "Check": "PASS",
-      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce\\versions\\1.20.1-forge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584\\versions\\1.20.1-forge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -176,7 +176,7 @@
       "Expected": "FAIL",
       "Outcome": "FAIL",
       "Check": "PASS",
-      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce\\versions\\1.21.1-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584\\versions\\1.21.1-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -184,7 +184,7 @@
       "Expected": "FAIL",
       "Outcome": "FAIL",
       "Check": "PASS",
-      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce\\versions\\26.1.2-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584\\versions\\26.1.2-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -192,7 +192,7 @@
       "Expected": "FAIL",
       "Outcome": "FAIL",
       "Check": "PASS",
-      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce\\versions\\26.3-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584\\versions\\26.3-neoforge\\src\\main\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -200,7 +200,7 @@
       "Expected": "FAIL",
       "Outcome": "FAIL",
       "Check": "PASS",
-      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce\\versions\\26.3-fabric\\src\\client\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
+      "Error": "Cannot find path 'D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584\\versions\\26.3-fabric\\src\\client\\java\\io\\github\\recrivenvi\\minecraftprotocol\\probe\\gui\\AutomationProbeScreen.java' because it does not exist."
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -233,6 +233,30 @@
       "Outcome": "FAIL",
       "Check": "PASS",
       "Error": "Phase 7 Hook gate assertion failed: 26.3-neoforge Mixin config must fail visibly when a required Hook cannot apply"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "wrong-cursor-argument-guard",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Phase 7 Hook gate assertion failed: 26.3-neoforge must own only its applicable exact host cursor argument guard"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "unreviewed-variable-replacement",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Phase 7 Hook gate assertion failed: 26.3-neoforge must not use unreviewed replacement mechanisms"
+    },
+    {
+      "Gate": "Invoke-StandardGuiLocalGate.ps1",
+      "Case": "mislabelled-cursor-argument-hook",
+      "Expected": "FAIL",
+      "Outcome": "FAIL",
+      "Check": "PASS",
+      "Error": "Phase 7 Hook gate assertion failed: 26.3-neoforge must disclose its host cursor argument replacement, not mislabel it as cancellation or redirect"
     },
     {
       "Gate": "Invoke-StandardGuiLocalGate.ps1",
@@ -315,7 +339,7 @@
       "Error": "26.3-neoforge artifact metadata identity/version mismatch"
     }
   ],
-  "Fixture": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-f6187aaa0d964c69a5de92b9ae3341ce",
+  "Fixture": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\build\\validation-fixtures\\local-gates-0798ec28326e4968a7f8d7f132943584",
   "SampleKind": "COPIES_OF_CURRENT_SOURCE_AND_JARS",
   "ActualRepositoryFilesMutated": false,
   "GameStarted": false

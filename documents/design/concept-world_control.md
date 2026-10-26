@@ -119,13 +119,15 @@ USER 单块、场景方块与实体摘要可附带 targetRef/targetTtlMs。非�
 MCP 使用既有 minecraft_run_input_pipeline；不增加自动 acquire、自动选物品、路径规划或 DEBUG 回退。
 动作与所有玩家输入共用串行队列、Operation、deadline、取消和清理，仍需 input scope、TAKEOVER 与 Lease。
 
-每次校正复验世界、玩家、摄像机、目标生命周期、选中物品和玩家位置，再通过既有 mouse.delta 调用原版相机处理。
+每次校正复验世界、玩家、摄像机、目标生命周期、选中物品及当前视点/距离，再通过既有mouse.delta调用原版相机处理。
+正常位移不被当作玩家身份变化或锁定到手势开始坐标；移动期间重新计算当前视点、目标几何与原版pick，命中不符时不按下，不自动走近或寻路。
 按下前同一客户端线程内重新原版 pick，再按实际 attack/use 键位执行短按；不直接修改朝向或 world state。
-无 Screen/Overlay、第一人称、非旁观且存活才允许执行；电影相机与不支持的键位明确拒绝。
+无 Screen/Overlay、第一人称且存活才允许执行；旁观不被整体拒绝，交互效果仍由原版处理。电影相机与不支持的键位明确拒绝。
 未指定放置面的方块动作从原生交互轮廓分解出的实际盒体取中心及面中心候选，最多 64 项，
 通过客户端原生 OUTLINE 射线选取无遮挡的近点，不按方块或 Mod ID 建表；空轮廓或无可用候选明确拒绝。
 这不是完整表面搜索，也不替代按下前的原生 pick、实体遮挡或距离校验；复杂形状仍可能没有候选。
 指定面的 place 继续使用原合同的面内 u/v，不因通用瞄准改成任意表面或绕过 BlockItem 规则。
+普通方块use可显式指定同样的面与u/v，投影到真实轮廓以区分书架等小格；只适用于方块，不接受放置目的格条件，也不读取/改写内部容器。
 
 方块引用绑定缓存 Chunk 对象、BlockState 与位置级客户端变更历史；同 Chunk 其他位置更新不直接使它失效，
 同坐标 A→B→A 仍拒绝旧引用。共享历史最多保留 4096 次已观察 Chunk 的原生更新，只弱引用 Chunk，
@@ -367,6 +369,29 @@ Block/Item/Entity 注册与行为、命令树及 feature flags 建立版本绑�
 但“寻找远方村庄并自动绕路抵达”等策略不是任何家族隐含的首版承诺。
 游戏设置更改属于 UI，OS 截屏/窗口/账号管理属于其他边界；不在世界清单假装补齐。
 
+### USER 独立分支核验表
+
+下表是当前 M-05 的补齐清单，不以一个同类物品或一个成功流程代替整组。
+“已有”只指具名场景的实际覆盖；各组是否闭合以[状态页](../project/status-milestones.md#世界组完成口径)为准。
+版本专有武器、载具与快捷键须先对照各 Target 实际注册与原生实现，再登记适用性，不能按新版本反推旧版。
+
+| 组/家族 | 已有具名路径 | 仍须独立核验的分支 |
+| --- | --- | --- |
+| 05a / WU-01～02 | 五端movement：四向/组合、潜行/冲刺、墙碰撞、边缘、跳跃、梯子/藤蔓/脚手架、爬行、真实改键、取消/Lease | 专项闭合；最终冻结与真人另计 |
+| 05a / WU-03～04 | 五端游泳/出水/溺水/熔岩反馈、原生灵敏度/适用反转与语义aim、三视角/望远镜；平滑余量由原生帧处理且强停止清零 | 专项闭合；电影相机语义aim诚实拒绝，旧版无X反转 |
+| 05b / WU-05/15/16 | 五端special-movement：创造/旁观、船/矿车/马/骆驼/羊驼/道具坐骑、适用快乐恶魂/鹦鹉螺、鞘翅；world-seats双客户端Player输入 | 专项闭合；真实第二Player不驾驶、随驾驶者移动及双方退出；最终冻结另计 |
+| 05c / WU-06～08 | held六面/含水/连锁与placement-receipts；五端item-utility及placement-branches：热栏/丢弃/Pick Block/保存、实际轮廓/潜行/支撑/碰撞/流体及挖掘拒绝 | 专项闭合；最终冻结时复验实际经过轮廓改动的既有路径 |
+| 05c / WU-10 | world-ui斧/锹/锄/炼药锅；五端剪切/点火/熄灭/刷扫、瓶/桶、骨粉与蜂蜡 | 专项闭合；刷扫明确语义aim后字面原生持续输入，不冒充原子目标手势 |
+| 05d / WU-09/19 | 细轮廓按钮/拉杆、工作台/铁砧/熔炉、动态木桶槽位 | 门/活板门/栅栏门、床/锚、唱片/书台、堆肥/炼药锅投入取出与交互站；背包/骑乘菜单/聊天/暂停桥接 |
+| 05e / WU-11～13 | held 普通攻击/盾、弓蓄力/取消、食物完成 | 冷却/无效目标、原生武器特有动作；弩/三叉戟与新武器；药水/奶/投掷/珍珠/烟花/钓鱼/号角/指南针 |
+| 05f / WU-14/17 | entity 驯狼/繁殖/牵引栅栏释放/交易 | 剪毛/桶捕捉/修复、展示框/盔甲架/不同手持物；物品与经验拾取、受伤恢复/掉落/装备破损与客户端 ID/数量 |
+| 05g / WU-18/20 | 五端lifecycle、input-context、player-command、command-configuration和command-collaboration | 门户/锚/自然死亡重生、旧身份和活动/排队取消、F3恢复及原生命令门禁当前回归通过；真人另计 |
+| 05h / 区域读取 | region-stream与五端world-region-functional：section重建/点查、预算/半径、单用/取消/实际闲置到期 | 功能专项闭合；确定性时钟边界另测，不重测吞吐 |
+
+测试 Arrange 可用独立授权命令或 Fixture 建立条件；Act 必须是实际玩家输入、语义目标/菜单或原生命令提交。
+自用物品、移动和按键快捷操作可走实际键位的 GAME_ROUTED 输入，不要求虚构一个无关的方块 targetRef。
+动作派发、原生消费、客户端预测与实际效果分别判定；原版拒绝不可改写成已完成目标。
+
 ### DEBUG 读取与独立授权修改
 
 DEBUG 表示独立授权的内部层，不表示任意字段都可写。
@@ -390,6 +415,88 @@ DEBUG 表示独立授权的内部层，不表示任意字段都可写。
 | WD-12 | Provider/复合 Fixture | 经过 schema/policy 的内部状态与 revision | 已批准 typed mutation/有界批次；原版核心清单不得依赖第三方 Provider 代填 |
 
 同家族内“其余以后再做”不能算完整通过；实施前确定字段/操作目录，逐项登记采集支持与只读理由。
+
+### 当前环境目录
+
+world域读取实际clocks/weather/rules及资源版本。world.time.set修改原生总tick，world.weather.set修改批准flags与三个计时器，world.rule.set按当前原生boolean/integer及其argument值域设置规则。
+具名时钟/天气控制修改与自然推进分开计版本，显式expectedValue仍精确匹配；不把自然每tick变化制造成不可用的写前置条件，也不将版本解释为冻结整个世界。
+gameTime、seed/worldgen及调度只读；播放速率/暂停配置属于模拟诊断，不新增任意模拟控制。字段、Target差异、版本覆盖及副作用以[Native定义](../reference/protocol-native_v0.md#debug-世界环境)为准。
+
+### 当前实体生命周期目录
+
+entity.spawn通过原生注册类型工厂在已加载目的地创建默认对象，封闭value只接受类型、位置及朝向；不接受NBT/UUID，不执行finalizeSpawn或模拟玩家召唤。
+entity.remove对已加载非玩家对象执行discard；身份与类型只读，删除不可恢复，同名新对象不是原身份。
+目的地selector.entityChunk显式读取完整有界成员集及entity_registry版本，避免借用无关玩家/方块版本授权重复创建；实体边界不越入未加载Chunk。
+存活、removed/removalReason与lifecycleId由实际对象读取，移除后版本不可写；完整目录与限制见[Native定义](../reference/protocol-native_v0.md#debug-实体生命周期)。
+精确定位/跨维度归06g的原生LIVE转移，关系归06e；Provider和无Peer不作为创建任意实体的隐藏回退。
+转移的现有维度、已加载包络、精确身份读取及副作用合同见[Native说明](../reference/protocol-native_v0.md#debug-live-转移)；玩家跨维度必须显式重新授权，实体原生重建不能沿用旧身份版本。
+
+### 当前加载与模拟目录
+
+已加载Chunk的调度读取保留64项预算并明确queued/container/pending计数、截断、原生迭代次序及不含已收集队列；不加载、展开或改写调度。
+模拟只读地区分集成暂停、可用的原生TickRateManager和WorldClock播放状态，不把配置速率当作实测性能；旧版原生不存在的字段明确说明。
+有界block batch复用现有逐项资源/原值与失败政策，不是事务或区域存储写入。正式typed block的直接邻域先验检查与同步原生Chunk入口约束防止隐式加载；传播途中停止须保留实际部分效果、资源版本与诊断污染，不伪装成无副作用拒绝。06f五端完成口径见状态页。
+字段与当前限制以[Native定义](../reference/protocol-native_v0.md#debug-加载与模拟诊断)为准。
+
+### 当前关系目录
+
+entity.vehicle.set/player.vehicle.set使用非强制原生骑乘/下马；座位顺序只读，由原生分配，容量和下马后的冷却不被绕过。
+entity.leash.set使用该版本原生牵引资格与setter，显式null清除；不解析未完成的保存关系。entity.owner.set只支持原生TamableAnimal/AbstractHorse的归属和驯服标志，新主人必须是当前已加载真实玩家。
+关系使用独立entity_relationship版本，不因走动/生命变化而失效；主对象及受影响旧/新参与者都必须匹配，不能借用完整实体或其他资源版本。
+玩家骑乘同时需要player/entity的scope与Arm，在同一道取消屏障内准入，不占输入Lease。
+原生挂绳可下马，骑乘可解除挂绳并掉落绳索，驯服可改变属性和生命；回执保留完整beforeEntity/afterEntity，不将关系恢复等同全部状态回滚。
+旧版仅Mob具有批准牵引路径，现代版本按原生Leashable；其他归属/异构附件只读，没有批准通用setter。
+精确字段、参与者与非加载边界见[Native定义](../reference/protocol-native_v0.md#debug-关系)。
+
+### 当前物品读写目录
+
+玩家inventory/equipment及活动menu的DEBUG物品字段为empty、id、count、customName、damage、maxDamage及componentsHash。
+customName是literal文本投影，不是富文本或完整组件序列化；componentsHash只用于变化识别，不代表已读出全部属性。
+方块实体的批准内部字段通过显式序列化读取，保留read effects及字节预算；不以USER字段补齐DEBUG。
+
+| 资源/字段 | 当前typed操作 | 前置条件与只读边界 |
+| --- | --- | --- |
+| 玩家原生库存 | player.inventory.slot.set | slot以实际inventory返回值为准，不按UI编号猜测；独立player Arm及完整玩家资源版本 |
+| 玩家标准装备 | player.equipment.set | mainhand/offhand/head/chest/legs/feet；其他实体专用装备位置不作为玩家setter |
+| 已加载原生容器 | block_entity.slot.set | 实际Container槽位、类型与serialized资源版本；未开奖励容器明确拒绝隐式展开 |
+| 容器自定义名称 | block_entity.custom_name.set | 现有BaseContainer批准setter，不当作所有BE通用名称接口 |
+| 活动Menu物品 | menu.slot.set | 现有Menu版本/槽位/原值合同，不用于伪造UI用户输入 |
+| 名称与损坏值 | itemData.customName/damage | 新三项物品setter的封闭载荷；native堆叠/耐久域限制，其余未批准组件不能写入 |
+| 其他物品组件/BE业务字段 | 无raw NBT/任意组件setter | 未批准写入只读；派生进度通过原版业务改变，不伪装通用事务或任意对象编辑 |
+
+替换未指定的数据采用原生默认值，不承诺无损复制未知组件。物品与容器操作经过原生setter及常规同步，
+恢复须基于刚读出的版本和原值；未知外部变化保留而不覆盖。字段不因mode取得额外授权，所有变更为DEBUG_PRIVILEGED。
+
+### 当前状态与属性目录
+
+player.state.set批准食物/饱和度、空气、吸收、经验等级/等级内点数、有界逻辑速度及受原版mayFly限制的flying；entity.state.set批准已加载非玩家实体的生命/吸收、空气、silent/noGravity/glowing、Mob的noAi和速度。
+总经验累计历史、mayFly/instabuild等授权能力、身份、生命周期及模拟派生字段不由state.set修改；字段名、类型与精确值域以Native schema为准。
+属性读取枚举实际拥有的注册项，返回base/value、已实例化修饰符及可得的原生有效范围，不为读取创建AttributeInstance。
+player.attribute.set与entity.attribute.set修改批准的minecraft原生属性base，限定在其native有效值域内；这比原生可存入再clamp的任意base范围更窄，明确拒绝而不静默截断。
+修饰符/effective value只读、通过原版装备/效果派生，不提供任意修饰符注入。player的既有max_health别名仍映射实际注册属性。
+entity.equipment.set使用实际nativeEquipmentSlots中的名字及批准itemData；1.21.1及以后按native canUseSlot判适用，1.20.1只有其原生六项。玩家setter仍只接受六个标准位置。
+实体操作要求独立entity Arm/资源版本，不借用玩家scope或UI槽位；物种独立容器不按私有数组猜索引，活动Menu另沿既有menu.slot.set合同。
+原生模拟和属性/装备回调属于实际副作用，不承诺跨字段事务；回读真实before/after后按新版本恢复，不能盲目覆盖外部变化。
+player.effect.set/entity.effect.set按原生注册ID设置或显式null移除效果，含duration/amplifier、ambient/showParticles/showIcon及最多16层hidden链；不接受任意NBT。
+当前链超过预算则只读并拒绝修改，不丢弃未知尾部。原生forceAddEffect/removeEffect回调、属性变化和自然到期是真实副作用，不承诺取消回滚。
+
+| 字段家族 | 可写目录/只读理由 |
+| --- | --- |
+| 身份、类型、UUID/runtimeId/lifecycleId、维度归属 | 身份只读；创建/移除归06c，合法LIVE转移归06g，不直接替换对象或标识 |
+| 精确位置/朝向/速度、previous位置、pose/onGround/inWater/fallFlying | 速度在本组；位置/朝向转移归06g；历史与姿态/接触/飞行模拟标志为原版派生只读，不强塞矛盾状态 |
+| 生命/最大生命/吸收、食物/饱和度、空气/最大空气 | health/state及原生max_health属性；最大空气由对象类型决定，不改类型或私有计时器 |
+| 等级/等级内点数/经验进度/总经验 | 等级与点数按native需求分步设置；进度派生，总经验为累计历史，无独立任意赋值 |
+| gameMode/mayFly/instabuild/flying | 不在DEBUG setter改授权或角色；仅现有mayFly允许时启用flying，不能借此开作弊 |
+| 注册属性、base/effective value/修饰符 | 批准原生base可写；effective value和修饰符由native计算/装备/效果维护，只读，无任意modifier注入 |
+| 效果与hidden链、混合/渐变缓存 | 批准效果链可设置/移除；超过预算只读，图形/计时派生缓存不作为可无损恢复的字段 |
+| 通用标志、Mob noAi/aiTargetUuid、其他AI/附件 | 标志及noAi可写；当前AI目标只读、关系编辑归06e。异构brain/导航私有对象及附件没有批准有界模型/任意setter，不导出对象图或触发惰性初始化 |
+| 库存/标准与原生适用装备/活动Menu | 见物品目录；只有实际原生位置适用时可写，不以UI编号替代世界资源 |
+
+本目录为当前批准的WD-01/04字段合同，不承诺任意JVM字段编辑；跨组定位、生命周期和关系未因06a关闭而提前实现。
+以上修改仅集成世界提供新正式typed路径；已有Peer仍限其声明的旧health/block能力，无Peer明确不可用，不从客户端伪造服务器字段。
+
+### 目录与权限边界
+
 用户能重复的功能分支全部进入 USER 清单，DEBUG 则不承诺 JVM 中每个对象都被枚举或任意改变。
 不收集凭据、账号秘密、宿主路径或不可安全暴露的第三方对象。
 没有服务器权威时，服务器内部字段明确 unavailable；不得从客户端假造，也不得自动安装/配对 Peer。
@@ -397,6 +504,8 @@ DEBUG 表示独立授权的内部层，不表示任意字段都可写。
 DEBUG mutation 在 commit point 前校验独立权限、Arm、资源/值条件和 deadline；
 应用后取消只能停止剩余工作，不谎称撤销已发生修改。批次逐项结果、部分应用与恢复失败必须可追溯，
 不宣称整世界事务。Fixture 使用自己的专用世界副本，恢复后也不删除其证据来源。
+Provider批准目录来自实际注册schema/policy声明，不代填原版世界能力，也不因登记而获权；Fixture仍是独立准备授权，精确规则见[Native目录](../reference/protocol-native_v0.md#provider-批准目录与-fixture)。
+活动Gameplay Act内已应用的Fixture会独立计数并污染窗口；恢复原值不清除污染，开始窗口前已完成的Arrange不计入新窗口。它不把Fixture计数混成Debug修改，也不取代命令/其他证据来源的独立核验。
 
 ## 证据与消费者
 

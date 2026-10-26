@@ -8,6 +8,20 @@ import org.junit.jupiter.api.Test;
 
 class WorldDataViewTest {
     @Test
+    void actualWorldContractAdvertisesDistinctUseAndPlacementSurfaceCapabilities() {
+        var contract = WorldDataView.contract();
+        assertEquals(
+                "optional_named_face_bounded_uv_native_pick",
+                contract.get("userUseSurface").getAsString());
+        assertEquals(
+                "named_face_bounded_uv_native_pick", contract.get("userPlacement").getAsString());
+        assertEquals(
+                "live_eye_position_and_fresh_native_pick",
+                contract.get("userSemanticPosition").getAsString());
+        assertFalse(contract.get("milestoneComplete").getAsBoolean());
+    }
+
+    @Test
     void commandEvidenceProjectionPreservesProvenanceWithoutCommandOrInternalFields() {
         JsonObject source = new JsonObject();
         source.addProperty("type", "command.player.submission");

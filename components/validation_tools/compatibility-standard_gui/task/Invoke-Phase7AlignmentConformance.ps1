@@ -73,6 +73,7 @@ Assert-True ($initialHooks.overwriteCount -eq 0) 'Hook manifest must declare zer
 $sourceHooks = & (Join-Path $PSScriptRoot 'Invoke-Phase7HookCompatibilityGate.ps1')
 $expectedHooks = @($sourceHooks.Targets | Where-Object Target -eq $ExpectedTarget)[0]
 Assert-True ($null -ne $expectedHooks -and $initialHooks.cancellableInjectionCount -eq $expectedHooks.Cancellable -and $initialHooks.replacementInjectionCount -eq $expectedHooks.Replacement -and $initialHooks.operatorReplacementCount -eq $expectedHooks.OperatorReplacement -and $initialHooks.passiveDrawDelegationCount -eq $expectedHooks.PassiveDrawDelegation) 'Hook manifest must match the actual registered Target control and exact native draw delegation Hooks'
+Assert-True ($initialHooks.debugMutationGuardCount-eq1-and$initialHooks.passiveWorldDelegationCount-eq$expectedHooks.PassiveWorldDelegation) 'DEBUG guard and world clock delegation must be disclosed separately'
 Assert-True ($initialHooks.thirdPartyTargetCount -eq 0) 'Hook manifest must declare zero third-party targets'
 Assert-True ([bool]$initialHooks.runtimeSelfTest -and $initialHooks.overall -eq 'ready') 'core Hook self-test must be ready'
 

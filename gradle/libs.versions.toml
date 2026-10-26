@@ -16,6 +16,7 @@ mixin = "0.8.7"
 openapi = "7.26.0"
 mcp-netty = "4.1.82.Final"
 mcp-runtime-gson = "2.10"
+mcp-runtime-log4j = "2.19.0"
 
 [libraries]
 foojay-plugin = { module = "org.gradle.toolchains:foojay-resolver", version.ref = "foojay" }
@@ -33,6 +34,7 @@ mixin-processor = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 mcp-netty-http = { module = "io.netty:netty-codec-http", version.ref = "mcp-netty" }
 mcp-netty-handler = { module = "io.netty:netty-handler", version.ref = "mcp-netty" }
 mcp-runtime-gson = { module = "com.google.code.gson:gson", version.ref = "mcp-runtime-gson" }
+mcp-runtime-log4j = { module = "org.apache.logging.log4j:log4j-core", version.ref = "mcp-runtime-log4j" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

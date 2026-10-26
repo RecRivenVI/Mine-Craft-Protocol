@@ -16,6 +16,16 @@ Companion 按明确实例目录发现并固定身份；重启后必须明确重�
 组件包含 Provider SPI 与注册表、HTTP/WebSocket 传输、认证预算、Control Lease/Debug Arm 与操作状态、
 Pipeline/Wait/Assert、观察与资源版本、Provider 执行、录制和 Artifact，以及内置诊断 Provider。
 共享执行器通过 `ProbeService` 调用 Target 原生适配器；游戏、渲染与服务端线程调度留在各 Target。
+
+独立服务端复用同一ProbeTransport、ProtocolState、RuntimeEndpoint与认证预算。
+ServerConsoleService以HeadlessProbeService显式拒绝没有实现的客户端表面；ServerConsole只持有有界JSON输出和MC无关Host接口，
+ConsoleLogCapture监听游戏提供的Log4j，不嵌入另一份日志库。各Target单独实现原生服务器生命周期、owner调度及命令source/回调。
+服务端默认不授予server_console；没有玩家输入表面就不提供TAKEOVER或虚构Lease。
+其Session、MCP实例选择及输出权限绑定server_operator，不与在线玩家的OP或客户端token自动互换。
+ServerWorldDebug复用ObservationRevisionTracker、DebugMutationAuthorization与LoadedChunkMutationScope，
+通过独立MC无关Host捕获主世界/显式方块并执行typed方块修改；原生注册表、属性、区块生命周期及服务器调度由各Target实现。
+读取与修改目录、scope/Arm和证据分别检查，不借控制台scope、在线玩家或客户端Runtime单例补齐权限。
+Fabric的服务器区块守卫属于main源码集，在独立服与集成服均加载；图形Hook仍限定client。
 UiToastDraw只持有原生适配器提交的有界数值/文字绘制样本及完成帧，不持有Minecraft对象；各Target负责真实Toast绘制入口与上下文身份。
 该纯Java采样同样使用core包，不在产品组件中复制Target的probe.runtime包；原生类型和绘制API不因此共享。
 

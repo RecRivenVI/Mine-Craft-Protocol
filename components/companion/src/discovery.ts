@@ -5,6 +5,7 @@ export interface RuntimeDiscovery {
   schemaVersion: number;
   runtimeInstanceId: string;
   target: string;
+  deploymentRole?: 'CLIENT' | 'DEDICATED_SERVER';
   gameDirectory: string;
   pid: number;
   processStartedAt: string;
@@ -23,6 +24,7 @@ export function readRuntimeDiscovery(instanceDirectory: string, expectedTarget?:
   if (record.schemaVersion !== 1 || record.state !== 'RUNNING'
       || typeof record.runtimeInstanceId !== 'string' || !/^[0-9a-f-]{36}$/.test(record.runtimeInstanceId)
       || typeof record.target !== 'string' || !record.target || (expectedTarget && record.target !== expectedTarget)
+      || (record.deploymentRole !== undefined && !['CLIENT', 'DEDICATED_SERVER'].includes(record.deploymentRole))
       || typeof record.gameDirectory !== 'string' || realpathSync(record.gameDirectory) !== directory
       || !Number.isSafeInteger(record.pid) || record.pid < 1
       || !Number.isSafeInteger(record.port) || record.port < 1 || record.port > 65535

@@ -113,7 +113,11 @@ public final class ProbeTransport implements AutoCloseable {
     public static ProbeTransport forInstance(
             ProbeService service, Path gameDirectory, String targetId) {
         int port = RuntimeEndpoint.configuredPort();
-        RuntimeEndpoint endpoint = RuntimeEndpoint.acquire(gameDirectory, targetId);
+        RuntimeEndpoint endpoint =
+                RuntimeEndpoint.acquire(
+                        gameDirectory,
+                        targetId,
+                        (service instanceof HeadlessProbeService) ? "DEDICATED_SERVER" : "CLIENT");
         try {
             return new ProbeTransport(
                     service, RuntimeToken.resolve(gameDirectory), port, targetId, endpoint);
@@ -141,7 +145,7 @@ public final class ProbeTransport implements AutoCloseable {
         this.automation = new AutomationEngine(service, this::authorizeInputStep);
         this.protocolState =
                 new ProtocolState(
-                        ProtocolState.configuredScopes(),
+                        ProtocolState.configuredScopes((service instanceof HeadlessProbeService)),
                         this.securityGate.principalId(),
                         reason ->
                                 this.automation
@@ -149,7 +153,8 @@ public final class ProbeTransport implements AutoCloseable {
                                         .thenCombine(
                                                 this.closingInputRelease,
                                                 (cleanup, early) -> cleanup),
-                        this::controlPresenceChanged);
+                        this::controlPresenceChanged,
+                        !(service instanceof HeadlessProbeService));
         this.service.attachControlSession(this.protocolState.controlSession());
         this.worldReads = new WorldReadEngine(service, this.protocolState);
         this.observation = new ObservationEngine(service, this.worldReads);
@@ -216,6 +221,10 @@ public final class ProbeTransport implements AutoCloseable {
         Thread starter = new Thread(this::start, "minecraft-protocol-starter");
         starter.setDaemon(true);
         starter.start();
+    }
+
+    private ServerConsole serverConsole() {
+        return service instanceof ServerConsoleService server ? server.console() : null;
     }
 
     private void start() {
@@ -615,6 +624,51 @@ public final class ProbeTransport implements AutoCloseable {
                 QueryStringDecoder uri,
                 String path,
                 ProtocolState.RequestMetadata metadata) {
+            if ((service instanceof HeadlessProbeService)) {
+                if (path.equals("/v0/control/acquire") || path.equals("/v0/control/renew")) {
+                    protocolState.requireScope("control");
+                    throw new ProtocolState.ProtocolException(
+                            "TAKEOVER_NOT_APPLICABLE",
+                            409,
+                            "Dedicated server has no player input surface");
+                }
+                boolean available =
+                        Set.of(
+                                                "/v0/session",
+                                                "/v0/capabilities",
+                                                "/v0/readiness",
+                                                "/v0/control/status",
+                                                "/v0/control/mode",
+                                                "/v0/control/task",
+                                                "/v0/audit",
+                                                "/v0/world/fingerprint",
+                                                "/v0/observe/deep",
+                                                "/v0/observe/deep/capabilities",
+                                                "/v0/debug/status",
+                                                "/v0/debug/capabilities",
+                                                "/v0/debug/arm",
+                                                "/v0/debug/renew",
+                                                "/v0/debug/disarm",
+                                                "/v0/debug/mutations",
+                                                "/v0/debug/batches",
+                                                "/v0/debug/evidence",
+                                                "/v0/server/console",
+                                                "/v0/server/console/commands")
+                                        .contains(path)
+                                || path.startsWith("/v0/operations/")
+                                || path.startsWith("/v0/requests/");
+                if (!available)
+                    throw new ProtocolState.ProtocolException(
+                            "CAPABILITY_UNAVAILABLE",
+                            409,
+                            "This surface is unavailable on the dedicated server Runtime");
+                if (path.startsWith("/v0/operations/")
+                        && protocolState
+                                .operationDiagnosticDomains(
+                                        path.substring("/v0/operations/".length())
+                                                .replace("/wait", ""))
+                                .isEmpty()) protocolState.requireScope("server_console");
+            }
             if (request.method() == HttpMethod.GET && path.equals("/v0/session")) {
                 read(
                         context,
@@ -629,6 +683,94 @@ public final class ProbeTransport implements AutoCloseable {
                         path,
                         "read",
                         () -> connectionSnapshot(service.capabilities(), true));
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/server/console")) {
+                protocolState.requireScope("read");
+                protocolState.requireScope("server_console");
+                if (serverConsole() == null)
+                    throw new ProtocolState.ProtocolException(
+                            "CAPABILITY_UNAVAILABLE",
+                            409,
+                            "No independent server console on this Runtime");
+                for (String name : uri.parameters().keySet())
+                    if (!Set.of("after", "limit").contains(name)
+                            || uri.parameters().get(name).size() != 1)
+                        throw new ProtocolState.ProtocolException(
+                                "INVALID_CONSOLE_QUERY", 400, "Only one after/limit is allowed");
+                long after;
+                int limit;
+                try {
+                    after = Long.parseLong(stringQuery(uri, "after", "0"));
+                    limit = Integer.parseInt(stringQuery(uri, "limit", "64"));
+                } catch (NumberFormatException invalid) {
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_CONSOLE_QUERY", 400, "Integer console cursor/limit required");
+                }
+                sendImmediate(context, metadata, path, serverConsole().read(after, limit));
+            } else if (request.method() == HttpMethod.POST
+                    && path.equals("/v0/server/console/commands")) {
+                protocolState.requireScope("server_console");
+                protocolState.requireScope("command");
+                protocolState.requireScope("control");
+                protocolState.requireOperateIntent();
+                if (serverConsole() == null)
+                    throw new ProtocolState.ProtocolException(
+                            "CAPABILITY_UNAVAILABLE",
+                            409,
+                            "No independent server console on this Runtime");
+                JsonObject body = jsonBody(request);
+                if (!body.keySet().equals(Set.of("command")))
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_CONSOLE_COMMAND", 400, "A single command field is required");
+                String command = requiredString(body, "command");
+                long deadline =
+                        Math.min(
+                                System.currentTimeMillis() + 5000,
+                                metadata.deadlineAtMillis() > 0
+                                        ? metadata.deadlineAtMillis()
+                                        : Long.MAX_VALUE);
+                String idempotency =
+                        metadata.idempotencyKey() == null
+                                ? null
+                                : path + ":" + metadata.idempotencyKey() + ":" + body;
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        protocolState.idempotent(
+                                idempotency,
+                                () ->
+                                        CompletableFuture.completedFuture(
+                                                protocolState.startOperation(
+                                                        id ->
+                                                                protocolState.applyDeadline(
+                                                                        protocolState.operate(
+                                                                                work ->
+                                                                                        serverConsole()
+                                                                                                .execute(
+                                                                                                        command,
+                                                                                                        id,
+                                                                                                        work,
+                                                                                                        () -> {
+                                                                                                            protocolState
+                                                                                                                    .requireScope(
+                                                                                                                            "server_console");
+                                                                                                            protocolState
+                                                                                                                    .requireScope(
+                                                                                                                            "command");
+                                                                                                            protocolState
+                                                                                                                    .requireScope(
+                                                                                                                            "control");
+                                                                                                            if (System
+                                                                                                                            .currentTimeMillis()
+                                                                                                                    >= deadline)
+                                                                                                                throw new ProtocolState
+                                                                                                                        .ProtocolException(
+                                                                                                                        "DEADLINE_EXCEEDED",
+                                                                                                                        408,
+                                                                                                                        "Console dispatch deadline expired");
+                                                                                                        })),
+                                                                        deadline),
+                                                        false))));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/readiness")) {
                 read(context, metadata, path, "read", service::readiness);
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/diagnostics/hooks")) {
@@ -687,9 +829,7 @@ public final class ProbeTransport implements AutoCloseable {
                 protocolState.requireScope("fixture");
                 CompletableFuture<JsonObject> fixture =
                         protocolState.operate(service::openAutomationProbeScreen);
-                fixture.thenAccept(
-                        result ->
-                                recording.contaminate("FIXTURE", "fixture.ui.test_screen", result));
+                fixture = observeFixture(fixture, metadata.requestId(), "fixture.ui.test_screen");
                 sendJsonFuture(
                         context,
                         metadata,
@@ -1164,6 +1304,8 @@ public final class ProbeTransport implements AutoCloseable {
                                                 body,
                                                 metadata.requestId());
                                 Throwable cause = unwrap(error);
+                                JsonObject partial = PartialDebugMutation.result(cause);
+                                if (partial != null) observeDebugMutation(partial);
                                 failed.addProperty(
                                         "error",
                                         cause
@@ -1242,10 +1384,8 @@ public final class ProbeTransport implements AutoCloseable {
                                                 body.get("y").getAsDouble(),
                                                 body.get("z").getAsDouble(),
                                                 work));
-                mutation.thenAccept(
-                        result ->
-                                recording.contaminate(
-                                        "FIXTURE", "fixture.player.teleport", result));
+                mutation =
+                        observeFixture(mutation, metadata.requestId(), "fixture.player.teleport");
                 sendJsonFuture(context, metadata, path, mutation);
             } else if (request.method() == HttpMethod.POST
                     && path.equals("/v0/debug/player/health")) {
@@ -1974,6 +2114,16 @@ public final class ProbeTransport implements AutoCloseable {
                     connection.addProperty("runtimeInstanceId", this.runtimeInstanceId);
                     result.add("runtimeConnection", connection);
                     result.add("control", this.protocolState.modeStatus());
+                    if (service instanceof HeadlessProbeService) {
+                        JsonObject mode = this.protocolState.modeStatus();
+                        for (String name :
+                                List.of(
+                                        "mode",
+                                        "modeVersion",
+                                        "takeoverActive",
+                                        "reconsentRequired"))
+                            if (mode.has(name)) result.add(name, mode.get(name));
+                    }
                     if (capabilities) {
                         result.add("playerCommandContract", PlayerCommandDiscovery.contract());
                         JsonObject contract = new JsonObject();
@@ -2009,7 +2159,8 @@ public final class ProbeTransport implements AutoCloseable {
             unavailableUi.addProperty("available", false);
             unavailableUi.addProperty("reason", "ui_scope_or_mode_unavailable");
             boolean userUi =
-                    protocolState.hasScope("ui")
+                    !(service instanceof HeadlessProbeService)
+                            && protocolState.hasScope("ui")
                             && io.github.recrivenvi.minecraftprotocol.safety.UiDataView.allowsRead(
                                     protocolState.controlSession().snapshot().mode().name(),
                                     io.github.recrivenvi.minecraftprotocol.safety.UiDataView
@@ -2031,7 +2182,8 @@ public final class ProbeTransport implements AutoCloseable {
                         if (capturedContext != null)
                             snapshot.addProperty("inputContextId", capturedContext.opaqueId());
                         snapshot.addProperty("type", "event.resync");
-                        snapshot.addProperty("domain", "WORLD");
+                        snapshot.addProperty(
+                                "domain", service instanceof HeadlessProbeService ? "UI" : "WORLD");
                         snapshot.addProperty("dataCategory", category);
                         EventHub hub = category.equals("DEBUG") ? debugEventHub : eventHub;
                         snapshot.addProperty("resumeCursor", hub.currentSequence());
@@ -2120,6 +2272,20 @@ public final class ProbeTransport implements AutoCloseable {
             ProtocolState.RequestMetadata metadata,
             String path,
             JsonObject json) {
+        if (service instanceof HeadlessProbeService
+                && json.has("operationId")
+                && protocolState
+                        .operationDiagnosticDomains(json.get("operationId").getAsString())
+                        .isEmpty()) {
+            json.addProperty("actor", "server_operator");
+            json.addProperty("worldEffectConfirmed", false);
+            if (json.has("state")
+                    && Set.of("cancelled", "failed", "timed_out")
+                            .contains(json.get("state").getAsString())) {
+                json.addProperty("executionOutcome", "not_confirmed");
+                json.addProperty("retrySafe", false);
+            }
+        }
         if (json.has("condition") && json.get("condition").isJsonObject()) {
             JsonObject condition = json.getAsJsonObject("condition");
             if ("event".equals(nullableString(condition, "type"))) {
@@ -2420,16 +2586,34 @@ public final class ProbeTransport implements AutoCloseable {
                     String sessionEpoch,
                     String domain,
                     String namespace) {
+                return authorizeAll(
+                        currentWorldFingerprint,
+                        sessionEpoch,
+                        java.util.Collections.singletonMap(domain, namespace));
+            }
+
+            @Override
+            public Permit authorizeAll(
+                    String currentWorldFingerprint,
+                    String sessionEpoch,
+                    java.util.Map<String, String> domains) {
                 if (metadata.deadlineAtMillis() > 0
                         && System.currentTimeMillis() >= metadata.deadlineAtMillis())
                     throw new ProtocolState.ProtocolException(
                             "DEADLINE_EXCEEDED", 408, "Debug deadline exceeded before mutation");
-                protocolState.requireDebugAuthorization(
-                        metadata.debugArmId(),
-                        currentWorldFingerprint,
-                        sessionEpoch,
-                        domain,
-                        namespace);
+                if (domains.isEmpty())
+                    throw new ProtocolState.ProtocolException(
+                            "DEBUG_SCOPE_DENIED", 403, "No mutation namespace authorized");
+                synchronized (protocolState) {
+                    domains.forEach(
+                            (domain, namespace) ->
+                                    protocolState.requireDebugAuthorization(
+                                            metadata.debugArmId(),
+                                            currentWorldFingerprint,
+                                            sessionEpoch,
+                                            domain,
+                                            namespace));
+                }
                 AgentControlSession.Guard modeGuard = work.enter();
                 return modeGuard::close;
             }
@@ -2456,6 +2640,30 @@ public final class ProbeTransport implements AutoCloseable {
         };
     }
 
+    private CompletableFuture<JsonObject> observeFixture(
+            CompletableFuture<JsonObject> mutation, String requestId, String operation) {
+        // The observation stage is not the response future: cancelling a response must not
+        // suppress evidence for an upstream operation which has already committed.
+        CompletableFuture<JsonObject> observed =
+                mutation.thenApply(
+                        result -> {
+                            recording.contaminate("FIXTURE", operation, result);
+                            protocolState.noteFixtureMutation(requestId);
+                            return result;
+                        });
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        observed.whenComplete(
+                (result, failure) -> {
+                    if (failure == null) response.complete(result);
+                    else response.completeExceptionally(failure);
+                });
+        response.whenComplete(
+                (ignored, failure) -> {
+                    if (response.isCancelled()) mutation.cancel(true);
+                });
+        return response;
+    }
+
     private void observeDebugMutation(JsonObject result) {
         String operationId =
                 result.has("debugOperationId")
@@ -2468,7 +2676,12 @@ public final class ProbeTransport implements AutoCloseable {
         recording.contaminate("DEBUG_PRIVILEGED", operation, result);
         JsonObject evidence = protocolState.noteDebugMutation(operationId, namespace, operation);
         JsonObject completed = result.deepCopy();
-        completed.addProperty("type", "debug.operation.completed");
+        completed.addProperty(
+                "type",
+                result.has("nativeEffectsComplete")
+                                && !result.get("nativeEffectsComplete").getAsBoolean()
+                        ? "debug.operation.partial"
+                        : "debug.operation.completed");
         completed.add("evidenceWindow", evidence);
         broadcast(completed);
         JsonObject changed = new JsonObject();
@@ -2573,6 +2786,12 @@ public final class ProbeTransport implements AutoCloseable {
         json.addProperty("message", error.getMessage() == null ? "unknown" : error.getMessage());
         if (error instanceof ProtocolState.ProtocolException protocolError) {
             JsonObject details = protocolError.details();
+            JsonObject partialMutation = PartialDebugMutation.result(protocolError);
+            if (partialMutation != null) {
+                json.add("partialMutation", partialMutation);
+                json.addProperty("executionOutcome", "partial");
+                json.addProperty("retrySafe", false);
+            }
             if ((code.equals("ASSERTION_FAILED") || code.equals("WAIT_TIMEOUT"))
                     && details.has("readiness")
                     && details.get("readiness").isJsonObject())

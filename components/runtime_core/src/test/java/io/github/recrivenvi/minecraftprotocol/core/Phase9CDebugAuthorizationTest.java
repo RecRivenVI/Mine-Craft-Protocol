@@ -99,7 +99,7 @@ final class Phase9CDebugAuthorizationTest {
     }
 
     @Test
-    void gameplayActDetectsOnlyDebugWritesDuringAct() {
+    void gameplayActDetectsDebugWritesDuringAct() {
         try (ProtocolState state = state(Set.of("debug"))) {
             state.noteDebugMutation("arrange", "player", "player.attribute.set");
             String cleanAct = state.startGameplayAct().get("actId").getAsString();
@@ -113,6 +113,29 @@ final class Phase9CDebugAuthorizationTest {
             assertTrue(contaminated.get("contaminated").getAsBoolean());
             assertEquals(
                     "invalid_for_acceptance", contaminated.get("gameplayEvidence").getAsString());
+        }
+    }
+
+    @Test
+    void fixtureEffectsContaminateOnlyActiveActsWithoutBecomingDebugMutations() {
+        try (ProtocolState state = state(Set.of("debug", "fixture"))) {
+            state.noteFixtureMutation("arrange-before-act");
+            String cleanAct = state.startGameplayAct().get("actId").getAsString();
+            assertFalse(state.finishGameplayAct(cleanAct).get("contaminated").getAsBoolean());
+            long debugCount =
+                    state.debugEvidenceStatus().get("lastDebugMutationSequence").getAsLong();
+            String id = state.startGameplayAct().get("actId").getAsString();
+            state.noteFixtureMutation("fixture-first");
+            state.noteFixtureMutation("fixture-restore");
+            JsonObject result = state.finishGameplayAct(id);
+            assertTrue(result.get("contaminated").getAsBoolean());
+            assertEquals("invalid_for_acceptance", result.get("gameplayEvidence").getAsString());
+            assertEquals(2, result.get("fixtureMutationCount").getAsInt());
+            assertEquals("fixture-restore", result.get("fixtureOperationDuringAct").getAsString());
+            assertEquals(0, result.get("debugMutationCount").getAsInt());
+            assertEquals(
+                    debugCount,
+                    state.debugEvidenceStatus().get("lastDebugMutationSequence").getAsLong());
         }
     }
 

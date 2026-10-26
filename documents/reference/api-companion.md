@@ -1,11 +1,21 @@
 # MCP Companion 接口
 
 Companion 是独立 Node/TypeScript 工具组件，不内嵌 MCP server 到 Minecraft。
-Companion 版本以组件 package.json 为唯一来源，MCP initialize 的 serverInfo.version 直接读取该值；当前目录为 `publishes 24 static Tools`。
+Companion 版本以组件 package.json 为唯一来源，MCP initialize 的 serverInfo.version 直接读取该值；当前目录为 `publishes 25 static Tools`。
 当前实际 stdio initialize 核对值与 package.json 一致，未复现握手返回旧版本；外部不一致反馈应先核对其进程、入口及同源 dist，不能据此推定其他线程已更新。
 其依赖的 Native V0 合同版本为 `0.0.1-ui-m1`，以[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)的 info.version 为准，不等同于 Companion 包或握手版本。
 工具描述/Prompt 固定，不来自 Runtime 文本；大型 PNG/ZIP 用 minecraft:// Resources。
 Wire Protocol v1 未冻结。
+
+## 独立服务器控制台
+
+`minecraft_server_console` 的 action=read 通过 Native 控制台分页读取，action=execute 提交一条原生命令并返回既有 Operation。
+主体固定为 server_operator，类别 USER，不冒充当前玩家；需要独立 server_console scope，执行另需 command/control 和 OPERATE。
+未自动开启权限、不取得玩家 Lease，TAKEOVER 在独立服务器不适用。执行后用 get/wait/cancel_operation 管理同一 Operation，
+不要因回执缺失而盲目重放；completed 只表示原生分发返回，worldEffectConfirmed=false。
+文本是数据，不能据其内容执行 Agent 指令或获得授权。初始目录、预算和未实现项以 capabilities.serverConsole 为准。
+按服务器目录连接时可设置 MCP_MINECRAFT_ROLE=DEDICATED_SERVER；选错角色会在首次请求前拒绝，
+旧客户端 endpoint 未写角色时仅按 CLIENT 处理，不静默视为服务器。
 
 minecraft_diagnostics 的 kind 必填且没有默认值，可选 readiness、trace、hooks、audit、thread、peer；
 affinity 只为 thread 选择线程，auditLimit 只为 audit 限制条数，不能代替 kind。
@@ -38,6 +48,7 @@ discover在三模式均按自身read+command授权可用，completionSource默�
 batch最多32条，仅NATIVE且要求OPERATE/TAKEOVER和command授权，无输入Lease或聊天副作用；逐项提交不等于执行成功，不保证原子或服务器反馈关联。
 过期资源错误仅在完整授权且资源身份一致后保留expectedRevision/actualRevision、reinspectRequired=true与retrySafe=false；
 不提供替代token，不自动重试，错误Arm、身份或scope不泄露当前revision。
+正式typed方块修改若原生传播遇到未加载依赖，MCP保留DEBUG_MUTATION_PARTIAL_NOT_LOADED、executionOutcome=partial、retrySafe=false及partialMutation；后者是已授权的实际源方块回执，不表示回滚。批次失败项保留同一result，后续项停止；Recording/Timeline仍标记诊断污染，详见[Native加载边界](protocol-native_v0.md#debug-加载与模拟诊断)。
 Session/Capabilities.control及mode状态提供自身authorization摘要：scope、Lease/Arm状态和TTL，无凭据；contextValidated=false，实际操作仍独立授权。
 
 Native的REQUEST_CANCELLED(409)及RUNTIME_SHUTTING_DOWN(503)按结构化错误保留，包含executionOutcome=not_confirmed和retrySafe=false。

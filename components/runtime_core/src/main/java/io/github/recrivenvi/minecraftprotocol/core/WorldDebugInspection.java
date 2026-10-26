@@ -28,6 +28,180 @@ public final class WorldDebugInspection {
         result.addProperty("requiresCurrentWorldFingerprint", true);
         result.addProperty("mutationRequiresIndependentScopeAndArm", true);
         JsonArray entries = new JsonArray();
+        JsonObject provider =
+                entry(
+                        "provider.mutate",
+                        "providers",
+                        "provider",
+                        "providerId",
+                        List.of(),
+                        List.of("providerId", "mutation"));
+        provider.getAsJsonObject("readRequest").addProperty("includeProviderData", true);
+        provider.addProperty(
+                "selectorBinding",
+                "providerIds selects an actual registered descriptor; match its resource-scoped native revision");
+        provider.addProperty(
+                "mutationCatalog",
+                "provider debugDeclaration references registered executable validators; provider payload documentation is required, not arbitrary object editing");
+        provider.addProperty(
+                "additionalAuthority",
+                "provider debugDeclaration.requiredScope and independent Arm; no registration or discovery grants authority");
+        entries.add(provider);
+        entries.add(
+                entry(
+                        "player.transform.set",
+                        "player",
+                        "player",
+                        "uuid@server_authoritative",
+                        List.of("expectedValue"),
+                        List.of("value")));
+        JsonObject transfer =
+                entry(
+                        "entity.transform.set",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedValue", "expectedEntityType"),
+                        List.of("entityUuid", "sourceDimension", "value"));
+        transfer.addProperty(
+                "selectorBinding",
+                "selector.entityTargets=[{dimension,entityUuid}] selects existing LIVE loaded identities, including foreign dimensions; no loading");
+        transfer.addProperty(
+                "destinationConstraint",
+                "existing LIVE dimension and loaded entity bounds; detach ride/leash first; native side effects are not rolled back");
+        entries.add(transfer);
+        entries.add(
+                entry(
+                        "entity.vehicle.set",
+                        "entities",
+                        "entity_relationship",
+                        "entityUuid",
+                        List.of("expectedValue"),
+                        List.of("entityUuid", "value", "relatedResourceVersions")));
+        entries.add(
+                entry(
+                        "entity.leash.set",
+                        "entities",
+                        "entity_relationship",
+                        "entityUuid",
+                        List.of("expectedValue"),
+                        List.of("entityUuid", "value", "relatedResourceVersions")));
+        entries.add(
+                entry(
+                        "entity.owner.set",
+                        "entities",
+                        "entity_relationship",
+                        "entityUuid",
+                        List.of("expectedValue"),
+                        List.of("entityUuid", "value", "relatedResourceVersions")));
+        JsonObject ride =
+                entry(
+                        "player.vehicle.set",
+                        "player",
+                        "entity_relationship",
+                        "playerUuid",
+                        List.of("expectedValue"),
+                        List.of("value", "relatedResourceVersions"));
+        ride.addProperty("additionalMutationScopeAndArm", "entity");
+        entries.add(ride);
+        entries.add(
+                entry(
+                        "world.time.set",
+                        "world",
+                        "world_time",
+                        "clockId",
+                        List.of("expectedValue"),
+                        List.of("clockId", "value")));
+        entries.add(
+                entry(
+                        "world.weather.set",
+                        "world",
+                        "world_weather",
+                        "server_weather",
+                        List.of("expectedValue"),
+                        List.of("value")));
+        entries.add(
+                entry(
+                        "world.rule.set",
+                        "world",
+                        "world_rule",
+                        "dimension@ruleId",
+                        List.of("expectedValue"),
+                        List.of("ruleId", "value")));
+        JsonObject spawn =
+                entry(
+                        "entity.spawn",
+                        "entities",
+                        "entity_registry",
+                        "dimension@entity_chunk:x,z",
+                        List.of("expectedEntityCount"),
+                        List.of("value"));
+        JsonObject chunkSelector = new JsonObject();
+        chunkSelector.addProperty("x", 0);
+        chunkSelector.addProperty("z", 0);
+        spawn.getAsJsonObject("readRequest")
+                .getAsJsonObject("selector")
+                .add("entityChunk", chunkSelector);
+        spawn.addProperty(
+                "selectorBinding",
+                "selector.entityChunk={x,z} is the destination chunk, complete loaded membership, at most 4096 entities");
+        entries.add(spawn);
+        entries.add(
+                entry(
+                        "entity.remove",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedEntityType"),
+                        List.of("entityUuid")));
+        entries.add(
+                entry(
+                        "player.effect.set",
+                        "player",
+                        "player",
+                        "uuid@server_authoritative",
+                        List.of("expectedValue"),
+                        List.of("effectId", "value")));
+        entries.add(
+                entry(
+                        "entity.effect.set",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedValue", "expectedEntityType"),
+                        List.of("entityUuid", "effectId", "value")));
+        entries.add(
+                entry(
+                        "entity.attribute.set",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedValue", "expectedEntityType"),
+                        List.of("entityUuid", "attributeId", "value")));
+        entries.add(
+                entry(
+                        "entity.equipment.set",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedItemId", "expectedCount", "expectedEntityType"),
+                        List.of("entityUuid", "equipmentSlot")));
+        entries.add(
+                entry(
+                        "player.state.set",
+                        "player",
+                        "player",
+                        "uuid@server_authoritative",
+                        List.of("expectedValue"),
+                        List.of("value")));
+        entries.add(
+                entry(
+                        "entity.state.set",
+                        "entities",
+                        "entity",
+                        "entityUuid",
+                        List.of("expectedValue", "expectedEntityType"),
+                        List.of("entityUuid", "value")));
         entries.add(
                 entry(
                         "player.health.set",
@@ -44,8 +218,25 @@ public final class WorldDebugInspection {
                         "uuid@server_authoritative",
                         List.of("expectedValue"),
                         List.of("attributeId"));
-        attribute.addProperty("supportedAttribute", "minecraft:max_health");
+        attribute.addProperty("attributeCatalog", "server.player.attributes[].typedBaseWritable");
+        attribute.addProperty("valueDomain", "native_attribute_sanitizeValue");
         entries.add(attribute);
+        entries.add(
+                entry(
+                        "player.inventory.slot.set",
+                        "player",
+                        "player",
+                        "uuid@server_authoritative",
+                        List.of("expectedItemId", "expectedCount"),
+                        List.of("slot")));
+        entries.add(
+                entry(
+                        "player.equipment.set",
+                        "player",
+                        "player",
+                        "uuid@server_authoritative",
+                        List.of("expectedItemId", "expectedCount"),
+                        List.of("equipmentSlot")));
         entries.add(
                 entry(
                         "entity.no_gravity.set",
@@ -76,6 +267,19 @@ public final class WorldDebugInspection {
         blockEntity.addProperty(
                 "targetConstraint", "loaded_container_block_entity_in_selected_chunks");
         entries.add(blockEntity);
+        JsonObject blockEntitySlot =
+                entry(
+                        "block_entity.slot.set",
+                        "block_entities",
+                        "block_entity_serialized",
+                        "dimension@x,y,z",
+                        List.of("expectedBlockEntityType", "expectedItemId", "expectedCount"),
+                        List.of("x", "y", "z", "slot"));
+        blockEntitySlot
+                .getAsJsonObject("readRequest")
+                .addProperty("includeSerializedBlockEntities", true);
+        blockEntitySlot.addProperty("targetConstraint", "loaded_native_container_block_entity");
+        entries.add(blockEntitySlot);
         entries.add(
                 entry(
                         "menu.slot.set",
@@ -121,6 +325,16 @@ public final class WorldDebugInspection {
         }
         read.add("selector", selector);
         entry.add("readRequest", read);
+        if (type.equals("entity_relationship")) {
+            domains = new JsonArray();
+            domains.add("player");
+            domains.add("entities");
+            read.add("domains", domains);
+            selector.addProperty("entityRadius", 16);
+            entry.addProperty(
+                    "relatedVersionsField",
+                    "resourceRevisionRefs of affected old/new entity_relationship participants");
+        }
         JsonArray fields = new JsonArray();
         targetFields.forEach(fields::add);
         entry.add("targetFields", fields);

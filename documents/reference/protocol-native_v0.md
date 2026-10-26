@@ -1,6 +1,45 @@
 # Native V0 协议
 
-当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 80 formal HTTP operations`。
+当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 82 formal HTTP operations`。
+
+## 独立服务器控制台
+
+服务器沿用 v0 Bearer、Host/Origin、自动端口、实例锁和 X-MCP-Runtime-Instance，不开启公网端口。
+endpoint 的 deploymentRole 为 DEDICATED_SERVER；客户端为 CLIENT，旧记录缺字段时消费者只按 CLIENT 处理。
+SessionResponse 区分 ClientSessionResponse 与 DedicatedServerSession，服务器不伪造 Screen/HUD/输入或画面。
+
+- GET /v0/server/console?after=0&limit=64：read/server_console；有界 LIVE INFO/WARN/ERROR 输出，after 为本次实例的序号，limit 为1～128。
+  records 带 logger/thread、text、truncated；gap、nextSequence、latestSequence 明确丢失与续页。不是历史日志文件或终端像素。
+- POST /v0/server/console/commands：只接受 command 字段；server_console/command/control 和显式 OPERATE，无输入 Lease。
+  当前允许 help/list/say/seed/time/weather，未知及控制平面根在发送前拒绝；文本最多2048 UTF-16单元、单行且有界嵌套。
+  返回 Operation；五秒内未分发会超时取消，显式 DELETE Operation 与 Runtime close 阻止未开始分发，已执行效果不回滚。
+  commandRequestId 为唯一 Operation ID；直接 native source 反馈可确定关联，普通日志不按时间附会为命令结果。
+  resultCallbackReceived=false 可能是语法错误或无该回调；feedback、nativeResult、dispatchState 分开，worldEffectConfirmed 始终为 false。
+
+独立控制台 READ 不执行命令补数据；TAKEOVER_NOT_APPLICABLE 表示没有客户端输入表面。
+服务器存档/Recording/补全未随此初始目录开放。已有 Peer 仍按其独立有限合同运行。
+
+## 独立服务器世界 DEBUG
+
+复用既有端点，不增加命令包装或玩家代理；主体为独立服务器操作员，数据类别DEBUG、领域WORLD。
+GET /v0/observe/deep/capabilities 与 GET /v0/debug/capabilities 分别发布当前读取/修改目录，不代表当前调用方已获授权。
+POST /v0/observe/deep 需 read/debug/debug.world.read，category=DEBUG、perspective=server_authoritative，
+domains 只支持 world/blocks，selector.blocks 显式选择最多64个主世界坐标；无玩家锚点、投影、Provider或序列化方块实体。
+world 返回时钟、天气、调度数量、已加载区块数和在线人数；不是全服务器内容导出。
+未加载方块返回 available=false、reason=NOT_LOADED、loadRequested=false，没有可写版本，不触发加载或磁盘回退。
+
+GET /v0/world/fingerprint?category=DEBUG 返回本次独立服务器生命周期绑定的指纹。
+显式 POST /v0/debug/arm，namespace=world；POST /v0/debug/mutations 支持 world.block.set，
+仍需 OPERATE、debug/debug.write/debug.world、当前Arm、worldFingerprint和完整 expectedResourceVersion，另可检查原方块/属性。
+修改回执包含深层before/after，因此其read/debug/debug.world.read亦在执行前检查；缺少读取授权时不能先修改再在返回时拒绝。
+相同方块省略的属性保持不变，替换类型采用新方块默认属性；原生相邻更新和副作用继续生效，恢复原值不是事务回滚。
+资源版本绑定Runtime epoch、坐标与已加载区块对象生命周期，按观察状态变化计数；并非连续监听每次修改的全世界事务令牌。
+过期版本明确拒绝，授权后只附actualRevision等计数，不返回额外内部内容。
+原生传播遇到未加载依赖会阻止加载并报告部分修改，不能盲目重试。
+批次复用 POST /v0/debug/batches；查询 Operation 使用 category=DEBUG 与世界读取授权，不要求 server_console。
+结果保留 before/after、前后版本、DEBUG_PRIVILEGED 与 gameplayEvidence=false；没有玩家Lease、截图或键鼠输入。
+其余维度、实体/玩家/容器/Provider修改及完整Peer委托仍不在此首批目录内。
+
 V0 是未冻结的产品原生合同，Wire Protocol v1 NOT FROZEN。
 机器权威为[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)；
 字段、typed discriminator、错误和 schema 从此生成，本文不维护第二份协议。
@@ -42,7 +81,8 @@ GET /v0/ui/vision/context是需ui/capture的技术校准信息，不返回语义
 不是整轮强停止中各次 cleanup 的累加值，不凭这两个数推断旧队列是否全部执行。
 
 `GET /v0/input/state` 返回 inputGeneration、inputCleanupPending、inputCleanupFailed。
-原生适配器另公开inputContextGeneration/inputContextId/inputContextAvailable，来自真实world/player/connection引用代次；
+原生适配器另公开inputContextGeneration/inputContextId/inputContextAvailable，来自真实world/player/connection引用及玩家存活边界的代次；
+死亡/恢复即使未换玩家对象，也取消旧玩家输入并清理held；死亡页仍可提交新GUI输入，既有Lease与模式不因此结束，不设置人工撤销提示。
 普通Screen切换不推进该代次。替换或连接关闭先封住旧输入并取消旧active/queued，再只清理Runtime自有按住状态，
 不会向替换后的Screen派发旧mouse-up。新输入须等待清理及目标页面就绪，旧操作取消不表示切换未发生，不盲重放。
 generation 标识当前输入代次；pending 表示必要清理尚未完成，failed 表示清理失败，不是模式或权限。
@@ -157,6 +197,8 @@ block条件现有available=true表示目标块已经可读；可再加blockId验
 USER自身玩家响应包含客户端gameMode、onGround与abilities.flying；flying不是mayfly权限。
 gameMode为survival/creative/adventure/spectator；无客户端世界或字段不可得时相应值明确为字符串unknown，不伪造false或服务器真值。
 三个字段经client/player Provider、State Frame、条件和MCP保留，仍遵循模式、read scope与有界客户端模型，不开放服务器内部信息。
+自身客户端反馈还包含pose、crouching/sprinting/swimming/fallFlying、inWater/underWater/inLava、onFire/sleeping/deadOrDying、eyeHeight/maxAir与experienceLevel/experienceProgress。
+cameraType是原生first_person/third_person_back/third_person_front，cameraIsPlayer仅说明相机是否仍为自己，不泄露其他实体身份。这些是本地状态，不是服务器确认、mayFly授权、完整物品或内部AI；缺少字段不伪造false。
 
 WORLD_TARGET_NOT_HIT的异步Operation可带errorDetails.actualHit，同步错误可带actualHit。
 它只含当前客户端实际pick或候选outline ray的有界事实：kind/source、命中位置、距离，以及适用的方块坐标/面或实体类型。
@@ -363,8 +405,9 @@ iconSource=last_completed_native_hud_draw，resourceId为实际原生纹理身�
 valueSemantics=ordered_native_glyph_composition_not_raw_statistics。样本绑定世界、摄像主体、Screen及GUI尺寸，250ms过期。
 hudIconSampleStatus区分CURRENT、UNOBSERVED、STALE、CONTEXT_CHANGED、BUDGET_EXCEEDED与OCCLUDED；
 不完整、超预算或被普通Screen/Overlay遮挡的样本不进入USER。此为原生绘制参数观察，不保证第三方最终像素遮挡。
-Hook manifest以passiveDrawDelegationCount公开逐Target实际注册的原生绘制委托数，以operatorReplacementCount公开控制替换数；replacementInjectionCount为二者之和。
+Hook manifest以passiveDrawDelegationCount公开逐Target实际注册的原生绘制委托数，以operatorReplacementCount公开控制替换数；passiveWorldDelegationCount说明旧两端区分自然时间推进的原生setter委托，replacementInjectionCount为三者之和。
 各项由生产Mixin配置、真实原生descriptor及逐Target字节码测试交叉验证，不固定为跨版本相同数字；被动绘制委托不是玩家输入许可。
+loaded_debug_chunk_dependency是独立DEBUG_MUTATION平面的同步Chunk入口守卫，debugMutationGuardCount=1也计入cancellableInjectionCount，不属于只读观察或玩家输入；controlFlowPolicy为operator_control_debug_mutation_and_exact_hud_draw_delegation。V0消费者不能将总数写死成旧输入Hook数，新增描述不授予世界权限。
 26.x的host_cursor_shape_guard按MIXIN_MODIFY_VARIABLE公开，单独计入replacementInjectionCount，不增加cancellableInjectionCount；
 TAKEOVER仅归一宿主光标形状为默认箭头，不改变虚拟指针、输入坐标或捕获规则。HookDescriptor.mechanism增加此枚举值，V0消费者须更新枚举处理，不把新Hook视作未知授权。
 HookDescriptor.failureCapability是受影响功能的诊断标签，不是capabilities表的外键或授权scope；判断支持情况、当前就绪状态和调用权限时，分别使用能力声明、readiness及操作本身的准入结果。
@@ -425,6 +468,8 @@ category=USER且需read/event；三模式均可，不取得输入Lease。每个�
 入ring、发送、重放与event条件取证复验授权/上下文；旧世界帧只报告gap/resync，不回放为新世界数据。普通只读断流恢复不自动接管。
 方块变化流尚未提供；状态流不等同新增输入通道。
 第一人称 mouse.delta 仍走 Vanilla sensitivity/inversion；0.15 不是跨版本、玩家设置或帧处理的通用角度换算常量。
+电影相机的平滑余量由原版逐帧消费，成功输入终态不表示余量已停止；语义aim在此设置下明确拒绝。
+取消、Lease结束、接管/原生上下文或GUI/世界指针平面切换清除余量，不改写yaw/pitch或宿主光标。
 双开门的两扇是两个原生交互目标，一次use不承诺联动另一扇；连续Space切换创造飞行仍由Vanilla处理，需独立读取flying核验。
 
 `POST /v0/world/region`支持USER/client已加载缓存的有界section分页，不扩展既有32格客户端模型。
@@ -498,16 +543,24 @@ world.action 使用 USER 发现的 targetRef，支持 aim/attack/use、持续 mi
 全量区块包即使复用同一 Chunk 且状态相同，也在原生解码前作为整块变更使旧 targetRef 失效；解码中断不恢复旧引用。
 整块与位置变更共用预算，未改变 targetRef TTL、权限或原版命中条件。
 未指定面时方块瞄准使用原生 OUTLINE 盒体及面中心候选（最多 64 项），空形状/遮挡无法选取时拒绝；
-这是目标选择改进，不增加权限或物品 ID 白名单，最终原生 pick 仍须命中。显式 place.face/hit 合同不变。
+这是目标选择改进，不增加权限或物品 ID 白名单，最终原生 pick 仍须命中。
+显式place.face/hit沿指定面的法线与原生轮廓求交，保留u/v在方块局部轴上的投影，不把半砖/箱子当单位立方体；空轮廓或穿过空洞的UV拒绝，不补偿输入坐标。
 持续动作 holdMs 为 50..10000 ms，place.face 为六面名，hit.u/v 为面内 0.05..0.95，
+普通方块use可显式选择同样的face/hit，以操作书架等原生小格；未传时仍按原有轮廓候选瞄准。面坐标不用于实体、持续使用或攻击，也不携带放置目的格条件。
+纯aim和use_hold通过32格内原生客户端射线核验瞄准，仍遵守遮挡和已有客户端目标身份；attack/use/place/mine使用原版交互pick，不扩展近身作用距离。远距aim成功不代表能远程点击目标，抛投物效果须独立回读。
+USER实体查询包含客户端原生跟踪的可pick部位；原版多部件实体以partName区分，targetRef绑定实际部位而非父实体替身。父死亡或原生部位列表移除后旧引用失效，原生包围盒遮挡仍可拒绝指定部位；不做自动寻路或动态Boss追踪保证。
+实体aim/attack/use/use_hold可选entityHit={x,y,z}，三个值均为0.05..0.95，表示含原生pick radius的目标包围盒内归一化点。
+射线入口及最终EntityHitResult须与该点一致，容差仍为0.025格；例如盔甲架不同部位，不是屏幕或绝对世界坐标。不得与方块face/hit、place/mine混用。
+USER实体的displayedItemId/displayedItemCount/displayedRotation仅表示客户端同步的展示框显示物与旋转；不混用掉落物itemId/itemCount，不发布NBT或隐藏库存。
 可选 expectedDestinationBlockId 在原版目的格校验。动作在既有串行队列与 TAKEOVER/Lease 中执行，
 每次原版交互复验目标和上下文，不直接调用世界修改或改相机朝向。
+语义动作按当前视点/距离重新瞄准并原版pick，不将正常玩家位移作为身份变化；guard不再固定初始x/y/z，也不是可由客户端回放的授权对象。世界/玩家/相机、物品、Viewport、Lease与取消检查继续生效。
 clientBreakPredicted 只代表客户端预测；effectConfirmed=false 要求独立观察。
 mine 的 nativeBreakChanges/breakProvenance 描述有界同步原版破坏来源，包括流体替代与邻居更新；
 不是任意忽略 Chunk revision。use_hold.hand 可为 main_hand（默认）或 off_hand；
 副手要求主手为空，否则 WORLD_USE_HAND_CONFLICT；无持续使用能力返回 WORLD_USE_ITEM_REQUIRED。
 实际手不符会拒绝并释放，不绕过原版优先级。USER 玩家 usingHand 为 none/main_hand/off_hand，
-riding 为客户端乘坐状态，不公开服务器内部关系。
+riding为客户端乘坐状态；乘坐时vehicleType与vehicleControllerIsPlayer只来自本地载具及其原生控制者判断，不公开服务器内部关系或UUID，也不授予Agent输入权限。
 取消的合同是释放输入，不回滚；弓松键等原版效果可能发生。精确预算与字段见 OpenAPI 的 PipelineStep。
 
 Runtime 文本与图片一律 data-plane；static MCP tools/prompts 不读取它们生成指令。
@@ -517,6 +570,170 @@ input/state 的 agentPointer 提供 gameCaptured、gameCursorVisible、gameCurso
 ui/tree 同步 gameCursorRevision，供 gesture 临执行校验游戏光标请求。它不是 Lease 或资源写权限。
 control.pointer.game_request 仅为 GAME 来源的 Operator metadata，不进入被测 framebuffer。
 事件流、响应体、队列与 Artifact 读取均按实际预算和失败语义执行。
+
+## DEBUG 玩家与实体状态
+
+player.state.set和entity.state.set沿现有Debug Mutation入口，使用独立namespace scope/Arm、worldFingerprint与资源版本；不申请输入Lease。
+value为封闭typed对象，expectedValue为同形状的部分原值条件；不接受raw NBT、命令、任意属性名或权限标志。
+玩家字段为food、saturation、air、absorption、experienceLevel、experiencePoints、flying及velocity={x,y,z}。
+启用flying必须已经具备native mayFly，否则DEBUG_PLAYER_ABILITY_DENIED且零修改；不授予mayFly或更改权限。
+experiencePoints为当前等级内点数，必须小于原生下一等级需求，与experienceLevel分开提交；totalExperience为累计历史只读。
+实体仅指当前维度已加载的非玩家对象，字段为health、absorption、air、silent、noGravity、glowing、noAi及velocity；生命/吸收只适用于LivingEntity，noAi只适用于Mob。
+air受实际maxAirSupply限制，速度各轴限[-10,10]；原生clamp、网络同步、重力与模拟继续生效，不保证值持续不变。
+回执提供真实before/after、资源版本和DEBUG_PRIVILEGED来源；health=0可能导致死亡，取消不回滚已发生的原版效果。
+mayFly/instabuild等授权能力、身份、派生状态与任意AI对象不由此修改。aiTargetUuid为只读原生当前目标；非法或不适用字段在任意setter前拒绝，不加载未知资源或修改存档。
+
+DEBUG player/entity的attributes提供实际注册id、base、effective value、已实例化modifiers及可得minimum/maximum，typedBaseWritable标明批准的原生项。
+player.attribute.set及entity.attribute.set按实际native有效值域校验base后提交；不支持的属性或主体明确拒绝。原生可存储再clamp的越界base在此API中拒绝。
+不通过读取实例化默认属性，不提供任意modifier setter；既有player的minecraft:max_health别名继续映射原生属性。
+entity.equipment.set作用于已加载非玩家LivingEntity，使用独立entity scope/Arm及完整entity资源版本；equipmentSlot使用nativeEquipmentSlots的真实名字，itemData沿既有批准目录。
+1.21.1及以后在提交前检查native canUseSlot，不适用时DEBUG_EQUIPMENT_SLOT_UNAVAILABLE；1.20.1只有原生六项，玩家setter始终只接受六个标准位置。
+
+player.effect.set/entity.effect.set接收effectId与显式value；null移除，object替换原生效果与同类hidden链。duration以tick计，-1无限，其他0..1200000；amplifier为0..255。
+value/expectedValue的对象字段为duration、amplifier、ambient、showParticles、showIcon和最多16项hidden，hidden每项只含前五字段；未给showIcon时随showParticles。
+server.player/entity.effects保留id/duration/amplifier并增加flags/hidden/hiddenChainComplete；提交value时去掉只读id和hiddenChainComplete，expectedValue=null可断言原先不存在。
+当前native链超过预算时DEBUG_EFFECT_CHAIN_INCOMPLETE且不修改未知尾部；完整链按native构造与forceAddEffect/removeEffect回调应用，可能改变属性或产生后续效果，不承诺取消回滚或复制图形渐变缓存。
+这些新正式typed路径当前仅集成世界提供；既有Peer仍只有声明的旧health/block能力，无Peer明确不可用。
+
+## DEBUG 世界环境
+
+DEBUG深读domains=["world"]返回server.world.environment的clocks、weather和当前level可用rules；来自已载入LIVE对象，不读取存档或请求Chunk加载。
+正式操作仍经既有Debug Mutation入口，独立world scope/Arm、worldFingerprint及expectedResourceVersion；READ只读，OPERATE/TAKEOVER可独立授权修改，无输入Lease。
+
+| 操作 | value与定位 | 资源版本与原生边界 |
+| --- | --- | --- |
+| world.time.set | clockId取clocks；value为总tick精确整数，范围为JavaScript安全整数，可附expectedValue | world_time记录具名原生时钟控制修改，不因自然推进失效；expectedValue若提供则严格匹配当时totalTicks |
+| world.weather.set | value完整包含clearWeatherTime/rainTime/thunderTime（0..2147483647）及raining/thundering布尔值，可附完整expectedValue | world_weather覆盖具名控制修改及当前两flags，不把自然倒计时当控制修改；显式值条件精确比较所有字段 |
+| world.rule.set | ruleId取rules；value为实际boolean/integer，可附expectedValue | world_rule为原生规则值的snapshot_change_sequence；提交前使用其native argument范围解析，再调用原生setter/callback |
+
+显式时间修改后旧版本失效，A→B→A不复用已观察旧版本；自然推进不是完整环境CAS的一部分，查看各资源revisionCoverage，不将token解释为暂停世界。
+1.x仅发布实际可写的Overworld主时间，其他维度使用派生数据、原生setter无效果，不伪造独立时钟；26.x枚举实际WorldClock注册项。
+现代rate/paused为原生配置而非客户端暂停或有效tick推进判定；partialTick和播放配置只读，不提供模拟暂停/调速后门。
+天气scope按原生版本返回server或Overworld，倒计时可独立恢复；真实降雨经普通模拟和网络渐变，不承诺flags改变立即等同画面下雨。
+GameRule身份、类型及值域从实际可用目录取，未支持的值类型只读；修改可能影响共享世界和原生回调，不冒充玩家命令或授予作弊权限。
+gameTime、seed/worldgen、调度队列及持久化文件不在写目录；无Peer不可用。取消不回滚已应用副作用，恢复须重新读取版本及值。
+
+## DEBUG 加载与模拟诊断
+
+DEBUG深读chunks在每个已加载Chunk保留scheduledBlockTicks/scheduledFluidTicks数组，并新增同名加Result的元数据。
+每类最多64项，returnedCount/queuedCount说明实际原生排队项与预算截断；containerCount含原生待展开保存项，pendingUnpackedCount单列，不调用unpack或伪装其内容。
+coverage=loaded_container_queued_only、ordering=native_container_iteration；不保证按触发时间排序，不包含已被原生收集待执行的队列或未加载Chunk。
+全局blockScheduledTickCount/fluidScheduledTickCount是原生LevelTicks.count，不等于全部调度阶段的全集。读取不执行、删除、重排或新增tick。
+
+world.simulation只读，区分integratedPaused、原生TickRateManager的frozen/stepping/runsNormally/sprinting及configuredTickRate；它们也不等于WorldClock的暂停配置。
+configuredTickRate只是原生目标设置，不是实测性能；1.20.1没有原生TickRateManager，明确tickRateControlAvailable=false及原因，不编造20或freeze值。
+不提供调度重写、任意模拟暂停或步进入口，读取不要求Arm或玩家Lease，仍需独立DEBUG读取授权。
+
+既有world.block.set批次仍逐项使用原值/版本、最多64项、每tick最多4项及总预算；失败按STOP/CONTINUE政策报告真实已应用前缀，不是事务或region writer。
+world.block.set在setter前拒绝目标或直接邻域未加载；同步原生传播期间，实际ServerChunkCache入口只允许取得已加载Full Chunk，不创建依赖区块。
+若传播更远才遇到未知区块，源或其他邻居可能已经改变：单项返回DEBUG_MUTATION_PARTIAL_NOT_LOADED、executionOutcome=partial、retrySafe=false及partialMutation；其中before/after与资源版本是真实源方块回执，blockedChunk标出被阻断的依赖，不是全部邻居变化清单。
+批次失败项保留同一result和mutationMayHaveApplied=true，并停止后续项（即使CONTINUE_ON_FAILURE）；不自动回滚或重试，需重新读取并显式恢复。
+Recording/Timeline及DEBUG evidence window仍记录污染，事件为debug.operation.partial而非completed。MCP保留结构化回执；其他拒绝不公开这些字段。
+约束只覆盖本正式typed block路径的同步调用，不冻结普通Vanilla后续模拟或授权Fixture；无输入、任意调度或区块加载新权限。五端实际进度见[状态页](../project/status-milestones.md)。
+
+## DEBUG 实体生命周期
+
+entity.spawn使用value={entityType,position:{x,y,z},yaw?,pitch?}，保留小数坐标，不接受NBT、UUID或组件注入。
+先用DEBUG深读取entities及selector.entityChunk={x,z}取得server.entityRegistry和对应entity_registry资源版本；坐标为目的地Chunk，不是玩家附近半径。
+成员集仅来自已加载资源，完整上限4096；未加载返回available=false/chunk_not_loaded且不给可写版本，超额拒绝而非截断。
+创建要求独立entity scope/Arm、worldFingerprint、资源版本，可附expectedEntityCount；边界所触及Chunk均须已加载。
+它调用原生type.create/addFreshEntity，使用工厂默认状态，不是summon/finalizeSpawn或自动刷怪；无独立工厂的类型明确拒绝。
+回执包含createdEntity及其createdEntityResourceVersion、成员集before/after；插入使旧成员版本失效，不能盲目重放。
+
+entity.remove要求entityUuid、对应完整entity版本，可附expectedEntityType；只移除已加载非玩家对象，走原生discard而非死亡战利品流程；原生关系清理可能产生绳索等附带副作用。
+回执保留UUID/lifecycleId、removed和removalReason，afterResourceVersion不再可写；之后旧身份不能继续写入。
+删除不可撤销，不提供同UUID恢复；测试创建的对象按返回UUID单独清理，不能宽范围kill或重建未知实体。
+上述操作为DEBUG_PRIVILEGED，不获取输入Lease、不加载Chunk、不访问Persistent Storage；原生实体/加载器回调仍是实际副作用。
+当前正式路径只提供集成世界；无Peer明确不可用，有限Peer不因此新增能力。
+
+## DEBUG LIVE 转移
+
+player.transform.set只针对当前真实玩家；entity.transform.set要求entityUuid、sourceDimension及可选expectedEntityType，不接受玩家对象。
+两者的value严格为{dimension,position:{x,y,z},yaw?,pitch?}；保留double小数，省略角度时保留原朝向。
+仍需worldFingerprint、expectedResourceVersion及对应独立scope/Arm，expectedValue可提供完整目的结构形式的原值条件；无输入Lease，不产生玩家键鼠事件。
+
+DEBUG深读world.dimensions列出现有LIVE维度及生命周期，不创建维度。
+entities支持selector.entityTargets=[{dimension,entityUuid}]，1～128个唯一明确身份；要求显式server_authoritative、entities域及足够的maxEntities预算。
+server.entityTargets逐项返回available、chunkLoadRequested=false及state或缺失原因；可用对象仍有entity资源版本，projection.entityFields同样生效。
+显式entityTargets替代附近半径实体采集，server.entities为空，不额外返回未请求的邻近对象；身份总数超过maxEntities时拒绝而非截断。
+它只调用现有维度与已加载实体查找；未知维度、已卸载对象不能获得可写token，不从磁盘补齐，也不回退客户端数据。
+entity.remove可显式指定sourceDimension清理本任务在其他已加载维度创建的非玩家对象，权限与版本条件不变。
+
+转移要求源对象存活、目标维度已存在且平移后的完整实体包络所涉区块已加载；未知目标返回TARGET_NOT_LOADED。
+必须先用独立版本关系操作解除骑乘/乘客/牵引；跨维度时有原生旁观摄像机跟随也拒绝，避免未经关联主体授权的隐式转移。
+实际执行使用对应版本原生Entity.teleportTo，不手写位置、朝向、换世界或发包。同步原生依赖若访问未知区块，由具名加载守卫阻止，已发生部分效果按DEBUG_MUTATION_PARTIAL_NOT_LOADED如实回执，不承诺回滚。
+
+结果说明crossDimension、identityRebuilt、nativeSerializationHooks及实际前后资源版本。
+非玩家跨维度按原版重建对象并保留UUID，新lifecycle使旧token失效；原生内存复制/同步回调不是Persistent Storage写入。
+当前玩家跨维度改变世界指纹，requiresFreshWorldFingerprintAndArm=true；调用方必须显式重新读取并授权，不能沿用旧Arm或盲目重试。
+速度、摄像机、物品使用及维度触发器保持该版本原生副作用，返回位置不等于还原这些效果。
+约束只覆盖正式typed同步转移，不冻结转移后普通Vanilla模拟/玩家视距加载，不扩展有限Peer或无Peer能力。
+
+## DEBUG 关系
+
+DEBUG深读player/entities返回relationships和entity_relationship资源版本，身份绑定实际对象；vehicle/passengers为UUID与有序成员，leash说明supported/resolution/holderUuid，owner说明supported/ownerUuid/tamed及只读理由。
+空UUID在JSON中可以省略；修改时必须用显式null表示解除。读取不惰性解析主人或牵引对象，不调用保存或加载Chunk。
+entity.vehicle.set和entity.leash.set要求entityUuid及value=UUID|null；player.vehicle.set只针对当前真实玩家；entity.owner.set的value严格为{ownerUuid:UUID|null,tamed:boolean}，无主人不能设tamed=true。
+每项仍需worldFingerprint、expectedResourceVersion及独立scope/Arm；expectedValue可附加精确原值。player.vehicle.set额外同时校验entity命名空间，在一个取消屏障中授权，不获取输入Lease。
+
+relatedResourceVersions必须显式提供，最多三项，无重复或多余项：新参与者、将解除的旧载具/挂绳持有者。原生挂绳自动下马及骑乘自动断绳的参与者也计入；没有则写空数组。
+只使用当前已加载对象；牵引待解析、循环/自指、原生资格/容量/冷却拒绝时不给强制成功。原版非强制骑乘不允许用force绕过限制。
+下马前检查双方尺寸推导的原版邻格/碰撞逃离包络均已加载；跨未加载边界返回TARGET_NOT_LOADED，不先调用可能读取新区块的原生搜索。
+新主人限定已加载真实ServerPlayer；已有离线主人UUID可只读或清除，不为设置归属创建假玩家。原生没有批准setter的异构关系明确只读。
+
+回执的before/after与版本为关系专用；beforeEntity/afterEntity、relatedAfter提供实际连带变化。原生骑乘可能断绳/掉落绳索，挂绳可能下马，狼驯服会补血、解除驯服不自动还原生命。
+恢复关系不保证回滚位置、生命、物品或外部回调；须重新检查版本并显式恢复批准状态，删除的物品也不自动重建。
+这些操作仅集成世界DEBUG_PRIVILEGED，INPUT派发为零，不增加Peer能力，不访问Persistent Storage。
+
+## DEBUG 库存与装备
+
+正式typed mutation新增player.inventory.slot.set、player.equipment.set和block_entity.slot.set。
+仍需独立debug.player或debug.block_entity、Debug Arm、worldFingerprint及expectedResourceVersion；仅OPERATE/TAKEOVER，不占输入Lease。
+inventory的slot取自server.player.inventory的原生编号，不等于UI Menu编号；equipmentSlot只接受mainhand/offhand/head/chest/legs/feet。
+容器必须是已加载的原生Container Block Entity，坐标/槽位/类型由实际对象校验；不自动加载或打开界面。
+
+替换载荷为itemId/count及可选itemData={customName,damage}，count=0清空。
+整数不接受字符串或小数；count最多64且不超过实际物品最大堆叠，damage不超过原生耐久域。
+名称仅literal文本，未指定数据使用原生默认值，不复制任意组件、NBT或富文本；读取的customName也不是无损富文本序列化。
+替换和清理通过原生库存/装备/容器setter、常规同步及独立版本回读，不直接写存档。
+容器版本取includeSerializedBlockEntities=true的block_entity_serialized资源，序列化权限和预算不变。
+未展开LootTable的容器返回DEBUG_CONTAINER_LOOT_UNRESOLVED，避免getItem/setItem隐式生成战利品；先经普通玩法打开后才可修改槽位。
+原版容器回调、setChanged和同步更新属于实际副作用；不承诺整世界事务或自动恢复，未知外部变化不覆盖。
+
+## DEBUG 方块实体分页
+
+POST /v0/observe/deep中显式指定category=DEBUG、domains=["block_entities"]及server_authoritative或both。
+每页仍受budgets.maxBlockEntities的1～128项限制；blockEntities数组结构不变，新增server.blockEntitiesResult元数据。
+hasMore=true时，将nextCursor原样放入下一次selector.blockEntityCursor，并重复相同selector、budgets及序列化设置。
+元数据包含returnedCount、candidateCount、limit、ordering及consistency=per_page_live，不承诺跨页原子快照。
+
+按坐标key字典序续读，原生Map顺序变化或前一项删除不会造成索引跳项；已读位置之后的新对象可被后页读取，之前的新对象须重新查询。
+游标绑定实际ServerLevel/ServerPlayer对象、玩家所在Chunk及规范化查询，不持有世界强引用。
+游标60秒过期，每Runtime最多保留32个；过期、淘汰、世界/玩家替换或查询变化返回409 DEEP_PAGE_CURSOR_STALE，调用方重新开始。
+最多扫描8192个已加载候选；超过时返回413 DEEP_PAGE_SCAN_LIMIT_EXCEEDED，应缩小chunkRadius，不把前8192项冒充完整结果。
+
+无Chunk加载、磁盘读取或输入Lease；每次请求仍复验独立DEBUG读取授权。client_known续页明确拒绝。
+序列化显式设置includeSerializedBlockEntities=true并受原有字节预算限制，页面完整不等于序列化字段完整。
+metadata.readEffects描述原生owner采集，沿用server的实际标记；Provider各自声明effects，按其allowReadEffects政策准入。
+MCP Companion的minecraft_deep_observe接受同一selector；此为V0新增可选字段及响应元数据，旧非分页请求仍返回第一有界页。
+
+## Provider 批准目录与 Fixture
+
+Deep capabilities的providers及Provider读取结果使用同一实际声明，保留debugSupported兼容字段，新增debugDeclaration的mutationSchema/resultSchema、额外requiredScope、Arm、资源版本与同步/版本行为。
+revisionScope/revisionSchema/revisionQueryInvariant与只读原因同时公开；debugSupported只是Provider声明，不是当前授权、可写token或绕过隔离的许可。
+Provider schema URI指向已注册的可执行验证器，不是自动导出的JSON Schema；具体payload必须遵循该Provider自己的说明，不能从URI猜字段或传任意对象。
+核心世界字段由原生typed目录实现，不依赖第三方Provider补齐；自有safe Provider的temperature仅为诊断合同样本，不是Minecraft环境温度。
+
+provider.mutate先按独立scope/Arm、世界指纹及原生resource版本准入，再检查注册的封闭payload/result schema、原生revision递增、预算与线程入口；query_view或无可写原生版本明确拒绝。
+观察路径不得隐藏修改；声明mayLoadData/mayAccessStorage的观察返回skipped及对应原因，mayMutate返回permission_denied，均不执行采集或提供修改token。
+allowReadEffects只覆盖获准的lazy initialization，不授予加载、存档或修改许可；这不是恶意同JVM模组的沙箱。
+批次逐项应用、保留已完成前缀和实际错误，不承诺事务回滚；失败后重新检查实际版本和状态再决定恢复，不盲目重试。
+
+现有Fixture使用独立fixture scope及OPERATE/TAKEOVER，不需要输入Lease或Debug Arm；不因此获得typed Debug权限。
+其现有响应mode=FIXTURE是证据标签，不是第四种Control Mode；实际控制状态仍由Control Session提供。
+fixture.player.teleport是明确的FIXTURE准备动作，不是USER玩法、Provider能力或DEBUG原子批次；使用自有副本并显式恢复，不把其原生移动/加载副作用描述为只读操作。
+演示测试界面的fixture入口同样保留FIXTURE authority；不把准备结果当作原版核心操作已验收，旧Peer范围不因本目录扩大。
+已应用的Fixture在成功响应前标记录制和当时活动的Gameplay Act；fixtureMutationCount/fixtureOperationDuringAct单独记录，不伪装成Debug修改次数。即使随后恢复原值，该Act仍invalid_for_acceptance；在Act开始之前完成的Arrange不污染之后的新窗口。
 
 ## 验证与生成
 

@@ -34,6 +34,10 @@ class ResourceVersionTransportTest {
         String arm;
 
         Fixture(boolean mutationScope) throws Exception {
+            this(mutationScope, false);
+        }
+
+        Fixture(boolean mutationScope, boolean partial) throws Exception {
             initial = tracker.revision("block", "dimension@1,2,3", "instance-a", state(1));
             current = tracker.revision("block", "dimension@1,2,3", "instance-a", state(2));
             System.setProperty(
@@ -83,6 +87,31 @@ class ResourceVersionTransportTest {
                                                 value.addProperty("namespace", "world");
                                                 value.addProperty("operation", "world.block.set");
                                                 value.addProperty("evidenceContaminated", true);
+                                                if (partial) {
+                                                    current =
+                                                            tracker.revision(
+                                                                    "block",
+                                                                    "dimension@1,2,3",
+                                                                    "instance-a",
+                                                                    state(3));
+                                                    value.addProperty(
+                                                            "nativeEffectsComplete", false);
+                                                    value.addProperty(
+                                                            "mutationMayHaveApplied", true);
+                                                    value.addProperty("gameplayEvidence", false);
+                                                    value.add(
+                                                            "afterResourceVersion",
+                                                            current.deepCopy());
+                                                    JsonObject details = new JsonObject();
+                                                    details.add(
+                                                            "partialMutation", value.deepCopy());
+                                                    details.addProperty("retrySafe", false);
+                                                    throw new ProtocolState.ProtocolException(
+                                                            "DEBUG_MUTATION_PARTIAL_NOT_LOADED",
+                                                            409,
+                                                            "partial native effects",
+                                                            details);
+                                                }
                                             } catch (Throwable error) {
                                                 return CompletableFuture.failedFuture(error);
                                             }
@@ -232,6 +261,74 @@ class ResourceVersionTransportTest {
             JsonObject completed = state.operationStatus(id);
             assertEquals("failed", completed.get("state").getAsString());
             assertCounters(completed.getAsJsonObject("errorDetails"), before, after);
+        }
+    }
+
+    @Test
+    void partialNativeFailureKeepsActualHttpBatchResultAndContaminatesTheEvidenceWindow()
+            throws Exception {
+        for (boolean batch : new boolean[] {false, true}) {
+            try (Fixture f = new Fixture(true, true)) {
+                f.prepare();
+                String act =
+                        f.value("POST", "/v0/debug/evidence/act/start", new JsonObject(), 200)
+                                .get("actId")
+                                .getAsString();
+                if (batch) {
+                    JsonObject body = new JsonObject();
+                    JsonArray items = new JsonArray();
+                    items.add(f.mutation(f.current));
+                    items.add(f.mutation(f.current));
+                    body.add("items", items);
+                    body.addProperty("failurePolicy", "CONTINUE_ON_FAILURE");
+                    JsonObject started = f.value("POST", "/v0/debug/batches", body, 200);
+                    JsonObject wait = new JsonObject();
+                    wait.addProperty("timeoutMs", 2000);
+                    JsonObject done =
+                            f.value(
+                                    "POST",
+                                    "/v0/operations/"
+                                            + started.get("operationId").getAsString()
+                                            + "/wait?category=DEBUG",
+                                    wait,
+                                    200);
+                    JsonObject result = done.getAsJsonObject("result");
+                    assertEquals("partial", result.get("status").getAsString());
+                    assertEquals(1, result.get("notStartedItems").getAsInt());
+                    JsonObject item = result.getAsJsonArray("items").get(0).getAsJsonObject();
+                    assertEquals(
+                            "DEBUG_MUTATION_PARTIAL_NOT_LOADED", item.get("error").getAsString());
+                    assertFalse(
+                            item.getAsJsonObject("result")
+                                    .get("nativeEffectsComplete")
+                                    .getAsBoolean());
+                    assertEquals(
+                            f.current, item.getAsJsonObject("result").get("afterResourceVersion"));
+                } else {
+                    JsonObject error =
+                            f.value("POST", "/v0/debug/mutations", f.mutation(f.current), 409);
+                    assertEquals(
+                            "DEBUG_MUTATION_PARTIAL_NOT_LOADED", error.get("error").getAsString());
+                    assertFalse(
+                            error.getAsJsonObject("partialMutation")
+                                    .get("nativeEffectsComplete")
+                                    .getAsBoolean());
+                    assertEquals(
+                            f.current,
+                            error.getAsJsonObject("partialMutation").get("afterResourceVersion"));
+                }
+                JsonObject finish = new JsonObject();
+                finish.addProperty("actId", act);
+                assertTrue(
+                        f.value("POST", "/v0/debug/evidence/act/finish", finish, 200)
+                                .get("contaminated")
+                                .getAsBoolean());
+                assertEquals(
+                        1,
+                        f.value("GET", "/v0/debug/evidence", null, 200)
+                                .get("lastDebugMutationSequence")
+                                .getAsInt());
+            }
         }
     }
 

@@ -6,6 +6,18 @@ import { execFileSync } from 'node:child_process';
 import { worldReadConsumers, commandOperationConsumer } from './world-read-consumers.mjs';
 import { firstCameraActions } from './first-camera-actions.mjs';
 import { blockEntitySelectorActions } from './block-entity-selector-actions.mjs';
+import { blockEntityPagesActions } from './block-entity-pages-actions.mjs';
+import { worldDebugItemsActions } from './world-debug-items-actions.mjs';
+import { worldDebugRelationsActions } from './world-debug-relations-actions.mjs';
+import { worldDebugLoadingActions } from './world-debug-loading-actions.mjs';
+import { worldDebugBoundaryActions } from './world-debug-boundary-actions.mjs';
+import { worldDebugTransferActions } from './world-debug-transfer-actions.mjs';
+import { worldDebugProvidersActions } from './world-debug-providers-actions.mjs';
+import { worldRegionFunctionalActions } from './world-region-functional-actions.mjs';
+import { worldUserCatalogActions } from './world-user-catalog-actions.mjs';
+import { worldDebugEnvironmentActions } from './world-debug-environment-actions.mjs';
+import { worldDebugEntitiesActions } from './world-debug-entities-actions.mjs';
+import { worldDebugStateActions } from './world-debug-state-actions.mjs';
 import { commandCollaborationActions } from './command-collaboration-actions.mjs';
 import { worldHeldActions } from './world-held-actions.mjs';
 import { worldMovementActions } from './world-movement-actions.mjs';
@@ -61,11 +73,12 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','command-collaboration'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
-const instance = resolve(repo, 'validations',validation,'instance', target, 'client');
+const role=args.role??'client';assert(['client','client-multiplayer'].includes(role));assert(role==='client'||args['shutdown-only']==='true');
+const instance = resolve(repo, 'validations',validation,'instance', target, role);
 const fixtureInput=JSON.parse(await readFile(resolve(instance,'fixture-input.json'),'utf8').catch(error=>{if(error.code==='ENOENT')return 'null';throw error;}));
 if(args['shutdown-only']!=='true'){
   if(args['fixture-hash']){
@@ -122,12 +135,16 @@ async function release() { clearInterval(renew); await api('POST','/v0/control/r
 async function mode(value) { const current=await api('GET','/v0/control/mode'); await api('POST','/v0/control/mode',{mode:value,expectedModeVersion:current.modeVersion}); if(value!=='TAKEOVER'){clearInterval(renew);lease=undefined;} }
 async function shutdown() {
   if (!lease) await acquire();
+  let deathExitPending=false;
   for(let i=0;i<10;i++) {
     const tree=await wait(()=>true,'shutdown navigation');
     if(tree.screenClass.endsWith('TitleScreen')) {
       await click('menu.quit','Quit Game').catch(()=>{}); clearInterval(renew); lease=undefined; return;
     }
-    const quit=nodes(tree).find(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey));
+    if(tree.screenClass.endsWith('DeathScreen')){await click('deathScreen.titleScreen','Title Screen');deathExitPending=true;continue;}
+    const exitKeys=['menu.disconnect','menu.returnToMenu',...(deathExitPending?['deathScreen.titleScreen','gui.yes']:[])];
+    const quit=nodes(tree).find(node=>exitKeys.includes(node.translationKey)&&node.active!==false);
+    if(deathExitPending&&!quit){await wait(t=>nodes(t).some(n=>exitKeys.includes(n.translationKey)&&n.active!==false),'native death confirmation readiness',5000);continue;}
     if(quit) {
       const before=await api('GET','/v0/input/state');let unconfirmed;
       try{await clickNode(quit);}catch(error){
@@ -136,7 +153,7 @@ async function shutdown() {
       }
       const title=await wait(t=>t.screenClass.endsWith('TitleScreen'),'Save and Quit finishes before another navigation input');
       if(unconfirmed){
-        const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});
+        let released;try{released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});}catch(error){actionSamples.push({case:'shutdown_release_failure',before,after:await api('GET','/v0/input/state'),screenClass:title.screenClass,unconfirmed,error:String(error)});throw error;}
         assert.equal(released.passed,true);
         const after=await api('GET','/v0/input/state');
         actionSamples.push({case:'shutdown_context_exit',...contextExitEvidence(before,after,title,unconfirmed),released});
@@ -149,12 +166,22 @@ async function shutdown() {
 if(args['shutdown-only']==='true'){await shutdown();process.exit(0);}
 async function sources() {
   const hashes={};
-  if(['first-camera','block-entity-selector','command-collaboration'].includes(scenario)) {
+  if(['station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle'].includes(scenario)){const path='components/validation_tools/conformance-world_read/task/world-'+(scenario==='entity-tail'?'entity-branches':scenario==='range-tail'?'range-branches':scenario)+'-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(['block-bridge','surface-use'].includes(scenario)){const path='components/validation_tools/conformance-world_read/task/world-block-bridge-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(scenario==='placement-branches'){const path='components/validation_tools/conformance-world_read/task/world-placement-branches-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(scenario==='item-utility'){const path='components/validation_tools/conformance-world_read/task/world-item-utility-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(scenario==='world-seats')for(const name of ['world-seat-actions.mjs','world-seats.init.gradle']){const path='components/validation_tools/conformance-world_read/task/'+name;hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(['special-movement','modern-mounts','world-seats'].includes(scenario)){const path='components/validation_tools/conformance-world_read/task/world-special-movement-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
+  if(['movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle'].includes(scenario)) {
+    const path='components/validation_tools/conformance-world_read/task/world-movement-branches.mjs';
+    hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
+  }
+  if(['first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration'].includes(scenario)) {
     const path=`components/validation_tools/conformance-world_read/task/${scenario}-actions.mjs`;
     hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   }
-  if(scenario==='command-collaboration') {
-    const path='components/validation_tools/conformance-world_read/task/command-collaboration.init.gradle';
+  if(['command-collaboration','world-debug-items','world-debug-boundary','world-debug-transfer','world-user-catalog'].includes(scenario)) {
+    const path=`components/validation_tools/conformance-world_read/task/${scenario}.init.gradle`;
     hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');
   }
   for(const dir of [resolve(repo,'versions',target,'src'),resolve(repo,'components/runtime_safety/src/main'),resolve(repo,'components/runtime_core/src/main')]) {
@@ -209,7 +236,31 @@ for(const path of ['components/protocol_schema/src/main/openapi/minecraft-contro
 const before=await sources();
 async function check(name, run) {await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}
 try {
-  if(scenario==='block-entity-selector') {
+  if(scenario==='world-user-catalog') {
+    await worldUserCatalogActions({api,target,repo,instance,fixtureInput,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='world-region-functional') {
+    await worldRegionFunctionalActions({api,target,fixtureInput,mode,acquire,release,key,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='world-debug-providers') {
+    await worldDebugProvidersActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-transfer') {
+    await worldDebugTransferActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-boundary') {
+    await worldDebugBoundaryActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-loading') {
+    await worldDebugLoadingActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-relations') {
+    await worldDebugRelationsActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-environment') {
+    await worldDebugEnvironmentActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-entities') {
+    await worldDebugEntitiesActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-state') {
+    await worldDebugStateActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='world-debug-items') {
+    await worldDebugItemsActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
+  } else if(scenario==='block-entity-pages') {
+    await blockEntityPagesActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
+  } else if(scenario==='block-entity-selector') {
     await blockEntitySelectorActions({api,connection,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,enterWorld:true});
   } else if(scenario==='command-collaboration') {
     await commandCollaborationActions({api,repo,instance,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
@@ -245,8 +296,8 @@ try {
     await consumerWorldReadiness({api,acquire,release,check,actionSamples});
     await consumerPlayerFlags({api,repo,instance,target,acquire,release,check,actionSamples});
     await consumerHitFeedback({api,repo,instance,target,acquire,release,leaseId:()=>lease,check,actionSamples});
-  } else if(scenario==='movement') {
-    await worldMovementActions({api,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,fixtureInput});
+  } else if(['movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle'].includes(scenario)) {
+    await worldMovementActions({api,target,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,fixtureInput,branchesOnly:scenario==='movement-branches',specialOnly:scenario==='entity-parts'?'entity-parts':scenario==='entity-social'?'entity-social':scenario==='range-tail'?'range-tail':scenario==='range-branches'?'range-branches':scenario==='lifecycle'?'lifecycle':scenario==='entity-tail'?'entity-tail':scenario==='entity-branches'?'entity-branches':scenario==='station-use'?'station':scenario==='combat-use'?'combat':scenario==='surface-use'?'bridge-surface':scenario==='block-bridge'?'bridge':scenario==='placement-branches'?'placement':scenario==='item-utility'?'items':scenario==='world-seats'?'seats':scenario==='modern-mounts'?'modern':scenario==='special-movement'});
   } else if(scenario==='block-state') {
     await worldBlockStateActions({api,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;},repo,instance,target,enterWorld:true});
   } else if(scenario==='consumer') {
@@ -263,7 +314,7 @@ try {
   assert.equal((await api('GET','/v0/session')).target,target);
   await check('capability truth and unavailable client world at title',async()=>{
     const capability=await api('GET','/v0/capabilities');assert.equal(capability.worldContract.implementationStage,'bounded_client_world_model');assert.deepEqual(capability.worldContract.userSemanticActions,['aim','attack','use','mine','use_hold','place']);assert.equal(capability.worldContract.userMaxHoldMs,10000);assert.equal(capability.worldContract.userHeldHands,'main_hand_or_off_hand_empty_main');assert.equal(capability.worldContract.userMiningCompletion,'bounded_synchronous_native_destroy_including_fluid');assert.equal(capability.worldContract.readConsumerIsolationComplete,true);assert.equal(capability.worldContract.consumerIsolationComplete,false);assert.equal(capability.worldContract.milestoneComplete,false);
-    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
+    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?27:target.startsWith('26.')?24:22);
     for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true),'Actual Hook manifest must include '+id);
     assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'),'Native reset generation is passive observation, not an input cancellation Hook');
     const player=await api('GET','/v0/player');validateModel(player,'player');assert.equal(player.dataCategory,'USER');assert.equal(player.domain,'WORLD');for(const field of ['uuid','serverTick','nbt'])assert(!(field in player));assert.equal(player.available,false);

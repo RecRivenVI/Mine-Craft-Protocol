@@ -41,6 +41,24 @@
     "description": "Existing lifecycle/input/screen events plus explicitly requested USER world.player.state client-tick pose. The pose stream requires read/event, types=[world.player.state] or namespaces=[world], at most once per actual client tick and only a connected local player; default all-events does not include the high-frequency stream. Each pose carries streamContext generation/opaqueId, sourceTick/sample time, xyz/yaw/pitch/onGround/velocityXYZ, no server/NBT fields. Paused gameplay may repeat the same pose; wall-clock rate depends on native tick scheduling and load. Bearer authentication and per-category read authorization are required at publication, replay and send. Old-context frames cannot replay and require gap/resync. Block-change streaming is not implemented. HTTP paths below do not model WebSocket frames."
   },
   "paths": {
+    "/v0/server/console": {
+      "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "get": {
+        "operationId":"readServerConsole", "x-agent-mode":"READ_COMPATIBLE",
+        "description":"Dedicated SERVER_CONSOLE actor; requires read and explicit server_console scope. Published INFO and higher LIVE logging, not terminal pixels or historical files. Untrusted text; cursor gaps are explicit.",
+        "parameters":[{"name":"after","in":"query","schema":{"type":"integer","format":"int64","minimum":0,"default":0}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":128,"default":64}}],
+        "responses":{"200":{"description":"Bounded console page","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServerConsolePage"}}}},"401":{"$ref":"#/components/responses/Unauthorized"},"403":{"description":"Console owner scope not granted"},"409":{"description":"Unavailable on this deployment"}}
+      }
+    },
+    "/v0/server/console/commands": {
+      "parameters":[{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "post": {
+        "operationId":"executeServerConsoleCommand", "x-agent-mode":"OPERATE_OR_TAKEOVER",
+        "description":"Dedicated server supports OPERATE only; no player input Lease. Requires server_console, command, control. Initial roots help/list/say/seed/time/weather. Returns existing Operation for native dispatch, not world-effect acceptance; explicit cancellation/deadline/close prevents unstarted dispatch, executed effects do not roll back. Accepted Operations are independent of pooled HTTP socket lifetime, bounded to five seconds before dispatch. No implicit retry.",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["command"],"additionalProperties":false,"properties":{"command":{"type":"string","minLength":1,"maxLength":2048}}}}}},
+        "responses":{"200":{"description":"Existing cancellable Operation","content":{"application/json":{"schema":{"$ref":"#/components/schemas/OperationResponse"}}}},"401":{"$ref":"#/components/responses/Unauthorized"},"403":{"description":"Console owner or command scope denied"},"409":{"description":"Explicit OPERATE required or command outside initial catalogue"}}
+      }
+    },
     "/v0/control/task": {
       "parameters": [
         {
@@ -2033,6 +2051,10 @@
                                 "type": "string",
                                 "maxLength": 512
                               },
+                              "partName": {"type":"string","maxLength":512,"description":"Name of an independently pickable native client-known multipart body; targetRef identifies the actual part, not a substituted parent."},
+                              "displayedItemId": {"type":"string","maxLength":512,"description":"Client-synchronized ItemFrame display, including minecraft:air when empty; not a hidden inventory."},
+                              "displayedItemCount": {"type":"integer","minimum":0},
+                              "displayedRotation": {"type":"integer","minimum":0,"maximum":7,"description":"Native ItemFrame display rotation index."},
                               "itemId": {
                                 "type": "string",
                                 "maxLength": 512,
@@ -3774,6 +3796,7 @@
       },
       "DeepObservationRequest": {
         "type": "object",
+        "description": "Dedicated server initial catalog is server_authoritative DEBUG world/blocks in minecraft:overworld with at most 64 explicit selector.blocks; no player anchor, projection, providers or serialized block entities. See per-instance capabilities. Other domains remain deployment-specific, not automatically granted.",
         "required": [
           "perspective",
           "domains"
@@ -3856,6 +3879,14 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "entityTargets":{"type":"array","minItems":1,"maxItems":128,"uniqueItems":true,"items":{"type":"object","additionalProperties":false,"required":["dimension","entityUuid"],"properties":{"dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","maxLength":256},"entityUuid":{"type":"string","format":"uuid"}}},"description":"Exact existing LIVE loaded identities. Requires entities domain, explicit server_authoritative and sufficient maxEntities; missing identity is unavailable, never a load request."},
+          "entityChunk":{"type":"object","additionalProperties":false,"required":["x","z"],"properties":{"x":{"type":"integer","minimum":-1875000,"maximum":1874999},"z":{"type":"integer","minimum":-1875000,"maximum":1874999}},"description":"Explicit loaded chunk membership for entity.spawn, entities domain and server_authoritative or both; no loading. At most 4096 members; overflow fails with no partial mutation token."},
+          "blockEntityCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "description": "Opaque continuation from server.blockEntitiesResult.nextCursor. Repeat the same block_entities query, budget and player anchor within 60 seconds. Pages are per-page LIVE, not an atomic snapshot. Only server_authoritative or both."
+          },
           "chunkRadius": {
             "type": "integer",
             "minimum": 0,
@@ -4308,6 +4339,7 @@
           },
           "readEffects": {
             "type": "string",
+            "description": "Effects of native client/server owner capture; individual Providers declare their own readEffects separately.",
             "enum": [
               "none",
               "lazy_initialization",
@@ -4424,6 +4456,11 @@
               "player",
               "menu",
               "entity",
+              "entity_registry",
+              "entity_relationship",
+              "world_time",
+              "world_weather",
+              "world_rule",
               "block",
               "chunk",
               "block_entity",
@@ -4557,6 +4594,15 @@
           },
           "componentsHash": {
             "type": "string"
+          },
+          "customName": {
+            "type": "string", "nullable": true, "description": "Literal text projection; not a lossless rich-text serialization."
+          },
+          "damage": {
+            "type": "integer", "minimum": 0
+          },
+          "maxDamage": {
+            "type": "integer", "minimum": 0
           }
         }
       },
@@ -4856,6 +4902,7 @@
           "noGravity"
         ],
         "properties": {
+          "dimension":{"type":"string"},
           "uuid": {
             "type": "string",
             "format": "uuid"
@@ -5180,6 +5227,24 @@
           }
         }
       },
+      "ScheduledTickReadResult": {
+        "type":"object",
+        "required":["limit","returnedCount","queuedCount","containerCount","pendingUnpackedCount","truncated","coverage","ordering","includesCollectedToRun","readEffects","typedWritable"],
+        "properties":{
+          "limit":{"type":"integer","enum":[64]},
+          "returnedCount":{"type":"integer","minimum":0,"maximum":64},
+          "queuedCount":{"type":"integer","format":"int64","minimum":0},
+          "containerCount":{"type":"integer","minimum":0},
+          "pendingUnpackedCount":{"type":"integer","format":"int64","minimum":0},
+          "truncated":{"type":"boolean"},
+          "coverage":{"type":"string","enum":["loaded_container_queued_only"]},
+          "ordering":{"type":"string","enum":["native_container_iteration"]},
+          "includesCollectedToRun":{"type":"boolean","enum":[false]},
+          "readEffects":{"type":"string","enum":["none"]},
+          "typedWritable":{"type":"boolean","enum":[false]}
+        },
+        "description":"Per loaded native container. getAll queued entries only, no unpacking, polling or scheduling. Native container count includes pending saved entries; collected-to-run and unloaded queues are not included. Array ordering is native iteration, not sorted trigger order."
+      },
       "ChunkSnapshot": {
         "type": "object",
         "required": [
@@ -5239,10 +5304,30 @@
               "$ref": "#/components/schemas/ScheduledTickSnapshot"
             }
           },
+          "scheduledBlockTicksResult": {"$ref":"#/components/schemas/ScheduledTickReadResult"},
+          "scheduledFluidTicksResult": {"$ref":"#/components/schemas/ScheduledTickReadResult"},
           "reason": {
             "type": "string"
           }
         }
+      },
+      "WorldSimulationSnapshot": {
+        "type":"object",
+        "required":["readOnly","readOnlyReason","tickRateControlAvailable","isPerformanceMeasurement"],
+        "properties":{
+          "readOnly":{"type":"boolean","enum":[true]},
+          "readOnlyReason":{"type":"string"},
+          "integratedPaused":{"type":"boolean"},
+          "tickRateControlAvailable":{"type":"boolean"},
+          "nativeAbsentReason":{"type":"string"},
+          "configuredTickRate":{"type":"number","description":"Native configured target rate, not measured throughput"},
+          "frozen":{"type":"boolean"},
+          "stepping":{"type":"boolean"},
+          "runsNormally":{"type":"boolean"},
+          "sprinting":{"type":"boolean"},
+          "isPerformanceMeasurement":{"type":"boolean","enum":[false]}
+        },
+        "description":"Read-only LIVE simulation diagnostics. Integrated UI pause, tick manager state and world-clock pause are independent. No pause, stepping or arbitrary scheduling mutations are granted. 1.20.1 has no native TickRateManager."
       },
       "WorldSnapshot": {
         "type": "object",
@@ -5256,6 +5341,8 @@
           "serverTick"
         ],
         "properties": {
+          "dimensions":{"type":"array","items":{"$ref":"#/components/schemas/LiveDimensionRef"}},
+          "simulation":{"$ref":"#/components/schemas/WorldSimulationSnapshot"},
           "dimension": {
             "type": "string"
           },
@@ -5292,6 +5379,7 @@
           }
         }
       },
+      "ProviderDebugDeclaration":{"type":"object","properties":{"supported":{"type":"boolean"},"mutationSchema":{"type":"string"},"resultSchema":{"type":"string"},"requiredScope":{"type":"string"},"requiresArm":{"type":"boolean"},"supportsResourceVersionPrecondition":{"type":"boolean"},"revisionBehavior":{"type":"string"},"synchronizationBehavior":{"type":"string"},"grantsAuthority":{"type":"boolean","enum":[false]},"readOnlyReason":{"type":"string"},"unavailableReason":{"type":"string"}},"description":"Registered Provider declaration, not current authorization. Schema references identify executable validators, not an automatically exported JSON schema or arbitrary object setter."},
       "ProviderV2Result": {
         "type": "object",
         "required": [
@@ -5309,6 +5397,9 @@
           "status"
         ],
         "properties": {
+          "debugDeclaration":{"$ref":"#/components/schemas/ProviderDebugDeclaration"},
+          "completeness":{"type":"string"},
+          "capabilities":{"type":"array","items":{"type":"string"}},
           "providerId": {
             "type": "string"
           },
@@ -5443,9 +5534,27 @@
           }
         }
       },
+      "DeepBlockEntityPage": {
+        "type": "object",
+        "required": ["returnedCount", "limit", "candidateCount", "consistency", "ordering", "hasMore", "cursorTtlMs", "chunkLoadRequested"],
+        "properties": {
+          "returnedCount": {"type": "integer", "minimum": 0, "maximum": 128},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 128},
+          "candidateCount": {"type": "integer", "minimum": 0, "maximum": 8192},
+          "consistency": {"type": "string", "enum": ["per_page_live"]},
+          "ordering": {"type": "string", "enum": ["coordinate_key_lexicographic"]},
+          "hasMore": {"type": "boolean"},
+          "nextCursor": {"type": "string", "maxLength": 96},
+          "cursorTtlMs": {"type": "integer", "enum": [60000]},
+          "chunkLoadRequested": {"type": "boolean", "enum": [false]}
+        }
+      },
+      "LiveDimensionRef":{"type":"object","required":["dimension","lifecycleId","currentPlayerDimension","readOnly","chunkLoadRequested"],"properties":{"dimension":{"type":"string"},"lifecycleId":{"type":"string"},"currentPlayerDimension":{"type":"boolean"},"readOnly":{"type":"boolean","enum":[true]},"chunkLoadRequested":{"type":"boolean","enum":[false]}}},
+      "DeepEntityTarget":{"type":"object","required":["dimension","entityUuid","available","chunkLoadRequested"],"properties":{"dimension":{"type":"string"},"entityUuid":{"type":"string","format":"uuid"},"available":{"type":"boolean"},"chunkLoadRequested":{"type":"boolean","enum":[false]},"state":{"type":"object","additionalProperties":true,"description":"Projected EntitySnapshot fields; full native resource version is calculated before projection."},"reason":{"type":"string","enum":["dimension_unavailable","entity_not_loaded"]}}},
       "DeepObservationServerSnapshot": {
         "type": "object",
         "properties": {
+          "entityTargets":{"type":"array","maxItems":128,"items":{"$ref":"#/components/schemas/DeepEntityTarget"}},
           "snapshotId": {
             "type": "string",
             "format": "uuid"
@@ -5481,6 +5590,9 @@
             "items": {
               "$ref": "#/components/schemas/BlockEntitySnapshot"
             }
+          },
+          "blockEntitiesResult": {
+            "$ref": "#/components/schemas/DeepBlockEntityPage"
           },
           "chunks": {
             "type": "array",
@@ -5764,6 +5876,7 @@
           "runtimeInstanceId"
         ],
         "properties": {
+            "deploymentRole": {"type":"string","enum":["CLIENT","DEDICATED_SERVER"],"description":"Explicit instance role; absent legacy records are CLIENT only, never an implicit server owner grant."},
           "runtimeInstanceId": {
             "type": "string",
             "format": "uuid"
@@ -5815,7 +5928,16 @@
           }
         }
       },
-      "SessionResponse": {
+      "ServerConsolePage": {
+        "type":"object","required":["records","nextSequence","latestSequence","gap","authority","actor","dataCategory"],
+        "properties":{"records":{"type":"array","maxItems":128,"items":{"type":"object","required":["sequence","text","level"],"properties":{"sequence":{"type":"integer","format":"int64"},"text":{"type":"string","maxLength":4096},"level":{"type":"string"},"commandRequestId":{"type":"string"},"truncated":{"type":"boolean"}}}},"nextSequence":{"type":"integer","format":"int64"},"latestSequence":{"type":"integer","format":"int64"},"gap":{"type":"boolean"},"authority":{"type":"string","enum":["SERVER_CONSOLE"]},"actor":{"type":"string","enum":["server_operator"]},"dataCategory":{"type":"string","enum":["USER"]}}
+      },
+      "DedicatedServerSession": {
+        "type":"object","required":["deploymentRole","target","minecraft","loader","serverReady","inputSurfaceAvailable","graphicalSurfaceAvailable","mode","modeVersion","takeoverActive","reconsentRequired"],
+        "properties":{"deploymentRole":{"type":"string","enum":["DEDICATED_SERVER"]},"target":{"type":"string"},"minecraft":{"type":"string"},"loader":{"type":"string"},"serverReady":{"type":"boolean"},"inputSurfaceAvailable":{"type":"boolean","enum":[false]},"graphicalSurfaceAvailable":{"type":"boolean","enum":[false]},"mode":{"type":"string","enum":["READ","OPERATE"]},"modeVersion":{"type":"object"},"takeoverActive":{"type":"boolean","enum":[false]},"reconsentRequired":{"type":"boolean"}}
+      },
+      "SessionResponse": {"anyOf":[{"$ref":"#/components/schemas/ClientSessionResponse"},{"$ref":"#/components/schemas/DedicatedServerSession"}]},
+      "ClientSessionResponse": {
         "allOf": [
           {
             "$ref": "#/components/schemas/BaseResponse"
@@ -6011,6 +6133,8 @@
               "reconsentRequired"
             ],
             "properties": {
+              "deploymentRole": {"type":"string","enum":["CLIENT","DEDICATED_SERVER"]},
+              "serverConsole": {"type":"object","description":"Initial dedicated console catalogue and budgets; implementation is not a grant. Requires explicit server_console scope, OPERATE for submission, and no player Lease.","properties":{"implemented":{"type":"boolean"},"readScope":{"type":"string"},"commandScope":{"type":"string"},"commandMode":{"type":"string","enum":["OPERATE"]},"inputLeaseRequired":{"type":"boolean"},"outputCapacity":{"type":"integer"},"pageLimit":{"type":"integer"},"textLimit":{"type":"integer"},"supportedCommandRoots":{"type":"array","items":{"type":"string"}},"fullCommandCoverage":{"type":"boolean"}}},
               "uiContract": {
                 "$ref": "#/components/schemas/UiContract"
               },
@@ -6236,6 +6360,7 @@
           "failureCapability"
         ],
         "properties": {
+          "plane": {"type": "string", "enum": ["OPERATOR_CONTROL", "OBSERVATION", "DEBUG_MUTATION"]},
           "id": {
             "type": "string"
           },
@@ -6312,10 +6437,12 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "debugMutationGuardCount": {"type": "integer", "minimum": 0, "description": "Scoped native DEBUG dependency guards. Included in cancellableInjectionCount, not operator input control or passive observation."},
+              "passiveWorldDelegationCount": {"type": "integer", "minimum": 0, "description": "Exact native world setter delegation used to distinguish ordinary clock progression from named edits. Included in replacementInjectionCount, not player input or HUD draw delegation."},
               "replacementInjectionCount": {
                 "type": "integer",
                 "minimum": 0,
-                "description": "Sum of actual registered operatorReplacementCount and passiveDrawDelegationCount. Not an input permission."
+                "description": "Sum of actual registered operatorReplacementCount, passiveDrawDelegationCount and passiveWorldDelegationCount. Not an input permission."
               },
               "operatorReplacementCount": {
                 "type": "integer",
@@ -7302,6 +7429,10 @@
                   "type": "string",
                   "maxLength": 512
                 },
+                "partName": {"type":"string","maxLength":512,"description":"Name of an independently pickable native client-known multipart body; targetRef identifies the actual part, not a substituted parent."},
+                "displayedItemId": {"type":"string","maxLength":512,"description":"Client-synchronized ItemFrame display, including minecraft:air when empty; not a hidden inventory."},
+                "displayedItemCount": {"type":"integer","minimum":0},
+                "displayedRotation": {"type":"integer","minimum":0,"maximum":7,"description":"Native ItemFrame display rotation index."},
                 "itemId": {
                   "type": "string",
                   "maxLength": 512,
@@ -7794,6 +7925,38 @@
           },
           "riding": {
             "type": "boolean"
+          },
+          "vehicleType": {
+            "type": "string"
+          },
+          "vehicleControllerIsPlayer": {
+            "type": "boolean"
+          },
+          "pose": {
+            "type": "string",
+            "description": "Actual local-player native pose name, lower-case; not a server assertion."
+          },
+          "crouching": {"type":"boolean"},
+          "sprinting": {"type":"boolean"},
+          "swimming": {"type":"boolean"},
+          "fallFlying": {"type":"boolean"},
+          "inWater": {"type":"boolean"},
+          "underWater": {"type":"boolean"},
+          "inLava": {"type":"boolean"},
+          "onFire": {"type":"boolean"},
+          "sleeping": {"type":"boolean"},
+          "deadOrDying": {"type":"boolean"},
+          "eyeHeight": {"type":"number"},
+          "maxAir": {"type":"integer"},
+          "experienceLevel": {"type":"integer"},
+          "experienceProgress": {"type":"number"},
+          "cameraType": {
+            "type":"string",
+            "enum":["first_person","third_person_back","third_person_front"]
+          },
+          "cameraIsPlayer": {
+            "type":"boolean",
+            "description":"Whether this client's native camera is the current player, without exposing another entity identity."
           }
         },
         "additionalProperties": false,
@@ -11007,7 +11170,7 @@
         "required": [
           "type"
         ],
-        "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution. All steps require input, TAKEOVER and the existing Lease. ui.action/ui.drag additionally require ui; wait.until/assert.that additionally require read and the condition domain/category permissions (UI requires ui, event requires event). The entire plan is authorized before input and steps recheck at execution; modes never grant scopes. world.action requires targetRef and action=aim|attack|use|mine|use_hold|place. It serializes with other input, aims through Vanilla relative deltas and freshly picks before routed press. Effects are not guaranteed; confirm with observation. No Debug fallback. mine/use_hold accept holdMs 50..10000 (defaults 5000/1000). place requires face, optional hit u/v 0.05..0.95 and expectedDestinationBlockId. Every native held interaction is target/context guarded. Cancel releases input, not rollback: bow release can fire. Mining completion is client prediction only. use_hold hand=main_hand|off_hand (default main_hand); off_hand requires empty main hand, and actual native use hand is verified. Mining tracks bounded synchronous native destruction, including pre-break fluid replacement and neighbor changes; not server confirmation.",
+        "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution. All steps require input, TAKEOVER and the existing Lease. ui.action/ui.drag additionally require ui; wait.until/assert.that additionally require read and the condition domain/category permissions (UI requires ui, event requires event). The entire plan is authorized before input and steps recheck at execution; modes never grant scopes. world.action requires targetRef and action=aim|attack|use|mine|use_hold|place. It serializes with other input, aims through Vanilla relative deltas and freshly picks before routed press. Effects are not guaranteed; confirm with observation. No Debug fallback. mine/use_hold accept holdMs 50..10000 (defaults 5000/1000). place requires face, optional hit u/v 0.05..0.95 and expectedDestinationBlockId. Block use optionally accepts face/hit to select a native sub-surface; these UV values project onto the actual outline, never screen coordinates. Every native held interaction is target/context guarded. Cancel releases input, not rollback: bow release can fire. Mining completion is client prediction only. use_hold hand=main_hand|off_hand (default main_hand); off_hand requires empty main hand, and actual native use hand is verified. Mining tracks bounded synchronous native destruction, including pre-break fluid replacement and neighbor changes; not server confirmation.",
         "properties": {
           "fromOffset": {
             "$ref": "#/components/schemas/UiOffset"
@@ -11197,7 +11360,7 @@
               "east",
               "west"
             ],
-            "description": "world.action place only; fresh native pick must hit this surface."
+            "description": "world.action place requires this; block use may opt in. Fresh native pick must hit the requested actual native outline surface."
           },
           "hit": {
             "type": "object",
@@ -11217,6 +11380,17 @@
               }
             },
             "description": "Face-local coordinates: up/down u=x v=z; north/south u=x v=y; west/east u=z v=y. Not screen coordinates. Native hit tolerance 0.025 blocks; no input compensation."
+          },
+          "entityHit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x", "y", "z"],
+            "properties": {
+              "x": {"type": "number", "minimum": 0.05, "maximum": 0.95},
+              "y": {"type": "number", "minimum": 0.05, "maximum": 0.95},
+              "z": {"type": "number", "minimum": 0.05, "maximum": 0.95}
+            },
+            "description": "Optional aim/attack/use/use_hold point normalized within the discovered entity native pick box, including its native pick radius. Ray entry and final native hit must agree within 0.025 blocks. Not screen or absolute world coordinates; cannot combine with block face/hit or place/mine."
           },
           "expectedDestinationBlockId": {
             "type": "string",
@@ -11990,6 +12164,427 @@
           }
         }
       },
+      "DebugStateVelocity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "x",
+          "y",
+          "z"
+        ],
+        "properties": {
+          "x": {
+            "type": "number",
+            "minimum": -10,
+            "maximum": 10
+          },
+          "y": {
+            "type": "number",
+            "minimum": -10,
+            "maximum": 10
+          },
+          "z": {
+            "type": "number",
+            "minimum": -10,
+            "maximum": 10
+          }
+        }
+      },
+      "DebugPlayerStateValue": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "description": "Approved native setters. Current-level experiencePoints is set separately from experienceLevel, below the native level requirement. Velocity is transient. Enabling flying requires existing native mayFly; permission abilities and cumulative totalExperience remain read-only.",
+        "properties": {
+          "food": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "saturation": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "air": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32767
+          },
+          "absorption": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2048
+          },
+          "experienceLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "experiencePoints": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "velocity": {
+            "$ref": "#/components/schemas/DebugStateVelocity"
+          },
+          "flying": {
+            "type": "boolean",
+            "description": "Native mayFly must already permit enabling flight. This never grants mayFly or changes permissions; normal ability synchronization applies."
+          }
+        }
+      },
+      "DebugEntityStateValue": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "description": "Loaded non-player entity only. Health/absorption require LivingEntity. Native clamps, death and simulation remain in effect. No AI/object/NBT setters.",
+        "properties": {
+          "health": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2048
+          },
+          "air": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32767
+          },
+          "absorption": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2048
+          },
+          "silent": {
+            "type": "boolean"
+          },
+          "noGravity": {
+            "type": "boolean"
+          },
+          "glowing": {
+            "type": "boolean"
+          },
+          "velocity": {
+            "$ref": "#/components/schemas/DebugStateVelocity"
+          },
+          "noAi": {
+            "type": "boolean",
+            "description": "Loaded Mob only; AI target/brain internals remain read-only."
+          }
+        }
+      },
+      "DebugPlayerStateMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "value"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "player.state.set"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/DebugPlayerStateValue"
+              },
+              "expectedValue": {
+                "$ref": "#/components/schemas/DebugPlayerStateValue"
+              }
+            }
+          }
+        ]
+      },
+      "DebugEntityStateMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "value",
+              "entityUuid"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "entity.state.set"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/DebugEntityStateValue"
+              },
+              "expectedValue": {
+                "$ref": "#/components/schemas/DebugEntityStateValue"
+              },
+              "entityUuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedEntityType": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "DebugEntityAttributeMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "attributeId",
+              "value",
+              "entityUuid"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "entity.attribute.set"
+                ]
+              },
+              "attributeId": {
+                "type": "string",
+                "pattern": "^minecraft:[a-z0-9_./-]+$"
+              },
+              "value": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000
+              },
+              "expectedValue": {
+                "type": "number"
+              },
+              "entityUuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedEntityType": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "DebugEntityEquipmentMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "equipmentSlot",
+              "count",
+              "entityUuid"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "entity.equipment.set"
+                ]
+              },
+              "equipmentSlot": {
+                "type": "string",
+                "pattern": "^[a-z_]+$",
+                "maxLength": 32,
+                "description": "Use a key in the entity's actual nativeEquipmentSlots. The native slot and entity applicability are checked before mutation; player equipment remains the six standard slots."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              },
+              "itemData": {
+                "$ref": "#/components/schemas/DebugItemData"
+              },
+              "expectedItemId": {
+                "type": "string"
+              },
+              "expectedCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "entityUuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedEntityType": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "DebugEffectLeaf": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "duration"
+        ],
+        "properties": {
+          "duration": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 1200000,
+            "description": "Native ticks; -1 is infinite."
+          },
+          "amplifier": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255,
+            "default": 0
+          },
+          "ambient": {
+            "type": "boolean",
+            "default": false
+          },
+          "showParticles": {
+            "type": "boolean",
+            "default": true
+          },
+          "showIcon": {
+            "type": "boolean",
+            "description": "Defaults to showParticles."
+          }
+        }
+      },
+      "DebugEffectValue": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": false,
+        "required": [
+          "duration"
+        ],
+        "properties": {
+          "duration": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 1200000,
+            "description": "Native ticks; -1 is infinite."
+          },
+          "amplifier": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255,
+            "default": 0
+          },
+          "ambient": {
+            "type": "boolean",
+            "default": false
+          },
+          "showParticles": {
+            "type": "boolean",
+            "default": true
+          },
+          "showIcon": {
+            "type": "boolean",
+            "description": "Defaults to showParticles."
+          },
+          "hidden": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "$ref": "#/components/schemas/DebugEffectLeaf"
+            }
+          }
+        },
+        "description": "Explicit null removes the effect. A typed value replaces the visible instance and bounded same-type hidden chain through native callbacks. Native side effects are not rolled back by cancellation. Incomplete current hidden chains are read-only; no arbitrary entity NBT or factor/blend state."
+      },
+      "DebugPlayerEffectMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "effectId",
+              "value"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "player.effect.set"
+                ]
+              },
+              "effectId": {
+                "type": "string",
+                "pattern": "^minecraft:[a-z0-9_./-]+$"
+              },
+              "value": {
+                "$ref": "#/components/schemas/DebugEffectValue"
+              },
+              "expectedValue": {
+                "$ref": "#/components/schemas/DebugEffectValue"
+              }
+            }
+          }
+        ]
+      },
+      "DebugEntityEffectMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "effectId",
+              "value",
+              "entityUuid"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "entity.effect.set"
+                ]
+              },
+              "effectId": {
+                "type": "string",
+                "pattern": "^minecraft:[a-z0-9_./-]+$"
+              },
+              "value": {
+                "$ref": "#/components/schemas/DebugEffectValue"
+              },
+              "expectedValue": {
+                "$ref": "#/components/schemas/DebugEffectValue"
+              },
+              "entityUuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expectedEntityType": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
       "DebugPlayerHealthMutation": {
         "allOf": [
           {
@@ -12041,15 +12636,13 @@
               },
               "attributeId": {
                 "type": "string",
-                "enum": [
-                  "minecraft:max_health"
-                ]
+                "pattern": "^minecraft:[a-z0-9_./-]+$"
               },
               "value": {
                 "type": "number",
-                "exclusiveMinimum": true,
-                "minimum": 0,
-                "maximum": 2048
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Finite base value within the native attribute domain; max-health alias retained."
               },
               "expectedValue": {
                 "type": "number"
@@ -12106,6 +12699,7 @@
         }
       },
       "DebugWorldBlockMutation": {
+        "description": "On the dedicated Runtime, initially supported only for loaded overworld blocks with independently authorized OPERATE, world Arm and this server's current resource version; no console scope or player Lease. Native neighbor effects may be partial when an unloaded dependency is rejected.",
         "allOf": [
           {
             "$ref": "#/components/schemas/DebugMutationBase"
@@ -12190,6 +12784,178 @@
               "expectedCustomName": {
                 "type": "string",
                 "nullable": true
+              },
+              "expectedBlockEntityType": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "DebugItemData": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Closed typed replacement attributes. Unspecified metadata uses native item defaults; not arbitrary NBT/components or a lossless rich-text copy.",
+        "properties": {
+          "customName": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "damage": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "DebugPlayerInventorySlotMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "slot",
+              "count"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "player.inventory.slot.set"
+                ]
+              },
+              "slot": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              },
+              "itemData": {
+                "$ref": "#/components/schemas/DebugItemData"
+              },
+              "expectedItemId": {
+                "type": "string"
+              },
+              "expectedCount": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        ]
+      },
+      "DebugPlayerEquipmentMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "equipmentSlot",
+              "count"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "player.equipment.set"
+                ]
+              },
+              "equipmentSlot": {
+                "type": "string",
+                "enum": [
+                  "mainhand",
+                  "offhand",
+                  "head",
+                  "chest",
+                  "legs",
+                  "feet"
+                ]
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              },
+              "itemData": {
+                "$ref": "#/components/schemas/DebugItemData"
+              },
+              "expectedItemId": {
+                "type": "string"
+              },
+              "expectedCount": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        ]
+      },
+      "DebugBlockEntitySlotMutation": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/DebugMutationBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "x",
+              "y",
+              "z",
+              "slot",
+              "count"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "block_entity.slot.set"
+                ]
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              },
+              "slot": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 64
+              },
+              "itemData": {
+                "$ref": "#/components/schemas/DebugItemData"
+              },
+              "expectedItemId": {
+                "type": "string"
+              },
+              "expectedCount": {
+                "type": "integer",
+                "minimum": 0
               },
               "expectedBlockEntityType": {
                 "type": "string"
@@ -12409,8 +13175,42 @@
         },
         "description": "ui.toast.reset explicitly replaces both SystemToast fields as plain text through native reset; reflow, formatting and lifetime may change. It does not restore original rich text or timing. ui.toast.hide requires value=true, requests native one-way dismissal and cannot resurrect a toast. TutorialToast also supports ui.slider.set for finite [0,1] display progress only when progressable. These operations require the existing UI Arm, resident instance/content/lifecycle version, independent scopes and OPERATE or TAKEOVER, never a player Lease or server mutation. Queued/unsupported toast types are not mutation targets; Forge 1.20.1 lacks native SystemToast.forceHide."
       },
+      "DebugEntitySpawnMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","value"],"properties":{"operation":{"type":"string","enum":["entity.spawn"]},"expectedEntityCount":{"type":"integer","minimum":0,"maximum":4096},"value":{"type":"object","additionalProperties":false,"required":["entityType","position"],"properties":{"entityType":{"type":"string","minLength":1,"maxLength":256},"position":{"type":"object","additionalProperties":false,"required":["x","y","z"],"properties":{"x":{"type":"number","minimum":-29999984,"maximum":29999983},"y":{"type":"number","minimum":-19999999,"maximum":19999999},"z":{"type":"number","minimum":-29999984,"maximum":29999983}}},"yaw":{"type":"number","minimum":-180,"maximum":180},"pitch":{"type":"number","minimum":-90,"maximum":90}}}}}]},
+      "DebugEntityRemoveMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","entityUuid"],"properties":{"operation":{"type":"string","enum":["entity.remove"]},"entityUuid":{"type":"string","format":"uuid"},"expectedEntityType":{"type":"string"},"sourceDimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","maxLength":256}}}]},
+      "DebugWorldTimeMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","clockId","value"],"properties":{"operation":{"type":"string","enum":["world.time.set"]},"clockId":{"type":"string","minLength":1,"maxLength":256},"value":{"type":"integer","minimum":-9007199254740991,"maximum":9007199254740991},"expectedValue":{"type":"integer","minimum":-9007199254740991,"maximum":9007199254740991}}}]},
+      "DebugWeatherValue":{"type":"object","additionalProperties":false,"required":["clearWeatherTime","rainTime","thunderTime","raining","thundering"],"properties":{"clearWeatherTime":{"type":"integer","minimum":0,"maximum":2147483647},"rainTime":{"type":"integer","minimum":0,"maximum":2147483647},"thunderTime":{"type":"integer","minimum":0,"maximum":2147483647},"raining":{"type":"boolean"},"thundering":{"type":"boolean"}}},
+      "DebugWorldWeatherMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","value"],"properties":{"operation":{"type":"string","enum":["world.weather.set"]},"value":{"$ref":"#/components/schemas/DebugWeatherValue"},"expectedValue":{"$ref":"#/components/schemas/DebugWeatherValue"}}}]},
+      "DebugRuleValue":{"oneOf":[{"type":"boolean"},{"type":"integer","minimum":-2147483648,"maximum":2147483647}]},
+      "DebugWorldRuleMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","ruleId","value"],"properties":{"operation":{"type":"string","enum":["world.rule.set"]},"ruleId":{"type":"string","minLength":1,"maxLength":256},"value":{"$ref":"#/components/schemas/DebugRuleValue"},"expectedValue":{"$ref":"#/components/schemas/DebugRuleValue"}}}]},
+      "DebugRelatedResourceVersions":{"type":"array","maxItems":3,"items":{"$ref":"#/components/schemas/ResourceVersionToken"},"description":"Exactly the affected old/new participant entity_relationship versions, including native automatic dismount or leash removal, no duplicates or ignored extras. Empty array must be explicit when none are required."},
+      "DebugPlayerVehicleMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","value","relatedResourceVersions"],"properties":{"operation":{"type":"string","enum":["player.vehicle.set"]},"value":{"type":"string","format":"uuid","nullable":true},"expectedValue":{"type":"string","format":"uuid","nullable":true},"relatedResourceVersions":{"$ref":"#/components/schemas/DebugRelatedResourceVersions"}},"description":"Current player only, native non-forced riding, independently requires player and entity scopes/Arm namespaces."}]},
+      "DebugEntityRelationMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","entityUuid","value","relatedResourceVersions"],"properties":{"operation":{"type":"string","enum":["entity.vehicle.set","entity.leash.set"]},"entityUuid":{"type":"string","format":"uuid"},"value":{"type":"string","format":"uuid","nullable":true},"expectedValue":{"type":"string","format":"uuid","nullable":true},"relatedResourceVersions":{"$ref":"#/components/schemas/DebugRelatedResourceVersions"}}}]},
+      "DebugOwnerValue":{"type":"object","additionalProperties":false,"required":["ownerUuid","tamed"],"properties":{"ownerUuid":{"type":"string","format":"uuid","nullable":true},"tamed":{"type":"boolean"}},"description":"Tamed true requires a non-null loaded real player owner. Native tame callbacks can change attributes/health; relationship restoration is not a transaction rollback."},
+      "DebugEntityOwnerMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","entityUuid","value","relatedResourceVersions"],"properties":{"operation":{"type":"string","enum":["entity.owner.set"]},"entityUuid":{"type":"string","format":"uuid"},"value":{"$ref":"#/components/schemas/DebugOwnerValue"},"expectedValue":{"$ref":"#/components/schemas/DebugOwnerValue"},"relatedResourceVersions":{"$ref":"#/components/schemas/DebugRelatedResourceVersions"}}}]},
+      "DebugTransferValue":{"type":"object","additionalProperties":false,"required":["dimension","position"],"properties":{"dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","maxLength":256},"position":{"type":"object","additionalProperties":false,"required":["x","y","z"],"properties":{"x":{"type":"number","minimum":-29999984,"maximum":29999983},"y":{"type":"number","minimum":-19999999,"maximum":19999999},"z":{"type":"number","minimum":-29999984,"maximum":29999983}}},"yaw":{"type":"number","minimum":-180,"maximum":180},"pitch":{"type":"number","minimum":-90,"maximum":90}}},
+      "DebugPlayerTransformMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","value"],"properties":{"operation":{"type":"string","enum":["player.transform.set"]},"value":{"$ref":"#/components/schemas/DebugTransferValue"},"expectedValue":{"$ref":"#/components/schemas/DebugTransferValue"}}}],"description":"Native LIVE teleport, existing dimensions and loaded source/destination bounds only. No command, load request, Lease or input. Independent scopes/Arm and resource version required. Detach ride/leash/camera followers first. Native side effects are not rolled back; own-player dimension change requires fresh fingerprint and Arm."},
+      "DebugEntityTransformMutation":{"allOf":[{"$ref":"#/components/schemas/DebugMutationBase"},{"type":"object","required":["operation","entityUuid","sourceDimension","value"],"properties":{"operation":{"type":"string","enum":["entity.transform.set"]},"entityUuid":{"type":"string","format":"uuid"},"sourceDimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","maxLength":256},"expectedEntityType":{"type":"string"},"value":{"$ref":"#/components/schemas/DebugTransferValue"},"expectedValue":{"$ref":"#/components/schemas/DebugTransferValue"}}}],"description":"Native LIVE teleport, existing dimensions and loaded source/destination bounds only. No command, load request, Lease or input. Independent scopes/Arm and resource version required. Detach ride/leash/camera followers first. Native side effects are not rolled back; own-player dimension change requires fresh fingerprint and Arm."},
       "DebugMutationRequest": {
         "oneOf": [
+          {"$ref":"#/components/schemas/DebugPlayerTransformMutation"},
+          {"$ref":"#/components/schemas/DebugEntityTransformMutation"},
+          {"$ref":"#/components/schemas/DebugPlayerVehicleMutation"},
+          {"$ref":"#/components/schemas/DebugEntityRelationMutation"},
+          {"$ref":"#/components/schemas/DebugEntityOwnerMutation"},
+          {"$ref":"#/components/schemas/DebugWorldTimeMutation"},
+          {"$ref":"#/components/schemas/DebugWorldWeatherMutation"},
+          {"$ref":"#/components/schemas/DebugWorldRuleMutation"},
+          {"$ref":"#/components/schemas/DebugEntitySpawnMutation"},
+          {"$ref":"#/components/schemas/DebugEntityRemoveMutation"},
+          {"$ref": "#/components/schemas/DebugPlayerEffectMutation"},
+          {"$ref": "#/components/schemas/DebugEntityEffectMutation"},
+          {"$ref": "#/components/schemas/DebugEntityAttributeMutation"},
+          {"$ref": "#/components/schemas/DebugEntityEquipmentMutation"},
+          {"$ref": "#/components/schemas/DebugPlayerStateMutation"},
+          {"$ref": "#/components/schemas/DebugEntityStateMutation"},
+          {"$ref": "#/components/schemas/DebugPlayerInventorySlotMutation"},
+          {"$ref": "#/components/schemas/DebugPlayerEquipmentMutation"},
+          {"$ref": "#/components/schemas/DebugBlockEntitySlotMutation"},
           {
             "$ref": "#/components/schemas/DebugUiMutation"
           },
@@ -12461,6 +13261,17 @@
           "preconditions"
         ],
         "properties": {
+          "identityRebuilt": {"type":"boolean"},
+          "crossDimension": {"type":"boolean"},
+          "requiresFreshWorldFingerprintAndArm": {"type":"boolean"},
+          "nativeSerializationHooks": {"type":"boolean"},
+          "destinationEntityPresent": {"type":"boolean"},
+          "nativeEffectsComplete": {"type": "boolean", "description": "False when synchronous native block propagation or LIVE transfer was stopped at an unloaded dependency. Applied effects are not rolled back."},
+          "mutationMayHaveApplied": {"type": "boolean"},
+          "retrySafe": {"type": "boolean", "enum": [false]},
+          "blockedChunk": {"type": "object", "required": ["dimension", "chunkX", "chunkZ"], "properties": {
+            "dimension": {"type": "string"}, "chunkX": {"type": "integer"}, "chunkZ": {"type": "integer"}
+          }},
           "type": {
             "type": "string",
             "enum": [
@@ -12551,7 +13362,7 @@
           },
           "sideEffects": {
             "type": "string",
-            "description": "ui.slider.set may persist native client settings; world.block.set runs native neighbor/block-entity updates, may cause secondary changes or drops and provides no multi-block rollback."
+            "description": "Native slider settings, block updates and LIVE entity transfer retain native callbacks, secondary effects and synchronization; explicit state restoration is not a transaction rollback."
           },
           "preconditions": {
             "type": "object"
@@ -12797,8 +13608,11 @@
           "debugOperationDuringAct": {
             "type": "string"
           },
+          "fixtureMutationCount": {"type":"integer","minimum":0},
+          "fixtureOperationDuringAct": {"type":"string","description":"Most recent applied Fixture request in this Act; independent of Debug counters."},
           "contaminated": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Applied Debug or Fixture work occurred during this Act. Restoring state does not remove contamination."
           },
           "gameplayEvidence": {
             "type": "string",
@@ -13274,9 +14088,10 @@
           },
           "executionOutcome": {
             "type": "string",
-            "enum": ["not_confirmed"],
-            "description": "Cancellation does not establish rollback or absence of native effects, including game shutdown."
+            "enum": ["not_confirmed", "partial"],
+            "description": "Cancellation is not rollback. DEBUG_MUTATION_PARTIAL_NOT_LOADED reports partial with the actual authorized mutation receipt; do not blindly replay."
           },
+          "partialMutation": {"$ref": "#/components/schemas/DebugMutationResult"},
           "retrySafe": {
             "type": "boolean",
             "enum": [false],

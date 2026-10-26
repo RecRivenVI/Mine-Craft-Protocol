@@ -43,6 +43,31 @@ final class WorldClientSnapshot {
                                 value.addProperty(
                                         "gameMode", mode == null ? "unknown" : mode.getName());
                                 value.addProperty("onGround", player.onGround());
+                                value.addProperty(
+                                        "pose",
+                                        player.getPose().name().toLowerCase(java.util.Locale.ROOT));
+                                value.addProperty("crouching", player.isCrouching());
+                                value.addProperty("sprinting", player.isSprinting());
+                                value.addProperty("swimming", player.isSwimming());
+                                value.addProperty("fallFlying", player.isFallFlying());
+                                value.addProperty("inWater", player.isInWater());
+                                value.addProperty("underWater", player.isUnderWater());
+                                value.addProperty("inLava", player.isInLava());
+                                value.addProperty("onFire", player.isOnFire());
+                                value.addProperty("sleeping", player.isSleeping());
+                                value.addProperty("deadOrDying", player.isDeadOrDying());
+                                value.addProperty("eyeHeight", player.getEyeHeight());
+                                value.addProperty("maxAir", player.getMaxAirSupply());
+                                value.addProperty("experienceLevel", player.experienceLevel);
+                                value.addProperty("experienceProgress", player.experienceProgress);
+                                value.addProperty(
+                                        "cameraType",
+                                        client.options
+                                                .getCameraType()
+                                                .name()
+                                                .toLowerCase(java.util.Locale.ROOT));
+                                value.addProperty(
+                                        "cameraIsPlayer", client.getCameraEntity() == player);
                                 value.addProperty("flying", player.getAbilities().flying);
                                 value.addProperty("maxHealth", player.getMaxHealth());
                                 value.addProperty("absorption", player.getAbsorptionAmount());
@@ -58,7 +83,18 @@ final class WorldClientSnapshot {
                                                         ? "off_hand"
                                                         : "main_hand"
                                                 : "none");
-                                value.addProperty("riding", player.isPassenger());
+                                Entity vehicle = player.getVehicle();
+                                value.addProperty("riding", vehicle != null);
+                                if (vehicle != null) {
+                                    value.addProperty(
+                                            "vehicleType",
+                                            BuiltInRegistries.ENTITY_TYPE
+                                                    .getKey(vehicle.getType())
+                                                    .toString());
+                                    value.addProperty(
+                                            "vehicleControllerIsPlayer",
+                                            vehicle.getControllingPassenger() == player);
+                                }
                                 value.addProperty("useTicks", player.getTicksUsingItem());
                                 value.addProperty(
                                         "selectedSlot", player.getInventory().getSelectedSlot());
@@ -99,7 +135,9 @@ final class WorldClientSnapshot {
 
                             public Iterator<JsonObject> entities() {
                                 Iterator<Entity> source =
-                                        client.level.entitiesForRendering().iterator();
+                                        com.google.common.collect.Iterators.concat(
+                                                client.level.entitiesForRendering().iterator(),
+                                                client.level.dragonParts().iterator());
                                 return new Iterator<>() {
                                     public boolean hasNext() {
                                         return source.hasNext();
@@ -114,6 +152,12 @@ final class WorldClientSnapshot {
                                                         .getKey(entity.getType())
                                                         .toString());
                                         value.addProperty("name", entity.getName().getString());
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.boss.enderdragon
+                                                                .EnderDragonPart
+                                                        part)
+                                            value.addProperty("partName", part.name);
                                         value.addProperty("x", entity.getX());
                                         value.addProperty("y", entity.getY());
                                         value.addProperty("z", entity.getZ());
@@ -140,6 +184,21 @@ final class WorldClientSnapshot {
                                                 net.minecraft.world.entity.LivingEntity living) {
                                             value.addProperty("hurtAnimation", living.hurtTime > 0);
                                             value.addProperty("baby", living.isBaby());
+                                        }
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.decoration.ItemFrame
+                                                        frame) {
+                                            var stack = frame.getItem();
+                                            value.addProperty(
+                                                    "displayedItemId",
+                                                    BuiltInRegistries.ITEM
+                                                            .getKey(stack.getItem())
+                                                            .toString());
+                                            value.addProperty(
+                                                    "displayedItemCount", stack.getCount());
+                                            value.addProperty(
+                                                    "displayedRotation", frame.getRotation());
                                         }
                                         if (entity
                                                 instanceof

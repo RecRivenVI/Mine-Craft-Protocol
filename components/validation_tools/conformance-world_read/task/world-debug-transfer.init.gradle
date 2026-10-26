@@ -1,0 +1,7 @@
+gradle.beforeProject { project ->
+    project.tasks.withType(JavaExec).configureEach { task ->
+        if (task.name == 'runValidationConformanceWorldReadClient') {
+            task.systemProperty('minecraft.protocol.worldTransferFixture', 'true')
+        }
+    }
+}

@@ -85,6 +85,13 @@ val verifyContinuousPerformanceTools by
             "components/validation_tools/conformance-world_read/task/world-placement-receipts-actions.test.mjs",
             "components/validation_tools/conformance-world_read/task/interaction-baseline-actions.test.mjs",
             "components/validation_tools/conformance-world_read/task/mcp-world-baseline.test.mjs",
+            "components/validation_tools/conformance-world_read/task/block-entity-pages-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-items-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-state-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-entities-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-environment-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-relations-actions.test.mjs",
+            "components/validation_tools/conformance-world_read/task/world-debug-loading-actions.test.mjs",
         )
     }
 
@@ -120,9 +127,31 @@ val verifyInstalledCleanup by
         )
     }
 
+val verifyServerConsoleTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--check",
+            "components/validation_tools/integration-server_peer/task/server-console-smoke.mjs",
+        )
+    }
+
+val verifyServerWorldDebugTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--check",
+            "components/validation_tools/integration-server_peer/task/server-world-debug-checks.mjs",
+        )
+    }
+
 tasks.check {
     dependsOn(
         verifyInstanceProfiles,
+        verifyServerConsoleTools,
+        verifyServerWorldDebugTools,
         verifyAlphaSnapshots,
         verifyInstalledEvidence,
         verifyInstalledCleanup,

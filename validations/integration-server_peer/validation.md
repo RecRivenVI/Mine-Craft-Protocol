@@ -40,6 +40,33 @@ PLAYTEST / FIXTURE / DEBUG_PRIVILEGED 不混用；不实现 Persistent Write 或
 
 ## 运行
 
+独立服务端控制台的最终单JAR场景，不需要客户端或实验probe。先完成构建及Companion编译，再逐端执行：
+
+```powershell
+./gradlew.bat build :companion:assemble
+node components/validation_tools/integration-server_peer/task/server-console-smoke.mjs --target=26.3-neoforge
+```
+
+同一命令可选其他已登记Target。工具使用本项instance下的console-server、官方Loader及既有安装缓存，
+结果覆盖result/<target>-console.json；不读取日常实例或用户世界，使用者须已明确接受EULA。
+安装缓存来自integration-packaged_runtime；缺少时明确拒绝，不能用开发classpath补齐。
+命令拒绝、零玩家READ/OPERATE、实际MCP、原控制台并存、错误反馈和正常stop须全部成立才为PASS。
+queued取消/关闭/执行时权限重查由runtime_core的ServerConsole生产引擎和HTTP测试补充，不能据此声称五端真人或全部三部署验收。
+
+首批独立服务端世界DEBUG使用同一单JAR入口，加上world-debug场景：
+
+```powershell
+node components/validation_tools/integration-server_peer/task/server-console-smoke.mjs --target=26.3-neoforge --world-debug
+```
+
+五个已登记Target各执行一次，结果固定为result/<target>-server-debug.json，记录当前JAR哈希。
+除控制台基础检查外，必须经实际Companion完成零玩家主世界/方块读取、Arm、OPERATE typed修改、旧版本/原值拒绝、
+未加载查询及修改零加载、批次恢复和disarm拒绝，最终正常stop及endpoint清理。
+工具只通过自有实例的原生stdin建立forceload夹具并在最后移除；这是准备条件，不是产品自动加载或玩家验收证据。
+独立世界DEBUG不借server_console权限的HTTP回归、排队中显式取消/disarm/关闭零late mutation及生命周期版本拒绝由runtime_core测试补充。
+仅切回READ或客户端交回输入不等于撤销已经授权的独立DEBUG，沿用现有合同。
+范围仅主世界world/blocks及world.block.set，不能据此宣称完整服务器DEBUG、Peer委托、客户端互通或人工体验通过。
+
 执行前阅读以下既有前提；静态工具检查从仓库根目录运行。
 
 ```powershell

@@ -1,0 +1,1731 @@
+{
+  "status": "PASS",
+  "target": "1.21.1-neoforge",
+  "runtime": "development_native",
+  "runtimePort": 5951,
+  "launchAttestation": {
+    "batchId": "",
+    "processId": 119896,
+    "titleReadyAt": "2026-10-19T23:59:33.2690709Z",
+    "maximumHeapBytes": 4294967296,
+    "port": 5951,
+    "target": "1.21.1-neoforge"
+  },
+  "phase": "test",
+  "scenario": "ui-local",
+  "testedAt": "2026-10-20T00:00:21.774Z",
+  "testedCommit": "398f72ea9ed0efadbdfdf3a3cf61e7e55b5888e1",
+  "dirty": true,
+  "screens": [
+    "net.minecraft.client.gui.screens.TitleScreen",
+    "net.minecraft.client.gui.screens.worldselection.SelectWorldScreen",
+    "net.minecraft.client.gui.screens.LevelLoadingScreen",
+    "net.minecraft.client.gui.screens.ReceivingLevelScreen",
+    "",
+    "net.minecraft.client.gui.screens.PauseScreen"
+  ],
+  "coverage": [
+    {
+      "family": "title",
+      "encountered": [
+        "TitleScreen",
+        "LevelLoadingScreen",
+        "ReceivingLevelScreen"
+      ],
+      "notEncountered": [
+        "AccessibilityOnboardingScreen",
+        "DemoIntroScreen",
+        "AlertScreen",
+        "PopupScreen",
+        "GenericDirtMessageScreen",
+        "GenericMessageScreen",
+        "GenericWaitingScreen",
+        "ErrorScreen",
+        "ProgressScreen",
+        "OutOfMemoryScreen"
+      ]
+    },
+    {
+      "family": "world_selection",
+      "encountered": [
+        "SelectWorldScreen"
+      ],
+      "notEncountered": []
+    },
+    {
+      "family": "world_creation",
+      "encountered": [],
+      "notEncountered": [
+        "CreateWorldScreen",
+        "CreateFlatWorldScreen",
+        "PresetFlatWorldScreen",
+        "CreateBuffetWorldScreen",
+        "EditGameRulesScreen",
+        "WorldCreationGameRulesScreen",
+        "ExperimentsScreen",
+        "ConfirmExperimentalFeaturesScreen",
+        "ConfirmExperimentalFeaturesScreen$DetailsScreen"
+      ],
+      "limitation": "Creation draft, flat preset selection and rules/data-pack navigation do not prove every generator or rule combination."
+    },
+    {
+      "family": "world_management",
+      "encountered": [],
+      "notEncountered": [
+        "EditWorldScreen",
+        "WorldBackupConfirmScreen",
+        "BackupConfirmScreen",
+        "ConfirmScreen",
+        "DatapackLoadFailureScreen",
+        "RecoverWorldDataScreen",
+        "OptimizeWorldScreen",
+        "FileFixerProgressScreen",
+        "FileFixerAbortedScreen",
+        "SymlinkWarningScreen"
+      ],
+      "limitation": "Conversion and recovery are destructive flows and need dedicated disposable fixtures."
+    },
+    {
+      "family": "options",
+      "encountered": [],
+      "notEncountered": [
+        "OptionsScreen",
+        "OptionsSubScreen",
+        "SoundOptionsScreen",
+        "VideoSettingsScreen",
+        "ControlsScreen",
+        "KeyBindsScreen",
+        "MouseSettingsScreen",
+        "AccessibilityOptionsScreen",
+        "ChatOptionsScreen",
+        "SkinCustomizationScreen",
+        "LanguageSelectScreen",
+        "OnlineOptionsScreen",
+        "TelemetryInfoScreen",
+        "FontOptionsScreen",
+        "DebugOptionsScreen",
+        "GameModeSwitcherScreen",
+        "InWorldGameRulesScreen",
+        "WorldOptionsScreen",
+        "UnsupportedGraphicsWarningScreen"
+      ]
+    },
+    {
+      "family": "packs",
+      "encountered": [],
+      "notEncountered": [
+        "PackSelectionScreen"
+      ]
+    },
+    {
+      "family": "multiplayer",
+      "encountered": [],
+      "notEncountered": [
+        "JoinMultiplayerScreen",
+        "DirectJoinServerScreen",
+        "EditServerScreen",
+        "ManageServerScreen",
+        "ConnectScreen",
+        "DisconnectedScreen",
+        "SafetyScreen",
+        "ShareToLanScreen",
+        "ServerLinksScreen",
+        "CodeOfConductScreen",
+        "RestrictionsScreen",
+        "ServerReconfigScreen"
+      ],
+      "limitation": "Saved-list management uses disposable loopback entries; server join, authentication and third-party services are not validated."
+    },
+    {
+      "family": "pause_and_stats",
+      "encountered": [
+        "PauseScreen"
+      ],
+      "notEncountered": [
+        "PauseScreen$FeedbackSubScreen",
+        "StatsScreen",
+        "SocialInteractionsScreen"
+      ]
+    },
+    {
+      "family": "inventory_and_recipe",
+      "encountered": [],
+      "notEncountered": [
+        "InventoryScreen",
+        "CreativeModeInventoryScreen",
+        "CraftingScreen"
+      ]
+    },
+    {
+      "family": "containers",
+      "encountered": [],
+      "notEncountered": [
+        "ContainerScreen",
+        "FurnaceScreen",
+        "BlastFurnaceScreen",
+        "SmokerScreen",
+        "AnvilScreen",
+        "BrewingStandScreen",
+        "HopperScreen",
+        "DispenserScreen",
+        "ShulkerBoxScreen",
+        "GrindstoneScreen",
+        "SmithingScreen",
+        "CartographyTableScreen",
+        "HorseInventoryScreen",
+        "NautilusInventoryScreen",
+        "CrafterScreen"
+      ],
+      "limitation": "Horse chest layouts are separate actual fixtures. Crafter does not exist on 1.20.1; other containers do not inherit its toggle semantics."
+    },
+    {
+      "family": "rendered_menus",
+      "encountered": [],
+      "notEncountered": [
+        "StonecutterScreen",
+        "LoomScreen",
+        "EnchantmentScreen",
+        "MerchantScreen",
+        "BeaconScreen"
+      ]
+    },
+    {
+      "family": "books_and_signs",
+      "encountered": [],
+      "notEncountered": [
+        "BookEditScreen",
+        "BookSignScreen",
+        "BookViewScreen",
+        "LecternScreen",
+        "SignEditScreen",
+        "HangingSignEditScreen"
+      ],
+      "limitation": "BookSignScreen is separate only on newer Targets; the older editor signs in place. Front-side sign editing does not prove every side, waxed state or material."
+    },
+    {
+      "family": "commands",
+      "encountered": [],
+      "notEncountered": [
+        "ChatScreen",
+        "InBedChatScreen",
+        "CommandBlockEditScreen",
+        "MinecartCommandBlockEditScreen",
+        "StructureBlockEditScreen",
+        "JigsawBlockEditScreen",
+        "TestBlockEditScreen",
+        "TestInstanceBlockEditScreen"
+      ]
+    },
+    {
+      "family": "advancements",
+      "encountered": [],
+      "notEncountered": [
+        "AdvancementsScreen"
+      ]
+    },
+    {
+      "family": "death_and_credits",
+      "encountered": [],
+      "notEncountered": [
+        "DeathScreen",
+        "DeathScreen$TitleConfirmScreen",
+        "WinScreen",
+        "CreditsAndAttributionScreen",
+        "ConfirmLinkScreen",
+        "PrivacyConfirmLinkScreen",
+        "NoticeWithLinkScreen"
+      ],
+      "limitation": "External URL opening is not tested; native confirmation is preserved."
+    },
+    {
+      "family": "account_gated",
+      "encountered": [],
+      "notEncountered": [
+        "RealmsMainScreen",
+        "FriendsScreen",
+        "FriendsListConfirmScreen",
+        "FriendsOverlayScreen",
+        "Realms32bitWarningScreen",
+        "ReportingScreen",
+        "ReportPlayerScreen",
+        "ChatReportScreen",
+        "ChatSelectionScreen",
+        "NameReportScreen",
+        "ReportReasonSelectionScreen",
+        "SkinReportScreen",
+        "AbstractReportScreen$DiscardReportWarningScreen",
+        "ChatReportScreen$DiscardReportWarningScreen",
+        "DialogScreen",
+        "DialogScreen$WarningScreen",
+        "DialogListDialogScreen",
+        "MultiButtonDialogScreen",
+        "ServerLinksDialogScreen",
+        "SimpleDialogScreen",
+        "WaitingForResponseScreen"
+      ],
+      "limitation": "Account/service flows need actual authorization; server-authored dialogs remain pending local UI fixtures, not external-service PASS."
+    }
+  ],
+  "checks": [
+    {
+      "name": "title: Native graph and bounded node metadata",
+      "status": "PASS",
+      "milliseconds": 17
+    },
+    {
+      "name": "world fixture: GUI entry and deterministic Arrange",
+      "status": "PASS",
+      "milliseconds": 16352
+    },
+    {
+      "name": "typed local DEBUG: title lifecycle timing and group clear preserve independent authority",
+      "status": "PASS",
+      "milliseconds": 7244
+    },
+    {
+      "name": "typed local DEBUG: native spectator highlight never activates its selected item",
+      "status": "PASS",
+      "milliseconds": 5668
+    },
+    {
+      "name": "typed local DEBUG: native player-list header and footer are local text not player input",
+      "status": "PASS",
+      "milliseconds": 14225
+    },
+    {
+      "name": "pause: Return to Game is routed, then Save & Quit",
+      "status": "PASS",
+      "milliseconds": 4132
+    }
+  ],
+  "worldSelectionSamples": [],
+  "sourceHashes": {
+    "build.gradle.kts": "e3dd1773ff4849d90f35eb95e387efc5f73af4e8e8527a42c49c98e7ab4deab3",
+    "components/companion/dist/config.d.ts": "dc809452a95159ae88888bb5ff94f8a4c91009ff750f7e9d063baa7a2d461858",
+    "components/companion/dist/config.js": "a87f09c4ffe31912d94b6018593e76b2b54a03e6c8fdb3aa335bbba686d3b2a9",
+    "components/companion/dist/discovery.d.ts": "a57e90ad04fc6dc543d8a059102fc97309df0e673887d2d51bf5ec577832b9d8",
+    "components/companion/dist/discovery.js": "56800465262215492ef47574b3c258841b333e0d33a62cffe08b21b082d1706a",
+    "components/companion/dist/index.d.ts": "43e818adf60173644896298637f47b01d5819b17eda46eaa32d0c7d64724d012",
+    "components/companion/dist/index.js": "afae605a751f48179436ab6f1c8c1a8627cc3f73c971aabd8b49b36e7cf1ec47",
+    "components/companion/dist/live-conformance.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/live-conformance.js": "84cb5d156197b071dc1ff2dab38744ca1631d1f69b4f4164755d65252c13d3a8",
+    "components/companion/dist/mode-policy.d.ts": "b1e822c5b6fcf295833fb0c276ab9c452f87c0f0ab220dbe0836495716d31a0c",
+    "components/companion/dist/mode-policy.js": "0da68ee4cbb31c7a5388bfc709985c5c23a4c4b415049a35fe3b82566780e298",
+    "components/companion/dist/result.d.ts": "3fc6af5f206497e4ab9f0b45d9eba473b22398c8aa3c10cdb8a679854d249030",
+    "components/companion/dist/result.js": "984ef6634f3a01b9d9fe5c24c93c9f24277d882aeb19c1961e2d430c39a45c0e",
+    "components/companion/dist/runtime-client.d.ts": "a0124cb71d665cff177d818c974cca4319779beea53c9c1e5ccc8a62d5fc636a",
+    "components/companion/dist/runtime-client.js": "7916015610ed0371d153997d98106bce98a531c7e51909c3a2ba140a713bff22",
+    "components/companion/dist/server.d.ts": "95dccd1d34ba8c14c9f34133a36911820380556ede91af2d50070c894856cd76",
+    "components/companion/dist/server.js": "de852795f4f3d0ada6f7fd97309666117490f940e1c79432284bca12bfd2a0a8",
+    "components/companion/dist/session-state.d.ts": "09fc8ed51152e400e6e3192daf62160a32c0d4cf6ecd46f9d187f9c6d16e6131",
+    "components/companion/dist/session-state.js": "88cf06e8dc3cee2e98b32a49c1c11e21985bce2d4c519ef309e90b190f2d6d6e",
+    "components/companion/dist/test/authorization-feedback.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/authorization-feedback.test.js": "c6b6722c3875c2599c08846c964321ff962d92e8a9555f4da7cb89da0d214d65",
+    "components/companion/dist/test/companion.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/companion.test.js": "55ec9250c09f1e0b4aeedddd0e32c03ac83e3216661439610812d8db905694e3",
+    "components/companion/dist/test/discovery.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/discovery.test.js": "d4eb25b3d5537712bb2426d06a1ca825fe406512d94a9b06270beaf4a26603fa",
+    "components/companion/dist/test/streaming.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/streaming.test.js": "d400ce171288bad519c894bd1d9951704738be7c855cd85391c3e58675a9388f",
+    "components/companion/dist/test/ui-console.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/ui-console.test.js": "c1de1703a7b736cffa265328119b81ff0910e5bd310830fea068388745f1171e",
+    "components/companion/dist/types.d.ts": "a9e6554013ca0906b339730a4f7e39c9079388d22cc9c373d95b6ec09deb09ba",
+    "components/companion/dist/types.js": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2",
+    "components/companion/dist/ui-console-http.d.ts": "c83c9d0687b37f29004fb2dd450653fb3cd472ced31d2cb40633a90e6445cc10",
+    "components/companion/dist/ui-console-http.js": "a39f8b072f34a1d936b82d43018c165205b3946cd625b9530f5e7631f61ba9f2",
+    "components/companion/dist/ui-console-main.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/ui-console-main.js": "7f18bf013cfd82e8b4b6e1bfe07dbabf03d3898ca9c8f65695b2b1d76d0ba80e",
+    "components/companion/dist/ui-console.d.ts": "7d4fa4a55d2a148944f3f380360037b70ea86a1e7b9dd1acc785c9727947c50e",
+    "components/companion/dist/ui-console.js": "30fe243d9977f631d237ba8420d4b0f7a5745c305ab45dd8f031d6f8f7ff9a2a",
+    "components/companion/package-lock.json": "40efc507a89559491f5448f18c5dfa4396797a32229e22542190d4ee720062a5",
+    "components/companion/package.json": "7ae5c275c5a5d82202386a8265bd4e8bf5a0ed73954a12694230fc578bb46cb5",
+    "components/companion/src/config.ts": "7e676ad972b14568a115f8099da343e4d10ca81b378a862fede4de6438ed0423",
+    "components/companion/src/discovery.ts": "ee4f97e93db76d0b754290e22a7d27206406bbcd6dfb37907d2e9fa88a99584b",
+    "components/companion/src/index.ts": "25a659fcef08f9a2905f08346aec93e688c4af38a854e4f485c25f68bb87b875",
+    "components/companion/src/live-conformance.ts": "d39f00ae0ae7cb8193b7ad5154eab5a522fe8d669f0e60b8f4771697203fb851",
+    "components/companion/src/mode-policy.ts": "cca5e5c270eda25c8486b9df95b1f8bd49e1156b1dd58ac982e7bf402844e475",
+    "components/companion/src/result.ts": "fc3ce366b5630476da9cf8168b0eeef64b00318a1caa1c38d93be577dae1a860",
+    "components/companion/src/runtime-client.ts": "21cedc8001eebcc2ede77bf772ddd486f52b7457875540c7e56374fed090f98f",
+    "components/companion/src/server.ts": "8f40bd80ec6a3574c848af1504422ba3babe33b89db7feee1481748e642772f3",
+    "components/companion/src/session-state.ts": "8a099018b92f44609100e420e0336b32555fdca3a7e3844decc90f4e5b074202",
+    "components/companion/src/test/authorization-feedback.test.ts": "e24ff226ae9fd29adcc37d0802878c4fc20f3d4e79a414b016f8f40c532b9c66",
+    "components/companion/src/test/companion.test.ts": "845ffc83ef4fbc8c9b50565b059c1357d3eee0a06060576709ee0f4becf70d16",
+    "components/companion/src/test/discovery.test.ts": "4191e02958a841ded60573a6448190d4d19b6e5bc78ce53cb6a11dd25ece8e82",
+    "components/companion/src/test/streaming.test.ts": "beed8196af1650b17f64c97c09c9145b125a3da770b6f098f2e720689c18913a",
+    "components/companion/src/test/ui-console.test.ts": "ae491008611a1248eab94c55aa415d76bb3b619b9b9652c1abec4968f274cafa",
+    "components/companion/src/types.ts": "bc1ccc5a0f0688b5e2ac1d5a4cbcd79905fc293875e4ae5d981257c11742a7fd",
+    "components/companion/src/ui-console-http.ts": "8d1ff756240607712e29087e001bce2228bebae64d799f651408feb15e44c76d",
+    "components/companion/src/ui-console-main.ts": "da838fb80ce8560ed6ea8e9522bf63b1b76fa7d1f6de5b53fc8c59830621aca8",
+    "components/companion/src/ui-console.ts": "96eb3929cf5554ee62a111a1f0a52dc209edd7d826682373498023c7de53d6be",
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "17c25eff9314d3b8a74b344b10cf484c13c46b0fcde80a7e4f1426ff818c9aff",
+    "components/runtime_core/build.gradle.kts": "0d4bb124dc60a48101a7e7594b5fb27b23815ccb2ed28f9003e2923e70d9f10b",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java": "06fca8145d805337bcd4292d7f810b09c6f62057978497fd1c19a56b23e741ac",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/BoundedTaskExecutor.java": "2b322b169ec24eb0998b9df00557ab1a5e154bac5df51cc5dd7f0ee97070db5e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java": "3f485f9777f868061d5bcacee0cb33c99c55409f35b1edc1e804b00e1c872bbf",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBatchEngine.java": "e6044a18969862299beba363e0edf2a1124f4855a81140126ad0f436f1a124fc",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBlockStateRequest.java": "b73c16487e9280ca48a5da150ab5f8f495d2b469adab517ace81cc801eb8a010",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugMutationAuthorization.java": "7cdbcbcc49f6c651f6120e792f5cb087e6a94deb3da9406d4b09106ad5d4eba8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DeepObservationRequestContext.java": "b9056bf469e21c1035985d669dfa20bd1eabb3b2c532156349e274cb29d21148",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/EventHub.java": "08c8fccc693e7a3aed11c5b64af7b0108f999f4a9379294ad176b4de705d3136",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/InputDispatchContext.java": "92aec26204c4a1e516e2a076cafb200fdf62d7da81789296682d3eea663fce24",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationEngine.java": "34b692a71a72a2c06c0dd1358fa20ae01655725aa6786cac004bfbfe3762ffd2",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationLifecycleTracker.java": "500f4bf27674b2f247b31acc0ce33bd27b474af94600d27d7f4a1aa220d3c039",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationRevisionTracker.java": "15f78ac63048f950954dbf774ac9a1c10d0463eaa9edc374a78e114604afe1c4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/Phase9AExperimentalService.java": "47d32e1a03ed423c0466ae832316ad1bf4b0d36d06253195c768f318a2b810d6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PipelineTiming.java": "ca41a479f62b187c4024eda6d8941909f12a7be7b4a200e9e16b80d448a1e9bb",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandBatch.java": "b9e327db8346a28ab7a5c895c9ba8e361a6414ef05682c28af81dc74d7ebbb48",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandChat.java": "f94ad503ed3c5fddffa1865396f123bb981a36860fd4f629dd1c0df94cb9ce6f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandDiscovery.java": "8567e6e4f666cabaa2deca8ed4ae5df6dc782556d6c74dd2c1b27c591b1ac47f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandEvidence.java": "ab1b42d062390b2938e3cd6e0593ec4fe7923cf5fb061a0c3450bc33ebc0d35f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandFeedback.java": "000d42e6ea5b40779f3adcd735531203953aa9c642415888a757c092a7bcebf1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandGate.java": "22a69e13370e35603223728402299d6a22844efd696e0a77e2676718ecc19585",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPayloads.java": "99bbf94a588d92d7655c869951019a2c36cf8c9dfb50d7ab546231a5140b9d78",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPolicy.java": "7b56e194bb312d314dd111ff0f609891bd724c919f9128d794bd7ecf4a9aaa8a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandSuggestionRequests.java": "b1f3b1c576201dfc803fb45df19b9dbb03c0ca42cf3757ce234dfe15a5289258",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerStateStream.java": "fabcf2db9d40ff2a154e224bdb3c8e8ceb05506bc4c77acacfc534730bce5608",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "6e66f902758bc6413284b40cd23c8cd7b56b0f0da9a147cfb49028afe06ab6a9",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "1158e60c30f57debbc22dfc42e67a5ff5e38f43de8c1f13db53149ea48d42e33",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java": "7e886130a206a23a6c242dfc0814f7b46fcce8045cd48bad897c99b8911f1e7f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderExecutionEngine.java": "cf14acb0c354b903b206156853314d8cc9fc89f4a2fe5aba94461c603854611a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngine.java": "ddae1215ff8dc5b102b384b351e0f876b8f6230c277246cdb30415eecd395a7e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ResourceVersionVerifier.java": "6c671064473dc451481ad5d7ac1e2bed2256517c788784edf01dd076466dd0fa",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeEndpoint.java": "f73514a77aecf707da969549fd652cfaa06c236dd048998ce95f917c157e8f62",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeToken.java": "87598ed50accec7629249302972f3b92247738c755b8e2d70c5fe66596df199d",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/SecurityGate.java": "911ab27edab6ff08164dda38673965206dcf7b8f39531700e9c9940f2614c6e1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiItemDataGuard.java": "db8a49fb43f522d027ef5a24bcaed77a46064053cb3727b01b72041f50651308",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiMutationSupport.java": "cdada41ac599e38bf8b93f15bc831c870f5c203b8dc551c9d6c180673fe10a06",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiTitleLifecycleSource.java": "2bc4e028ecc8d87ea42aba5c62d58d28c5688a0b395ec21e98dba00403db308a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiToastResetSource.java": "f0ec63df67dff88e40a2fabd5c5bbb0cee2106ddd3043727ed503bb3bcc58f53",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldDebugInspection.java": "b3d7da34f26323a6ff39c00d472e6e1e0cc8d793ee170bb69711995314e98cc4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldHitEvidence.java": "b0058630308963835cc3c35dfa55ead65f488f9865d68e6bdd1f38b7f2681103",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldReadEngine.java": "672e4fb5194de94d4c75cbf93c0ca5c08c88762f1de0b9d184a73c95d63f55a8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java": "7675847c52c068d787a7bdab2b99c59aeff97f8bf8c663ff3a4a7a75e63bde90",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProviders.java": "3b9bc9c8f314970c187c5d9b71634c0c9d6b41a8221e262ce4f83058a6177ff8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java": "b9105c25b687da5d33353ec4057d8ebcda6da1f49bcc8a40b276a7e85715e5c4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java": "e76f8dcef0ba6e8b1b4b3fc4e3274d2667f8e006bd1311c2f592d51651579e20",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ReadProvider.java": "9512ba382990bad409b26e3d9c226831c6a21bbc0e085f86836d57f14beae18c",
+    "components/runtime_safety/build.gradle.kts": "6154492f1b6552c73c990dc917c231208e79698faada6a12826bcb36d7c5b567",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java": "e286ea0f3135e9fa0fc034702a54a0c971d13f375d5e99bdb570aea94efe71af",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentInputContext.java": "fb56e12f62420052f104ad6fc172b7533818079b45de9990911dd0bcd07a8cde",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentPointer.java": "10526dcb9a7e5f1e33cc8bf855600e8c730961a5fb0dcc25b8f5bfc9c0f9a66b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentTaskLifecycle.java": "6bdfd5ec9e3545169a5be4806bb922bf3948ca54ba7d31f3788f92cbcb11b199",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/CancellableWork.java": "cadae999ef0a8a9bd59fb446d936b5c26ba926a6949c868ddd35969a62e279fa",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java": "ecbeeb070c71e167d0b5766afe203733d8004b6696b700b0a49c4e3007bed0b3",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/DeepObservationSelector.java": "9856680e32ec7409aea48b5a74b68b4852ce755dd7e31015ba1903e338dceba5",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ExclusiveInputPolicy.java": "a596eeb81f740050f2206d33cd30252d6cc76110771955cb56fa49e5b91145f1",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/FrameCaptureQueue.java": "83ace4bd92643157b46ecce844c2d12b589fc2885b47f451cfb51348a7b3489f",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InputContextEpoch.java": "114567300fad3550a6bdc944ba1b510a7fa5c9335e185a9da3cf308037eeb455",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InputSequenceQueue.java": "6812f3cc5b3ce4519eb9705fb0a0dac93d57d767306cb9b46f202f90b968b2a1",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InteractionPacing.java": "3381649c1898677973ed3d2a191d2cc88f40deedcf04166b1388c342d0cf8441",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/NativeInputOwnership.java": "e5123a19af0e5430a2394af6c23a081e05558a4368e2a21a765e19c1f68abc0b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java": "07ae72797cf0474fbbd0818e91587098bedee4bb91eb6c4f164f1de23b29671b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiDataView.java": "7339ec835de408cb41cb4528f95a25641227e05c874449cbf53ebc771184e36e",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiHudIcons.java": "3fe985f897560c38316e9d8a5b13e58c22c5fbc9308069978d6a597b8c47869b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiInteractionIdentities.java": "3c239402e4222abcea49e5c0a5f4a4f04356c0ed2bf1ee5501cee5a1ea53b82b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedIcons.java": "3d3dd4d8c978e52140f497e69352e1f45133289dfdad453c96ce3cba648b45ca",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedText.java": "e801f3999e6528ea2cdff49622e3a7f073a5c110dd8569aafe3a406a4cfda673",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WindowDecoration.java": "da9e6f2339f04f69f65b8b6f22b05d03cf9060257935719f855913d675ff7313",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldActionRequest.java": "deeee01c938a8767e435ba4f3fe94ba08fcf5bda4b864263e8e06a1ae0b408f6",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldAim.java": "bba66367bc6204b7c50ff93583f22c018d39da9ab7dc8cdd9a480c11457a15a6",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldBlockChanges.java": "60ea667f0df45d42e78ace19e628f20b25e2a7d55dd836549454efa5e8741e34",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldBreakTrace.java": "da4c906ec2c45258dbe41c4e5ddba2d82fafb28fac1078d598f529ba01670449",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldClientModel.java": "0edd9d3ff4532c87ee6fe8a30b63d09556f135d09efd6d79fe24dd3865c2cd40",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldDataView.java": "536b2593515bd4924d5e33550c336dd080f4b20ce840c63c09c25737db551ead",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldPlacementReceipt.java": "36f4c2f6b60875ff73abc2c97a3bb10b3548aade6fe9b9825a4187863d531edc",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldPresentation.java": "9366f313a0023c44119dd46dca0f694fb65e70123a512a9a687871f209e958c4",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldRegionPages.java": "2cd0242ef3ed63b9c6c7b62313e770d0b451878211b831d0437e042727969938",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldTargetRegistry.java": "a1ad5c5428c1546b9858e923432ad34dd48f5586dc0bd291104dce3fba252183",
+    "components/validation_tools/InstanceProfiles.ps1": "091d108f77facd0311189f93fa8327a2c69d7bf8d4c08aa8551e4c1907b62f5c",
+    "components/validation_tools/Prepare-InstanceProfile.ps1": "31224a3b5f7598a1574de8123f81f62fda91b26800d226a6a4b01b21e73531a6",
+    "components/validation_tools/RuntimeConnection.ps1": "d95077fd228dbedbeab42927bc96e3e6159fa6fe9a8449b3af8154a016e9ec71",
+    "components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1": "e0f54cbc103b5357c72ce5819f3aa3ae9ad95ce4deda993ddef4092ee721e357",
+    "components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs": "1aa9835ff90e23dc5536ad864a55db22c5229eca62e34cc795cd36cd4720dff4",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-camera-actions.mjs": "c18c7b60d0b2aaef4e04bddf3a6b739bb642b381d2cc27384b01b8de91c67b27",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-completion-actions.mjs": "f4a5dcadaf5da0453601bd0f63eca2888d8e183b7d7d37c20d0af87887254d3b",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-toast-user-actions.mjs": "f2edc2a6a60f4ad86d3a2f8b4a5a65e3e05f060ee279a1f5448cf10f83086446",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-vital-actions.mjs": "cd93bec2d00fdec9ecf2a41c7166f669a1d929e50bc2d57ca274b99b3180c8e2",
+    "components/validation_tools/conformance-vanilla_ui/task/special-menu-actions.mjs": "66ec995a461ff5dece8b625a774bd90606c7abd9035f6a9bc9605b3cb89659c1",
+    "components/validation_tools/conformance-vanilla_ui/task/spectator-consumers.mjs": "cadf7dc430639db777143bc4968928dfbac83ada4de08de2881b10b7aeee6947",
+    "components/validation_tools/conformance-vanilla_ui/task/suggestion-debug-actions.mjs": "23ea4945803031172197cce19b394166fbbf667325e9c93d74c40f9871ba33e1",
+    "components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs": "4ff78ed22073bbf02843167d97173df6688066dfe9672bb74d8ece5cd27c9fa3",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-correctness-actions.mjs": "1f4ee5e58313dd2d17147eff432845ef9db50eac9d01f1484083177e866840fb",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-debug-advancement-actions.mjs": "add063f1931bce20a179e419714056ef1f2794c5eda0602241310d6621291777",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-debug-capability-audit.mjs": "97f165c0591baedea315966fe625e4d2ae958c85c6828c6779e0947ed6ce98b9",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-local-owner-actions.mjs": "5451ab837c5d68f1be97da30f17cbb6fcc1fb62c6ca88515f24552af1f5c6d33",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-native-confirmation-actions.mjs": "f3dfcefdd44093959d4a5cd1cdc94d3013f331cec8982845b8dba7b539c5b0cb",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-navigation-completion-actions.mjs": "a95f45954145bcb3f1b9019bf0c720bbf07876fd47bbf4455dc65cec2b67b5a7",
+    "components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle": "cf298f5aad5f507fd0a889f1c8663f46bd491800d97e250f6a779f9f0c9de0c5",
+    "components/validation_tools/conformance-vanilla_ui/task/visibility-toast-actions.mjs": "c77e67a19cc8d5026a9cddef42a7666515b15b0d6bd298c35fbf7770c83d510d",
+    "components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs": "2166d314b524381b8748b5a86c706a1b0630fea27071af2f8093c48be151934f",
+    "components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs": "372b23ed7352eeb14eecf6874461ff6bd50f079d85caf7b1b109ba3ae8073541",
+    "components/validation_tools/instance-profiles.gradle": "d36cd6d5e3667a3440cd9fe71396369f9ec83c052a106b0f2b2847bcf1a09b5a",
+    "components/validation_tools/runtime-connection.mjs": "531c8cdb8a448df6aafc8d878df4d66a34ed800a568f4288637c97560d948f62",
+    "components/validation_tools/vanilla-command-fixtures.mjs": "2fde4ed1bfecc84e2d98fd90266af6e0ea95681e8914022fb62df23826c9636c",
+    "components\\validation_tools\\conformance-vanilla_ui\\task\\run-vanilla-ui.mjs": "0cd6bf0b49ee31ee1a8694fb0b4635511f6ebc63177dcae020c760cb627d1eb7",
+    "gradle.properties": "fa9512a931759ac9801cd5ae8d7da2dd5608f4594eaf1d559edfc3b172bf4df4",
+    "gradle/libs.versions.toml": "ad049aff46cecf5ccca49249b2c1b9ca3fb14af83c27ab37b2a6a1aaf7e7bb99",
+    "settings.gradle.kts": "d6c3ac3c26aaebae98d57804c9257275f0d1e95349272fb4554774ef5e593672",
+    "validations/conformance-vanilla_ui/task/screens.json": "710875e42197f95e819056d78dea3d079402c1ac7be5deb5c2f3b3b210aa8145",
+    "validations/conformance-vanilla_ui/validation.toml": "d97aeb41e88d75893dc9c9aade837ed5a109d8ec10af59ea88e2d12ad7996a28",
+    "versions/1.21.1-neoforge/build.gradle.kts": "13de2153e603365e8aa85a059dede32fbc5588d2e64ad795850d17b8bdc69551",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "d883ad3b2666a51a1e90fbc1426ed66ba09b6a2e3ee0cba726c910c4a84fafa5",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java": "7075e0af439a8b0074f2464246638494434963e2c738d3beaae31055fd9fbf7f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "8d1e04344f1fb7805500408d850e359ff3e74553274383bd7862ffa39c82ae25",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTabUiAccessor.java": "9b11509a692ba26bb21ee3c3055cf501222b00a142a94204deeb4189fcd18ef1",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementToastUiAccessor.java": "18904c2ab107584891a74502612d9f1984a78da91d06e6fa3baefafe15f44403",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTypeUiAccessor.java": "eb0831bdcb6ef8d04ac9a915b6045423726ce4bdcbacf01e548663997ffcf21c",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementWidgetUiAccessor.java": "5aa422c480db4792098cb0af0a9068016a715956dd54c2b4db6436f41403b5cd",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementsUiAccessor.java": "6d0b51c7f7aba2f3bea9dfe62811de76ccb6c43c5cb647d7f55876477654cdca",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BaseContainerBlockEntityAccessor.java": "3a777701950655b045ff4792f6cae496763bf7f1116c219b4035dfffbcf7519f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconButtonUiAccessor.java": "092d96abe23b07a020f7de3de200e0bf327dbb4074333a0d07a60a0eb8db8dce",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconCancelUiMarker.java": "baee20efdcef49f4cfb1b686440844b3c673c898956b569d520a957c5d247e3d",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconConfirmUiMarker.java": "f64df6ede2292cda1faeabe6c90faf0e42121d5844db13d84d926374160a9bea",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconPowerUiAccessor.java": "f09cbe5f92c7c34936acdaa64756bce2417b88b3993197ee72d8706584e0bfe6",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookUiAccessor.java": "ad00a890dd6d48b8b61f70954d94f3faf941cd1accec6a35bc780077197bfe3e",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookViewUiAccessor.java": "2bfecf5d42c7a5b0a85140cec4a75e445ef6da85238ca8c9e3eb3e4828977991",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BossOverlayUiAccessor.java": "7aad80e94c54c130004629f309294c44131f2650cf443d8cb0bd8473d25d8923",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ChatComponentUiAccessor.java": "7443ea967a999eaaca481b5a262fcaa2f98197934db39ae17d4c70e27cfd0135",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ChatUiAccessor.java": "7b9b6c2d9851b32c7fdc7e0cc81a7ca965347cdcf1000677ffc1c1e2407f8c65",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ClientPacketListenerMixin.java": "8992d1090a5295a8d79285b1cdc6afa372faa92c66d68ade539c326ee44e7218",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandBlockInputAccessor.java": "aedc378fc29c62bd5b1b507a01f53a4c9f25cb75219eec2a949d975546c3798b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandCompletionConnectionMixin.java": "a893734f2ebbfbe207ca07c35563e55e386a23e735d4f07fed38e393119ae8ef",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandCompletionProviderAccessor.java": "2a2899d08bcf81432290c4e77a7a9b0a5c7817ca2d62e09d34a61525e95f5c10",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandFeedbackChatAccessor.java": "3e0c0914c6af84ead4fbf11a1f215c1d8139aea14042942f39ee99e01453fb3c",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandItemInputAccessor.java": "8d3173ec16dee9613d1e119827f86754bb40a275385ea87a819125a912562ba2",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandSuggestionsUiAccessor.java": "0bdd36617c74596570b4363191f7194a4197401700d601172665963abfc2edd4",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ConnectionMixin.java": "a1c039b9e86776ac3b770b665b2d2135c7f836b7d01aa768ba3cefc2086937e5",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ContextualBarPresentationMixin.java": "67cc588ff2688d8e4ab11ea03ec456f0a6b7787279a2c9b709b59de46594c0a8",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CreativeUiAccessor.java": "9e6afe30bce246c9feb8e48d779e3c8de2337c7d588f4d284aef97d24d9de0e8",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DistanceManagerAccessor.java": "c04c1f15aad2708c1aa2e004736d0f3d42792e181790b145230fee4684689fcd",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/EffectIconRenderMixin.java": "eacf0006a453aa312f841e30f7d11ba954eefbe1d00a4ef8ddf2c71f62e9a103",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java": "00528b74e904d2d94a454434ed11b21f81c728345c8574059d68e5abd33eff66",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudCameraPresentationMixin.java": "4f02eca411a29c974b8634a209d180d9cbc26084a51a798903183fc2e3dc48ea",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudPresentationMixin.java": "7079f6a30129378acdbdb22077fc31493fd19a84284b8aeacf0d5995abfc67bc",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudTitleLifecycleMixin.java": "fe54dd79c117cf788f32bf7a9f3f54bf7fa147e0df42168b5676fe4fdd73186e",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudUiAccessor.java": "7ede7c4b23d1af98cee8e01668954cfd797427ba23300244c396d9cdcecb4581",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudVitalIconsMixin.java": "01d42fefec455fa4024c1cb8d197e8e2df35bbe17494c5168af18496e7b98ab4",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/InputConstantsMixin.java": "1c50d1cf61cfabe9d22cac6d105466a2241739245c099061314425bbc06eccda",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ItemDecorationPresentationMixin.java": "a27d025870c5882ceecd24bc660454efee515fba4c68cc4779156df3f58f656a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyBindingUiAccessor.java": "0bb7d7e37c90437bb9a96898209b74e4adf940ec3571fbbc31344945069369b7",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardCharacterInvoker.java": "1c8172a0ff419d3e593276d96c148a09e050e8f947f7d72b4fa26d8fca3f9db1",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java": "eb3e13f0cf42e134f6a2513a35891c0473d0220bd9e5d4eb8af7077ac49fafb4",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LevelTicksAccessor.java": "1d832bbfb463f8781c365d39223ff63e16720e0c493def2bac36814c2d192455",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LocalPlayerMixin.java": "363ecb53dffe55c522ef660ab940021c71ef6c14c39c9e8d6f59de6d645c40de",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LoomUiAccessor.java": "68f6ea8f564ce0c3bebd32e86c3008907fa7fe8a8200b071bd1ef2aed582de70",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantTradeUiAccessor.java": "1b1359091b44bd34b99f80418aea3eb7ddc339372728a6e8b7edb79d15b8758a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantUiAccessor.java": "8fcfd08d03dc2ec4f4cfa6a73267ab8351d181f7d52953be521de5ae5a092d10",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "4cf3f791045c06e82ff6f717bb18e8dc120f19f5e619b173b427778cefb8dbd8",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java": "697050969022c1762ba68ffcd692a09b3ba502fa7ed87f53eb85061a865262e5",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerInvoker.java": "9ae9d4a24f1639b28ec32064dd5f0a82c4dd8796767177d1e03a0238507ac133",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java": "ae6cc7895ccb9cc0f90dba40203a22c3e9a08f852a2ae4dcec099d3e2f84842f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MultiPlayerGameModeMixin.java": "e11fa71989fdaca50274e62e69b5076952f57e959fc63da5ce3c3a2ee1e792e3",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PackEntryUiAccessor.java": "b2afef9377fe0302918d254729b4154a76af514c7193b503de319c6cd4afae3a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PlayerCommandMixin.java": "34c037cd2fc09b6243fa02763853c391430b636041a8c118bf07881bde0db75f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PlayerListUiAccessor.java": "0c48aa8907248524a9e3e52f6cbd66e40702d738aced3ff3a92d3e7ac4106d29",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeOverlayUiAccessor.java": "adaef34bcd43eda7511c6168db9b8af5568a9b1f30e29d31e291871cc59ccb78",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipePageAccessor.java": "63c5237ff0d671004c593f650c6a016d0586d7cc7609f2d4dab7b7b2d3335451",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeUiAccessor.java": "a7122b39c268f2333c0366030839d5739e3fa784663472719a1cc52cdd2c6d20",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScrollWidgetUiAccessor.java": "5b3cc7749cfcff66fe46b787dfdf6369baa5f45bd8eef31599e0f53d95f4130c",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SelectionListAccessor.java": "9b40026cc6c8e5f22daf63b2586c9b9dd1f426c95f23251c186104a8fe684c9f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ServerGamePacketListenerImplMixin.java": "bed1e4b7c6dbe52d3c1ac173ccde95c0ec1ac82196fd338a50e2794cf35c7b55",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SignUiAccessor.java": "6b791caa671b13e720e1faed8a15f653466e13ced371b1e6dd0d9d76fc016cfa",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SliderValueAccessor.java": "1c15d759cbb61c6cb3049bc8f0cf4f1bfccbceb43f378cab0d187294c29d80fc",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SpectatorGuiUiAccessor.java": "e89939bfae97f587840267b0262819c6ba5b6aa7466ff1d5de115a85663fda92",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SpectatorMenuUiAccessor.java": "12f1b42aad4ac91c8f663a05e3170518258977ca4e29296448f60a8e65b415df",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/StonecutterUiAccessor.java": "55ed7d308010a945b6264453ab0ead0bfd274afe284e32196d06f7c0491fb83d",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SuggestionListUiAccessor.java": "0c286868945fbb277a8ded6e0b9d959e02cb15e34f3c8858cb311878dce62704",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SystemToastResetMixin.java": "619467f06d9e9ccae5ba3fc5654bff930af9c2e6a6e028fcc1d9c855568536e9",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SystemToastUiAccessor.java": "e4119ddeaa1720ae4ef7dc4c7abf455cb2d5abb8ce351f19e834b5cebc210049",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TextFieldUiAccessor.java": "d138a8ae3435175e004586aa91af4a680d932015ef199507f276dcf89ac0ce3c",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastInstanceUiAccessor.java": "cdc141b03f185d92910f84b332633c27f207e300d3f12fe0813e34db377236ae",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastManagerUiAccessor.java": "364fcba6975eedb9a269c3134de78ec5edc4c2e54146ddfac898c88883d740f9",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastRenderTextMixin.java": "ce8b669a66599a73155d9b194d985c9ef62c448848620b3cbea9a6cd12c46090",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TooltipUiAccessor.java": "f979c1da37686af3d1abf11a0393d2cd0fdb7338fdc5f764e08ad39393cb2050",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TutorialToastUiAccessor.java": "46fc0a674b55b423e4b8585b791f6c042c99b98987e35ce6d31aed5ad490e14b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java": "ba800f3f727b33b49bf95cf2ad2f1b652b4ab57886f4691f37bbeaec35f13cad",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldChunkRevisionMixin.java": "c9def50d1e816299f3eef301fdf5a17a6dfa77a84b49ce79beb9df9bb42f2a84",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldEntryAccessor.java": "94638d5a7a91d84559ae25dc028d1fbb03342038ff2035ca9f61548d6139db7a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldGestureMixin.java": "b736b59b50c7f17565f13a5ca07abe4d735d67b9c040c44f8bd7a6b387f50091",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldOutlineMixin.java": "fff5c5ec674ed761b980c38db1f265d1df0ca6a4070203a66fb2f1994719859d",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldPickInvoker.java": "c07839e07d4c06324452cfccbf1b94de98a39f1530a00a4aad1823055eb593a6",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "36dce1bd588c5c347f7ae8512a635e9ffbe65585d66d94721d4e805f4d964d0a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "d3e33db4bea3770b33796df877e5c5b8a93c027b428dc5502acf760ca1546244",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "661a41da12411af772d75e63935a4264e470bd4d07d3445d2a52160b49b4fac5",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "c965e573c91c7e933b392297924973bd5d37813fcb92832d2c52e9d4f339b735",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandPayloads.java": "a3a56ec6b25ad75812465d568288fc8108c663fd1a393a0216e6eabb6fb46bdf",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandSuggestions.java": "9a81d1b805a7ecfe3a58a35b3b50c1e9d1301300d8c959ddb9b14ddbed7c7e03",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativePlayerCommands.java": "4e5d7c1ed2b4da390039a5d1469d47a3c1b11ed61c9a1da829d9ac655a3fa498",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "fe83eaa9452ff97816dd0b7f874e667e75c08bc230c91dd3df899dfb318da876",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "14ba2e08f8fbb069c3f06a9a6f15ffbbd7a01e841ae0872f9e8d31222923103a",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "917f75eea64316a884acd79b0d6f0f99af21a511f67249b73e83e13e05311bb8",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "4f226dd706137d480525ce03a0928a5d867219c13996d145f1d6a6f114152679",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RichTextUiRegions.java": "58be339f7721b7b8a9774c81a50e50c2e373bae16b78789712733748a1d0a261",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SpectatorUiTree.java": "f21a44b06b5337dbad08f0fa5d8c2b0e64a6dec4769741b75e848ac9b226b4be",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiAdvancementPanDebug.java": "d21b5fa0f85d07d2da49276aed5a4ddd350f82c42caa535c11fff7a1944ffb4b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugEngine.java": "bbcae4fae5a009e5c7de1396cbfcfaf5acc4de2f22104ddae75022477fbc3fa6",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiPresentationDebug.java": "bac513f19f3d454f65a7205434987821f65b5800a42633a90e9ef65909204a30",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiPresentationSnapshot.java": "2cc810f5af976edc1e656c7ca362ec22bfe6fb7837b637b85642260201e14581",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiSpectatorSelectionDebug.java": "1b730fff5b0755abb0b173c786028b6145733617d6fa4f6d6bf0cb147e1fa126",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiSuggestionDebug.java": "2a9b9def8f2cb7b077498afd82a55e500e3f9fba1467208d4cb4a0cebb645600",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiTitleLifecycleDebug.java": "73ce947e082a6af6a8618f84ddd9f008b22678fa458ca3bf4b626fb1797ff6d9",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastDebug.java": "6ef6952fddf31ed176c2834405049c127d94ec236864e436f6efbe43e62e7607",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastText.java": "d588ca29135b4359570e31e211854f561f2ae12aee23f14bd4bf92d138b13e49",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaInteractionRegions.java": "46243c5f10a3b9fdd95071a0e0a2d8fbedb78f7fbe2ecc13f15bdd3cad6719f7",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java": "08c4bcea7402748ec3e6687b551a9494cee8d8e7e12f5abdf96975ed2e646576",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldClientSnapshot.java": "343c5529e4d8b677085eba799495043050177cb1555da485684c15b904fe8c81",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldPresentationSnapshot.java": "0be5d731cca6845d6c2f30da2b420cb7700057ee332518c6c7c0ec33c4fbf45b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldRegionSnapshot.java": "e4e0694c8cc3052240d55a754d7bcdb5972d3f96b0a9d2ff00fb34f12efcd3df",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldTargeting.java": "0b05509215f73a83b87b85a9275351118a114ba58c679c70b6fab8a68aec723f",
+    "versions/1.21.1-neoforge/src/main/resources/META-INF/neoforge.mods.toml": "874323d53ed7fa0b92a65f96d3f41d104e96abbaa46abc603abe444a6fc0ce66",
+    "versions/1.21.1-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "dfc23c312ba9810062875d7b89d5b10c9f02f78e89698cfe15ab50d32e7871ff",
+    "versions/1.21.1-neoforge/src/main/resources/pack.mcmeta": "9752022e24bceca17b681f78a10e7fa25e7680280f786fb6026cc96ffd7010b5",
+    "versions/1.21.1-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ChunkPacketReplay.java": "f9a7e7ec20e8c97d8eb381cc1c63ea6d57f29e874e8415b7f65a443aa2d4188c",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/CommandCollaborationFixture.java": "2808163ec31d1feb3be159e224e7f273390d4c5895d7d5108a06afe9e94e51f0",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/CommandConfigurationProbe.java": "5d7a52a204f8fabaf8dfa0da1edcb1b1b614f088e4b94148477ad60545962774",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ShowcaseToastFixture.java": "c493d606016c62ef3b765648b799a046d06f541ffed5d8f66150d82f6542ca1e",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/UiToastLifecycleProbeGraphics.java": "96c6b86e9142648fd0b9dfb688dca8782756850ce83e2a938e53253eb7f90334",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ValidationProbe.java": "87f395265ae5f080c0a20dc238320a216b80685bd9a6db666e354590ca08b2e3",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/BackgroundFocusProbeMixin.java": "395dd69a4b4772315fba1c83bd31ecfd61ff1ee0471f351096f766a9dc6adaa8",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/BackgroundWindowProbeMixin.java": "a95b1b189075e30f7ca5ff015d6f1fd486779f8eba2aa774d38e91002f47712b",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/ChunkPacketReplayMixin.java": "de9501e11b0df3b24224cc4ceb0f7a0633fb564dd63f955584d858e3667dafd8",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandCollaborationPermissionProbeMixin.java": "222f649d7171e338356b521d6746bec25efdb99bb2e6efea94744a2325fc90b3",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandCollaborationProbeMixin.java": "9762acb20b84c9678c0bf5421c81aa85ae1d14aa52a90514ed5d219552dbd88f",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandConfigurationProbeMixin.java": "932216c250a09b1715740f737830b448addc13669b543d5899a0ac277428f3d9",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandsReplayMixin.java": "761a4a5ff7151cb60b4631ac61f340fe8bbf0598baed80ede2a95fbcaf3c5205",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/ShowcaseToastProbeMixin.java": "8b63ade38f41b2abf97b1691f3b28a5af59ba547151badeae6040d0e1f059d86",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiPresentationContentProbeMixin.java": "dec032794b70ce09d17853da01738f84042ed27c8f2f01baa004bd08d5b7e190",
+    "versions/1.21.1-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiToastContentProbeMixin.java": "5925acdbd7e6485c257e7096c683c81ef6685752d6f2e2c90c68d33f49ccc299",
+    "versions/1.21.1-neoforge/src/probe/resources/META-INF/neoforge.mods.toml": "ef230f949064e3e63e3a0ad0388d9d99bce38fbd81a0855701665d685f3ee5cf",
+    "versions/1.21.1-neoforge/src/probe/resources/minecraft_protocol_probe.validation.mixins.json": "a16ae165a6aa72c86d87d78df93fb5ddb70cc74f70e0b52bc2c5dcafe8ac517d",
+    "versions/1.21.1-neoforge/src/probe/resources/pack.mcmeta": "e3d0cc46202cb927e13482894b1f010c10d01866dfafc599a3b0ce824422482c",
+    "versions/1.21.1-neoforge/target.properties": "91e3d01ffc8a08a8fb19d7369a30567cc57b47eb59fac3ec545e7fc771e57245"
+  },
+  "sourceChangedDuringRun": false,
+  "fixtureSha256": "435484ac26cce3b006f1a2da71d640ded7ce5430c4147b37cf027b7d6c31e4ad",
+  "noMultimodal": true,
+  "screenshotAssertions": 0,
+  "persistentWriteCalls": 0,
+  "notExecuted": [
+    "external server authentication",
+    "Realms/account-gated UI",
+    "world conversion/repair",
+    "all settings combinations",
+    "all recipe combinations",
+    "all world presets/rules/data-pack combinations",
+    "player-list header/footer, multiplayer sorting and 80-player boundary",
+    "spectator multiplayer category paging and teleport execution",
+    "spectator mouse/scancode/Loader-modified hotbar bindings",
+    "third-party UI"
+  ],
+  "toastSamples": [],
+  "editorSamples": [
+    {
+      "transport": "mcp_stdio_debug",
+      "editor": "debug_hud.playerlist.header",
+      "operation": "ui.text.set",
+      "status": "PASS",
+      "inputDelta": 0,
+      "playerLeaseAcquired": false,
+      "typedRecovery": true,
+      "userOperationGetWaitAssertRejected": true,
+      "diagnosticCancelRedacted": true,
+      "rejections": [
+        "DEBUG_ARM_REQUIRED",
+        "DEBUG_NOT_ARMED",
+        "VALUE_PRECONDITION_FAILED",
+        "STALE_RESOURCE_REVISION",
+        "OPERATION_NOT_FOUND"
+      ]
+    },
+    {
+      "transport": "web_user_isolation",
+      "editor": "debug_hud.playerlist.header",
+      "status": "PASS",
+      "operateUserSnapshotAvailable": true,
+      "debugMetadataLeaked": false,
+      "automaticLeaseAcquired": false
+    },
+    {
+      "transport": "mcp_stdio_debug",
+      "editor": "debug_hud.playerlist.footer",
+      "operation": "ui.text.set",
+      "status": "PASS",
+      "inputDelta": 0,
+      "playerLeaseAcquired": false,
+      "typedRecovery": true,
+      "userOperationGetWaitAssertRejected": true,
+      "diagnosticCancelRedacted": true,
+      "rejections": [
+        "DEBUG_ARM_REQUIRED",
+        "DEBUG_NOT_ARMED",
+        "VALUE_PRECONDITION_FAILED",
+        "STALE_RESOURCE_REVISION",
+        "OPERATION_NOT_FOUND"
+      ]
+    },
+    {
+      "transport": "web_user_isolation",
+      "editor": "debug_hud.playerlist.footer",
+      "status": "PASS",
+      "operateUserSnapshotAvailable": true,
+      "debugMetadataLeaked": false,
+      "automaticLeaseAcquired": false
+    }
+  ],
+  "uiDebugSamples": [
+    {
+      "case": "typed_node_applicability",
+      "nodes": [
+        {
+          "nodeId": "hud.hotbar.0",
+          "controlKey": "hud.hotbar.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.1",
+          "controlKey": "hud.hotbar.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.2",
+          "controlKey": "hud.hotbar.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.3",
+          "controlKey": "hud.hotbar.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.4",
+          "controlKey": "hud.hotbar.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.5",
+          "controlKey": "hud.hotbar.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.6",
+          "controlKey": "hud.hotbar.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.7",
+          "controlKey": "hud.hotbar.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.8",
+          "controlKey": "hud.hotbar.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "controlKey": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.crosshair.minecraft:hud/crosshair",
+          "controlKey": "hud.crosshair.minecraft:hud/crosshair",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.header",
+          "controlKey": "hud.playerlist.header",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.playerlist.row.0",
+          "controlKey": "hud.playerlist.row.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.footer",
+          "controlKey": "hud.playerlist.footer",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.title",
+          "controlKey": "hud.title",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.subtitle",
+          "controlKey": "hud.subtitle",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "toast.0",
+          "nativeClass": "net.minecraft.client.gui.components.toasts.TutorialToast",
+          "controlKey": "toast.0",
+          "operations": [
+            "ui.slider.set",
+            "ui.toast.hide"
+          ],
+          "blocked": {},
+          "limitation": "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION"
+        },
+        {
+          "nodeId": "hud.titles",
+          "controlKey": "hud.titles",
+          "operations": [
+            "ui.hud.title.times.set",
+            "ui.hud.title.clear"
+          ],
+          "blocked": {},
+          "limitation": "CLEAR_REMOVES_BOTH_COMPONENTS_AND_CANNOT_RESTORE_ELAPSED_LIFETIME"
+        },
+        {
+          "nodeId": "hud.actionbar",
+          "controlKey": "hud.actionbar",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        }
+      ]
+    },
+    {
+      "operation": "ui.hud.title.times.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 49,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 53,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.hud.title.times.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 53,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 54,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.hud.title.clear",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 54,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:73:hud.titles",
+        "lifecycleId": "ui_node:presentation:73:hud.titles@session",
+        "revision": 55,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "case": "typed_node_applicability",
+      "nodes": [
+        {
+          "nodeId": "ui:spectator:83:84:0:0:82",
+          "controlKey": "spectator.prompt",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:spectator:83:84:0:0:key.keyboard.1:true:false:0:85",
+          "controlKey": "spectator.slot.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:spectator:83:84:0:0:key.keyboard.2:true:false:1:86",
+          "controlKey": "spectator.slot.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:spectator:83:84:0:0:key.keyboard.8:true:false:7:87",
+          "controlKey": "spectator.slot.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:spectator:83:84:0:0:key.keyboard.9:true:true:8:88",
+          "controlKey": "spectator.slot.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "spectator.menu",
+          "controlKey": "spectator.menu",
+          "operations": [
+            "ui.list.selection.set"
+          ],
+          "blocked": {},
+          "limitation": "NONEMPTY_CURRENT_PAGE_ONLY_INITIAL_MINUS_ONE_REQUIRES_MENU_CLOSE_TO_RESTORE"
+        },
+        {
+          "nodeId": "hud.hotbar.0",
+          "controlKey": "hud.hotbar.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.1",
+          "controlKey": "hud.hotbar.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.2",
+          "controlKey": "hud.hotbar.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.3",
+          "controlKey": "hud.hotbar.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.4",
+          "controlKey": "hud.hotbar.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.5",
+          "controlKey": "hud.hotbar.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.6",
+          "controlKey": "hud.hotbar.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.7",
+          "controlKey": "hud.hotbar.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.8",
+          "controlKey": "hud.hotbar.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "controlKey": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.header",
+          "controlKey": "hud.playerlist.header",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.playerlist.row.0",
+          "controlKey": "hud.playerlist.row.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.footer",
+          "controlKey": "hud.playerlist.footer",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "toast.0",
+          "nativeClass": "net.minecraft.client.gui.components.toasts.TutorialToast",
+          "controlKey": "toast.0",
+          "operations": [
+            "ui.slider.set",
+            "ui.toast.hide"
+          ],
+          "blocked": {},
+          "limitation": "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION"
+        },
+        {
+          "nodeId": "hud.titles",
+          "controlKey": "hud.titles",
+          "operations": [
+            "ui.hud.title.times.set",
+            "ui.hud.title.clear"
+          ],
+          "blocked": {},
+          "limitation": "CLEAR_REMOVES_BOTH_COMPONENTS_AND_CANNOT_RESTORE_ELAPSED_LIFETIME"
+        },
+        {
+          "nodeId": "hud.title",
+          "controlKey": "hud.title",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.subtitle",
+          "controlKey": "hud.subtitle",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.actionbar",
+          "controlKey": "hud.actionbar",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        }
+      ]
+    },
+    {
+      "operation": "ui.list.selection.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 60,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 61,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.list.selection.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 61,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 61,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.list.selection.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 61,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "spectator:83:selection",
+        "lifecycleId": "ui_node:spectator:83:selection@session",
+        "revision": 62,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "case": "typed_node_applicability",
+      "nodes": [
+        {
+          "nodeId": "hud.hotbar.0",
+          "controlKey": "hud.hotbar.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.1",
+          "controlKey": "hud.hotbar.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.2",
+          "controlKey": "hud.hotbar.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.3",
+          "controlKey": "hud.hotbar.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.4",
+          "controlKey": "hud.hotbar.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.5",
+          "controlKey": "hud.hotbar.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.6",
+          "controlKey": "hud.hotbar.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.7",
+          "controlKey": "hud.hotbar.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.8",
+          "controlKey": "hud.hotbar.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "controlKey": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.crosshair.minecraft:hud/crosshair",
+          "controlKey": "hud.crosshair.minecraft:hud/crosshair",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.header",
+          "controlKey": "hud.playerlist.header",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.playerlist.row.0",
+          "controlKey": "hud.playerlist.row.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.footer",
+          "controlKey": "hud.playerlist.footer",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "toast.0",
+          "nativeClass": "net.minecraft.client.gui.components.toasts.TutorialToast",
+          "controlKey": "toast.0",
+          "operations": [
+            "ui.slider.set",
+            "ui.toast.hide"
+          ],
+          "blocked": {},
+          "limitation": "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION"
+        },
+        {
+          "nodeId": "hud.titles",
+          "controlKey": "hud.titles",
+          "operations": [
+            "ui.hud.title.times.set",
+            "ui.hud.title.clear"
+          ],
+          "blocked": {},
+          "limitation": "CLEAR_REMOVES_BOTH_COMPONENTS_AND_CANNOT_RESTORE_ELAPSED_LIFETIME"
+        },
+        {
+          "nodeId": "hud.title",
+          "controlKey": "hud.title",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.subtitle",
+          "controlKey": "hud.subtitle",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.actionbar",
+          "controlKey": "hud.actionbar",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        }
+      ]
+    },
+    {
+      "operation": "ui.text.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.header",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.header@session",
+        "revision": 47,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.header",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.header@session",
+        "revision": 63,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.text.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.header",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.header@session",
+        "revision": 63,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.header",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.header@session",
+        "revision": 64,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.text.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.footer",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.footer@session",
+        "revision": 48,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.footer",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.footer@session",
+        "revision": 65,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.text.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.footer",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.footer@session",
+        "revision": 65,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "dc3e7493-41dd-4a41-bdf8-4f9a4d1b9b18",
+        "resourceType": "ui_node",
+        "resourceKey": "presentation:75:hud.playerlist.footer",
+        "lifecycleId": "ui_node:presentation:75:hud.playerlist.footer@session",
+        "revision": 66,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    }
+  ],
+  "advancementPanSamples": [],
+  "hudCompletionSamples": [],
+  "suggestionSamples": [],
+  "uiCorrectnessSamples": [],
+  "localOwnerSamples": [
+    {
+      "case": "native_title_lifecycle_timing",
+      "observedNativeTicks": [
+        558,
+        561,
+        564,
+        567,
+        571,
+        574
+      ],
+      "countdownReceiptStable": true,
+      "nativeTimingChanged": true,
+      "timingRestored": true,
+      "staleRejected": true,
+      "malformedRejected": true,
+      "inputDelta": 0,
+      "elapsedLifetimeRestored": false
+    },
+    {
+      "case": "native_title_lifecycle_clear",
+      "wholeGroupCleared": true,
+      "remainingTicks": 0,
+      "userTitleAndSubtitleAbsent": true,
+      "oneWayOwnedFixture": true,
+      "inputDelta": 0,
+      "textOrLifetimeRestored": false
+    },
+    {
+      "case": "native_spectator_debug_highlight",
+      "original": 0,
+      "value": 8,
+      "actualItemOwnersStable": true,
+      "sameIndexNoOp": true,
+      "sameTokenAfterNoOp": true,
+      "restored": true,
+      "staleRejected": true,
+      "invalidMinusOneRejected": true,
+      "expectedValueRejected": true,
+      "userPositionUnchanged": true,
+      "inputDelta": 0,
+      "itemActivationUsed": false,
+      "initialMinusOneRestored": false
+    },
+    {
+      "case": "native_player_list_text",
+      "field": "hud.playerlist.header",
+      "restoredText": true,
+      "inputDelta": 0,
+      "playerLeaseRequired": false,
+      "richFormattingRestored": false
+    },
+    {
+      "case": "native_player_list_text",
+      "field": "hud.playerlist.footer",
+      "restoredText": true,
+      "inputDelta": 0,
+      "playerLeaseRequired": false,
+      "richFormattingRestored": false
+    }
+  ],
+  "navigationCompletionSamples": [],
+  "effectSamples": [],
+  "spectatorSamples": [],
+  "specialMenuSamples": [],
+  "vitalSamples": [],
+  "fixtureReadSamples": [],
+  "chatCloseSamples": [],
+  "worldExitSamples": [
+    {
+      "outcome": "world_exit_independently_observed",
+      "requestOutcome": "not_confirmed",
+      "requestReplayed": false,
+      "before": {
+        "type": "input.state",
+        "target": "1.21.1-neoforge",
+        "clientTick": 1098,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 604,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "d212f1ce-4ad9-4628-9127-46cea7a61f84",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 18,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 18,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "285fe902-4d99-457a-ab07-5fe6c9ba46d1",
+          "generation": 18
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 2658,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.8713913,
+        "controlChromeEdgeWidth": 0.93569565,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3793,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 0,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GUI_ABSOLUTE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0.6912354,
+          "gameCaptured": false,
+          "gameCursorVisible": true,
+          "gameCursorRevision": 42,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 20,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 1.21.1 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 1.21.1 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 6,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "d212f1ce-4ad9-4628-9127-46cea7a61f84",
+        "inputContextAvailable": true,
+        "requestId": "85a59044-a4b2-418a-a85c-4d669066c395",
+        "protocolVersion": "v0"
+      },
+      "after": {
+        "type": "input.state",
+        "target": "1.21.1-neoforge",
+        "clientTick": 1133,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 623,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "3bd560bc-0d7a-4794-a647-5ae8a3d30924",
+        "nativeEntityAttackContextGeneration": 2,
+        "nativeEntityAttackControlGeneration": 18,
+        "nativeEntityAttackLeaseActive": false,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 18,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "285fe902-4d99-457a-ab07-5fe6c9ba46d1",
+          "generation": 18
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 2797,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.9705276,
+        "controlChromeEdgeWidth": 0.98526376,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3932,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 0,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GUI_ABSOLUTE",
+          "x": 240,
+          "y": 200,
+          "alpha": 1,
+          "gameCaptured": false,
+          "gameCursorVisible": true,
+          "gameCursorRevision": 42,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 20,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 1.21.1",
+        "windowTitle": "Minecraft NeoForge* 1.21.1 - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 7,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 2,
+        "inputContextId": "3bd560bc-0d7a-4794-a647-5ae8a3d30924",
+        "inputContextAvailable": false,
+        "requestId": "73d51824-3920-4ce6-8255-42dd008fc6dd",
+        "protocolVersion": "v0"
+      },
+      "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
+      "overlayIdentity": 0,
+      "error": {
+        "status": 409,
+        "body": {
+          "error": "REQUEST_CANCELLED",
+          "message": "unknown",
+          "executionOutcome": "not_confirmed",
+          "retrySafe": false,
+          "requestId": "d885faea-f1f0-4f30-a18a-c67f51ccafe1",
+          "protocolVersion": "v0"
+        }
+      },
+      "released": {
+        "type": "assert.result",
+        "condition": {
+          "type": "input.released"
+        },
+        "passed": true,
+        "message": "Runtime held input release condition satisfied",
+        "evidence": {
+          "pressedKeyCount": 0,
+          "pressedButtonCount": 0
+        },
+        "waited": true,
+        "requestId": "6068e765-e43a-45ed-a883-3e833c212c00",
+        "protocolVersion": "v0"
+      }
+    }
+  ],
+  "respawnSamples": [],
+  "cleanShutdown": true,
+  "processExitCode": 0,
+  "endpointRemoved": true
+}

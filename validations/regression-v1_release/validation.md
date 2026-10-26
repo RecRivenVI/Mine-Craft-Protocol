@@ -45,6 +45,14 @@ alpha 刷新须验证当前源码、实际五端运行结果、发行 JAR 与生
 
 ## 运行
 
+E世界试用使用e_world_trial_v1，M-05/M-06的实际适用验收组和受影响UI/连续输入须在冻结候选重新执行；每组定义在e-world-proof.mjs。不接受尾部调试场景替代完整组。五端最终单JAR另需独立安装入世界，人工及历史性能不在自动通过范围。
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --profile=e_world_trial_v1 --scenario=e-world-affected --historical-baseline=D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261020-0337-f2dc15c9
+```
+
+该入口会生成并发布七文件快照，不是只检查命令；只有既定范围全部真实通过后执行。
+
 执行前阅读以下既有前提；静态工具检查从仓库根目录运行。
 
 ```powershell

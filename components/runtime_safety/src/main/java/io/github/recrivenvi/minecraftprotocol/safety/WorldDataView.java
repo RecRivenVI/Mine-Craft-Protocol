@@ -225,6 +225,9 @@ public final class WorldDataView {
         result.addProperty("userSemanticActionStep", "world.action");
         result.addProperty("userMaxHoldMs", WorldActionRequest.MAX_HOLD_MILLIS);
         result.addProperty("userPlacement", "named_face_bounded_uv_native_pick");
+        result.addProperty("userUseSurface", "optional_named_face_bounded_uv_native_pick");
+        result.addProperty("userEntityPoint", "optional_normalized_native_pick_box");
+        result.addProperty("userSemanticPosition", "live_eye_position_and_fresh_native_pick");
         result.addProperty(
                 "userMiningCompletion", "bounded_synchronous_native_destroy_including_fluid");
         result.addProperty("userHeldHands", "main_hand_or_off_hand_empty_main");

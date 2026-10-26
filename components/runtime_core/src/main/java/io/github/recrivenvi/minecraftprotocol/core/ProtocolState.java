@@ -44,6 +44,7 @@ public final class ProtocolState implements AutoCloseable {
             Set.of("read", "ui", "input", "capture", "event", "diagnostics", "control", "command");
 
     private final Set<String> scopes;
+    private final boolean inputSurfaceAvailable;
     private final String principalId;
     private final Function<String, CompletableFuture<JsonObject>> inputCleanup;
     private volatile CompletableFuture<JsonObject> inputCleanupBarrier =
@@ -87,6 +88,16 @@ public final class ProtocolState implements AutoCloseable {
             String principalId,
             Function<String, CompletableFuture<JsonObject>> inputCleanup,
             Consumer<AgentControlSession.Snapshot> controlListener) {
+        this(scopes, principalId, inputCleanup, controlListener, true);
+    }
+
+    ProtocolState(
+            Set<String> scopes,
+            String principalId,
+            Function<String, CompletableFuture<JsonObject>> inputCleanup,
+            Consumer<AgentControlSession.Snapshot> controlListener,
+            boolean inputSurfaceAvailable) {
+        this.inputSurfaceAvailable = inputSurfaceAvailable;
         this.scopes = Set.copyOf(scopes);
         this.principalId = principalId;
         this.inputCleanup = inputCleanup;
@@ -198,12 +209,16 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     static Set<String> configuredScopes() {
+        return configuredScopes(false);
+    }
+
+    static Set<String> configuredScopes(boolean headless) {
         String configured = System.getProperty("minecraft.protocol.scopes");
         if (configured == null || configured.isBlank()) {
             configured = System.getenv("MCP_RUNTIME_SCOPES");
         }
         if (configured == null || configured.isBlank()) {
-            return DEFAULT_SCOPES;
+            return headless ? Set.of("read", "event", "control", "diagnostics") : DEFAULT_SCOPES;
         }
         Set<String> scopes = new LinkedHashSet<>();
         for (String value : configured.split(",")) {
@@ -367,6 +382,9 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     synchronized JsonObject acquireLease(long requestedTtlMillis) {
+        if (!inputSurfaceAvailable)
+            throw new ProtocolException(
+                    "TAKEOVER_NOT_APPLICABLE", 409, "No player input surface on dedicated Runtime");
         long now = System.currentTimeMillis();
         this.expireLeaseIfNeeded(now);
         this.requireModeChangeReady();
@@ -743,6 +761,7 @@ public final class ProtocolState implements AutoCloseable {
                 && this.inputCleanupBarrier.isDone()
                 && !this.inputCleanupBarrier.isCompletedExceptionally()) {
             for (AgentControlSession.Mode mode : AgentControlSession.Mode.values()) {
+                if (mode == AgentControlSession.Mode.TAKEOVER && !inputSurfaceAvailable) continue;
                 if (mode == AgentControlSession.Mode.TAKEOVER && this.lease != null) continue;
                 JsonObject transition = new JsonObject();
                 transition.addProperty("mode", mode.name());
@@ -1188,6 +1207,10 @@ public final class ProtocolState implements AutoCloseable {
         json.addProperty("evidence", "diagnostic");
         json.addProperty("gameplayEvidence", false);
         return json;
+    }
+
+    synchronized void noteFixtureMutation(String requestId) {
+        for (GameplayActWindow window : this.gameplayActs.values()) window.noteFixture(requestId);
     }
 
     JsonObject startGameplayAct() {
@@ -1777,6 +1800,8 @@ public final class ProtocolState implements AutoCloseable {
         private final long startedAtMillis;
         private volatile long latestDebugSequence;
         private volatile String latestDebugOperationId = "";
+        private volatile int fixtureMutationCount;
+        private volatile String latestFixtureOperationId = "";
 
         private GameplayActWindow(String id, long debugSequenceAtStart, long startedAtMillis) {
             this.id = id;
@@ -1790,8 +1815,15 @@ public final class ProtocolState implements AutoCloseable {
             this.latestDebugOperationId = operationId;
         }
 
+        private void noteFixture(String requestId) {
+            this.fixtureMutationCount++;
+            this.latestFixtureOperationId = requestId;
+        }
+
         private JsonObject snapshot(boolean terminal) {
-            boolean contaminated = this.latestDebugSequence > this.debugSequenceAtStart;
+            boolean contaminated =
+                    this.latestDebugSequence > this.debugSequenceAtStart
+                            || this.fixtureMutationCount > 0;
             JsonObject json = new JsonObject();
             json.addProperty("type", "debug.evidence.gameplay_act");
             json.addProperty("actId", this.id);
@@ -1803,6 +1835,8 @@ public final class ProtocolState implements AutoCloseable {
                     "debugMutationCount",
                     Math.max(0L, this.latestDebugSequence - this.debugSequenceAtStart));
             json.addProperty("debugOperationDuringAct", this.latestDebugOperationId);
+            json.addProperty("fixtureMutationCount", this.fixtureMutationCount);
+            json.addProperty("fixtureOperationDuringAct", this.latestFixtureOperationId);
             json.addProperty("contaminated", contaminated);
             json.addProperty(
                     "gameplayEvidence", contaminated ? "invalid_for_acceptance" : "gameplay");

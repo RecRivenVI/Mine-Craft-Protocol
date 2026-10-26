@@ -8,6 +8,12 @@
 
 ## 运行
 
+`respawn`定向复验诊断准备死亡、真实重生按钮及退出。旧代次请求取消只保留未确认/不可重放回执，另以死亡页、USER生命状态、新代次、同Lease和输入清零证明前置；不将取消当作命令成功。结果写入`<target>-respawn.json`，不能替代`all`。
+
+```powershell
+pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi -Scenario respawn
+```
+
 ```powershell
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-neoforge -DebugUi
 pwsh -File components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1 -Target 26.3-fabric -DebugUi -KeepClient

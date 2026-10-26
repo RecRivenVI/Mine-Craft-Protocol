@@ -247,6 +247,12 @@ final class DebugBatchEngine implements AutoCloseable {
             JsonObject itemResult = itemResult(itemIndex, "failed", item, itemStarted);
             if (cause instanceof ProtocolState.ProtocolException protocolException) {
                 itemResult.addProperty("error", protocolException.code());
+                JsonObject partial = PartialDebugMutation.result(cause);
+                if (partial != null) {
+                    itemResult.add("result", partial);
+                    itemResult.addProperty("mutationMayHaveApplied", true);
+                    mutationObserver.accept(partial.deepCopy());
+                }
                 JsonObject stale =
                         ResourceVersionVerifier.staleMetadata(
                                 protocolException.code(), protocolException.details());
@@ -354,6 +360,17 @@ final class DebugBatchEngine implements AutoCloseable {
                 String sessionEpoch,
                 String domain,
                 String namespace) {
+            return authorizeAll(
+                    currentWorldFingerprint,
+                    sessionEpoch,
+                    java.util.Collections.singletonMap(domain, namespace));
+        }
+
+        @Override
+        public Permit authorizeAll(
+                String currentWorldFingerprint,
+                String sessionEpoch,
+                java.util.Map<String, String> domains) {
             long stamp = this.cancellationBarrier.readLock();
             boolean accepted = false;
             try {
@@ -365,12 +382,19 @@ final class DebugBatchEngine implements AutoCloseable {
                             "DEADLINE_EXCEEDED",
                             408,
                             "Debug batch deadline exceeded before mutation");
-                protocolState.requireDebugAuthorization(
-                        this.metadata.debugArmId(),
-                        currentWorldFingerprint,
-                        sessionEpoch,
-                        domain,
-                        namespace);
+                if (domains.isEmpty())
+                    throw new ProtocolState.ProtocolException(
+                            "DEBUG_SCOPE_DENIED", 403, "No mutation namespace authorized");
+                synchronized (protocolState) {
+                    domains.forEach(
+                            (domain, namespace) ->
+                                    protocolState.requireDebugAuthorization(
+                                            this.metadata.debugArmId(),
+                                            currentWorldFingerprint,
+                                            sessionEpoch,
+                                            domain,
+                                            namespace));
+                }
                 AgentControlSession.Guard modeGuard = this.modeWork.enter();
                 accepted = true;
                 return () -> {

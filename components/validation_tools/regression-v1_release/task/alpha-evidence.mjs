@@ -10,6 +10,7 @@ import {performanceAttackComparison} from '../../conformance-world_read/task/con
 import {validateFunctionalAttack} from '../../conformance-world_read/task/continuous-functional-actions.mjs';
 import {DEPENDENCY_PROFILE,verifyDependencyPublication,readDependencyBaseline,dependencyPerformance,historicalTrialBaseline} from './dependency-proof.mjs';
 import {candidateSource} from './alpha-candidate.mjs';
+import {E_WORLD_PROFILE,verifyEWorldPublication} from './e-world-proof.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
 import {verifyNativeConfirmationProof} from '../../conformance-vanilla_ui/task/ui-native-confirmation-actions.mjs';
 import {verifyRecoveryUiProof} from '../../conformance-vanilla_ui/task/ui-recovery-actions.mjs';
@@ -596,7 +597,9 @@ export function collaborationIncrementProof(result,target,scenario){
   const chat=sample('server_completion_preserves_chat');server(chat.result);assert(Array.isArray(chat.before)&&chat.before.length>0);assert.deepEqual(chat.after,chat.before);assert(chat.before.some(row=>typeof row.value==='string'&&row.value.length>0));assert(chat.before.every(row=>typeof row.focused==='boolean'));
   const mcp=sample('mcp_server_completion');assert.equal(mcp.target,target);server(mcp.result);help(mcp.result);
  }else if(scenario==='resource-version'){
-  const contract=find('resource_inspection_contract').contract;assert.equal(contract.operations.length,6);assert.equal(contract.grantsMutationPermission,false);
+  const contract=find('resource_inspection_contract').contract;assert.equal(contract.grantsMutationPermission,false);
+  for(const operation of ['player.health.set','player.attribute.set','entity.no_gravity.set','world.block.set','block_entity.custom_name.set','menu.slot.set'])
+    assert(contract.operations.some(value=>value.operation===operation),'Existing inspected operation missing: '+operation);
   const error=find('resource_version_actual_mcp').error;assert.equal(error.code,'STALE_RESOURCE_REVISION');assert.equal(error.reinspectRequired,true);assert.equal(error.retrySafe,false);
   assert(Number.isSafeInteger(error.actualRevision));assert.notEqual(error.actualRevision,error.expectedRevision);find('safe_stale_reinspect');
   const arrange=find('resource_version_fixture_arrange');assert.equal(arrange.nativePauseObserved,true);assert.equal(arrange.ownerThreadReadsWhilePaused,true);
@@ -827,7 +830,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   assert.equal(process.argv[2],'--verify-continuous-publication');assert.equal(process.argv[4],'--repository-root');assert.equal(process.argv.length,6);
   const repo=resolve(process.argv[5]),manifest=resolve(process.argv[3]);assert.equal(relative(repo,manifest).replaceAll('\\','/'),'build/alpha-manifest.json');
   const report=JSON.parse(await readFile(manifest,'utf8'));
-  const proof=report.publicationProfile===E_UI_PROFILE?await verifyEUiPublication(report,repo):report.publicationProfile===DEPENDENCY_PROFILE?await verifyDependencyPublication(report,repo):await verifyContinuousPublication(report,repo);
+  const proof=report.publicationProfile===E_WORLD_PROFILE?await verifyEWorldPublication(report,repo):report.publicationProfile===E_UI_PROFILE?await verifyEUiPublication(report,repo):report.publicationProfile===DEPENDENCY_PROFILE?await verifyDependencyPublication(report,repo):await verifyContinuousPublication(report,repo);
   console.log('Trial publication gate: PASS; profile '+report.publicationProfile+'; performance '+proof.performanceAcceptance.status+'; full Goal acceptance not claimed');
  }catch(error){console.error('Continuous-gameplay alpha refused: '+error.message);process.exitCode=1;}
 }

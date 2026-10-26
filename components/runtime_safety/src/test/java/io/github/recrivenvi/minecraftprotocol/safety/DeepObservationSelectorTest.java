@@ -7,6 +7,21 @@ import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 
 class DeepObservationSelectorTest {
+    @Test
+    void continuationIsExplicitAndCannotBeCoerced() {
+        assertNull(DeepObservationSelector.blockEntityCursor(new JsonObject()));
+        assertEquals(
+                "opaque",
+                DeepObservationSelector.blockEntityCursor(
+                        request("{\"blockEntityCursor\":\"opaque\"}")));
+        for (String invalid : new String[] {"null", "0", "[]", "{}", "true", "\"\"", "\" \""})
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () ->
+                            DeepObservationSelector.blockEntityCursor(
+                                    request("{\"blockEntityCursor\":" + invalid + "}")));
+    }
+
     private static JsonObject request(String selector) {
         return JsonParser.parseString("{\"selector\":" + selector + "}").getAsJsonObject();
     }

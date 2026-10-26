@@ -51,6 +51,19 @@ test('instance directory discovery pins both the safe initial handshake and ever
   } finally { await runtime.close(); }
 });
 
+test('explicit deployment role cannot silently connect a server Companion to a client', async () => {
+  const runtime = await fixture();
+  try {
+    assert.throws(() => loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}), /deployment role/);
+    Object.assign(runtime.record, {deploymentRole:'DEDICATED_SERVER'}); runtime.write();
+    assert.equal(loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}).discovery?.deploymentRole,'DEDICATED_SERVER');
+    assert.throws(() => loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'CLIENT'}), /deployment role/);
+    const mismatch = new RuntimeClient(loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}));
+    await assert.rejects(mismatch.json('POST','/v0/server/console/commands',{command:'list'}), {code:'COMPANION_RUNTIME_INSTANCE_MISMATCH'});
+    assert.deepEqual(runtime.calls,['GET /v0/session'],'Actual handshake role mismatch dispatches no command');
+  } finally { await runtime.close(); }
+});
+
 test('wrong identity and legacy responses fail the handshake before any mutation', async () => {
   const runtime = await fixture();
   try {

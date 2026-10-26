@@ -1,0 +1,3834 @@
+{
+  "status": "PASS",
+  "target": "26.3-neoforge",
+  "runtime": "development_native",
+  "runtimePort": 10586,
+  "launchAttestation": {
+    "port": 10586,
+    "target": "26.3-neoforge",
+    "processId": 38428,
+    "batchId": "",
+    "titleReadyAt": "2026-10-19T23:08:44.1361556Z",
+    "maximumHeapBytes": 4294967296
+  },
+  "phase": "test",
+  "scenario": "ui-completion",
+  "testedAt": "2026-10-19T23:09:57.936Z",
+  "testedCommit": "398f72ea9ed0efadbdfdf3a3cf61e7e55b5888e1",
+  "dirty": true,
+  "screens": [
+    "net.minecraft.client.gui.screens.TitleScreen",
+    "net.minecraft.client.gui.screens.worldselection.SelectWorldScreen",
+    "net.minecraft.client.gui.screens.GenericMessageScreen",
+    "net.minecraft.client.gui.screens.LevelLoadingScreen",
+    "",
+    "net.minecraft.client.gui.screens.inventory.InventoryScreen",
+    "net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen",
+    "net.minecraft.client.gui.screens.ChatScreen",
+    "net.minecraft.client.gui.screens.PauseScreen"
+  ],
+  "coverage": [
+    {
+      "family": "title",
+      "encountered": [
+        "TitleScreen",
+        "GenericMessageScreen",
+        "LevelLoadingScreen"
+      ],
+      "notEncountered": [
+        "AccessibilityOnboardingScreen",
+        "DemoIntroScreen",
+        "AlertScreen",
+        "PopupScreen",
+        "GenericDirtMessageScreen",
+        "GenericWaitingScreen",
+        "ErrorScreen",
+        "ProgressScreen",
+        "OutOfMemoryScreen",
+        "ReceivingLevelScreen"
+      ]
+    },
+    {
+      "family": "world_selection",
+      "encountered": [
+        "SelectWorldScreen"
+      ],
+      "notEncountered": []
+    },
+    {
+      "family": "world_creation",
+      "encountered": [],
+      "notEncountered": [
+        "CreateWorldScreen",
+        "CreateFlatWorldScreen",
+        "PresetFlatWorldScreen",
+        "CreateBuffetWorldScreen",
+        "EditGameRulesScreen",
+        "WorldCreationGameRulesScreen",
+        "ExperimentsScreen",
+        "ConfirmExperimentalFeaturesScreen",
+        "ConfirmExperimentalFeaturesScreen$DetailsScreen"
+      ],
+      "limitation": "Creation draft, flat preset selection and rules/data-pack navigation do not prove every generator or rule combination."
+    },
+    {
+      "family": "world_management",
+      "encountered": [],
+      "notEncountered": [
+        "EditWorldScreen",
+        "WorldBackupConfirmScreen",
+        "BackupConfirmScreen",
+        "ConfirmScreen",
+        "DatapackLoadFailureScreen",
+        "RecoverWorldDataScreen",
+        "OptimizeWorldScreen",
+        "FileFixerProgressScreen",
+        "FileFixerAbortedScreen",
+        "SymlinkWarningScreen"
+      ],
+      "limitation": "Conversion and recovery are destructive flows and need dedicated disposable fixtures."
+    },
+    {
+      "family": "options",
+      "encountered": [],
+      "notEncountered": [
+        "OptionsScreen",
+        "OptionsSubScreen",
+        "SoundOptionsScreen",
+        "VideoSettingsScreen",
+        "ControlsScreen",
+        "KeyBindsScreen",
+        "MouseSettingsScreen",
+        "AccessibilityOptionsScreen",
+        "ChatOptionsScreen",
+        "SkinCustomizationScreen",
+        "LanguageSelectScreen",
+        "OnlineOptionsScreen",
+        "TelemetryInfoScreen",
+        "FontOptionsScreen",
+        "DebugOptionsScreen",
+        "GameModeSwitcherScreen",
+        "InWorldGameRulesScreen",
+        "WorldOptionsScreen",
+        "UnsupportedGraphicsWarningScreen"
+      ]
+    },
+    {
+      "family": "packs",
+      "encountered": [],
+      "notEncountered": [
+        "PackSelectionScreen"
+      ]
+    },
+    {
+      "family": "multiplayer",
+      "encountered": [],
+      "notEncountered": [
+        "JoinMultiplayerScreen",
+        "DirectJoinServerScreen",
+        "EditServerScreen",
+        "ManageServerScreen",
+        "ConnectScreen",
+        "DisconnectedScreen",
+        "SafetyScreen",
+        "ShareToLanScreen",
+        "ServerLinksScreen",
+        "CodeOfConductScreen",
+        "RestrictionsScreen",
+        "ServerReconfigScreen"
+      ],
+      "limitation": "Saved-list management uses disposable loopback entries; server join, authentication and third-party services are not validated."
+    },
+    {
+      "family": "pause_and_stats",
+      "encountered": [
+        "PauseScreen"
+      ],
+      "notEncountered": [
+        "PauseScreen$FeedbackSubScreen",
+        "StatsScreen",
+        "SocialInteractionsScreen"
+      ]
+    },
+    {
+      "family": "inventory_and_recipe",
+      "encountered": [
+        "InventoryScreen",
+        "CreativeModeInventoryScreen"
+      ],
+      "notEncountered": [
+        "CraftingScreen"
+      ]
+    },
+    {
+      "family": "containers",
+      "encountered": [],
+      "notEncountered": [
+        "ContainerScreen",
+        "FurnaceScreen",
+        "BlastFurnaceScreen",
+        "SmokerScreen",
+        "AnvilScreen",
+        "BrewingStandScreen",
+        "HopperScreen",
+        "DispenserScreen",
+        "ShulkerBoxScreen",
+        "GrindstoneScreen",
+        "SmithingScreen",
+        "CartographyTableScreen",
+        "HorseInventoryScreen",
+        "NautilusInventoryScreen",
+        "CrafterScreen"
+      ],
+      "limitation": "Horse chest layouts are separate actual fixtures. Crafter does not exist on 1.20.1; other containers do not inherit its toggle semantics."
+    },
+    {
+      "family": "rendered_menus",
+      "encountered": [],
+      "notEncountered": [
+        "StonecutterScreen",
+        "LoomScreen",
+        "EnchantmentScreen",
+        "MerchantScreen",
+        "BeaconScreen"
+      ]
+    },
+    {
+      "family": "books_and_signs",
+      "encountered": [],
+      "notEncountered": [
+        "BookEditScreen",
+        "BookSignScreen",
+        "BookViewScreen",
+        "LecternScreen",
+        "SignEditScreen",
+        "HangingSignEditScreen"
+      ],
+      "limitation": "BookSignScreen is separate only on newer Targets; the older editor signs in place. Front-side sign editing does not prove every side, waxed state or material."
+    },
+    {
+      "family": "commands",
+      "encountered": [
+        "ChatScreen"
+      ],
+      "notEncountered": [
+        "InBedChatScreen",
+        "CommandBlockEditScreen",
+        "MinecartCommandBlockEditScreen",
+        "StructureBlockEditScreen",
+        "JigsawBlockEditScreen",
+        "TestBlockEditScreen",
+        "TestInstanceBlockEditScreen"
+      ]
+    },
+    {
+      "family": "advancements",
+      "encountered": [],
+      "notEncountered": [
+        "AdvancementsScreen"
+      ]
+    },
+    {
+      "family": "death_and_credits",
+      "encountered": [],
+      "notEncountered": [
+        "DeathScreen",
+        "DeathScreen$TitleConfirmScreen",
+        "WinScreen",
+        "CreditsAndAttributionScreen",
+        "ConfirmLinkScreen",
+        "PrivacyConfirmLinkScreen",
+        "NoticeWithLinkScreen"
+      ],
+      "limitation": "External URL opening is not tested; native confirmation is preserved."
+    },
+    {
+      "family": "account_gated",
+      "encountered": [],
+      "notEncountered": [
+        "RealmsMainScreen",
+        "FriendsScreen",
+        "FriendsListConfirmScreen",
+        "FriendsOverlayScreen",
+        "Realms32bitWarningScreen",
+        "ReportingScreen",
+        "ReportPlayerScreen",
+        "ChatReportScreen",
+        "ChatSelectionScreen",
+        "NameReportScreen",
+        "ReportReasonSelectionScreen",
+        "SkinReportScreen",
+        "AbstractReportScreen$DiscardReportWarningScreen",
+        "ChatReportScreen$DiscardReportWarningScreen",
+        "DialogScreen",
+        "DialogScreen$WarningScreen",
+        "DialogListDialogScreen",
+        "MultiButtonDialogScreen",
+        "ServerLinksDialogScreen",
+        "SimpleDialogScreen",
+        "WaitingForResponseScreen"
+      ],
+      "limitation": "Account/service flows need actual authorization; server-authored dialogs remain pending local UI fixtures, not external-service PASS."
+    }
+  ],
+  "checks": [
+    {
+      "name": "title: Native graph and bounded node metadata",
+      "status": "PASS",
+      "milliseconds": 34
+    },
+    {
+      "name": "world fixture: GUI entry and deterministic Arrange",
+      "status": "PASS",
+      "milliseconds": 15547
+    },
+    {
+      "name": "UI completion: declared right and Shift clicks execute actual slot transfers",
+      "status": "PASS",
+      "milliseconds": 7929
+    },
+    {
+      "name": "UI completion: HUD ready and Native MCP page failure explanation preserve read-only authority",
+      "status": "PASS",
+      "milliseconds": 1776
+    },
+    {
+      "name": "typed suggestions DEBUG: native index, guards, stale rejection and owned restoration",
+      "status": "PASS",
+      "milliseconds": 8968
+    },
+    {
+      "name": "typed suggestions DEBUG: actual MCP and web keep selection private and restore it",
+      "status": "PASS",
+      "milliseconds": 4052
+    },
+    {
+      "name": "typed suggestions DEBUG: closed native owner rejects its old selection token",
+      "status": "PASS",
+      "milliseconds": 1756
+    },
+    {
+      "name": "HUD: completed native selected-name and durability pixel draw",
+      "status": "PASS",
+      "milliseconds": 3381
+    },
+    {
+      "name": "HUD: native item-use cooldown draw and natural expiry",
+      "status": "PASS",
+      "milliseconds": 1905
+    },
+    {
+      "name": "HUD: native experience pixel bar and displayed level",
+      "status": "PASS",
+      "milliseconds": 3503
+    },
+    {
+      "name": "HUD: native mounted jump bar uses actual held-key progress",
+      "status": "PASS",
+      "milliseconds": 7655
+    },
+    {
+      "name": "HUD: native locator bar and marker omit waypoint identity",
+      "status": "PASS",
+      "milliseconds": 3499
+    },
+    {
+      "name": "pause: Return to Game is routed, then Save & Quit",
+      "status": "PASS",
+      "milliseconds": 6033
+    }
+  ],
+  "worldSelectionSamples": [],
+  "sourceHashes": {
+    "build.gradle.kts": "e3dd1773ff4849d90f35eb95e387efc5f73af4e8e8527a42c49c98e7ab4deab3",
+    "components/companion/dist/config.d.ts": "dc809452a95159ae88888bb5ff94f8a4c91009ff750f7e9d063baa7a2d461858",
+    "components/companion/dist/config.js": "a87f09c4ffe31912d94b6018593e76b2b54a03e6c8fdb3aa335bbba686d3b2a9",
+    "components/companion/dist/discovery.d.ts": "a57e90ad04fc6dc543d8a059102fc97309df0e673887d2d51bf5ec577832b9d8",
+    "components/companion/dist/discovery.js": "56800465262215492ef47574b3c258841b333e0d33a62cffe08b21b082d1706a",
+    "components/companion/dist/index.d.ts": "43e818adf60173644896298637f47b01d5819b17eda46eaa32d0c7d64724d012",
+    "components/companion/dist/index.js": "afae605a751f48179436ab6f1c8c1a8627cc3f73c971aabd8b49b36e7cf1ec47",
+    "components/companion/dist/live-conformance.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/live-conformance.js": "84cb5d156197b071dc1ff2dab38744ca1631d1f69b4f4164755d65252c13d3a8",
+    "components/companion/dist/mode-policy.d.ts": "b1e822c5b6fcf295833fb0c276ab9c452f87c0f0ab220dbe0836495716d31a0c",
+    "components/companion/dist/mode-policy.js": "0da68ee4cbb31c7a5388bfc709985c5c23a4c4b415049a35fe3b82566780e298",
+    "components/companion/dist/result.d.ts": "3fc6af5f206497e4ab9f0b45d9eba473b22398c8aa3c10cdb8a679854d249030",
+    "components/companion/dist/result.js": "984ef6634f3a01b9d9fe5c24c93c9f24277d882aeb19c1961e2d430c39a45c0e",
+    "components/companion/dist/runtime-client.d.ts": "a0124cb71d665cff177d818c974cca4319779beea53c9c1e5ccc8a62d5fc636a",
+    "components/companion/dist/runtime-client.js": "7916015610ed0371d153997d98106bce98a531c7e51909c3a2ba140a713bff22",
+    "components/companion/dist/server.d.ts": "95dccd1d34ba8c14c9f34133a36911820380556ede91af2d50070c894856cd76",
+    "components/companion/dist/server.js": "de852795f4f3d0ada6f7fd97309666117490f940e1c79432284bca12bfd2a0a8",
+    "components/companion/dist/session-state.d.ts": "09fc8ed51152e400e6e3192daf62160a32c0d4cf6ecd46f9d187f9c6d16e6131",
+    "components/companion/dist/session-state.js": "88cf06e8dc3cee2e98b32a49c1c11e21985bce2d4c519ef309e90b190f2d6d6e",
+    "components/companion/dist/test/authorization-feedback.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/authorization-feedback.test.js": "c6b6722c3875c2599c08846c964321ff962d92e8a9555f4da7cb89da0d214d65",
+    "components/companion/dist/test/companion.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/companion.test.js": "55ec9250c09f1e0b4aeedddd0e32c03ac83e3216661439610812d8db905694e3",
+    "components/companion/dist/test/discovery.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/discovery.test.js": "d4eb25b3d5537712bb2426d06a1ca825fe406512d94a9b06270beaf4a26603fa",
+    "components/companion/dist/test/streaming.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/streaming.test.js": "d400ce171288bad519c894bd1d9951704738be7c855cd85391c3e58675a9388f",
+    "components/companion/dist/test/ui-console.test.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/test/ui-console.test.js": "c1de1703a7b736cffa265328119b81ff0910e5bd310830fea068388745f1171e",
+    "components/companion/dist/types.d.ts": "a9e6554013ca0906b339730a4f7e39c9079388d22cc9c373d95b6ec09deb09ba",
+    "components/companion/dist/types.js": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2",
+    "components/companion/dist/ui-console-http.d.ts": "c83c9d0687b37f29004fb2dd450653fb3cd472ced31d2cb40633a90e6445cc10",
+    "components/companion/dist/ui-console-http.js": "a39f8b072f34a1d936b82d43018c165205b3946cd625b9530f5e7631f61ba9f2",
+    "components/companion/dist/ui-console-main.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+    "components/companion/dist/ui-console-main.js": "7f18bf013cfd82e8b4b6e1bfe07dbabf03d3898ca9c8f65695b2b1d76d0ba80e",
+    "components/companion/dist/ui-console.d.ts": "7d4fa4a55d2a148944f3f380360037b70ea86a1e7b9dd1acc785c9727947c50e",
+    "components/companion/dist/ui-console.js": "30fe243d9977f631d237ba8420d4b0f7a5745c305ab45dd8f031d6f8f7ff9a2a",
+    "components/companion/package-lock.json": "40efc507a89559491f5448f18c5dfa4396797a32229e22542190d4ee720062a5",
+    "components/companion/package.json": "7ae5c275c5a5d82202386a8265bd4e8bf5a0ed73954a12694230fc578bb46cb5",
+    "components/companion/src/config.ts": "7e676ad972b14568a115f8099da343e4d10ca81b378a862fede4de6438ed0423",
+    "components/companion/src/discovery.ts": "ee4f97e93db76d0b754290e22a7d27206406bbcd6dfb37907d2e9fa88a99584b",
+    "components/companion/src/index.ts": "25a659fcef08f9a2905f08346aec93e688c4af38a854e4f485c25f68bb87b875",
+    "components/companion/src/live-conformance.ts": "d39f00ae0ae7cb8193b7ad5154eab5a522fe8d669f0e60b8f4771697203fb851",
+    "components/companion/src/mode-policy.ts": "cca5e5c270eda25c8486b9df95b1f8bd49e1156b1dd58ac982e7bf402844e475",
+    "components/companion/src/result.ts": "fc3ce366b5630476da9cf8168b0eeef64b00318a1caa1c38d93be577dae1a860",
+    "components/companion/src/runtime-client.ts": "21cedc8001eebcc2ede77bf772ddd486f52b7457875540c7e56374fed090f98f",
+    "components/companion/src/server.ts": "8f40bd80ec6a3574c848af1504422ba3babe33b89db7feee1481748e642772f3",
+    "components/companion/src/session-state.ts": "8a099018b92f44609100e420e0336b32555fdca3a7e3844decc90f4e5b074202",
+    "components/companion/src/test/authorization-feedback.test.ts": "e24ff226ae9fd29adcc37d0802878c4fc20f3d4e79a414b016f8f40c532b9c66",
+    "components/companion/src/test/companion.test.ts": "845ffc83ef4fbc8c9b50565b059c1357d3eee0a06060576709ee0f4becf70d16",
+    "components/companion/src/test/discovery.test.ts": "4191e02958a841ded60573a6448190d4d19b6e5bc78ce53cb6a11dd25ece8e82",
+    "components/companion/src/test/streaming.test.ts": "beed8196af1650b17f64c97c09c9145b125a3da770b6f098f2e720689c18913a",
+    "components/companion/src/test/ui-console.test.ts": "ae491008611a1248eab94c55aa415d76bb3b619b9b9652c1abec4968f274cafa",
+    "components/companion/src/types.ts": "bc1ccc5a0f0688b5e2ac1d5a4cbcd79905fc293875e4ae5d981257c11742a7fd",
+    "components/companion/src/ui-console-http.ts": "8d1ff756240607712e29087e001bce2228bebae64d799f651408feb15e44c76d",
+    "components/companion/src/ui-console-main.ts": "da838fb80ce8560ed6ea8e9522bf63b1b76fa7d1f6de5b53fc8c59830621aca8",
+    "components/companion/src/ui-console.ts": "96eb3929cf5554ee62a111a1f0a52dc209edd7d826682373498023c7de53d6be",
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "17c25eff9314d3b8a74b344b10cf484c13c46b0fcde80a7e4f1426ff818c9aff",
+    "components/runtime_core/build.gradle.kts": "0d4bb124dc60a48101a7e7594b5fb27b23815ccb2ed28f9003e2923e70d9f10b",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java": "8b93b73c7b596ac38f50356b82f39d7d3881f4c93b3635ff0572b0f6c5d68709",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/BoundedTaskExecutor.java": "2b322b169ec24eb0998b9df00557ab1a5e154bac5df51cc5dd7f0ee97070db5e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java": "3f485f9777f868061d5bcacee0cb33c99c55409f35b1edc1e804b00e1c872bbf",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBatchEngine.java": "e6044a18969862299beba363e0edf2a1124f4855a81140126ad0f436f1a124fc",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBlockStateRequest.java": "b73c16487e9280ca48a5da150ab5f8f495d2b469adab517ace81cc801eb8a010",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugMutationAuthorization.java": "7cdbcbcc49f6c651f6120e792f5cb087e6a94deb3da9406d4b09106ad5d4eba8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DeepObservationRequestContext.java": "b9056bf469e21c1035985d669dfa20bd1eabb3b2c532156349e274cb29d21148",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/EventHub.java": "08c8fccc693e7a3aed11c5b64af7b0108f999f4a9379294ad176b4de705d3136",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/InputDispatchContext.java": "92aec26204c4a1e516e2a076cafb200fdf62d7da81789296682d3eea663fce24",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationEngine.java": "34b692a71a72a2c06c0dd1358fa20ae01655725aa6786cac004bfbfe3762ffd2",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationLifecycleTracker.java": "500f4bf27674b2f247b31acc0ce33bd27b474af94600d27d7f4a1aa220d3c039",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationRevisionTracker.java": "15f78ac63048f950954dbf774ac9a1c10d0463eaa9edc374a78e114604afe1c4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/Phase9AExperimentalService.java": "47d32e1a03ed423c0466ae832316ad1bf4b0d36d06253195c768f318a2b810d6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PipelineTiming.java": "ca41a479f62b187c4024eda6d8941909f12a7be7b4a200e9e16b80d448a1e9bb",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandBatch.java": "b9e327db8346a28ab7a5c895c9ba8e361a6414ef05682c28af81dc74d7ebbb48",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandChat.java": "f94ad503ed3c5fddffa1865396f123bb981a36860fd4f629dd1c0df94cb9ce6f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandDiscovery.java": "8567e6e4f666cabaa2deca8ed4ae5df6dc782556d6c74dd2c1b27c591b1ac47f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandEvidence.java": "ab1b42d062390b2938e3cd6e0593ec4fe7923cf5fb061a0c3450bc33ebc0d35f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandFeedback.java": "000d42e6ea5b40779f3adcd735531203953aa9c642415888a757c092a7bcebf1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandGate.java": "22a69e13370e35603223728402299d6a22844efd696e0a77e2676718ecc19585",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPayloads.java": "99bbf94a588d92d7655c869951019a2c36cf8c9dfb50d7ab546231a5140b9d78",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPolicy.java": "7b56e194bb312d314dd111ff0f609891bd724c919f9128d794bd7ecf4a9aaa8a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandSuggestionRequests.java": "b1f3b1c576201dfc803fb45df19b9dbb03c0ca42cf3757ce234dfe15a5289258",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerStateStream.java": "fabcf2db9d40ff2a154e224bdb3c8e8ceb05506bc4c77acacfc534730bce5608",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "6e66f902758bc6413284b40cd23c8cd7b56b0f0da9a147cfb49028afe06ab6a9",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "1158e60c30f57debbc22dfc42e67a5ff5e38f43de8c1f13db53149ea48d42e33",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java": "7e886130a206a23a6c242dfc0814f7b46fcce8045cd48bad897c99b8911f1e7f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderExecutionEngine.java": "cf14acb0c354b903b206156853314d8cc9fc89f4a2fe5aba94461c603854611a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngine.java": "ddae1215ff8dc5b102b384b351e0f876b8f6230c277246cdb30415eecd395a7e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ResourceVersionVerifier.java": "6c671064473dc451481ad5d7ac1e2bed2256517c788784edf01dd076466dd0fa",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeEndpoint.java": "f73514a77aecf707da969549fd652cfaa06c236dd048998ce95f917c157e8f62",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeToken.java": "87598ed50accec7629249302972f3b92247738c755b8e2d70c5fe66596df199d",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/SecurityGate.java": "911ab27edab6ff08164dda38673965206dcf7b8f39531700e9c9940f2614c6e1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiItemDataGuard.java": "db8a49fb43f522d027ef5a24bcaed77a46064053cb3727b01b72041f50651308",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiMutationSupport.java": "cdada41ac599e38bf8b93f15bc831c870f5c203b8dc551c9d6c180673fe10a06",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiTitleLifecycleSource.java": "2bc4e028ecc8d87ea42aba5c62d58d28c5688a0b395ec21e98dba00403db308a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiToastResetSource.java": "f0ec63df67dff88e40a2fabd5c5bbb0cee2106ddd3043727ed503bb3bcc58f53",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldDebugInspection.java": "b3d7da34f26323a6ff39c00d472e6e1e0cc8d793ee170bb69711995314e98cc4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldHitEvidence.java": "b0058630308963835cc3c35dfa55ead65f488f9865d68e6bdd1f38b7f2681103",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldReadEngine.java": "672e4fb5194de94d4c75cbf93c0ca5c08c88762f1de0b9d184a73c95d63f55a8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java": "7675847c52c068d787a7bdab2b99c59aeff97f8bf8c663ff3a4a7a75e63bde90",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProviders.java": "3b9bc9c8f314970c187c5d9b71634c0c9d6b41a8221e262ce4f83058a6177ff8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java": "b9105c25b687da5d33353ec4057d8ebcda6da1f49bcc8a40b276a7e85715e5c4",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java": "e76f8dcef0ba6e8b1b4b3fc4e3274d2667f8e006bd1311c2f592d51651579e20",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ReadProvider.java": "9512ba382990bad409b26e3d9c226831c6a21bbc0e085f86836d57f14beae18c",
+    "components/runtime_safety/build.gradle.kts": "6154492f1b6552c73c990dc917c231208e79698faada6a12826bcb36d7c5b567",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentControlSession.java": "e286ea0f3135e9fa0fc034702a54a0c971d13f375d5e99bdb570aea94efe71af",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentInputContext.java": "fb56e12f62420052f104ad6fc172b7533818079b45de9990911dd0bcd07a8cde",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentPointer.java": "10526dcb9a7e5f1e33cc8bf855600e8c730961a5fb0dcc25b8f5bfc9c0f9a66b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentTaskLifecycle.java": "6bdfd5ec9e3545169a5be4806bb922bf3948ca54ba7d31f3788f92cbcb11b199",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/CancellableWork.java": "cadae999ef0a8a9bd59fb446d936b5c26ba926a6949c868ddd35969a62e279fa",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java": "ecbeeb070c71e167d0b5766afe203733d8004b6696b700b0a49c4e3007bed0b3",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/DeepObservationSelector.java": "9856680e32ec7409aea48b5a74b68b4852ce755dd7e31015ba1903e338dceba5",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ExclusiveInputPolicy.java": "a596eeb81f740050f2206d33cd30252d6cc76110771955cb56fa49e5b91145f1",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/FrameCaptureQueue.java": "83ace4bd92643157b46ecce844c2d12b589fc2885b47f451cfb51348a7b3489f",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InputContextEpoch.java": "114567300fad3550a6bdc944ba1b510a7fa5c9335e185a9da3cf308037eeb455",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InputSequenceQueue.java": "6812f3cc5b3ce4519eb9705fb0a0dac93d57d767306cb9b46f202f90b968b2a1",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/InteractionPacing.java": "3381649c1898677973ed3d2a191d2cc88f40deedcf04166b1388c342d0cf8441",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/NativeInputOwnership.java": "e5123a19af0e5430a2394af6c23a081e05558a4368e2a21a765e19c1f68abc0b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java": "07ae72797cf0474fbbd0818e91587098bedee4bb91eb6c4f164f1de23b29671b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiDataView.java": "0cd81c2c45a87d990568b23fe5b222d675bdc85ca05746c6b39bbf6190380fd0",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiHudIcons.java": "3fe985f897560c38316e9d8a5b13e58c22c5fbc9308069978d6a597b8c47869b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiInteractionIdentities.java": "3c239402e4222abcea49e5c0a5f4a4f04356c0ed2bf1ee5501cee5a1ea53b82b",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedIcons.java": "3d3dd4d8c978e52140f497e69352e1f45133289dfdad453c96ce3cba648b45ca",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedText.java": "e801f3999e6528ea2cdff49622e3a7f073a5c110dd8569aafe3a406a4cfda673",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WindowDecoration.java": "da9e6f2339f04f69f65b8b6f22b05d03cf9060257935719f855913d675ff7313",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldActionRequest.java": "deeee01c938a8767e435ba4f3fe94ba08fcf5bda4b864263e8e06a1ae0b408f6",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldAim.java": "bba66367bc6204b7c50ff93583f22c018d39da9ab7dc8cdd9a480c11457a15a6",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldBlockChanges.java": "60ea667f0df45d42e78ace19e628f20b25e2a7d55dd836549454efa5e8741e34",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldBreakTrace.java": "da4c906ec2c45258dbe41c4e5ddba2d82fafb28fac1078d598f529ba01670449",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldClientModel.java": "0edd9d3ff4532c87ee6fe8a30b63d09556f135d09efd6d79fe24dd3865c2cd40",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldDataView.java": "536b2593515bd4924d5e33550c336dd080f4b20ce840c63c09c25737db551ead",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldPlacementReceipt.java": "36f4c2f6b60875ff73abc2c97a3bb10b3548aade6fe9b9825a4187863d531edc",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldPresentation.java": "9366f313a0023c44119dd46dca0f694fb65e70123a512a9a687871f209e958c4",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldRegionPages.java": "2cd0242ef3ed63b9c6c7b62313e770d0b451878211b831d0437e042727969938",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldTargetRegistry.java": "a1ad5c5428c1546b9858e923432ad34dd48f5586dc0bd291104dce3fba252183",
+    "components/validation_tools/InstanceProfiles.ps1": "091d108f77facd0311189f93fa8327a2c69d7bf8d4c08aa8551e4c1907b62f5c",
+    "components/validation_tools/Prepare-InstanceProfile.ps1": "31224a3b5f7598a1574de8123f81f62fda91b26800d226a6a4b01b21e73531a6",
+    "components/validation_tools/RuntimeConnection.ps1": "d95077fd228dbedbeab42927bc96e3e6159fa6fe9a8449b3af8154a016e9ec71",
+    "components/validation_tools/conformance-vanilla_ui/task/Invoke-VanillaUiSuite.ps1": "47c76353db847a7115f66c58607176476f48f999315b89564eaec26ef15bc565",
+    "components/validation_tools/conformance-vanilla_ui/task/editor-consumers.mjs": "1aa9835ff90e23dc5536ad864a55db22c5229eca62e34cc795cd36cd4720dff4",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-camera-actions.mjs": "c18c7b60d0b2aaef4e04bddf3a6b739bb642b381d2cc27384b01b8de91c67b27",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-completion-actions.mjs": "f208f0e9963afb0f9f8c48fc41507a2b639033db2da164e0babbf46574035cdd",
+    "components/validation_tools/conformance-vanilla_ui/task/hud-vital-actions.mjs": "cd93bec2d00fdec9ecf2a41c7166f669a1d929e50bc2d57ca274b99b3180c8e2",
+    "components/validation_tools/conformance-vanilla_ui/task/special-menu-actions.mjs": "66ec995a461ff5dece8b625a774bd90606c7abd9035f6a9bc9605b3cb89659c1",
+    "components/validation_tools/conformance-vanilla_ui/task/spectator-consumers.mjs": "cadf7dc430639db777143bc4968928dfbac83ada4de08de2881b10b7aeee6947",
+    "components/validation_tools/conformance-vanilla_ui/task/suggestion-debug-actions.mjs": "23ea4945803031172197cce19b394166fbbf667325e9c93d74c40f9871ba33e1",
+    "components/validation_tools/conformance-vanilla_ui/task/toast-consumers.mjs": "4ff78ed22073bbf02843167d97173df6688066dfe9672bb74d8ece5cd27c9fa3",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-correctness-actions.mjs": "1f4ee5e58313dd2d17147eff432845ef9db50eac9d01f1484083177e866840fb",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-debug-advancement-actions.mjs": "add063f1931bce20a179e419714056ef1f2794c5eda0602241310d6621291777",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-debug-capability-audit.mjs": "97f165c0591baedea315966fe625e4d2ae958c85c6828c6779e0947ed6ce98b9",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-local-owner-actions.mjs": "5451ab837c5d68f1be97da30f17cbb6fcc1fb62c6ca88515f24552af1f5c6d33",
+    "components/validation_tools/conformance-vanilla_ui/task/ui-navigation-completion-actions.mjs": "f4cb306d0270946b9a10f4cdcd398134ce257dad23c3749fb2bc8699c3c5b5cb",
+    "components/validation_tools/conformance-vanilla_ui/task/vanilla-ui.init.gradle": "cf298f5aad5f507fd0a889f1c8663f46bd491800d97e250f6a779f9f0c9de0c5",
+    "components/validation_tools/conformance-vanilla_ui/task/visibility-toast-actions.mjs": "d85da3867c0402d195acd293697a99104e30ba65daaa3c6ea6b79f16a657f23d",
+    "components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs": "2166d314b524381b8748b5a86c706a1b0630fea27071af2f8093c48be151934f",
+    "components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs": "372b23ed7352eeb14eecf6874461ff6bd50f079d85caf7b1b109ba3ae8073541",
+    "components/validation_tools/instance-profiles.gradle": "d36cd6d5e3667a3440cd9fe71396369f9ec83c052a106b0f2b2847bcf1a09b5a",
+    "components/validation_tools/runtime-connection.mjs": "531c8cdb8a448df6aafc8d878df4d66a34ed800a568f4288637c97560d948f62",
+    "components/validation_tools/vanilla-command-fixtures.mjs": "2fde4ed1bfecc84e2d98fd90266af6e0ea95681e8914022fb62df23826c9636c",
+    "components\\validation_tools\\conformance-vanilla_ui\\task\\run-vanilla-ui.mjs": "30fe8add7280e6259a76480079acb8dfba94dab5c906ebe74079183619b07bb2",
+    "gradle.properties": "fa9512a931759ac9801cd5ae8d7da2dd5608f4594eaf1d559edfc3b172bf4df4",
+    "gradle/libs.versions.toml": "ad049aff46cecf5ccca49249b2c1b9ca3fb14af83c27ab37b2a6a1aaf7e7bb99",
+    "settings.gradle.kts": "d6c3ac3c26aaebae98d57804c9257275f0d1e95349272fb4554774ef5e593672",
+    "validations/conformance-vanilla_ui/task/screens.json": "710875e42197f95e819056d78dea3d079402c1ac7be5deb5c2f3b3b210aa8145",
+    "validations/conformance-vanilla_ui/validation.toml": "d97aeb41e88d75893dc9c9aade837ed5a109d8ec10af59ea88e2d12ad7996a28",
+    "versions/26.3-neoforge/build.gradle.kts": "8f17f21e750d2f5fd5088f59b27e42db59df67b41b140cccb90196bdac90b814",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "daae044e9efbb1c2ceba3f0536d05f3af96c2767558afe64310557c603e2aeff",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java": "dfd9a3de92fdc0f3c50b0aadbdfd318e97610f79213a26f43132ff3018736fdd",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "a677f06b81d0c0eb02ebf61ba308cab67ac594c1be3041c97f6555c138695cd6",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTabUiAccessor.java": "9b11509a692ba26bb21ee3c3055cf501222b00a142a94204deeb4189fcd18ef1",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementToastUiAccessor.java": "18904c2ab107584891a74502612d9f1984a78da91d06e6fa3baefafe15f44403",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementsUiAccessor.java": "6d0b51c7f7aba2f3bea9dfe62811de76ccb6c43c5cb647d7f55876477654cdca",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BaseContainerBlockEntityAccessor.java": "3a777701950655b045ff4792f6cae496763bf7f1116c219b4035dfffbcf7519f",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconButtonUiAccessor.java": "092d96abe23b07a020f7de3de200e0bf327dbb4074333a0d07a60a0eb8db8dce",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconCancelUiMarker.java": "baee20efdcef49f4cfb1b686440844b3c673c898956b569d520a957c5d247e3d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconConfirmUiMarker.java": "f64df6ede2292cda1faeabe6c90faf0e42121d5844db13d84d926374160a9bea",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BeaconPowerUiAccessor.java": "f09cbe5f92c7c34936acdaa64756bce2417b88b3993197ee72d8706584e0bfe6",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookUiAccessor.java": "6d9cc0494f672f8e0e6ebc6896e0c739c20d55373d9df62b335520e668d80f7c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BookViewUiAccessor.java": "51d64e3cfd5edeff59d76a63986d052e2a4439f00f496423668e23954a144839",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/BossOverlayUiAccessor.java": "7aad80e94c54c130004629f309294c44131f2650cf443d8cb0bd8473d25d8923",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ChatUiAccessor.java": "332e05c2c6d97a4f4c818633ef1052e1a67198e6a9369aa56f9c3040fe19a9d4",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandBlockInputAccessor.java": "aedc378fc29c62bd5b1b507a01f53a4c9f25cb75219eec2a949d975546c3798b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandCompletionConnectionMixin.java": "a893734f2ebbfbe207ca07c35563e55e386a23e735d4f07fed38e393119ae8ef",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandCompletionProviderAccessor.java": "2a2899d08bcf81432290c4e77a7a9b0a5c7817ca2d62e09d34a61525e95f5c10",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandFeedbackChatAccessor.java": "51195c1afbb74f9219b0f52af267bc15539b1338ab7e9749ee8b21eaf606ac69",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CommandSuggestionsUiAccessor.java": "0bdd36617c74596570b4363191f7194a4197401700d601172665963abfc2edd4",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ConnectionMixin.java": "552daa4c87d375f627571c37e15b42385fed35820761b08ac5b4724229a9ec3a",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ContextualBarPresentationMixin.java": "b4954d044ca164cb12a83ff0fc8b1b71ba38031164231f7128b2b9822a47f899",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/CreativeUiAccessor.java": "9e6afe30bce246c9feb8e48d779e3c8de2337c7d588f4d284aef97d24d9de0e8",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DistanceManagerAccessor.java": "d32221250229928bc499d124f9c2a2519b2bfc05def2b8dfe3e7b130ad7bdf3c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/EffectIconRenderMixin.java": "1d583b8cf2a0ca0372bf90fc9ed4deba1651475fdad747338a768eb0cfb54d0c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/FriendToastPresentationMixin.java": "6425df3ba7e36923f283de7c93a83fee56d84b0bff2cda8b3efb028a005c7bfe",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameModeSlotUiAccessor.java": "35c335c502712be5275ff3cd40b9ed3c3fc215577adcb5bcbf10ed520d28581e",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameModeSwitcherUiAccessor.java": "840f9728e0f43e4fa1aa906446f66a86eabebecccde9f2e611f4b1dbbffead73",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererAccessor.java": "ca2ba3fb48ee9180c5c650f19b1f1d690010db308e8e2215230cb34211b4f3d9",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GameRendererMixin.java": "00528b74e904d2d94a454434ed11b21f81c728345c8574059d68e5abd33eff66",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/GuiRenderStateMixin.java": "07a5ad982f0acbd0686db5ca63d35fe8776beb43cad7fbf8b7222b2f4d85995b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudCameraPresentationMixin.java": "89cff623c6f976ad2694c9f29d73b277196b7106332b4fe3b0cfd796365bff20",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudPresentationMixin.java": "af6942513bb679695f11ffb4f58c8d97efd773a635b160663a746ddb2ba2a7ae",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudTitleLifecycleMixin.java": "c5c4ac478ecafbbf16a57c67dde25de2c8505bfc11bd8fc69c7b55104241ed46",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudUiAccessor.java": "8f3d2e5b43585a6e2f536f1b7697c2ada46e40b30b38db2bf47a485a8b092020",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudVitalIconsMixin.java": "2dab657c4d724ead2452e454c37b86eaea4ab40a024dea8ea259d299fb730c94",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/InputConstantsMixin.java": "e7ecef69373445bb21b007ffae8defe2815201a538f3ee4ccf84bbf462aabbfb",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ItemDecorationPresentationMixin.java": "be1d1e68ea17c444b7fc62b4059db0a38b142ad90da76d37f5f2d13c659745c9",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyBindingUiAccessor.java": "0bb7d7e37c90437bb9a96898209b74e4adf940ec3571fbbc31344945069369b7",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerInvoker.java": "1f4b167e6342fe18875fdbda1f06b7bc5e50156522965c9281c0156082409566",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/KeyboardHandlerMixin.java": "f2d58b5da4552787a6837b57c3e5b070a5e3b71fc0e3be1116c583729c0882e6",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LevelTicksAccessor.java": "1d832bbfb463f8781c365d39223ff63e16720e0c493def2bac36814c2d192455",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LocalPlayerMixin.java": "363ecb53dffe55c522ef660ab940021c71ef6c14c39c9e8d6f59de6d645c40de",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LocatorBarPresentationMixin.java": "c552aa642c8b38e4f8e272a57ef9b42df85191da492a6f995f6b277fc2a20c8d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/LoomUiAccessor.java": "68f6ea8f564ce0c3bebd32e86c3008907fa7fe8a8200b071bd1ef2aed582de70",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantTradeUiAccessor.java": "1b1359091b44bd34b99f80418aea3eb7ddc339372728a6e8b7edb79d15b8758a",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MerchantUiAccessor.java": "8fcfd08d03dc2ec4f4cfa6a73267ab8351d181f7d52953be521de5ae5a092d10",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java": "59fc5ac155782853771a4419fd505317d3e4da97a1171801867c1fa1a43f45c1",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerAccessor.java": "ddcc6231d6494f086577fc5e957e0d765782aa517fc79a8023a468b09ad1658c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerInvoker.java": "fd2a6cdbfd196bb47e9409d9273f36ea0ba3febecbc7049ef44767681f20492c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MouseHandlerMixin.java": "3e9f4cdb04677dd65fa0ff757f0a7b0dccc7c2101b0030c4c1fe0a8de4e6f079",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MultiPlayerGameModeMixin.java": "110a3a36b6e14042b18864db5d888547cfe53e1ef507344120a96f4f58d7d72e",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/NowPlayingToastPresentationMixin.java": "50f4a49751bf5bc785cbf28b71e78b1fc88b979d6c8d68d93a372149debfba1b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PackEntryUiAccessor.java": "b2afef9377fe0302918d254729b4154a76af514c7193b503de319c6cd4afae3a",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PlayerCommandMixin.java": "77e55bfd2013fd3b9fca60e972e57bdf4808e299f2039e5240b9fe3f55b2f8a2",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/PlayerListUiAccessor.java": "0c48aa8907248524a9e3e52f6cbd66e40702d738aced3ff3a92d3e7ac4106d29",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeOverlayUiAccessor.java": "adaef34bcd43eda7511c6168db9b8af5568a9b1f30e29d31e291871cc59ccb78",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipePageAccessor.java": "3d769a4710ad409525f33e2e57a83bc43472801d247cd1def02a6119537bfc12",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/RecipeUiAccessor.java": "d594603973815e8ab8be0026c635763cc31e709b48d36a25d3e4be304218b346",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SDLEventHandlerMixin.java": "70c594e19cf8d83dbd8b1e0c9a94876d99a109165e86ea3597d859528b07a6af",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ScrollAreaUiAccessor.java": "1883ecb700bae4d6082d430d54f167a791bab31d94d57a16cb0485af2607f898",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ServerGamePacketListenerImplMixin.java": "bed1e4b7c6dbe52d3c1ac173ccde95c0ec1ac82196fd338a50e2794cf35c7b55",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SignUiAccessor.java": "6b791caa671b13e720e1faed8a15f653466e13ced371b1e6dd0d9d76fc016cfa",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SliderValueAccessor.java": "1c15d759cbb61c6cb3049bc8f0cf4f1bfccbceb43f378cab0d187294c29d80fc",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SpectatorGuiUiAccessor.java": "e89939bfae97f587840267b0262819c6ba5b6aa7466ff1d5de115a85663fda92",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SpectatorMenuUiAccessor.java": "12f1b42aad4ac91c8f663a05e3170518258977ca4e29296448f60a8e65b415df",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/StonecutterUiAccessor.java": "55ed7d308010a945b6264453ab0ead0bfd274afe284e32196d06f7c0491fb83d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/StringWidgetUiAccessor.java": "40288c21215e2dce8daa46ce8abb3f660fa737e6c99e1e3a2109b039a78a8d5f",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SuggestionListUiAccessor.java": "0c286868945fbb277a8ded6e0b9d959e02cb15e34f3c8858cb311878dce62704",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SystemToastResetMixin.java": "619467f06d9e9ccae5ba3fc5654bff930af9c2e6a6e028fcc1d9c855568536e9",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/SystemToastUiAccessor.java": "fb6ca46ac6fd2c426784196305580f34b93480518e050aa82a4522dd9e2342d2",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TextFieldUiAccessor.java": "d138a8ae3435175e004586aa91af4a680d932015ef199507f276dcf89ac0ce3c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastInstanceUiAccessor.java": "4ae252c74b0980691a1ac73cb79cb10c388eab55217b146a1b9a10c7631b370f",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastManagerUiAccessor.java": "801acc0ccc47eedcade3861b9a6b8a879f55e05de25fd8f891c8fa9458cfc46a",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastRenderTextMixin.java": "8d64d463eb1d6da15ad59583084ff3239655181d99e85d90a5b759fd1f00a898",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/ToastResidentPresentationMixin.java": "12fbf78e1da62d93a51276bf21ee1adfb122ab3e27ef72198bf5ee02b92da836",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TooltipUiAccessor.java": "f979c1da37686af3d1abf11a0393d2cd0fdb7338fdc5f764e08ad39393cb2050",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/TutorialToastUiAccessor.java": "301184864f4f3f94f2f839dba20d7a7a49564e7bec41e1f1319a5a9ab7a6e89c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WidgetTooltipUiAccessor.java": "0d3796838b4617d612d4fe31fd32c48674e902f8f3059777241fd9b865d75103",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java": "7c2de24001deccf6dfdd23d9fc28f863fb3aec40bfefc3246bf06306f5e022ea",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldChunkRevisionMixin.java": "264f120e0094a073964f9110accf654e52debe1264a97e233f88d36da55359fa",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldGestureMixin.java": "3be2ffb70bd08a460d27b012690eed0a8f515929695f0fc79de052f74ef6dc93",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldOutlineMixin.java": "66271b77153e6121d7bea5d484a8c0386c5b168f1378f69ff15f507ddd5de945",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WorldPickInvoker.java": "f3a3c241700eae92ff508dd4cadcbda060c19998fd5134886a3f3b6e8502b99f",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "d8c8864302b681e7209e550196679ccd8dc0551b62192be20fc1923fb8d96b0b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "8eaa90d5777020803ac95890c34769622ccb36408ae4386ab0f0dd42e93983d8",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "c89afa39e0b959f1183fcb742e6fea937d057e94f61b4a22a7906b21354b66b6",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "5d718bd9ea52c2bb331dbdae925130973c466e7ead595574354128c020e05013",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandPayloads.java": "583418609021d5c53adbf2b1bc24524d80dbeff65a23db9f9e9022045e2a5470",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandSuggestions.java": "9a81d1b805a7ecfe3a58a35b3b50c1e9d1301300d8c959ddb9b14ddbed7c7e03",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeInputMapping.java": "96794b84dc8cbcedceee4bf2dbfb16e5e3d1639ac731be4c479fe2f158735d22",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativePlayerCommands.java": "26ee500c3b4803d2ddef358d9d8f025b8e0a856afac60d598e22cac8fd386c34",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "035b620166a2f2969183d8d3bdcb73028719c6371fe6064d468ea15da2f95b59",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "89def56aa99ad7e5eddd02e561569cb123dc034930869eca962ef74ac5bf3966",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "823a7e86db57d6a604424179c2af094c9c761cfa691e2c3602a98a352c719a99",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "40519b16683f1d9ca73e4be92245f771a6cf605cabade0fe3a8e504b6d02f9d0",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RichTextUiRegions.java": "4cba4a13023d87525c4186c3e230c5c0bb9e5344778fc0741992cc5c44adb61d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SpectatorUiTree.java": "5eb64da21e6e4c4e00d0be845bdff61334ce0d5d4e182d0bb3838a04b847b0e0",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiAdvancementPanDebug.java": "1438ef403ebc5cb5a9355b50a10ac4b9b7f79918f8368d3afd31f8afc4b963e2",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiDebugEngine.java": "d2e6a6346c885c32883d15bf5cebecf7ff51534f2d1d870c545cc8aecdb19224",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiPresentationDebug.java": "4436dbc9c067fd58fffdde9220b2fd5fa52bc37ef0efde380c79a1a9bb0ee197",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiPresentationSnapshot.java": "7d5811f77bcee005ede066cf27afb0405bf5ada6e9466b92760ce77df738d0b5",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiSpectatorSelectionDebug.java": "4c2ca1438a869f7ffe5569ae13513ee1fd2bd4257c908f4a5026433a819c5449",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiSuggestionDebug.java": "2a9b9def8f2cb7b077498afd82a55e500e3f9fba1467208d4cb4a0cebb645600",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiTitleLifecycleDebug.java": "ee80c1c982a4f2405aa65eae3b6333c522e9986ba519e5adeae4a6150e0c9f3f",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastDebug.java": "de107296396917f57c952be6fad2848b23f3c0ede2bbdb4011203f67a9b8aec2",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastDraw.java": "302418727a8a38079bd105a0768cfce21d04335f5c6482b13b6ae7675ac69b77",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/UiToastText.java": "c09ca96cb3c71177ff8929572caac2991c779a34f116ffc8f28dc7675f18b62c",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaInteractionRegions.java": "87bdf5e138487097102006c206b11496d67d3e41f07fd1ec4810d3141fa52a7d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/VanillaUiTree.java": "1a409c215e42f73fd991e64ce9e36f61eddf3835e47e72a13c74504665eb8838",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldClientSnapshot.java": "e3c00a67e2a4468f375bcd703ef4ac8809154e3a985d05303f18b19239805035",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldPresentationSnapshot.java": "c7e1bf9d9eab69597703049a69ca52a65e74479ccc2f9d76c662ccb1ad46fdb7",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldRegionSnapshot.java": "5bfd3a979417d2cefb097ff9e4bed593003a98a3f5d0a18153473036235ad48e",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldTargeting.java": "b4adfa6d1095c2795f9ccf13f5ce0b341726d710f8f54561dbd1d549cc641f0f",
+    "versions/26.3-neoforge/src/main/resources/META-INF/accesstransformer.cfg": "5ccad9292bbdb89190dc4f10e939e5727dda875b4efe674b902f27846ba846d1",
+    "versions/26.3-neoforge/src/main/resources/META-INF/neoforge.mods.toml": "d53a552e294024e63abbc65019459e7b94b22ee7a83f987ba2d558999fcd6c7b",
+    "versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "7848327ca74146ce7d54421ba5bb3bc013fc0cdec11eba9679dc751211bc819d",
+    "versions/26.3-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ChunkPacketReplay.java": "f6e9e69762b7cfff7e413dc64e80764436b93ca7c8988c8052a5f1058784286f",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/CommandCollaborationFixture.java": "19b7f535c2f978f3ea708d44b08b149f268189aa562b6be1f2b152f1c3f1d18f",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/CommandConfigurationProbe.java": "6fe0a4559716a9be5c2918c95336231167ddfa1e70e440c0c94c20009086a96b",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ShowcaseToastFixture.java": "6b80426fdf196a933333a254b0b505bfc29398c61fd03d0ea67688dab461131d",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/UiNavigationFixtureScreen.java": "3df6c4f9dd8c4f06328c3d06d8b9fd4c5f2f751e9b811f63e68c4e0efd98b91c",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/ValidationProbe.java": "87f395265ae5f080c0a20dc238320a216b80685bd9a6db666e354590ca08b2e3",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/BackgroundWindowProbeMixin.java": "1df2350d025370e55cc70f893a2240cf260aef86300147f0dd40bd0dbe0c2672",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/ChunkPacketReplayMixin.java": "de9501e11b0df3b24224cc4ceb0f7a0633fb564dd63f955584d858e3667dafd8",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandCollaborationPermissionProbeMixin.java": "b710501097854ee11a05318563e68dc029312205b588db5cf79541bb2863c429",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandCollaborationProbeMixin.java": "9762acb20b84c9678c0bf5421c81aa85ae1d14aa52a90514ed5d219552dbd88f",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandConfigurationProbeMixin.java": "5a07769df460fe0334b3ce2bb124d03cbbe988519de7db0b24e6048a65394de9",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CommandsReplayMixin.java": "761a4a5ff7151cb60b4631ac61f340fe8bbf0598baed80ede2a95fbcaf3c5205",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/CustomActionProbeMixin.java": "d2a45ffadb138d00e1f178e6d66f37c47f0c02031c54b649e55ea72b5b277a42",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/ShowcaseToastProbeMixin.java": "0dd3bce573d6d6295d30f8c2e54a45a7b499e874b09560e206487a2f342fa1c2",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiNavigationDialogProbeAccessor.java": "92d47f774c7094467aed55976a26520497b004b4ed03b54d924404d0635e56f6",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiNavigationProbeMixin.java": "eb907896206d1a17b918b15b18ce4038e40b3989404cdff0fde09c830ab0b245",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiPresentationContentProbeMixin.java": "dec032794b70ce09d17853da01738f84042ed27c8f2f01baa004bd08d5b7e190",
+    "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiToastContentProbeMixin.java": "dd8e787809e85d26f19939ce4b1864cd21b7ae3ab30f3df8054b625d5586753c",
+    "versions/26.3-neoforge/src/probe/resources/META-INF/neoforge.mods.toml": "deb538c806b3a02078b8ad4d09c7607e5011eca2110eb33ffd248140c05de111",
+    "versions/26.3-neoforge/src/probe/resources/minecraft_protocol_probe.validation.mixins.json": "6dab912bb820b9696f1c5bb4a30ec6550b4d6c48215ef96a487add61ec439c78",
+    "versions/26.3-neoforge/target.properties": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2"
+  },
+  "sourceChangedDuringRun": false,
+  "fixtureSha256": "6319d8b3c43f8b834182f3dcf78f3437315efad0c4d6144852a5f7c05377cb71",
+  "noMultimodal": true,
+  "screenshotAssertions": 0,
+  "persistentWriteCalls": 0,
+  "notExecuted": [
+    "external server authentication",
+    "Realms/account-gated UI",
+    "world conversion/repair",
+    "all settings combinations",
+    "all recipe combinations",
+    "all world presets/rules/data-pack combinations",
+    "player-list header/footer, multiplayer sorting and 80-player boundary",
+    "spectator multiplayer category paging and teleport execution",
+    "spectator mouse/scancode/Loader-modified hotbar bindings",
+    "third-party UI"
+  ],
+  "toastSamples": [],
+  "editorSamples": [
+    {
+      "transport": "mcp_stdio_debug",
+      "editor": "debug_suggestion_selection",
+      "operation": "ui.list.selection.set",
+      "status": "PASS",
+      "inputDelta": 0,
+      "playerLeaseAcquired": false,
+      "typedRecovery": true,
+      "userOperationGetWaitAssertRejected": true,
+      "diagnosticCancelRedacted": true,
+      "rejections": [
+        "DEBUG_ARM_REQUIRED",
+        "DEBUG_NOT_ARMED",
+        "VALUE_PRECONDITION_FAILED",
+        "STALE_RESOURCE_REVISION",
+        "OPERATION_NOT_FOUND"
+      ]
+    },
+    {
+      "transport": "web_user_isolation",
+      "editor": "debug_suggestion_selection",
+      "status": "PASS",
+      "operateUserSnapshotAvailable": true,
+      "debugMetadataLeaked": false,
+      "automaticLeaseAcquired": false
+    }
+  ],
+  "uiDebugSamples": [
+    {
+      "case": "typed_node_applicability",
+      "nodes": [
+        {
+          "nodeId": "ui:47:158",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen$1",
+          "operations": [
+            "ui.widget.active.set",
+            "ui.widget.visible.set",
+            "ui.text.set"
+          ],
+          "blocked": {}
+        },
+        {
+          "nodeId": "ui:47:region:163:chat.suggestions",
+          "nativeClass": "net.minecraft.client.gui.components.CommandSuggestions$SuggestionsList",
+          "controlKey": "chat.suggestions",
+          "operations": [
+            "ui.list.selection.set"
+          ],
+          "blocked": {}
+        },
+        {
+          "nodeId": "ui:47:region:163:chat.suggestion.0",
+          "nativeClass": "net.minecraft.client.gui.components.CommandSuggestions$SuggestionsList",
+          "controlKey": "chat.suggestion.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:163:chat.suggestion.1",
+          "nativeClass": "net.minecraft.client.gui.components.CommandSuggestions$SuggestionsList",
+          "controlKey": "chat.suggestion.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.0:ebde43c4d4e7a993a6536ab483409b5a1326f1fb487500eecc10077b034a74f8",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.1:3a37fe454e8587bf637928596c4c25d8476deb6e89c2010eeda089625c1f2e80",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.2:bc0d3b9aaaff1cef175ea3225adb591d6c7c8a341cc8436be5c45c5c6739888b",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.3:49c35cbb989d92c18f406957e2af4099ff0c3f0693c01d9e9d8c1e94d6ff6ffc",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.4:90ff7c9c15c19b0186597fad0c66990b6b74c91e8e256995ff9a11ae7d8f192e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.5:b54380a2beb29198474ff72270c17fdcecd397eab23fb5be020413c512e6ae9f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.6:90766bd1a25084894fe32ca65caf3388cbaf5d14051d274042b967ce5c8f833e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.7:b3708c6ad8de476f4ab1d761b3b0f41d37652cea616d7dac9436d07afe4d4a6a",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.8:bfd376c0b6babc2ddeeb21fa271ba881cdfa55e7fbb7616602bd9bc820a897ff",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.9:0d75d9900e188c85d0b6a5c342ad1a297bb2322eafcd850d50fef4f6bc1c591c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.9",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.10:64f70c44fdabbef7962ba797a7320dfa51215c0729c58126d77bd7d80db9858a",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.10",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.11:ded746c7df9ee29989bab91c5877c2a014f0a5305a6d27ad095b7018c16e267b",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.11",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.12:e11b8944a27bc152fe91852d16a94f089c5bb32f957a2afdc3f13ad557f55b20",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.12",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.13:677e21595bb1d0701aff771848b7e3cb8bf6c936e6463ea2147fd06cf7bce753",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.13",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.14:0498ca2bb5a3e4582eaadd76dee4e668e1fb1447bb39518600e7b4e7f8157ce3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.14",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.15:ee4b276cbb1b4a4f700a849244f974e5d7f3795058b965456c1499e3861ab280",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.15",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.16:1a0aef98fa45f42927534db9d5468ce5a1fcdcebcdee2975120b9dbd9136d431",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.16",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.17:2049df3ea1a3dd1a3d848e43c659c534364dfcbbe795acaf01b10574f4c3fd36",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.17",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.18:816500376fc1502ba9050b74494c56a4a24e3683715162825a15e7b502023341",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.18",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.19:8a5b98616de595d8c461efeca85b2970b35d0d85bf101c51045dc123b52048c8",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.19",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.20:bce9baf429af2d6f28c48ce748e19b21a487fc846e83c35583b6b115449750d2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.20",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.21:dd58e1f8ebf441a77d7b043110efa6688b291061ffa333518a6c3d13f4356854",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.21",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.22:1784cb0fc5e51d0a209d1b7df780722a9cf0e2304be391ee5242abef50948243",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.22",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.23:c8b15f47ce735153ea03d978f83466844d28f263c8560b6e85632e1c96dd9e2b",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.23",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.24:8b61753eee61e1ba1f6ee83ff4f595ec3a824a21a5f91e2cecbaeb465ee436e0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.24",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.25:71f243a14c951fc074c7825d63538e57b42b98ce21a9dfb9834c568503e9e9c7",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.25",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.26:2a64b913b8aa09abebb0f779619572b6b64743f6eb674ae89e4bb235c5bb2825",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.26",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.27:c3e7f9bd43557e4e1e2693fbce15abab319077c6d908bafcd152c1a7ab623bc2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.27",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.28:c41887fd9c617e6ede594c257b5238e65f795655ab2e4f39cdf6da547bb7320f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.28",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.29:6ae15d596229b9489f0395423a873067096d876976a10294c53ae470f39b0a40",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.29",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.30:b8e91e15d6dd32a58b0affbc43f72a955537be2aae4736ebedf826996f82e856",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.30",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.31:01d8fe40c336560f49d983ef09f0bb1edbb6b420888cc30d702efb1372269f76",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.31",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.32:353168724f64e0b107a300155e3e4af8c9cc49af33e75cfe7822fbfd8087a5af",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.32",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.33:30746fbb2bc5f6540486b9cbbc50f858cefddf0082ac31d24f435787af641322",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.33",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.34:ed7e4f498d87e10f80417bb6a6940631af626f4150d76bd1a974aeb2c07381d2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.34",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.35:91d71de8ccf019b93263c09f1d5ce7bf49d17f1c5b09401ee0a3167b327585c4",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.35",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.36:aa9d582fad139029e02c993d3c35a1580f515594cc9673fd18de9333a6062df5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.36",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.37:3a42d4700d44a04beb159ca9c93c2c3e6d58aa00a7f484b42881c0bc0f4ff48e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.37",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.38:e71883fe4b129d7f61ed1b47a1bc58b4ea2b98627fb8cfb872e0ca0afc10e5cb",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.38",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.39:3fd3ce0bd6184c1b951a3e59b9209c82ceba4f188bdb4dd68da0497b9056d239",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.39",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.40:a4b9314e5f7298fc3927814068d668a184b0d753a5af08caf999426410c37dda",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.40",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.41:76f3fce442ec41aca80bddff05c3f3bbd200b5eacdb0eb0c4f8f6a500ec7bd0c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.41",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.42:3334234e19ff8863d1b0e6d6c09abe99a66220e62bc3e954336f367a8192093c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.42",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.43:505114e588994a5e15975ec8d0f97db507b0ef1a32a0a5e980fd6a942a25682f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.43",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.44:15503895704a2b136409b367509d5e204edbde68b686535c60e062062cae1e1e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.44",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.45:4eba2518853658655597423cffc152b9addf320d16b166b4cf857222afa68d94",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.45",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.46:7e64a81e9bef5d564cf8474aab05dbee82dc27e6cad59031150a88628f4080a8",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.46",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.47:f90ab4da4ba4c380ea9d2833dda40ec6a49321262e0cb0f1fd6857617d9d7146",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.47",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.48:45ca8ac8bacfc10bce92de3629341a2d6abc51fdf9b3f5dc9e84f130a8abc475",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.48",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.49:896786f571ee3e1b239da3d3df40131accbbced9c734ee8e5489b8515c9ea736",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.49",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.50:124f2a6e035e1f0e6a1882bb32bcfa838ed71ea92c4c46821fb3ec4e0503295d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.50",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.51:7d7805d3c2c63f08d7b0edab21924fc7ba59c1b5a2ba9c322662d8714cf2de57",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.51",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.52:845faf8d55de7106af134c3c22d1b5644823630f5270f7ca6e46498c92343d21",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.52",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.53:a7dc3d2cf31a2bbc17417a4cf8d58e75bc017dda8ed50a508ca2c0683c7404af",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.53",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.54:ce29d7846813990b4bc3aa0e192fae71e59cc3b17ff0af87aee43ec3d3e5af8f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.54",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.55:b962541224420b0d618c20547b229284a82479c5af4274704bb765c12696e6d9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.55",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.56:e5aaa66aa4661ad291ca990bf6f3e144a34644d25e250745368b86b1e5920ab9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.56",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.57:247a0c204669bc9d9d2aac388b0725bbd6026745ced3c0cab63a3d9fd1de5fdc",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.57",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.58:e3c9d535b06d42a0eb5aff4c98bd9e2981ac443554474c329ace01933829860d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.58",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.59:500898d8da5cdad135504abe0a7677185f1548e46a646dbc07adefbb4cc88320",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.59",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.60:834a7a99a3a15ea35842195b8c4d406c017420a573471cbcde7e46ee9396549f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.60",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.61:4f6185deca2b7e204d71c0ac0c2cb66556ee416419f322c9a8eb31a6a330d6f0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.61",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.62:e0d7a6f88d6009c0062a0b20c8c787913cac5c75a0a4c672bdb9bb1d277842a9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.62",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.63:488d0bbb52e4835c5f56f21d0ef9b756c369578023aefa370e5609d86ddb714d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.63",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.64:e7fbdbd7cbe694284b93e70a9bdaf20844111bee5d693e0fe5cc8d0d03418597",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.64",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.65:60c24ebfb783c095e457570ed857197f8a81c0293387f3d3c3733624a8e5b852",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.65",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.66:9129015586c05788f008b457296749b168e628d0127dd72ad7e4c83853389bfe",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.66",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.67:c181b2f880e377d1ba37c418786b4e499881a9985c575be369ad30759ee5dde9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.67",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.68:089ed194bfefd5ff3f05efac48b29c503959aec7f11ebfa9ea3959adf4b22e77",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.68",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.69:c7490a37e4e5b4e318de603e7db0f63f1a75709601f75ba9394dfca7e6a7442f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.69",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.70:498015be383448afa2a0348db79bc5fec4abb808c5725f85e73c35f5a906342e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.70",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.71:81ff174ef26583d4d76c9a22077946029fe183e3bcf21607325ae59d9c0cb6bb",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.71",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.72:e7d20c118bbdb57ed0f0c7dc0bd2aa2ecf2c29c1d40454e978c351605b38a919",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.72",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.73:1e88c69719ad02d73542eb2c9eac562ac7cfcf75145cad4ac8c42c8249441e14",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.73",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.74:2f287f16617d687f26f856c4cac420004c0df9a4ebbd94ef5b7cd094aa1bdcde",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.74",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.75:2d1ed8c46a8e4021448df40047b80d0251fbfb2a7cd7779e5d8066a9e28107f3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.75",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.76:e4953c6930e6b5589a616e5335e3fa5a4e0e708af5cda8be17472fbabec2bd3f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.76",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.77:bcd39a11a840dca83a5251ac646999c0393e06878772b02a8dee895892837702",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.77",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.78:ad0ce234151f7544294825c33f5b43663d498b50fc2872b437d12b40fa8fd470",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.78",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.79:19258e40dc98bda170363908f4e5aa3f0f7b3f4986c5d11350d42acdacd4d0dc",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.79",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.80:9af0580f5c1a8344062c2ba6ed1d580e4d116ac56e5e671e42b558a7d716ff37",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.80",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.81:d80fbef1b502bafdb49dad55046813e64a77d7d2417670f7f260a326fb76e54d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.81",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.82:43ee9bf0b4c5d30fa0e10f9daa3d760842f134cdde8f917741195b8bbba7521f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.82",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.83:1d56204a1c611f43eaedb4e5cb5e275afec28bd91729af19f4f80bc7870e1e02",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.83",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.84:db31e7f42fa0a49425b04bdcb50e28d0e386ec4ea6fb3f761f97d8638d40657d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.84",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.85:e1980f108a24ba72483e109dbf17c34c118056402fedfea71c5b64a86129a9c4",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.85",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.86:5fe7922d357faf62bb8faecfcdc194ec804b008b7c2174edb3ef4bf820161fe5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.86",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.87:46d360e6860ad4f6d8490e1fcef0b9aa163041e7933915ecea71224cb2843bfe",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.87",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.88:765df1ba46de9930abff9d5f1a3105cd6e98b0f9e73a07764e9bd29b74b1846f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.88",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.89:b63e9aef44ae382ea91ea4715afd5b82db9fb41cc5e8b2eed057ca685fa24115",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.89",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.90:5ab5bc1bd110f09a03cf172ffbb770a4d73bd40f955e1527977359e4662c33d5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.90",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.91:cc8c2e6a02b3eb5f46a98447763673a3c1d48c6b2a82f75d07f724b61aac8dfe",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.91",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.92:9407d7e921c4e5d7a5119beca0575995bc9dddefb95e1c769252b37c97a84b72",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.92",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.93:81085c2abf1754a1fa5da50900f29637fcfb1517ab383f9836f548f35d0c18c3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.93",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.94:a2220944f3c646100340d58cc0376a00eb6119c87b13b09a1b7930610f1a15f6",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.94",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.95:2dba2cc97e66420654a6dc6c6aae03d7a2b9d0142764c6eaaae9c854516f6d93",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.95",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.96:0a11016bb03e242f7a8d18d12106d84ed84f9354cceddf8b13981f27e8bd5c25",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.96",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.97:2a70441352f8b02ca1e011991fa36cce6870e9ba5a3e5711c900aafc43639ff3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.97",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.98:b84c0ed168602565fe4b49c75179e9d400e5823430047aa964628549abf666b5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.98",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.99:16f413d39011637a3427224d3f3d3110e46840c44761552902b46c067bef947f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.99",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.100:0323666b5ca69dfea04660e20fea530247bdc9913d7517b84f17223275347a09",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.100",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.101:25ab25b8734dffa6b7464c4041cf53129bdd521b689e2d572159a5a41622b8b1",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.101",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.102:1a6431874303dfdb6f0390a8489a5510561b390d564a52123254c84d6bcedae3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.102",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.103:ffce76ee77f8b3b4826c54055677a56d58b29e9458f75db33e7df1d060cf76d8",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.103",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.104:d87c8f260ff42fb120b7a9e77853e25ac5004b663c59caa20ef17429789c3d40",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.104",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.105:e660bc2c3266216d796f129f6618c24efb0dc974dea16856615e8b807c30c2bd",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.105",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.106:bd8a2aaeb836fbf804e93742bb9f903f243a301825da9b9477d0878513312ac3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.106",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.107:be61407657cf4826092b58a26fb305f67d7f8c33d4763b68c26c1e31af2c00b5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.107",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.108:7cca422393308164903e3bcc541603d9088a2f475dea81153836c28427b5cc92",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.108",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.109:77909697d304f5994113cc540f6fe8b73ca6564183a1c50797e736ce2d69b948",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.109",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.110:281f4d0470e2a2e68211d4c0da94660a68270006e8d8b72a8bb664efcb101de4",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.110",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.111:7e65b28db98e7ce3995bb1e5fc828e1018575846134b9d5123bb8c156d930438",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.111",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.112:a5c3d203cfed445e13335b741df677e2803344c9b132c30744ee6e0e23ddd5a5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.112",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.113:42c5dfcd99ca3d064436fcada5f1c7d1e1af87d06f8b63d004817399dd1ce08e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.113",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.114:4d2b056f91619efb60ab2f9844794f99b312b758e91f299dc095e33d7317b2c2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.114",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.115:94923dc8357dffcb0b4d637a09efb97298acc7c2819be18b2199c50e8a9aa491",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.115",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.116:4439ea17fa89b09af0f8ae9459d6d6306c36e30e5ebc6e5dfc0b86824b48a364",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.116",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.117:5cf09db448a53cd89fc89f39985e5f29e45f37c92c9fafe5878e044098397dae",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.117",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.118:8ddd0136543722630829a111dcc9d24022ef1673bdae6bd538fc6355e71732e6",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.118",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.119:b46397fd2ec44b398de167b7345bf95bb19cf47f697eedcc7c689a344a522549",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.119",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.120:1ea6ea585f31e1caaebabc08e502758f57fed786b45260ead62f47fa9ce516a8",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.120",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.121:9847a85055621b69195ead93ffeceddafe1251674065e0ff822d6c67f4405caa",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.121",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.122:1bec55d4180bc78f489f158e9f5ffc642ab2173ef3febd27004deece1afd38e2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.122",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.123:010fb76406dd9971ec781dc6d3b468ed775d23211b30f494ef13a6e13a0eb1c7",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.123",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.124:cd13eb971b796c4705a902d286b3b7538695b39931e62a62b2db48787d943822",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.124",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.125:e570c8e6820a08cc3d980c4431608c1236be7870ca0f5a96a158e30a5c277a8f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.125",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.126:fb9785e9762794d94ef8cdb58b4211eb1275b39de74c517ac94b5d360b0cf2d9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.126",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.127:732a19837b7dc0113e72b5897d07acc61f4bdba09e4b68220a0f746e18f52a0c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.127",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.128:def74579185977e17d00dbf5ba5db34865f98bf412c092adbaa9577b49b347eb",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.128",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.129:99db48d590ce55716460611b0d3ccd0016c3cf8d40138c9b789632d74e12a88e",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.129",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.130:607ccd12ac059436ec6d3f2773b4c582e7407a8e4f75fc671cf81625f139d9ba",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.130",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.131:df2edb03d9803981fd77dc717a45c8f00e0a28f9d2962d79b4a4b8bd2d842879",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.131",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.132:d7017934d57c426ae17e1297f3e5d8db7a103519d26482edc7cb42fd47fb5eb9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.132",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.133:f104103301bf3ad862367d26dfd5ae028ab6b2c7cb06c261cc5c83c12f3db557",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.133",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.134:77e6cdfeb9117e427048e98ca0bc9daf1c5d2c7a08ef211f7f0d3e6505ee790c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.134",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.135:0584e9ae6e98394e4bdad606ca51edb2e30ef23254542123d6be921d5895599c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.135",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.136:7fe4bde625268599f3fc529a9e70a30a4fd7ca78dcb2eadc43e178eeeb4a586d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.136",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.137:886f1eb26d93e08f94d9729bdd66ead32e23f297310450f36a36d2da0a2473b5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.137",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.138:f10fc4f5f51313074ae23c99cefd175b009038552eb6a8929b754ec07fe01cca",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.138",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.139:66ed896ef979120d235ee55588da500a735c2d4e53f65bc681fa7eef22dc9fe1",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.139",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.140:44bcbb4a737d10abb67bca211cb0023399d3502ebde4ddf1a96474429c5130f9",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.140",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.141:6d487e806bec9b102cd031c7f4e4a4c0e31f21638fac51578d0474dd446901fd",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.141",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.142:6b38f1440cc3f3167d5616c82080618e35075d647b3e6bcfd1cbc0c0a3cd77e6",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.142",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.143:abf2fc7bcfb3578fb228a85990e7a3b8a80d61e30a7650f3f7103d5d0b8789a4",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.143",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.144:fa7985fdf4f40ffeb6b7a54b5b1e9c27701b43998b3a719279f3a27f7dcd0a93",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.144",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.145:557537c7d1430116a0e479bc85adb1d3c2fc8572cb27c69299fec7fe18e77bbe",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.145",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.146:7dcaeef4175a81a6e1509ac47182981caa6712512856389245e90b050fd7054f",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.146",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.147:b993c4c146ee1f0bc6c81abb8a94f39d416f9b32e20302a2a83e4452d3eda5a2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.147",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.148:ffd0bcd96b6a88f8bf5a2417c04327ddabb42d2c94628dadb26dbc8340576ffe",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.148",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.149:98c5c768e3643e39a0ee021b8b709fcbe9cef5273272e17ff810f2665fe517f5",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.149",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.150:e3340bf668a9dd645cbe65f3c2b8cb59c42d928483205fa55013600db1d8021d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.150",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.151:0a7b93c50084a5eeafcdd3fb1458f1740138fda9193b6c8f545a29997f588178",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.151",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.152:9844cad3974eb92a4eca6e9e11754072368b5fe809aafdceccf4cba8fb9fb81d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.152",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.153:5d3bc7101f46a7547700a50f3520e54002d9bbb8773bb939dca72eac992495e2",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.153",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.154:5ab72ff2eb3b17a5e8d14ad601bdc967ea8149d37eba054411a9c6916618c681",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.154",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.155:bf6489394bed7c6da89aa061f56eb8ac71d08b2e434d36d87134f606a68e132c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.155",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.156:c74b47b4d938b1a01ba40a306fda6e72efbb78475f2b59f380e98f92c55d4f96",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.156",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.157:eeb6b9c3054807cabab2fa8f13501c4772afb051db22373e284387f8e1a93435",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.157",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.158:1da05cf26ff9198e17daf97029c2c332c123770ff68722830c0e9a5878b27d9c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.158",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.159:d9fcb4bc9afe7de42ee6ef62c7c3fb58d2471bfeb779649a39ac3020bdb8a508",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.159",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.160:df668bcabe9d6e0fc5a2dbe008dbb3ea997d2733b0e67ecf19594f1cb03ef220",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.160",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.161:3ba4f3e63be9a4d8fcd6e42231ec0b6c5202700cb1332cdaf994dba1ca0c2815",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.161",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.162:dea5aaae594685635f352b29735cb98e054ba104eca3e1b9e902a4f0d4055533",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.162",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.163:f8de9f3d09962cfb10a3f8e5dccf80dd64ad3e1adc29618de439466def10ada3",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.163",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.164:513476efea3ceec40db225250e144eda0e7b4e09328fcad3131cafa0b7935bc0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.164",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.165:29d57d37312668c5e20de396cb6bb3dc799d2dc97fd419e240a9fb25054f8489",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.165",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.166:19fdcabb9de616b9810855bded5b14c091fd52414a71f15721e1d053067729a0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.166",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.167:90673e6ec48d9d74cd3cdd6859d816253eca37ff63da72e36b69d58dad05481d",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.167",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.168:79f4dc2df09da99962c8afc7748ff71c3cd9c5ab27a5e7cad4bf869072f0f0bb",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.168",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.169:a5e45fc7e0be653ddcce9a4c43e9a64cfb8b292c776868334d7dafe2c0bc98b0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.169",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.170:63ac4e959a6090670ff68f1debe2699975909bbd8c6b66ec74a9e7468290339a",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.170",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.171:447c359f6ecb72b59afa78d0fa4eab997b1915a01d25b9442eeccb558aa67900",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.171",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.172:82e26531545bf512396bf12f67e8e6e5784abf427c333217da15270348c419de",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.172",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.173:6ceb2358c02a97f1da21707919332ef077c019adb10254bb3a6943496bbfe54c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.173",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.174:786298367f130db1246c30fbf7f86a316a6b9978be8738daebe8b5249b824053",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.174",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.175:a2bbd37d962d92dbc7fb99175896d6f634576622e55eba526b9456b122b3d5c1",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.175",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.176:ed34ed076fad49135b5e670ce66aba3e703442a49c0235a7380f9b09b9d2792a",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.176",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.177:9aef840c5a6422d181970a252ac577c576e82d8774bcf31cc5ad2b348e1987f7",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.177",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.178:548c3b83c7fa60982a32697d9f302f83b20c0d35f89a2c26cde2e6e589caa548",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.178",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.179:4022053eedc5af19788651bf574e23df9c1025689cf90adefa6da230889723c1",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.179",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.180:106a578c1c26fd7354c022853906c07bb4aa323a2da8c52cd3d75cd019b126e1",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.180",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.181:e1c508b58e8c8fa389cd9b0ff756892ff5c0d1a1bebead938742d008bbbf5bc0",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.181",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.182:b90d97ad11220b0c743ffbb0ae108d614a76d7b134304e0f98b53761f7d5da24",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.182",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "ui:47:region:157:chat.link.183:9575aad76c7ba0ef46c72748d4d21644a3f7f70bcfb32143dca5314cd14e764c",
+          "nativeClass": "net.minecraft.client.gui.screens.ChatScreen",
+          "controlKey": "chat.link.183",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.0",
+          "controlKey": "hud.hotbar.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.1",
+          "controlKey": "hud.hotbar.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.2",
+          "controlKey": "hud.hotbar.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.3",
+          "controlKey": "hud.hotbar.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.4",
+          "controlKey": "hud.hotbar.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.5",
+          "controlKey": "hud.hotbar.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.6",
+          "controlKey": "hud.hotbar.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.7",
+          "controlKey": "hud.hotbar.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.8",
+          "controlKey": "hud.hotbar.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.header",
+          "controlKey": "hud.playerlist.header",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.playerlist.row.0",
+          "controlKey": "hud.playerlist.row.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.footer",
+          "controlKey": "hud.playerlist.footer",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "toast.0",
+          "nativeClass": "net.minecraft.client.gui.components.toasts.TutorialToast",
+          "controlKey": "toast.0",
+          "operations": [
+            "ui.slider.set",
+            "ui.toast.hide"
+          ],
+          "blocked": {},
+          "limitation": "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION"
+        },
+        {
+          "nodeId": "hud.title",
+          "controlKey": "hud.title",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.subtitle",
+          "controlKey": "hud.subtitle",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.actionbar",
+          "controlKey": "hud.actionbar",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.titles",
+          "controlKey": "hud.titles",
+          "operations": [
+            "ui.hud.title.times.set",
+            "ui.hud.title.clear"
+          ],
+          "blocked": {},
+          "limitation": "CLEAR_REMOVES_BOTH_COMPONENTS_AND_CANNOT_RESTORE_ELAPSED_LIFETIME"
+        }
+      ]
+    },
+    {
+      "operation": "ui.list.selection.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "6368f5fd-9ec4-4bb7-b6f7-12dec6a6c8b4",
+        "resourceType": "ui_node",
+        "resourceKey": "157:ui:47:region:163:chat.suggestions",
+        "lifecycleId": "ui_node:157:ui:47:region:163:chat.suggestions@session",
+        "revision": 102,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "6368f5fd-9ec4-4bb7-b6f7-12dec6a6c8b4",
+        "resourceType": "ui_node",
+        "resourceKey": "157:ui:47:region:163:chat.suggestions",
+        "lifecycleId": "ui_node:157:ui:47:region:163:chat.suggestions@session",
+        "revision": 103,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "operation": "ui.list.selection.set",
+      "result": "APPLIED",
+      "inputDelta": 0,
+      "mode": "OPERATE",
+      "diagnostic": true,
+      "before": {
+        "sessionEpoch": "6368f5fd-9ec4-4bb7-b6f7-12dec6a6c8b4",
+        "resourceType": "ui_node",
+        "resourceKey": "157:ui:47:region:163:chat.suggestions",
+        "lifecycleId": "ui_node:157:ui:47:region:163:chat.suggestions@session",
+        "revision": 103,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      },
+      "after": {
+        "sessionEpoch": "6368f5fd-9ec4-4bb7-b6f7-12dec6a6c8b4",
+        "resourceType": "ui_node",
+        "resourceKey": "157:ui:47:region:163:chat.suggestions",
+        "lifecycleId": "ui_node:157:ui:47:region:163:chat.suggestions@session",
+        "revision": 104,
+        "revisionSource": "snapshot_change_sequence",
+        "revisionScope": "resource",
+        "mutationPreconditionEligible": true
+      }
+    },
+    {
+      "case": "typed_node_applicability",
+      "nodes": [
+        {
+          "nodeId": "hud.hotbar.0",
+          "controlKey": "hud.hotbar.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.1",
+          "controlKey": "hud.hotbar.1",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.2",
+          "controlKey": "hud.hotbar.2",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.3",
+          "controlKey": "hud.hotbar.3",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.4",
+          "controlKey": "hud.hotbar.4",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.5",
+          "controlKey": "hud.hotbar.5",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.6",
+          "controlKey": "hud.hotbar.6",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.7",
+          "controlKey": "hud.hotbar.7",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.hotbar.8",
+          "controlKey": "hud.hotbar.8",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "controlKey": "hud.overlay.texture.minecraft:textures/misc/vignette.png.0.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.crosshair.minecraft:hud/crosshair",
+          "controlKey": "hud.crosshair.minecraft:hud/crosshair",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.header",
+          "controlKey": "hud.playerlist.header",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "hud.playerlist.row.0",
+          "controlKey": "hud.playerlist.row.0",
+          "operations": [],
+          "blocked": {},
+          "limitation": "SEMANTIC_OR_PRESENTATION_NODE_HAS_NO_APPROVED_UI_STATE_SETTER"
+        },
+        {
+          "nodeId": "hud.playerlist.footer",
+          "controlKey": "hud.playerlist.footer",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT"
+        },
+        {
+          "nodeId": "toast.0",
+          "nativeClass": "net.minecraft.client.gui.components.toasts.TutorialToast",
+          "controlKey": "toast.0",
+          "operations": [
+            "ui.slider.set",
+            "ui.toast.hide"
+          ],
+          "blocked": {},
+          "limitation": "LOCAL_DISPLAY_ONLY_NOT_TUTORIAL_OR_GAMEPLAY_COMPLETION"
+        },
+        {
+          "nodeId": "hud.title",
+          "controlKey": "hud.title",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.subtitle",
+          "controlKey": "hud.subtitle",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.actionbar",
+          "controlKey": "hud.actionbar",
+          "operations": [
+            "ui.text.set"
+          ],
+          "blocked": {},
+          "limitation": "PLAIN_TEXT_REPLACEMENT_DOES_NOT_RESTORE_FORMAT_OR_LIFETIME"
+        },
+        {
+          "nodeId": "hud.titles",
+          "controlKey": "hud.titles",
+          "operations": [
+            "ui.hud.title.times.set",
+            "ui.hud.title.clear"
+          ],
+          "blocked": {},
+          "limitation": "CLEAR_REMOVES_BOTH_COMPONENTS_AND_CANNOT_RESTORE_ELAPSED_LIFETIME"
+        }
+      ]
+    }
+  ],
+  "advancementPanSamples": [],
+  "hudCompletionSamples": [
+    {
+      "case": "hud_item_draw",
+      "target": "26.3-neoforge",
+      "kind": "durability",
+      "category": "USER",
+      "selected": {
+        "controlKey": "hud.hotbar.0",
+        "item": "minecraft:iron_sword",
+        "boundsAvailable": true,
+        "active": false,
+        "height": 16,
+        "label": "",
+        "count": 1,
+        "nodeId": "hud.hotbar.0",
+        "selected": true,
+        "visible": true,
+        "width": 16,
+        "x": 152,
+        "y": 251,
+        "actions": [],
+        "role": "hud_item"
+      },
+      "bar": {
+        "iconSource": "last_completed_native_hud_draw",
+        "controlKey": "hud.item.durability.152.251",
+        "boundsAvailable": true,
+        "active": false,
+        "height": 2,
+        "label": "item durability bar",
+        "value": 8,
+        "valueMaximum": 13,
+        "nodeId": "hud.item.durability.152.251",
+        "visible": true,
+        "valueMinimum": 0,
+        "width": 13,
+        "x": 154,
+        "y": 264,
+        "actions": [],
+        "role": "progress_bar",
+        "valueSemantics": "drawn_fill_pixels_not_raw_item_state"
+      },
+      "name": {
+        "iconSource": "last_completed_native_hud_draw",
+        "controlKey": "hud.selected_item_name",
+        "boundsAvailable": true,
+        "active": false,
+        "height": 9,
+        "label": "Iron Sword",
+        "nodeId": "hud.selected_item_name",
+        "visible": true,
+        "labelSource": "last_completed_native_hud_draw",
+        "width": 56,
+        "opacity": 1,
+        "x": 212,
+        "y": 225,
+        "actions": [],
+        "role": "hud_text"
+      },
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1051,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 830,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 2987,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.94866514,
+        "controlChromeEdgeWidth": 0.9743326,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3560,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 42,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 49,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 25,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "3a3c859a-0f34-4152-a8b1-2dc1251b2bf8",
+        "protocolVersion": "v0"
+      },
+      "authority": "native_completed_hud_draw",
+      "rawItemStateExposed": false
+    },
+    {
+      "case": "hud_item_occlusion",
+      "target": "26.3-neoforge",
+      "f1UserNodes": 0,
+      "inventoryUserNodes": 0,
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1074,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 842,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3069,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.9005989,
+        "controlChromeEdgeWidth": 0.95029944,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3642,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 42,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0.6893796,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 51,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 27,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "206b54a2-6af8-4dae-a134-83b1cfbf2733",
+        "protocolVersion": "v0"
+      }
+    },
+    {
+      "case": "hud_item_draw",
+      "target": "26.3-neoforge",
+      "kind": "cooldown",
+      "category": "USER",
+      "selected": {
+        "controlKey": "hud.hotbar.1",
+        "item": "minecraft:ender_pearl",
+        "boundsAvailable": true,
+        "active": false,
+        "height": 16,
+        "label": "",
+        "count": 16,
+        "nodeId": "hud.hotbar.1",
+        "selected": true,
+        "visible": true,
+        "width": 16,
+        "x": 172,
+        "y": 251,
+        "actions": [],
+        "role": "hud_item"
+      },
+      "bar": {
+        "iconSource": "last_completed_native_hud_draw",
+        "controlKey": "hud.item.cooldown.172.251",
+        "boundsAvailable": true,
+        "active": false,
+        "height": 14,
+        "label": "item cooldown overlay",
+        "value": 14,
+        "valueMaximum": 16,
+        "nodeId": "hud.item.cooldown.172.251",
+        "visible": true,
+        "valueMinimum": 0,
+        "width": 16,
+        "opacity": 0.4980392156862745,
+        "x": 172,
+        "y": 253,
+        "actions": [],
+        "role": "progress_bar",
+        "valueSemantics": "drawn_fill_pixels_not_remaining_ticks"
+      },
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1081,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 848,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3096,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.81528187,
+        "controlChromeEdgeWidth": 0.90764093,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3669,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 42,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0.005564034,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 51,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 28,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "bbbf9cd9-d070-4ade-acee-fd45e346bb00",
+        "protocolVersion": "v0"
+      },
+      "authority": "native_completed_hud_draw",
+      "rawItemStateExposed": false
+    },
+    {
+      "case": "hud_item_cooldown_expired",
+      "target": "26.3-neoforge",
+      "remainingTicksExposed": false,
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1099,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 848,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3203,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.80110013,
+        "controlChromeEdgeWidth": 0.90055007,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 3776,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 42,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 51,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 28,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "1df38f59-ae64-4166-b6b1-95004530463e",
+        "protocolVersion": "v0"
+      }
+    },
+    {
+      "case": "hud_context_draw",
+      "target": "26.3-neoforge",
+      "family": "experience",
+      "category": "USER",
+      "nodes": [
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.experience.minecraft:hud/experience_bar_background.149.241",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/experience_bar_background",
+          "active": false,
+          "height": 5,
+          "label": "experience minecraft:hud/experience_bar_background",
+          "nodeId": "hud.context.experience.minecraft:hud/experience_bar_background.149.241",
+          "visible": true,
+          "width": 182,
+          "opacity": 1,
+          "x": 149,
+          "y": 241,
+          "actions": [],
+          "role": "status_icon"
+        },
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.experience.minecraft:hud/experience_bar_progress.149.241",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/experience_bar_progress",
+          "active": false,
+          "height": 5,
+          "label": "experience minecraft:hud/experience_bar_progress",
+          "value": 78,
+          "valueMaximum": 182,
+          "nodeId": "hud.context.experience.minecraft:hud/experience_bar_progress.149.241",
+          "visible": true,
+          "valueMinimum": 0,
+          "width": 78,
+          "opacity": 1,
+          "x": 149,
+          "y": 241,
+          "actions": [],
+          "role": "progress_bar",
+          "valueSemantics": "drawn_sprite_extent_not_raw_player_statistics"
+        },
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.experience.level",
+          "boundsAvailable": true,
+          "active": false,
+          "height": 9,
+          "label": "7",
+          "nodeId": "hud.context.experience.level",
+          "visible": true,
+          "labelSource": "last_completed_native_hud_draw",
+          "width": 6,
+          "opacity": 1,
+          "x": 237,
+          "y": 235,
+          "actions": [],
+          "role": "hud_text"
+        }
+      ],
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1150,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 952,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3436,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.76017076,
+        "controlChromeEdgeWidth": 0.88008535,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 4009,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 50,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 59,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 32,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "10329752-d3c1-494b-bc71-6c5a4076eb8b",
+        "protocolVersion": "v0"
+      },
+      "rawPlayerStatisticsExposed": false
+    },
+    {
+      "case": "hud_context_occlusion",
+      "target": "26.3-neoforge",
+      "family": "experience",
+      "f1UserNodes": 0,
+      "inventoryUserNodes": 0,
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1180,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 964,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3508,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.9999858,
+        "controlChromeEdgeWidth": 0.9999929,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 4081,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 50,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0.6413622,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 61,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 34,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "9787fa2c-2a35-4427-831b-fb69cf25a14a",
+        "protocolVersion": "v0"
+      }
+    },
+    {
+      "case": "hud_context_draw",
+      "target": "26.3-neoforge",
+      "family": "jump",
+      "category": "USER",
+      "nodes": [
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.jump.minecraft:hud/jump_bar_background.149.241",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/jump_bar_background",
+          "active": false,
+          "height": 5,
+          "label": "jump minecraft:hud/jump_bar_background",
+          "nodeId": "hud.context.jump.minecraft:hud/jump_bar_background.149.241",
+          "visible": true,
+          "width": 182,
+          "opacity": 1,
+          "x": 149,
+          "y": 241,
+          "actions": [],
+          "role": "status_icon"
+        },
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.jump.minecraft:hud/jump_bar_progress.149.241",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/jump_bar_progress",
+          "active": false,
+          "height": 5,
+          "label": "jump minecraft:hud/jump_bar_progress",
+          "value": 55,
+          "valueMaximum": 182,
+          "nodeId": "hud.context.jump.minecraft:hud/jump_bar_progress.149.241",
+          "visible": true,
+          "valueMinimum": 0,
+          "width": 55,
+          "opacity": 1,
+          "x": 149,
+          "y": 241,
+          "actions": [],
+          "role": "progress_bar",
+          "valueSemantics": "drawn_sprite_extent_not_raw_player_statistics"
+        }
+      ],
+      "released": {
+        "type": "assert.result",
+        "condition": {
+          "type": "input.released"
+        },
+        "passed": true,
+        "message": "Runtime held input release condition satisfied",
+        "evidence": {
+          "pressedKeyCount": 0,
+          "pressedButtonCount": 0
+        },
+        "waited": true,
+        "requestId": "38b79826-efa1-4210-953b-07daf18cf45b",
+        "protocolVersion": "v0"
+      },
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1311,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 1407,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3750,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.94305414,
+        "controlChromeEdgeWidth": 0.97152704,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 4323,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 64,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 75,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 41,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "d2190040-2571-4fd4-8935-d727c321ff97",
+        "protocolVersion": "v0"
+      },
+      "rawPlayerStatisticsExposed": false
+    },
+    {
+      "case": "hud_context_draw",
+      "target": "26.3-neoforge",
+      "family": "locator",
+      "category": "USER",
+      "nodes": [
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.locator.minecraft:hud/locator_bar_background.149.241",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/locator_bar_background",
+          "active": false,
+          "height": 5,
+          "label": "locator minecraft:hud/locator_bar_background",
+          "nodeId": "hud.context.locator.minecraft:hud/locator_bar_background.149.241",
+          "visible": true,
+          "width": 182,
+          "opacity": 1,
+          "x": 149,
+          "y": 241,
+          "actions": [],
+          "role": "status_icon"
+        },
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "controlKey": "hud.context.locator.minecraft:hud/locator_bar_dot/default_0.236.239",
+          "boundsAvailable": true,
+          "resourceId": "minecraft:hud/locator_bar_dot/default_0",
+          "active": false,
+          "height": 9,
+          "label": "locator minecraft:hud/locator_bar_dot/default_0",
+          "nodeId": "hud.context.locator.minecraft:hud/locator_bar_dot/default_0.236.239",
+          "visible": true,
+          "width": 9,
+          "opacity": 1,
+          "x": 236,
+          "y": 239,
+          "actions": [],
+          "role": "status_icon"
+        }
+      ],
+      "input": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1379,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 1704,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 3987,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.840007,
+        "controlChromeEdgeWidth": 0.9200035,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 4560,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 74,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GAMEPLAY_RELATIVE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0,
+          "gameCaptured": true,
+          "gameCursorVisible": false,
+          "gameCursorRevision": 85,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 46,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "7a208f5f-1d3e-4287-a509-a9f6eb4c5f2b",
+        "protocolVersion": "v0"
+      },
+      "waypointIdentityExposed": false,
+      "rawPlayerStatisticsExposed": false
+    }
+  ],
+  "suggestionSamples": [
+    {
+      "case": "native_suggestion_selection",
+      "original": 0,
+      "value": 1,
+      "restored": true,
+      "contentGuardAvailable": true,
+      "staleRejected": true,
+      "draftUnchanged": true,
+      "nativeSetter": "SuggestionsList.select(int)",
+      "inputDelta": 0,
+      "playerLeaseRequired": false,
+      "suggestionUseTested": false,
+      "commandExecutionTested": false,
+      "nativeOffsetUnchanged": true
+    },
+    {
+      "case": "native_suggestion_consumer_handoff",
+      "actualTransports": [
+        "mcp_stdio_debug",
+        "web_user_isolation"
+      ],
+      "draftUnchanged": true,
+      "privateSelection": true,
+      "typedInputDelta": 0
+    },
+    {
+      "case": "native_suggestion_owner_replaced",
+      "rejected": "UI_CONTEXT_UNAVAILABLE",
+      "inputDelta": 0
+    }
+  ],
+  "uiCorrectnessSamples": [
+    {
+      "case": "declared_slot_action_aliases",
+      "feedback": "CF-071",
+      "rightClickSplit": true,
+      "shiftClickTransferred": true,
+      "semanticTarget": true,
+      "handwrittenCoordinates": false,
+      "act": "GAME_ROUTED",
+      "arrange": "diagnostic_player_commands",
+      "heldKeys": 0,
+      "heldButtons": 0
+    },
+    {
+      "case": "hud_page_readiness",
+      "feedback": [
+        "CF-019",
+        "CF-023"
+      ],
+      "nativeFailure": {
+        "error": "ASSERTION_FAILED",
+        "message": "Screen condition is not satisfied",
+        "readiness": {
+          "kind": "hud",
+          "checks": {
+            "screen": false,
+            "overlay": true,
+            "viewport": true
+          },
+          "failures": [
+            "SCREEN_NOT_READY"
+          ],
+          "ready": false
+        },
+        "requestId": "114c6039-c154-4cda-acb9-dca58cd77754",
+        "protocolVersion": "v0"
+      },
+      "readiness": {
+        "kind": "screen",
+        "ready": false,
+        "checks": {
+          "screen": true,
+          "overlay": true,
+          "viewport": true,
+          "selector": false
+        },
+        "failures": [
+          "TARGET_NOT_FOUND_OR_NOT_VISIBLE"
+        ]
+      },
+      "hudReady": true,
+      "realMcpStdio": true,
+      "hiddenTargetProbed": false,
+      "inputDelta": 0
+    }
+  ],
+  "localOwnerSamples": [],
+  "navigationCompletionSamples": [],
+  "effectSamples": [],
+  "spectatorSamples": [],
+  "specialMenuSamples": [],
+  "vitalSamples": [],
+  "fixtureReadSamples": [],
+  "chatCloseSamples": [
+    {
+      "escapes": 2,
+      "screenClosed": true,
+      "agentEscDidNotRevoke": true
+    }
+  ],
+  "worldExitSamples": [
+    {
+      "outcome": "world_exit_independently_observed",
+      "requestOutcome": "not_confirmed",
+      "requestReplayed": false,
+      "before": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1559,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 1963,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "nativeEntityAttackContextGeneration": 1,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": true,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 4355,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.82536435,
+        "controlChromeEdgeWidth": 0.9126822,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 4928,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 90,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GUI_ABSOLUTE",
+          "x": 240,
+          "y": 135,
+          "alpha": 0.5986347,
+          "gameCaptured": false,
+          "gameCursorVisible": true,
+          "gameCursorRevision": 104,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 56,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3 - Singleplayer",
+        "windowTitle": "Minecraft NeoForge* 26.3 - Singleplayer - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 4,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 1,
+        "inputContextId": "ef11c464-2672-4b61-8f60-09f1e2e3469a",
+        "inputContextAvailable": true,
+        "requestId": "addbcc97-b65c-443f-ab8a-c6e3be89b9be",
+        "protocolVersion": "v0"
+      },
+      "after": {
+        "type": "input.state",
+        "target": "26.3-neoforge",
+        "clientTick": 1598,
+        "pressedKeys": [],
+        "pressedButtons": [],
+        "pressedKeyCount": 0,
+        "pressedButtonCount": 0,
+        "inputDispatchSequence": 1982,
+        "nativeEntityAttackCount": 0,
+        "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+        "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+        "nativeEntityAttackContextId": "cf642df5-ed49-48c6-b4d2-f8b13604be0b",
+        "nativeEntityAttackContextGeneration": 2,
+        "nativeEntityAttackControlGeneration": 11,
+        "nativeEntityAttackLeaseActive": false,
+        "nativeEntityAttackServerEffectConfirmed": false,
+        "controlState": "AGENT_CONTROLLED",
+        "reconsentRequired": false,
+        "reconsentScope": "TAKEOVER_ONLY",
+        "controlTransitionSequence": 11,
+        "mode": "TAKEOVER",
+        "takeoverActive": true,
+        "modeTransitionReason": "agent_control_acquired",
+        "modeVersion": {
+          "controlSessionId": "bee016f7-d813-406a-8527-0b1b2ec664e5",
+          "generation": 11
+        },
+        "modeContract": "explicit_intent_separate_authorization_v1",
+        "controlChromeRenderedFrames": 4474,
+        "controlChromeAlpha": 1,
+        "controlChromeEdgeAlpha": 0.7913909,
+        "controlChromeEdgeWidth": 0.89569545,
+        "operatorChromeLayer": "after_content_capture_before_present",
+        "captureExcludesOperatorChrome": true,
+        "captureFrameSequence": 5047,
+        "capturePending": 0,
+        "captureReadbacks": 0,
+        "nativeRevocations": 0,
+        "nativeCaptureGrants": 0,
+        "nativeInputPolicy": "exclusive_except_physical_escape",
+        "suppressedNativeInput": {
+          "key": 0,
+          "character": 0,
+          "preedit": 90,
+          "move": 0,
+          "button": 0,
+          "scroll": 0,
+          "drop": 0
+        },
+        "presenceActive": true,
+        "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+        "presenceInactivityTimeoutMs": 15000,
+        "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+        "activeGestureId": "",
+        "pointerOwnership": "none",
+        "agentPointer": {
+          "plane": "GUI_ABSOLUTE",
+          "x": 240,
+          "y": 182,
+          "alpha": 1,
+          "gameCaptured": false,
+          "gameCursorVisible": true,
+          "gameCursorRevision": 104,
+          "evidencePixels": false
+        },
+        "rejectedHostGrabs": 56,
+        "hostFocused": true,
+        "hostCursorCaptureGranted": false,
+        "hostCursorCaptured": false,
+        "windowIconState": "original_with_agent_pointer",
+        "originalWindowIconCount": 5,
+        "windowBaseTitle": "Minecraft NeoForge* 26.3",
+        "windowTitle": "Minecraft NeoForge* 26.3 - 由智能体接管",
+        "windowDecorationError": "",
+        "inputGeneration": 5,
+        "inputCleanupPending": false,
+        "inputCleanupFailed": false,
+        "inputContextGeneration": 2,
+        "inputContextId": "cf642df5-ed49-48c6-b4d2-f8b13604be0b",
+        "inputContextAvailable": false,
+        "requestId": "4a61ea36-0ff6-43dd-a4ff-03e7628724e1",
+        "protocolVersion": "v0"
+      },
+      "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
+      "overlayIdentity": 0,
+      "error": {
+        "status": 409,
+        "body": {
+          "error": "REQUEST_CANCELLED",
+          "message": "unknown",
+          "executionOutcome": "not_confirmed",
+          "retrySafe": false,
+          "requestId": "486d6190-9808-4680-b226-61956862141b",
+          "protocolVersion": "v0"
+        }
+      },
+      "released": {
+        "type": "assert.result",
+        "condition": {
+          "type": "input.released"
+        },
+        "passed": true,
+        "message": "Runtime held input release condition satisfied",
+        "evidence": {
+          "pressedKeyCount": 0,
+          "pressedButtonCount": 0
+        },
+        "waited": true,
+        "requestId": "aaea21ad-1626-45b7-9bd0-15ede5f20d48",
+        "protocolVersion": "v0"
+      }
+    }
+  ],
+  "respawnSamples": [],
+  "cleanShutdown": true,
+  "processExitCode": 0,
+  "endpointRemoved": true
+}

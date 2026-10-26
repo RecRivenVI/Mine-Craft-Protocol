@@ -28,6 +28,10 @@ Loom1.19.1要求的Java25与Gradle9.8 API由现有daemon/Wrapper满足，不为�
 
 ## 运行库与测试库
 
+独立服务端日志采集以 Minecraft 自带 Log4j2 为运行时来源；runtime_core 对 log4j-core 仅 compileOnly，
+使用版本目录中的兼容编译基线，并在单元测试中提供该库。发行 JAR 不再嵌入第二份 Log4j，
+不覆盖各 Target 的游戏日志实现；具体兼容性由对应 Loader 的独立安装验证确认。
+
 Minecraft 提供 Netty、Gson、LWJGL 和 Mixin 运行库。旧端缺少的 Netty HTTP 模块只补同族、同版本，
 不能与其他游戏 Netty 模块混搭；Forge 1.20.1 与 NeoForge 1.21.1通过Loader Jar-in-Jar交付缺少的HTTP模块，
 不只加入开发类路径。嵌入依赖不传递捆绑游戏已有的buffer/common/handler等模块。

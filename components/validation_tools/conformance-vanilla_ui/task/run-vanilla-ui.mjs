@@ -82,7 +82,7 @@ let lease, taskId, failure, failureTree, failureControl, failureInput, debugArm,
 const validationStarted=Date.now();
 let taskStarted=validationStarted;
 const checks=[],toastSamples=[],editorSamples=[],effectSamples=[],spectatorSamples=[],specialMenuSamples=[],vitalSamples=[],fixtureReadSamples=[],chatCloseSamples=[],screens=new Set(),pause=()=>new Promise(r=>setTimeout(r,120));
-const worldSelectionSamples=[],uiDebugSamples=[],worldExitSamples=[],respawnSamples=[];
+const worldSelectionSamples=[],uiDebugSamples=[],worldExitSamples=[],deathSamples=[],respawnSamples=[];
 const advancementPanSamples=[];
 const hudCompletionSamples=[],suggestionSamples=[],uiCorrectnessSamples=[];
 const localOwnerSamples=[],navigationCompletionSamples=[];
@@ -151,6 +151,27 @@ async function title(){for(let i=0;i<12;i++){
  const quit=nodes(t).find(n=>['menu.disconnect','menu.returnToMenu'].includes(n.translationKey)&&n.active!==false);
  if(quit)return saveQuit(quit);await key(256);
 }throw new Error('Could not return to title');}
+async function arrangeNativeDeath(){
+ const before=await api('GET','/v0/input/state'),controlBefore=await api('GET','/v0/control/status'),alive=await api('GET','/v0/player?category=USER');
+ assert.equal(alive.available,true);assert(alive.health>0);assert.equal(before.inputCleanupPending,false);assert.equal(before.inputCleanupFailed,false);
+ let response,error;
+ try{response=await command('kill @s');}catch(original){
+  const body=original?.nativeError;
+  if(original?.httpStatus!==409||!['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(body?.error)||body.executionOutcome!=='not_confirmed'||body.retrySafe!==false)throw original;
+  error={httpStatus:original.httpStatus,body};
+ }
+ const death=await wait(t=>/DeathScreen$/.test(t.screenClass)&&nodes(t).some(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false),'death respawn enabled');
+ const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});assert.equal(released.passed,true);
+ const after=await api('GET','/v0/input/state'),player=await api('GET','/v0/player?category=USER'),controlAfter=await api('GET','/v0/control/status');
+ assert.equal(player.dataCategory,'USER');assert.equal(player.available,true);assert.equal(player.health,0);
+ for(const field of ['inputGeneration','inputContextGeneration'])assert(Number.isSafeInteger(before[field])&&Number.isSafeInteger(after[field])&&after[field]>before[field]);
+ assert.notEqual(after.inputContextId,before.inputContextId);assert.equal(after.inputContextAvailable,true);
+ assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);assert.equal(after.inputCleanupPending,false);assert.equal(after.inputCleanupFailed,false);
+ for(const value of [controlBefore,controlAfter]){assert.equal(value.mode,'TAKEOVER');assert.equal(value.leaseId,lease);assert.equal(value.reconsentRequired,false);assert.equal(value.takeoverActive,true);}
+ assert.deepEqual(controlAfter.modeVersion,controlBefore.modeVersion);
+ deathSamples.push({outcome:'death_independently_observed',arrange:'diagnostic_native_player_command_in_owned_fixture',notGameplayAcceptance:true,requestOutcome:error?'not_confirmed':'response_received',requestEffectConfirmed:false,requestReplayed:false,...(error?{error}:{response}),before,after,alive,player,controlBefore,controlAfter,released,screenClass:death.screenClass});
+ return death;
+}
 async function respawnFromDeath(button,testServices){
  const now=testServices?.now??(()=>performance.now()),sleep=testServices?.sleep??(ms=>new Promise(done=>setTimeout(done,ms)));
  const death=await tree();assert(death.screenClass.endsWith('DeathScreen'));assert.equal(death.overlayIdentity,0);
@@ -219,6 +240,7 @@ async function respawnFromDeath(button,testServices){
 }
 async function check(name,fn){
  if(checkPrefix&&!/^(title:|world fixture:|pause:)/.test(name)&&!name.startsWith(checkPrefix))return;
+ if(args.scenario==='respawn'&&!/^(title:|world fixture:|death:|pause:)/.test(name))return;
  if(args.scenario==='hud-hardcore'&&!/^(title:|HUD: hardcore:)/.test(name))return;
  if(args.scenario==='ui-local'&&!/^(title:|world fixture:|typed local DEBUG:|typed Toast DEBUG: local|pause:)/.test(name))return;
  if(args.scenario==='ui-breadth'&&!/^(title:|world fixture:|UI special world menus:|UI recipes and hotbars:|UI command management:|pause:)/.test(name))return;
@@ -436,15 +458,16 @@ try{
  await check('window: final-output title and original icon badge across modes',async()=>{
    const hooks=await api('GET','/v0/diagnostics/hooks');
    // A Hook descriptor may aggregate several injected callbacks, not one row per site.
-   assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?26:target.startsWith('26.')?23:21);
+   assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?27:target.startsWith('26.')?24:22);
    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
-   const drawCounts={'1.20.1-forge':[34,6],'1.21.1-neoforge':[37,6],'26.1.2-neoforge':[41,6],'26.3-neoforge':[43,5],'26.3-fabric':[43,5]}[target];
+   const drawCounts={'1.20.1-forge':[34,7],'1.21.1-neoforge':[37,7],'26.1.2-neoforge':[41,7],'26.3-neoforge':[43,6],'26.3-fabric':[43,6]}[target];
    assert.equal(hooks.passiveDrawDelegationCount,drawCounts[0]);
    assert.equal(hooks.operatorReplacementCount,drawCounts[1]);
-   assert.equal(hooks.replacementInjectionCount,drawCounts[0]+drawCounts[1]);
+   assert.equal(hooks.passiveWorldDelegationCount,target.startsWith('1.')?1:0);
+   assert.equal(hooks.replacementInjectionCount,drawCounts[0]+drawCounts[1]+hooks.passiveWorldDelegationCount);
    if(target.startsWith('26.'))assert(hooks.hooks.some(hook=>hook.id==='host_cursor_shape_guard'&&hook.mechanism==='MIXIN_MODIFY_VARIABLE'&&hook.cancellable===false&&hook.replacement===true&&hook.behavior==='default_host_shape_during_takeover'));
-   assert.equal(hooks.controlFlowPolicy,'operator_control_and_exact_hud_draw_delegation');
+   assert.equal(hooks.controlFlowPolicy,'operator_control_debug_mutation_and_exact_hud_draw_delegation');
    async function presentation(mode,icon,suffix){
      const end=Date.now()+10000;let s;
      do{s=await api('GET','/v0/session');if(s.mode===mode&&s.windowIconState===icon&&s.windowTitle===s.windowBaseTitle+suffix)break;await pause();}while(Date.now()<end);
@@ -1377,8 +1400,7 @@ try{
    await click('gui.done','Done');await wait(t=>/PauseScreen$/.test(t.screenClass),'statistics return');await click('menu.returnToGame','Back to Game');
   });
   await check('death: native respawn button and live world restored',async()=>{
-   await command('gamemode survival @s');await command('kill @s');
-   const death=await wait(t=>/DeathScreen$/.test(t.screenClass)&&nodes(t).some(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false),'death respawn enabled');
+   await command('gamemode survival @s');const death=await arrangeNativeDeath();
    const buttons=nodes(death).filter(n=>n.translationKey==='deathScreen.respawn'&&n.active!==false&&n.visible!==false);assert.equal(buttons.length,1);
    await respawnFromDeath(buttons[0]);await command('gamemode creative @s');
   });
@@ -1453,6 +1475,7 @@ finally{
  result.fixtureReadSamples=fixtureReadSamples;
  result.chatCloseSamples=chatCloseSamples;
  result.worldExitSamples=worldExitSamples;
+ result.deathSamples=deathSamples;
  result.respawnSamples=respawnSamples;
  result.identityChurn=identityChurn;
  const resultDir=resolve(repo,'validations/conformance-vanilla_ui/result');await mkdir(resultDir,{recursive:true});const suffix=args.phase&&args.phase!=='test'?'-'+args.phase:args.scenario&&args.scenario!=='all'?'-'+args.scenario:'';await writeFile(resolve(resultDir,target+suffix+'.json'),JSON.stringify(result,null,2)+'\n');

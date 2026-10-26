@@ -23,6 +23,10 @@ foreach ($target in $targets) {
     $source = if ($target.EndsWith('fabric')) { 'client' } else { 'main' }
     $base = "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe"
     $mixins = @(Get-ChildItem -LiteralPath (Join-Path $root "$base/mixin") -Filter '*.java' -File)
+    if ($target -eq '26.3-fabric') {
+        $mixins += Get-Item -LiteralPath (Join-Path $root 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DebugLoadedChunkAccessMixin.java')
+        Copy-HookFixtureFile 'versions/26.3-fabric/src/main/resources/minecraft_protocol_probe.server.mixins.json'
+    }
     foreach ($file in $mixins) { Copy-HookFixtureFile ([IO.Path]::GetRelativePath($root, $file.FullName)) }
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $root "$base/runtime") -Filter '*.java' -File | Where-Object { $_.Name -like '*ProbeRuntime.java' -or $_.Name -in @('NativePlayerCommands.java', 'NativeCommandSuggestions.java', 'UiNativeText.java', 'UiPresentationSnapshot.java') }) {
         Copy-HookFixtureFile ([IO.Path]::GetRelativePath($root, $file.FullName))
@@ -31,7 +35,7 @@ foreach ($target in $targets) {
     Copy-HookFixtureFile "versions/$target/src/$source/resources/$config"
     $configPath = Join-Path $fixture "versions/$target/src/$source/resources/$config"
     $configInput = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-    $configInput.client = @($mixins | ForEach-Object BaseName)
+    $configInput.client = @($mixins | Where-Object { $_.BaseName -notin @($configInput.mixins) -and -not ($target -eq '26.3-fabric' -and $_.BaseName -eq 'DebugLoadedChunkAccessMixin') } | ForEach-Object BaseName)
     [IO.File]::WriteAllText($configPath, ($configInput | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
     foreach ($test in @('HudDrawDelegationTest.java', 'HudPresentationTest.java', 'HudCameraPresentationTest.java', 'LateGuiPresentationTest.java', 'LegacyNauseaPresentationTest.java', 'UiToastDrawTest.java', 'PlayerTabPresentationTest.java')) {
         $relative = "versions/$target/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/$test"
@@ -46,15 +50,16 @@ foreach ($target in $targets) {
         $passive += Assert-PassiveDrawSource "$target/$($file.Name)" (Get-Content -LiteralPath $file.FullName -Raw) $contracts[$file.Name]
     }
     $total = ([regex]::Matches($combined, '@Redirect\b|@ModifyVariable\b')).Count
+    $passiveWorld = if($target.StartsWith('1.')) { 1 } else { 0 }
     $runtime = @(Get-ChildItem -LiteralPath (Join-Path $fixture "$base/runtime") -Filter '*ProbeRuntime.java' -File)
     Assert-True ($runtime.Count -eq 1) "$target fixture needs exactly one real Runtime source"
     $code = Get-Content -LiteralPath $runtime[0].FullName -Raw
     $code = $code -replace '("replacementInjectionCount",\s*)\d+', ('${1}' + $total)
     $code = $code -replace '("passiveDrawDelegationCount",\s*)\d+', ('${1}' + $passive)
     if ($code -match '"operatorReplacementCount",') {
-        $code = $code -replace '("operatorReplacementCount",\s*)\d+', ('${1}' + ($total - $passive))
+        $code = $code -replace '("operatorReplacementCount",\s*)\d+', ('${1}' + ($total - $passive - $passiveWorld))
     } else {
-        $code = $code -replace '(json.addProperty\("replacementInjectionCount",\s*\d+\);)', ('$1' + "`n" + 'json.addProperty("operatorReplacementCount", ' + ($total - $passive) + ');')
+        $code = $code -replace '(json.addProperty\("replacementInjectionCount",\s*\d+\);)', ('$1' + "`n" + 'json.addProperty("operatorReplacementCount", ' + ($total - $passive - $passiveWorld) + ');')
     }
     [IO.File]::WriteAllText($runtime[0].FullName, $code, [Text.UTF8Encoding]::new($false))
 }
@@ -70,7 +75,7 @@ function Invoke-HookFixtureCase {
         if ($failure) { throw "$Case unexpectedly failed: $failure" }
         if ($result.Result -ne 'PASS' -or @($result.Targets).Count -ne 5) { throw "$Case returned an incomplete result" }
         foreach ($target in $result.Targets) {
-            if ($target.Replacement -ne $target.OperatorReplacement + $target.PassiveDrawDelegation -or $target.OperatorReplacement -ne $target.OperatorRedirect + $target.CursorArgumentReplacement -or $target.CompiledDelegationTests -ne 'REQUIRED_NOT_EXECUTED_BY_STATIC_GATE') { throw "$Case returned misleading Hook classification" }
+            if ($target.Replacement -ne $target.OperatorReplacement + $target.PassiveDrawDelegation + $target.PassiveWorldDelegation -or $target.OperatorReplacement -ne $target.OperatorRedirect + $target.CursorArgumentReplacement -or $target.CompiledDelegationTests -ne 'REQUIRED_NOT_EXECUTED_BY_STATIC_GATE') { throw "$Case returned misleading Hook classification" }
         }
     }
     $cases.Add([pscustomobject]@{ Case = $Case; Check = 'PASS'; Expected = $(if ($ExpectedError) { 'FAIL' } else { 'PASS' }); Error = $failure })
@@ -91,6 +96,7 @@ function With-HookFixtureText {
 
 Invoke-HookFixtureCase 'five-current-source-copies-with-explicit-manifest-counts'
 $reference = 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe'
+With-HookFixtureText "$reference/mixin/MinecraftMixin.java" { param($s) $s.Replace('AgentInputContext.routed(mouse::handleAccumulatedMovement);', 'mouse.handleAccumulatedMovement();') } { Invoke-HookFixtureCase 'mouse-frame-loses-logical-origin' 'native mouse-frame delegate' }
 $camera = "$reference/mixin/HudCameraPresentationMixin.java"
 With-HookFixtureText $camera { param($s) $s.Replace('graphics.blitSprite(pipeline, sprite, x, y, width, height);', 'graphics.blitSprite(pipeline, sprite, x + 1, y, width, height);') } { Invoke-HookFixtureCase 'changed-native-draw-argument' 'forward unchanged arguments' }
 With-HookFixtureText $camera { param($s) $s.Replace('graphics.blitSprite(pipeline, sprite, x, y, width, height);', '') } { Invoke-HookFixtureCase 'missing-native-draw' 'forward unchanged arguments' }

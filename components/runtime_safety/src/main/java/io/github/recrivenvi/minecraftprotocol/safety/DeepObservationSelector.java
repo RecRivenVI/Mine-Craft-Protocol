@@ -7,6 +7,22 @@ import com.google.gson.JsonObject;
 public final class DeepObservationSelector {
     private DeepObservationSelector() {}
 
+    public static String blockEntityCursor(JsonObject request) {
+        if (!request.has("selector")) return null;
+        JsonElement selector = request.get("selector");
+        if (!selector.isJsonObject())
+            throw new IllegalArgumentException("selector must be an object");
+        JsonElement cursor = selector.getAsJsonObject().get("blockEntityCursor");
+        if (cursor == null) return null;
+        if (!cursor.isJsonPrimitive()
+                || !cursor.getAsJsonPrimitive().isString()
+                || cursor.getAsString().isBlank()
+                || cursor.getAsString().length() > 96)
+            throw new IllegalArgumentException(
+                    "selector.blockEntityCursor must be a nonempty string of at most 96 characters");
+        return cursor.getAsString();
+    }
+
     public static int chunkRadius(JsonObject request) {
         if (!request.has("selector")) return 0;
         JsonElement selector = request.get("selector");

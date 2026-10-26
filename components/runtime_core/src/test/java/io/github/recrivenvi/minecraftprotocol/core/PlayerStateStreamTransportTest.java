@@ -211,8 +211,8 @@ final class PlayerStateStreamTransportTest {
         void replaceContext(boolean available) {
             context =
                     available
-                            ? epoch.observe(new Object(), new Object(), new Object())
-                            : epoch.observe(null, null, null);
+                            ? epoch.observe(new Object(), new Object(), new Object(), true)
+                            : epoch.observe(null, null, null, false);
             transport.nativeInputContextChanged(context);
         }
 

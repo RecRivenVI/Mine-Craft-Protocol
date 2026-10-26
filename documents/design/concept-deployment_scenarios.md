@@ -1,7 +1,7 @@
 # 三种部署场景与能力边界
 
 已批准目标：仅客户端、仅服务端、双端联动完整纳入 UI/世界首个里程碑的适用范围。
-独立服务器 Runtime、非图形控制台和单端安装仍待实施；本文是当前设计，不以更新计划宣称产品已支持。
+独立服务器 Runtime、有限非图形控制台及首批主世界DEBUG已接入；完整单端互通、其余服务器目录及 Peer 委托仍待实施。
 本文负责部署设计；[当前状态](../project/status-milestones.md)负责进度，[执行计划](../project/plan-execution.md)负责当前目标与步骤，
 [控制模型](concept-agent_control.md)和[世界模型](concept-world_control.md)继续负责模式、类别、输入与证据。
 不因新增部署目标开放 Persistent Write、宿主控制或任意命令/对象后门，不把设计标成现有能力。
@@ -9,8 +9,9 @@
 ## 当前实现与差距
 
 当前产品事实仍是 mod_side=both，不能据可选 Peer channel 宣称单端安装已受支持。
-五端 Native HTTP/WebSocket 均从客户端 tick 启动；独立服务端的 DedicatedPeerServer
-依赖已连接 ServerPlayer 接收游戏负载，不是零玩家也可使用的独立服务器 Runtime。
+五端除客户端 Runtime 外，独立服务器在 SERVER_STARTED 建立自己的认证 loopback Runtime，
+SERVER_STOPPING 关闭。只在 DedicatedServer 启动，集成服不会再创建第二个 endpoint。
+原 DedicatedPeerServer 仍依赖已连接 ServerPlayer 接收游戏负载，与独立入口分开。
 已有 Peer 读取及 teleport/health/block 修改只是有限目录，不等于 UI/WORLD 全功能联动。
 
 现有 Peer mutation 在服务端按开关和玩家 operator 检查，客户端 HTTP 另有 scope/Arm 等门禁；
@@ -18,16 +19,16 @@
 hello/hello_ack 不等于细粒度授权、启动身份绑定或完成配对证明。
 这些是真实待补边界，不能依赖可信 Companion、客户端检查或 peerAuthenticated 字段代替服务端验证。
 
-当前制品保持模板 P-02 的 both 合同：单人客户端包含集成服，多人联动要求双方安装匹配产品。
-仅客户端、仅服务端及其可选协商不属于当前安装承诺，不因可选 Peer channel 就标成受支持。
-三部署实施存在已确认的产物决策阻塞：当前模板只有全局both/client/server三值，both要求双端安装，
-没有“可选双端”或按发行构件分别声明运行端的正式配置。须由正式产物拆分决策或模板上游能力解决，
-不手改模板、不私自解释both，也不只改成client来掩盖服务端入口；此限制不阻止其他工作包推进。
+当前固定Alpha保持既有both安装说明；本地开发候选已支持独立服务端控制台，不要求有玩家连接。
+仅客户端互通、无模组客户端加入及完整可选协商不因可选Peer或本次零玩家测试就成为已验安装承诺。
+用户已批准保持模板文件不变、以可选协商推进部署实现；不以模板三值缺少“可选双端”继续阻止服务端工作。
+当前 mod_side=both 和 Loader 元数据未改；零玩家控制台可用不代表无模组客户端加入或全部单端互通已验收。
+正式安装承诺仍按逐 Target 实机证明收口，不把有限 Peer 或代表端结果当作所有组合通过。
 当前安装说明见[使用指南](../usage/guide-installation.md)，本设计不修改运行端或元数据。
 
 ## 首个里程碑的主体合同
 
-以下身份不是同一主体，不能互相代替。该表冻结设计边界，不宣称未实现的 Peer 委托或独立服务端认证已经存在。
+以下身份不是同一主体，不能互相代替。独立服务端已有实例/Bearer认证，该表不宣称完整Peer委托已经存在。
 
 | 主体/标识 | 当前事实与权威 | 不能据此获得 |
 | --- | --- | --- |
@@ -35,7 +36,7 @@ hello/hello_ack 不等于细粒度授权、启动身份绑定或完成配对证�
 | Runtime/连接 identity | runtimeInstanceId 标识本次实例启动；connectionId 用于本机连接预算和审计 | 玩家身份、跨重启许可或独立权限 |
 | 当前玩家 | 服务端实际连接绑定的 ServerPlayer/UUID，原版游戏模式和权限决定正常操作是否接受；不信任请求中的玩家名或 OP 自报 | Runtime token、Debug Arm、服务器内部数据或任意资源权限 |
 | 现有 Peer 接收端 | 服务端拥有实际世界与玩家，现有有限修改按服务端开关及玩家权限执行；委托/Arm/版本闭环仍是待实现项 | 因 hello、客户端已检查或 peerAuthenticated 就跳过接收端授权 |
-| 服务器所有者/控制台主体 | 独立于玩家 OP；零玩家认证与控制台 Runtime 已纳入计划，当前没有此正式入口 | 借某个在线玩家代理全部管理权，或借客户端 token 自动认证为服务器所有者 |
+| 服务器所有者/控制台主体 | 独立于玩家 OP；专用实例、启动身份和 Bearer 认证；额外 server_console scope 默认不授予 | 借某个在线玩家代理全部管理权，或借客户端 token 自动认证为服务器所有者 |
 | 物理用户退出 | 本机 Esc 立即撤销玩家 TAKEOVER，保留 READ 与重新同意 latch | 证明外部对话同意、清除诊断污染，或替另一实例授权 |
 
 首个里程碑的已有客户端入口继续验证认证、scope、模式，再按操作验证输入 Lease 或独立 Debug Arm、
@@ -85,6 +86,21 @@ OP 不是所有能力的布尔开关；具体命令/资源的实际权限须执�
 ## 仅服务端：独立 Runtime 与控制台
 
 ### 独立入口与原生输入
+
+当前初始目录：认证、实例发现、READ/OPERATE、控制台有界分页、原生命令及 Operation 查询/等待/取消。
+GET /v0/server/console 需要 read/server_console，POST /v0/server/console/commands 另需 command/control 和显式 OPERATE。
+从 SERVER_STARTED 接入后读取 INFO 及以上已发布日志事件，保留来源、线程、序号、截断和 gap；不回补启动前输出，不还原终端提示符、ANSI 或完整历史输出，
+也不保证涵盖第三方绕过日志系统的直接 stdout/stderr。输出是操作员的独立 USER 表面，不是玩家世界读取。
+初始命令根限 help/list/say/seed/time/weather；stop、op/deop、保存/重载、函数/间接执行及未知根发送前拒绝。
+这是有意保留的初始目录，不是完整服务器管理支持，也不改变现有玩家命令目录。
+命令通过 MinecraftServer 自身任务队列进入 owner thread，再调用原生命令分发器；不会写终端 stdin 或调用宿主 shell。
+服务端回调差异由 Target 适配，语法错误可能只产生文字而没有结果回调，Operation completed 仅表示分发返回。
+明确 worldEffectConfirmed=false，不把命令回执算作干净 PLAYTEST。
+普通 HTTP 完成或连接池关闭不撤销已接受 Operation；未分发命令受五秒期限、显式取消和 Runtime close 约束。
+首批服务器DEBUG复用正式Deep Observation、Arm与typed mutation：零玩家主世界world/blocks读取及world.block.set/有界批次，
+需独立DEBUG授权，不借server_console或玩家Lease；未加载明确拒绝。请求与限制见[Native合同](../reference/protocol-native_v0.md#独立服务器世界-debug)。
+完整连接授权撤销、其余服务器DEBUG、Persistent Read、控制台 Recording 和补全仍为待办，不以本目录开放它们。
+TAKEOVER 在没有玩家输入表面的独立 Runtime 明确不可用，capabilities/control 不宣告可接管。
 
 服务器 Runtime 须在零玩家、无客户端类/渲染器时启动认证 loopback HTTP/WebSocket，
 复用实例目录锁、自动端口、启动 UUID、预算和关闭清理；Companion 明确选择服务器实例。
@@ -186,7 +202,7 @@ Persistent Read 只取获准安全 context，不接收任意路径；LIVE 仍不
 | 消费者与交付 | Native/MCP/网页、Wait/Event/Recording/Artifact、展示与最终制品矩阵保持主体和类别一致 | 两领域共同收口 |
 
 UI 首个里程碑覆盖图形和适用非图形原生表面；世界首个里程碑覆盖客户端 USER/实际输入及获准服务器 DEBUG。
-Headless 没有 Screen/相机是原生缺席；独立 Runtime/控制台尚未实现是待办，二者不能互换。
+Headless 没有 Screen/相机是原生缺席；独立 Runtime/初始控制台及首批方块DEBUG已接入，其余服务器资源/补全/Recording仍是待办，二者不能互换。
 两领域分别达到 READY 再交用户验收，不以集成服证明单端安装，不把设计写成当前能力。
 
 五 Target 均须使用各自固定副本验证：仅客户端模组/无模组服务器、仅服务端模组/无模组客户端及零玩家、

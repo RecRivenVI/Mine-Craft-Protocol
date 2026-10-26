@@ -5,6 +5,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {connectRuntime} from '../../runtime-connection.mjs';
 import {commandOperationConsumer} from './world-read-consumers.mjs';
+import {contextExitEvidence} from './context-exit-evidence.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const args=Object.fromEntries(process.argv.slice(2).map(arg=>arg.replace(/^--/,'').split('=')));
@@ -27,7 +28,7 @@ async function sources(){
 const before=await sources(),digest=text=>createHash('sha256').update(text).digest('hex');
 async function api(method,path,body){
  const response=await connection.fetch(path,{method,headers:{...(lease?{'x-mcp-control-lease':lease}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
- const value=await response.json();assert(response.ok,JSON.stringify(value));return value;
+ const value=await response.json();if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error,status:response.status,runtimeError:value});return value;
 }
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]),pause=()=>new Promise(r=>setTimeout(r,50));
 async function poll(read,accept,label,budget=10000){const end=Date.now()+budget;let value;do{value=await read();if(accept(value))return value;await pause();}while(Date.now()<end);throw new Error(label+': '+JSON.stringify(value));}
@@ -64,7 +65,7 @@ try{
  await acquire();
  await check('semantic GUI enters immutable world and bounded native fixture remains diagnostic',async()=>{
   const capability=await api('GET','/v0/capabilities');assert.equal(capability.capabilities['command.player.configuration'],'native_command_blocks_and_jigsaw_final_state');assert.equal(capability.capabilities['command.player.jigsaw_generation'],'unavailable_unresolved_template_effects');assert.equal(capability.capabilities['command.player.structure_configuration'],'native_parameter_update_and_scan');assert.equal(capability.capabilities['command.player.structure_template'],'unavailable_storage_or_unresolved_template_effects');
-  await click('menu.singleplayer');const tree=await screen(t=>t.screenClass.endsWith('SelectWorldScreen'),'world list');const world=nodes(tree).filter(n=>n.worldName==='World-Read-Alpha');assert.equal(world.length,1);await api('POST','/v0/ui/action',{selector:{nodeId:world[0].nodeId},action:'click'});await click('selectWorld.select');await screen(t=>!t.screenClass,'fixed world',150000);
+  await click('menu.singleplayer');const tree=await screen(t=>t.screenClass.endsWith('SelectWorldScreen')&&nodes(t).some(n=>n.worldName==='World-Read-Alpha'),'world list populated');const world=nodes(tree).filter(n=>n.worldName==='World-Read-Alpha');assert.equal(world.length,1);await api('POST','/v0/ui/action',{selector:{nodeId:world[0].nodeId},action:'click'});await click('selectWorld.select');await screen(t=>!t.screenClass,'fixed world',150000);
   await command('gamemode creative @s');await command('clear @s');await command('fill -1 79 -1 4 79 2 minecraft:stone');await command('fill -1 80 -1 4 83 2 minecraft:air');await command('tp @s 0.5 80 0.5');await command('setblock 2 80 0 minecraft:command_block');
   await poll(()=>api('GET','/v0/world/block?x=2&y=80&z=0'),b=>b.block==='minecraft:command_block','fixture client sync');await clean();
  });
@@ -136,11 +137,21 @@ finally{
  try{
   if(recording)await api('DELETE','/v0/recordings/'+recording.recordingId);
   if(!lease)await acquire();
-  for(let i=0;i<10;i++){const tree=await api('GET','/v0/ui/tree');if(tree.screenClass.endsWith('TitleScreen')){shutdownResponse='requested';try{await click('menu.quit');shutdownResponse='acknowledged';}catch{shutdownResponse='transport_closed_requires_runner_attestation';}break;}const quit=nodes(tree).find(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey));if(quit){await api('POST','/v0/ui/action',{selector:{nodeId:quit.nodeId},action:'click'});await screen(t=>t.screenClass.endsWith('TitleScreen'),'Save and Quit',60000);}else await key(256);}
+  for(let i=0;i<10;i++){
+   const tree=await api('GET','/v0/ui/tree');
+   if(tree.screenClass.endsWith('TitleScreen')){shutdownResponse='requested';try{await click('menu.quit');shutdownResponse='acknowledged';}catch{shutdownResponse='transport_closed_requires_runner_attestation';}break;}
+   const quit=nodes(tree).find(n=>['menu.returnToMenu','menu.disconnect'].includes(n.translationKey));
+   if(quit){
+    const beforeExit=await clean();let unconfirmed;
+    try{await api('POST','/v0/ui/action',{selector:{nodeId:quit.nodeId},action:'click'});}catch(error){if(error.status!==409||!['REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED'].includes(error.code))throw error;unconfirmed={status:error.status,body:error.runtimeError};}
+    const title=await screen(t=>t.screenClass.endsWith('TitleScreen'),'Save and Quit',60000);
+    if(unconfirmed){const released=await api('POST','/v0/wait/until',{condition:{type:'input.released'},timeoutMs:5000});assert.equal(released.passed,true);actionSamples.push({case:'shutdown_context_exit',...contextExitEvidence(beforeExit,await clean(),title,unconfirmed),released});}
+   }else await key(256);
+  }
   assert.notEqual(shutdownResponse,'not_requested');
  }catch(error){failure??=error;console.error(error);}
  const after=await sources(),sourceChangedDuringRun=JSON.stringify(before)!==JSON.stringify(after);if(sourceChangedDuringRun)failure??=new Error('Source changed during Runtime test');
  const directory=resolve(repo,'validations',validation,'result');await mkdir(directory,{recursive:true});
- await writeFile(resolve(directory,target+'-command-configuration.json'),JSON.stringify({status:failure?'FAIL':'PASS',target,scenario:'command-configuration',fullSmoke:false,fullWorldMilestone:false,testedAt:new Date().toISOString(),testedCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),dirty:true,evidence:'development_runtime_native',fixturePolicy:fixtureInput.policy,fixtureInput,checks,actionSamples,consumerChecks,consumerScope:'native_command_configuration',shutdownResponse,sourceHashes:after,sourceChangedDuringRun,persistentWriteCalls:0,notExecuted:['remaining_opaque_payloads','structure_template_save_load_policy','jigsaw_generation_effect_resolution','peer','packaged_artifact_runtime','human_acceptance'],...(failure?{error:String(failure)}:{})},null,2)+'\n');
+ await writeFile(resolve(directory,target+'-command-configuration.json'),JSON.stringify({status:failure?'FAIL':'PASS',target,scenario:'command-configuration',fullSmoke:false,fullWorldMilestone:false,testedAt:new Date().toISOString(),testedCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim(),dirty:true,evidence:'development_runtime_native',runtimeConnection:{runtimeInstanceId:connection.instanceId,port:connection.port,pid:connection.pid},fixturePolicy:fixtureInput.policy,fixtureInput,checks,actionSamples,consumerChecks,consumerScope:'native_command_configuration',shutdownResponse,sourceHashes:after,sourceChangedDuringRun,persistentWriteCalls:0,notExecuted:['remaining_opaque_payloads','structure_template_save_load_policy','jigsaw_generation_effect_resolution','peer','packaged_artifact_runtime','human_acceptance'],...(failure?{error:String(failure)}:{})},null,2)+'\n');
 }
 if(failure)process.exitCode=1;

@@ -416,7 +416,8 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                 this.inputContext.observe(
                         connected ? client.level : null,
                         connected ? client.player : null,
-                        connected ? connection : null);
+                        connected ? connection : null,
+                        connected && client.player != null && client.player.isAlive());
         this.refreshNativeEntityAttackContext(client, context, connection, connected);
         ProbeTransport current = this.transport;
         if (current == null || context == this.publishedInputContext) return;
@@ -444,7 +445,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     private JsonObject discardContextInput(Minecraft client) {
         int releasedKeys = this.pressedKeys.size(), releasedButtons = this.pressedButtons.size();
         this.worldTargeting.end();
-        this.finishNativeInputCleanup("native_input_context_changed");
+        this.finishNativeInputCleanup(client, "native_input_context_changed");
         for (var mapping : client.options.keyMappings) {
             var access =
                     (io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor)
@@ -543,6 +544,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                     != this.controlPresence.transitionSequence()) return;
                     boolean takeover = snapshot.agentControlled();
                     if (takeover != this.lastTakeover) {
+                        resetNativeCameraFilters(current);
                         if (takeover) {
                             net.minecraft.client.KeyMapping.releaseAll();
                             MouseHandlerAccessor mouse =
@@ -669,6 +671,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                         + client.getWindow().getGuiScaledHeight()
                         + ":"
                         + client.getWindow().getGuiScale();
+        if (this.logicalPointer.plane() != plane) resetNativeCameraFilters(client);
         if (this.logicalPointer.plane() != plane
                 || this.pointerScreenRevision != this.screenRevision
                 || !this.pointerViewport.equals(viewport)) {
@@ -1726,6 +1729,13 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                     true,
                                     status(tick)));
                     hooks.add(
+                            operatorHook(
+                                    "virtual_mouse_frame_consumption",
+                                    "Minecraft.runTick/MouseHandler.handleAccumulatedMovement",
+                                    false,
+                                    true,
+                                    status(tick)));
+                    hooks.add(
                             hook(
                                     "input_context_tick",
                                     "MIXIN_INJECT",
@@ -1846,7 +1856,22 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                     true,
                                     false,
                                     "configured_pending_unified_acceptance"));
-                    json.addProperty("cancellableInjectionCount", 26);
+                    json.addProperty("cancellableInjectionCount", 27);
+                    json.addProperty("debugMutationGuardCount", 1);
+                    json.addProperty("passiveWorldDelegationCount", 0);
+                    JsonObject loadedDebugDependency =
+                            hook(
+                                    "loaded_debug_chunk_dependency",
+                                    "MIXIN_INJECT",
+                                    "ServerChunkCache.getChunk",
+                                    "HEAD",
+                                    "scoped_native_chunk_dependency_guard",
+                                    "configured_debug_only",
+                                    "world.debug");
+                    loadedDebugDependency.addProperty("plane", "DEBUG_MUTATION");
+                    loadedDebugDependency.addProperty("cancellable", true);
+                    loadedDebugDependency.addProperty("intentionalControlFlow", true);
+                    hooks.add(loadedDebugDependency);
                     hooks.add(
                             operatorHook(
                                     "owned_server_command_completion",
@@ -1898,11 +1923,12 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                     vitalDraw.addProperty("originalInvocationCount", 1);
                     vitalDraw.addProperty("originalArguments", "unchanged");
                     hooks.add(vitalDraw);
-                    json.addProperty("replacementInjectionCount", 48);
-                    json.addProperty("operatorReplacementCount", 5);
+                    json.addProperty("replacementInjectionCount", 49);
+                    json.addProperty("operatorReplacementCount", 6);
                     json.addProperty("passiveDrawDelegationCount", 43);
                     json.addProperty(
-                            "controlFlowPolicy", "operator_control_and_exact_hud_draw_delegation");
+                            "controlFlowPolicy",
+                            "operator_control_debug_mutation_and_exact_hud_draw_delegation");
                     json.addProperty("thirdPartyTargetCount", 0);
                     json.addProperty("runtimeSelfTest", true);
                     json.addProperty(
@@ -2340,6 +2366,11 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
         long beforePacket = this.containerPacketSequence.get();
         if (action == 1) this.buttonFrames.put(button, this.pointerFrameStamp(client));
         if (action == 1) this.buttonScreens.put(button, client.gui.screen());
+        // Native GUI callbacks can re-enter the loop and discard this context.
+        if (action == 1) this.pressedButtons.add(button);
+        else if (action == 0) this.pressedButtons.remove(button);
+        if (action == 0 || action == 1)
+            this.logicalPointer.button(button, action == 1, System.nanoTime());
         if (action == 0
                 && this.buttonScreens.containsKey(button)
                 && (!java.util.Objects.equals(
@@ -2371,10 +2402,6 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
             this.buttonScreens.remove(button);
             this.buttonFrames.remove(button);
         }
-        if (action == 1) this.pressedButtons.add(button);
-        else if (action == 0) this.pressedButtons.remove(button);
-        if (action == 0 || action == 1)
-            this.logicalPointer.button(button, action == 1, System.nanoTime());
         this.refreshScreen(client);
         this.refreshMenu(client);
         if (action == 1 && guard != null && guard.has("trackClickSelection"))
@@ -2441,6 +2468,10 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
         if (action != 0) this.checkPointerGuard(guard);
         Minecraft client = requireClient();
         KeyEvent nativeEvent = NativeInputMapping.event(key, modifiers);
+        // Native GUI callbacks can re-enter the loop and discard this context.
+        if (action == 1 || action == 2)
+            this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
+        else if (action == 0) this.pressedKeys.remove(key);
         this.trackNativeInput(
                 client,
                 () ->
@@ -2457,9 +2488,6 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                                         client.getWindow().handle(),
                                                         action,
                                                         nativeEvent)));
-        if (action == 1 || action == 2)
-            this.pressedKeys.put(key, new KeyState(scanCode, modifiers));
-        else if (action == 0) this.pressedKeys.remove(key);
         this.refreshScreen(client);
         this.refreshMenu(client);
         Screen screen = client.gui.screen();
@@ -3551,9 +3579,12 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                     ? operation.substring(0, operation.indexOf('.'))
                                     : "unknown";
                     String fingerprint = this.phase9cWorldFingerprint(server, player);
+                    java.util.Map<String, String> required = new java.util.LinkedHashMap<>();
+                    required.put(domain, domain);
+                    if (operation.equals("player.vehicle.set")) required.put("entity", "entity");
                     try (DebugMutationAuthorization.Permit ignored =
-                            authorization.authorize(
-                                    fingerprint, this.phase9a.sessionEpoch(), domain, domain)) {
+                            authorization.authorizeAll(
+                                    fingerprint, this.phase9a.sessionEpoch(), required)) {
                         return this.phase9a.debugMutation(server, player, request, fingerprint);
                     }
                 });
@@ -3783,7 +3814,13 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                 dispatch);
     }
 
-    private void finishNativeInputCleanup(String reason) {
+    private static void resetNativeCameraFilters(Minecraft client) {
+        MouseHandlerAccessor mouse = (MouseHandlerAccessor) client.mouseHandler;
+        mouse.minecraftProtocolProbe$smoothTurnX().reset();
+        mouse.minecraftProtocolProbe$smoothTurnY().reset();
+    }
+
+    private void finishNativeInputCleanup(Minecraft client, String reason) {
         // Mouse-up clears isDown, not Vanilla's queued clickCount. A stop must clear both,
         // while successful completion may still have an already submitted native click.
         if ("pipeline_completed".equals(reason)) {
@@ -3791,6 +3828,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                     NeoForgeProbeRuntime::pendingNativeClicks,
                     net.minecraft.client.KeyMapping::isDown);
         } else {
+            resetNativeCameraFilters(client);
             this.nativeInputOwnership.releaseOwned(
                     mapping ->
                             ((io.github.recrivenvi.minecraftprotocol.probe.mixin
@@ -3870,7 +3908,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                                                                 0),
                                                         0));
                     }
-                    this.finishNativeInputCleanup(reason);
+                    this.finishNativeInputCleanup(client, reason);
                     this.pressedKeys.clear();
                     this.pressedButtons.clear();
                     if (releasedButtons > 0) this.logicalPointer.releaseButtons();

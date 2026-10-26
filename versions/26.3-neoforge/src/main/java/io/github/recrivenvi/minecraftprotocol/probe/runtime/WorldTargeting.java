@@ -125,10 +125,17 @@ public final class WorldTargeting {
         value.addProperty("targetTtlMs", 15000);
     }
 
+    private static boolean currentEntity(Minecraft client, Entity entity) {
+        if (entity instanceof net.neoforged.neoforge.entity.PartEntity<?> part)
+            return part.getParent().isAlive() && client.level.dragonParts().contains(part);
+        return client.level.getEntity(entity.getId()) == entity;
+    }
+
     void entity(JsonObject value, Entity entity, double radius) {
         Minecraft client = Minecraft.getInstance();
         if (entity == client.player
                 || !entity.isPickable()
+                || !currentEntity(client, entity)
                 || entity.isRemoved()
                 || (entity instanceof net.minecraft.world.entity.LivingEntity living
                         && !living.isAlive())
@@ -163,7 +170,6 @@ public final class WorldTargeting {
         if (client.gui.screen() != null
                 || client.gui.overlay() != null
                 || !client.options.getCameraType().isFirstPerson()
-                || client.player.isSpectator()
                 || !client.player.isAlive()
                 || client.getWindow().getWidth() <= 0
                 || client.getWindow().getHeight() <= 0)
@@ -193,7 +199,7 @@ public final class WorldTargeting {
                     || (entity instanceof net.minecraft.world.entity.LivingEntity living
                             && !living.isAlive())
                     || !entity.isPickable()
-                    || client.level.getEntity(entity.getId()) != entity)
+                    || !currentEntity(client, entity))
                 throw error("WORLD_TARGET_STALE", "Entity lifecycle ended");
         }
         return target;
@@ -203,14 +209,6 @@ public final class WorldTargeting {
         valid(ref);
         if (guard == null) return;
         Minecraft client = Minecraft.getInstance();
-        Vec3 position = client.player.position();
-        if (position.distanceToSqr(
-                        new Vec3(
-                                guard.get("x").getAsDouble(),
-                                guard.get("y").getAsDouble(),
-                                guard.get("z").getAsDouble()))
-                > 0.0625)
-            throw error("WORLD_ACTION_CONTEXT_CHANGED", "Player moved during semantic gesture");
         if (guard.get("width").getAsInt() != client.getWindow().getWidth()
                 || guard.get("height").getAsInt() != client.getWindow().getHeight()
                 || guard.get("selectedSlot").getAsInt()
@@ -234,6 +232,14 @@ public final class WorldTargeting {
         validate(ref, guard);
         Minecraft client = Minecraft.getInstance();
         Target target = valid(ref);
+        if (options.has("entityHit") && target.block != null)
+            throw error(
+                    "WORLD_ENTITY_TARGET_REQUIRED",
+                    "Body coordinates require a discovered entity target");
+        if (action.equals("use") && options.has("face") && target.block == null)
+            throw error(
+                    "WORLD_BLOCK_TARGET_REQUIRED",
+                    "Surface use requires a discovered block target");
         if (action.equals("mine") && target.block == null)
             throw error("WORLD_BLOCK_TARGET_REQUIRED", "Mining requires a block target");
         if (action.equals("place")
@@ -261,9 +267,6 @@ public final class WorldTargeting {
             // Input sequences are serialized: retain only this gesture's two held-stack copies.
             items.clear();
             guard = new JsonObject();
-            guard.addProperty("x", client.player.getX());
-            guard.addProperty("y", client.player.getY());
-            guard.addProperty("z", client.player.getZ());
             guard.addProperty("itemRef", items.add(client.player.getMainHandItem().copy()));
             guard.addProperty("offhandRef", items.add(client.player.getOffhandItem().copy()));
             guard.addProperty("selectedSlot", client.player.getInventory().getSelectedSlot());
@@ -300,7 +303,7 @@ public final class WorldTargeting {
                 "actualHit",
                 describeHit(
                         actualHit,
-                        action.equals("use_hold")
+                        boundedRay(action)
                                 ? "bounded_client_vanilla_ray"
                                 : "native_interaction_pick"));
         result.addProperty("onTarget", hit);
@@ -311,15 +314,13 @@ public final class WorldTargeting {
         result.addProperty("outcome", "native_target_hit");
         result.addProperty(
                 "aimValidation",
-                action.equals("use_hold")
-                        ? "bounded_client_vanilla_ray"
-                        : "native_interaction_pick");
+                boundedRay(action) ? "bounded_client_vanilla_ray" : "native_interaction_pick");
         if (press) {
             if (!hit)
                 throw notHit(
                         "Fresh native pick must hit the discovered target",
                         actualHit,
-                        action.equals("use_hold")
+                        boundedRay(action)
                                 ? "bounded_client_vanilla_ray"
                                 : "native_interaction_pick");
             if (action.equals("place")) placement(result, options);
@@ -365,7 +366,17 @@ public final class WorldTargeting {
     }
 
     private static Vec3 aimPoint(Target target, JsonObject options) {
-        if (target.block == null) return target.entity.get().getBoundingBox().getCenter();
+        if (target.block == null) {
+            Entity entity = target.entity.get();
+            if (!options.has("entityHit")) return entity.getBoundingBox().getCenter();
+            JsonObject point = options.getAsJsonObject("entityHit");
+            return entityPoint(
+                    entity.getBoundingBox().inflate(entity.getPickRadius()),
+                    Minecraft.getInstance().player.getEyePosition(),
+                    point.get("x").getAsDouble(),
+                    point.get("y").getAsDouble(),
+                    point.get("z").getAsDouble());
+        }
         if (!options.has("face")) {
             Minecraft client = Minecraft.getInstance();
             Vec3 eye = client.player.getEyePosition();
@@ -404,17 +415,70 @@ public final class WorldTargeting {
                         "candidate_outline_ray");
             return selected;
         }
-        double u = options.get("u").getAsDouble(), v = options.get("v").getAsDouble();
-        double x = target.block.getX(), y = target.block.getY(), z = target.block.getZ();
-        return switch (options.get("face").getAsString()) {
-            case "up" -> new Vec3(x + u, y + 1, z + v);
-            case "down" -> new Vec3(x + u, y, z + v);
-            case "north" -> new Vec3(x + u, y + v, z);
-            case "south" -> new Vec3(x + u, y + v, z + 1);
-            case "west" -> new Vec3(x, y + v, z + u);
-            case "east" -> new Vec3(x + 1, y + v, z + u);
-            default -> throw error("INVALID_WORLD_ACTION", "Unknown face");
-        };
+        Minecraft client = Minecraft.getInstance();
+        return facePoint(
+                target.block,
+                target.state.getShape(
+                        client.level, target.block, CollisionContext.of(client.player)),
+                options.get("face").getAsString(),
+                options.get("u").getAsDouble(),
+                options.get("v").getAsDouble());
+    }
+
+    static Vec3 entityPoint(
+            net.minecraft.world.phys.AABB box, Vec3 eye, double x, double y, double z) {
+        Vec3 inside =
+                new Vec3(
+                        box.minX + box.getXsize() * x,
+                        box.minY + box.getYsize() * y,
+                        box.minZ + box.getZsize() * z);
+        return box.clip(eye, inside).orElse(inside);
+    }
+
+    static Vec3 facePoint(BlockPos position, VoxelShape shape, String face, double u, double v) {
+        net.minecraft.core.Direction direction =
+                switch (face) {
+                    case "up" -> net.minecraft.core.Direction.UP;
+                    case "down" -> net.minecraft.core.Direction.DOWN;
+                    case "north" -> net.minecraft.core.Direction.NORTH;
+                    case "south" -> net.minecraft.core.Direction.SOUTH;
+                    case "west" -> net.minecraft.core.Direction.WEST;
+                    case "east" -> net.minecraft.core.Direction.EAST;
+                    default -> throw error("INVALID_WORLD_ACTION", "Unknown face");
+                };
+        if (shape.isEmpty())
+            throw notHit("Requested native outline is empty", null, "candidate_outline_ray");
+        double x = position.getX(), y = position.getY(), z = position.getZ();
+        Vec3 projection =
+                switch (direction.getAxis()) {
+                    case X -> new Vec3(x, y + v, z + u);
+                    case Y -> new Vec3(x + u, y, z + v);
+                    case Z -> new Vec3(x + u, y + v, z);
+                };
+        var bounds = shape.bounds();
+        double low = bounds.min(direction.getAxis()) - 1,
+                high = bounds.max(direction.getAxis()) + 1;
+        double
+                first =
+                        direction.getAxisDirection()
+                                        == net.minecraft.core.Direction.AxisDirection.POSITIVE
+                                ? high
+                                : low,
+                last = first == high ? low : high;
+        Vec3 normal = new Vec3(direction.getStepX(), direction.getStepY(), direction.getStepZ());
+        // Project the requested UV onto the actual native outline, not a fictitious unit cube.
+        Vec3 axis = new Vec3(Math.abs(normal.x), Math.abs(normal.y), Math.abs(normal.z));
+        BlockHitResult hit =
+                shape.clip(
+                        projection.add(axis.scale(first)),
+                        projection.add(axis.scale(last)),
+                        position);
+        if (hit == null || hit.getDirection() != direction)
+            throw notHit(
+                    "Requested UV does not intersect the native face",
+                    hit,
+                    "candidate_outline_ray");
+        return hit.getLocation();
     }
 
     static List<Vec3> outlinePoints(BlockPos position, VoxelShape shape) {
@@ -450,10 +514,14 @@ public final class WorldTargeting {
         return points;
     }
 
+    private static boolean boundedRay(String action) {
+        return action.equals("aim") || action.equals("use_hold");
+    }
+
     private static HitResult actionHit(String action) {
         Minecraft client = Minecraft.getInstance();
         HitResult hit = client.hitResult;
-        if (action.equals("use_hold")) {
+        if (boundedRay(action)) {
             Vec3 eye = client.player.getEyePosition(),
                     delta = client.player.getViewVector(1).scale(32);
             HitResult block = client.player.pick(32, 1, false);
@@ -485,7 +553,11 @@ public final class WorldTargeting {
                             && block.getLocation().distanceToSqr(aimPoint(target, options))
                                     <= .000625);
         }
-        return hit instanceof EntityHitResult entity && entity.getEntity() == target.entity.get();
+        return hit instanceof EntityHitResult entity
+                && entity.getEntity() == target.entity.get()
+                && (!options.has("entityHit")
+                        || entity.getLocation().distanceToSqr(aimPoint(target, options))
+                                <= .000625);
     }
 
     private static Placement placement(JsonObject result, JsonObject options) {
@@ -648,7 +720,7 @@ public final class WorldTargeting {
                 throw notHit(
                         "Aim or line of sight changed while held",
                         actualHit,
-                        current.action.equals("use_hold")
+                        boundedRay(current.action)
                                 ? "bounded_client_vanilla_ray"
                                 : "native_interaction_pick");
         }
@@ -706,7 +778,7 @@ public final class WorldTargeting {
                 throw notHit(
                         "Native target changed",
                         actualHit,
-                        current.action.equals("use_hold")
+                        boundedRay(current.action)
                                 ? "bounded_client_vanilla_ray"
                                 : "native_interaction_pick");
             if (current.action.equals("mine")) {

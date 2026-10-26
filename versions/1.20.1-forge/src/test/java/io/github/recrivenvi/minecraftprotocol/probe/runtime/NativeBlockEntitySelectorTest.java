@@ -31,6 +31,37 @@ class NativeBlockEntitySelectorTest {
             "io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine";
 
     @Test
+    void formalContinuationReachesTheProductionPagerAndRejectsClientOnlyReads() throws Exception {
+        ClassNode engine = compiled(ENGINE);
+        assertTrue(
+                calls(method(engine, "blockEntities")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.equals(
+                                                        "io/github/recrivenvi/minecraftprotocol/core/DeepBlockEntityPages")
+                                                && call.name.equals("select")));
+        assertTrue(
+                calls(method(engine, "close")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.equals(
+                                                        "io/github/recrivenvi/minecraftprotocol/core/DeepBlockEntityPages")
+                                                && call.name.equals("clear")));
+        for (String body :
+                List.of(
+                        "{\"perspective\":\"client_known\",\"domains\":[\"block_entities\"],\"selector\":{\"blockEntityCursor\":\"opaque\"}}",
+                        "{\"perspective\":\"server_authoritative\",\"domains\":[\"blocks\"],\"selector\":{\"blockEntityCursor\":\"opaque\"}}")) {
+            ProtocolState.ProtocolException rejected =
+                    assertThrows(
+                            ProtocolState.ProtocolException.class,
+                            () ->
+                                    Phase9ASpikeEngine.formalChunkRadius(
+                                            JsonParser.parseString(body).getAsJsonObject()));
+            assertEquals("UNSUPPORTED_DEEP_SELECTOR", rejected.code());
+        }
+    }
+
+    @Test
     void formalCoordinatesReachTheProductionCaptureThatReadsBlockEntities() throws Exception {
         ClassNode engine = compiled(ENGINE);
         MethodNode formal = method(engine, "captureFormal");

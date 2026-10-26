@@ -21,6 +21,128 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
 class NativeWorldReadBoundaryTest {
+    @Test
+    void nativePartsUseLoadedClientMembershipAndNativeParentLiveness() throws Exception {
+        var source = calls(method(compiled(RUNTIME + "WorldClientSnapshot$1"), "entities"));
+        assertTrue(source.stream().anyMatch(call -> call.name.equals("entitiesForRendering")));
+        assertTrue(source.stream().anyMatch(call -> call.name.equals("getPartEntities")));
+        assertTrue(source.stream().anyMatch(call -> call.name.equals("concat")));
+        var targeting = compiled(RUNTIME + "WorldTargeting");
+        var tracking = calls(method(targeting, "currentEntity"));
+        assertTrue(tracking.stream().anyMatch(call -> call.name.equals("isAlive")));
+        assertTrue(tracking.stream().anyMatch(call -> call.name.equals("contains")));
+        for (String name : List.of("entity", "valid"))
+            assertTrue(
+                    calls(method(targeting, name)).stream()
+                            .anyMatch(call -> call.name.equals("currentEntity")));
+    }
+
+    @Test
+    void farAimUsesBoundedNativePickButDoesNotExtendAttackOrUseReach() throws Exception {
+        var target = compiled(RUNTIME + "WorldTargeting");
+        var actions = new ArrayList<String>();
+        for (var instruction : method(target, "boundedRay").instructions)
+            if (instruction instanceof org.objectweb.asm.tree.LdcInsnNode literal
+                    && literal.cst instanceof String text) actions.add(text);
+        assertEquals(List.of("aim", "use_hold"), actions);
+        var hit = calls(method(target, "actionHit"));
+        assertTrue(hit.stream().anyMatch(call -> call.name.equals("boundedRay")));
+        assertTrue(hit.stream().anyMatch(call -> call.name.equals("pick")));
+        assertTrue(hit.stream().anyMatch(call -> call.name.equals("getEntityHitResult")));
+    }
+
+    @Test
+    void movingActionsUseLiveEyeAndFreshNativeHitsInsteadOfTreatingMovementAsIdentity()
+            throws Exception {
+        var target = compiled(RUNTIME + "WorldTargeting");
+        assertFalse(
+                calls(method(target, "validate")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.name.equals("position")
+                                                || call.name.equals("distanceToSqr")));
+        assertTrue(
+                calls(method(target, "frame")).stream()
+                        .anyMatch(call -> call.name.equals("getEyePosition")));
+        for (String name : List.of("frame", "permit")) {
+            var actual = calls(method(target, name));
+            assertTrue(actual.stream().anyMatch(call -> call.name.equals("validate")), name);
+            assertTrue(
+                    actual.stream()
+                            .anyMatch(call -> call.name.equals("minecraftProtocolProbe$pick")),
+                    name);
+            assertTrue(actual.stream().anyMatch(call -> call.name.equals("matches")), name);
+        }
+        assertTrue(
+                calls(method(target, "valid")).stream()
+                                .filter(
+                                        call ->
+                                                call.owner.equals("java/lang/ref/WeakReference")
+                                                        && call.name.equals("get"))
+                                .count()
+                        >= 3);
+    }
+
+    @Test
+    void spectatorAimUsesTheSameNativeRayInsteadOfASecondGameModePermission() throws Exception {
+        var target = compiled(RUNTIME + "WorldTargeting");
+        assertFalse(
+                calls(method(target, "valid")).stream()
+                        .anyMatch(call -> call.name.equals("isSpectator")));
+        var nativeAttack = method(compiled("net/minecraft/client/Minecraft"), "startAttack");
+        assertTrue(
+                calls(nativeAttack).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.equals(
+                                                        "net/minecraft/client/multiplayer/MultiPlayerGameMode")
+                                                && call.name.equals("attack")));
+        assertFalse(
+                calls(method(target, "frame")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.equals(
+                                                "net/minecraft/client/multiplayer/MultiPlayerGameMode")));
+    }
+
+    @Test
+    void ownMovementFeedbackUsesActualNativeClientGettersNotASecondSimulatedState()
+            throws Exception {
+        MethodNode player = method(compiled(RUNTIME + "WorldClientSnapshot$1"), "player");
+        List<MethodInsnNode> actual = calls(player);
+        for (String getter :
+                List.of(
+                        "getPose",
+                        "isCrouching",
+                        "isSprinting",
+                        "isSwimming",
+                        "isFallFlying",
+                        "isInWater",
+                        "isUnderWater",
+                        "isInLava",
+                        "isOnFire",
+                        "isSleeping",
+                        "isDeadOrDying",
+                        "getEyeHeight",
+                        "getMaxAirSupply",
+                        "getCameraType",
+                        "getCameraEntity",
+                        "getVehicle",
+                        "getControllingPassenger"))
+            assertTrue(actual.stream().anyMatch(call -> call.name.equals(getter)), getter);
+        assertFalse(
+                actual.stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.startsWith("net/minecraft/server/")
+                                                || List.of(
+                                                                "save",
+                                                                "saveWithoutId",
+                                                                "load",
+                                                                "getItem")
+                                                        .contains(call.name)));
+    }
+
     private static final String RUNTIME = "io/github/recrivenvi/minecraftprotocol/probe/runtime/";
 
     @Test

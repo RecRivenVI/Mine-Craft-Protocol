@@ -5,6 +5,11 @@
 
 ## 输入与窗口
 
+独立服务器Runtime使用各Loader的SERVER_STARTED/STOPPING生命周期，不在集成服创建第二入口。
+Forge1.20.1的服务器目录为File、命令结果回调为三参Brigadier ResultConsumer；其余Target目录为Path、回调为两参CommandResultCallback。
+Fabric原版CommandSourceStack.source为private，反馈委托给DedicatedServer自身，不使用NeoForge扩宽访问或新access widener。
+所有命令仍经服务器自身任务队列和原生分发器，普通终端输入不被替换；未持客户端Lease不影响独立操作员命令。
+
 生命HUD采样：26.3在Hud/Renderpearl的extract方法观察GuiGraphicsExtractor.blitSprite；
 26.1.2使用Gui/Blaze3d RenderPipeline，1.21.1使用GuiGraphics.blitSprite及renderAirLevel。
 Forge1.20.1分别观察Gui.renderHeart和原生ForgeGui四种绘制，以icons.png原生UV解码图标身份，帧边界来自GameRenderer。
@@ -278,3 +283,45 @@ AbstractSignEditScreen四行共享同一原生helper，typed修改非当前行�
 其USER节点声明backspace_from_end和完整值，通用Automation只发送有界真实退格，不能直接调用TextFieldHelper替代玩家。
 26.x独立标题EditBox继续原生全选；通用输入在清空后核对真实文字，再决定是否键入替换值。
 修改可能重建原生文字组件，恢复文字不承诺隐藏格式或服务器状态的事务回滚；结果和已知边界见Native协议。
+
+## 世界强类型状态与效果
+
+属性读取通过原生AttributeMap的已实例化map读取modifier，默认属性通过supplier getter取值，不调用getInstance创建对象。
+1.20.1的map键为Attribute，1.21.1及以后为Holder；旧modifier使用getId/getAmount/getOperation，现代使用id/amount/operation。
+玩家max_health别名在1.20.1映射实际generic.max_health，其他id直接使用原生注册值；修改校验native有效范围而不是默默clamp。
+效果hiddenEffect通过只读Mixin accessor有界读取，1.20.1使用带FactorData Optional的八参数构造，调用该effect的createFactorData取得原生默认渐变；现代用七参数构造。
+只恢复批准效果链字段，不复制渐变缓存。新增accessor只在客户端产品运行加载，不将独立服务端Runtime声明为已实现。
+1.20.1的EquipmentSlot只有六项；1.21.1及以后按LivingEntity.canUseSlot发布nativeEquipmentSlots并验证适用性，不把body/saddle硬编码成所有Target通用位置。
+flying通过既有native mayFly条件与普通abilities更新同步，noAi通过Mob原生标志；两者都是DEBUG路径，不模拟真人按键或授予权限。
+
+实体创建的1.20.1/1.21.1原生工厂为EntityType.create(Level)，26.x为create(Level, EntitySpawnReason.COMMAND)；都不调用finalizeSpawn或读取任意NBT。
+旧端moveTo及新端snapTo设置新对象小数位置与朝向，随后addFreshEntity；Chunk坐标旧端字段x/z、新端x()/z()，注册标识旧端ResourceLocation、新端Identifier。
+成员读取使用native带数量上限的getEntities及getChunkNow，目的地和对象边界均不触发Chunk加载；移除统一使用discard而非伤害/kill。
+
+## 世界环境
+
+1.x的Overworld主数据提供实际可写dayTime，DerivedLevelData的其他维度setter为空，不发布伪独立时钟。
+旧ServerLevel.setDayTime同时供自然tick与显式控制使用；只在tickTime中确切的那次自然调用设置局部标志并以finally恢复，其他具名调用照常递增控制版本，不阻止原生更新。
+26.x在ServerClockManager.modifyClock后记录具名控制，普通tick不经过此入口。26.3提供公开ServerClockInstance；26.1.2实例与getter私有，使用只读Map/播放字段accessor识别实际实例，数值优先使用公开getTotalTicks/getPartialTick。
+天气旧端来自Overworld的ServerLevelData，新端来自已载入的server WeatherData；具名setWeatherParameters计控制版本，自然倒计时不冒充外部编辑，当前raining/thundering仍进入版本判断。
+旧GameRules经原生visitor及现有rule值读取，新端使用availableRules；ID不做猜测映射，均用实际argument解析与setter/callback。
+1.x的原生整数argument使用完整int域，现代项可能有限制；发布真实minimum/maximum，不给旧版附加现代边界。时钟播放配置、累计gameTime与调度仅诊断读取，不新增模拟控制。
+
+## 世界原生转移
+
+1.20.1/1.21.1使用Entity.teleportTo的ServerLevel、坐标、相对字段集合及朝向七参数重载；26.x增加保留原生移动状态处理的boolean参数。
+不调用teleportToWithTicket或复制玩家命令实现，也不手写跨维度对象替换；非玩家重建和玩家网络同步均由此原生入口负责。
+既有源/目的包络先验证getChunkNow；同步调用复用LoadedChunkMutationScope，ServerChunkCache的具名getChunk入口只允许返回已加载对象。
+各端Entity.dimension进入正式DEBUG投影和资源状态，外维度精确读取用各端实际ResourceLocation/Identifier及现有ServerLevel.getEntity。
+玩家转移可关闭或重建客户端Screen；自动断言须先等待原生页面完成并通过真实Esc进入PauseScreen，再取稳定资源版本，不能放宽版本校验掩盖自然状态推进。
+
+仅验证probe在固定副本准备往返区域；1.x用自有TicketType及addRegionTicket/removeRegionTicket，26.x用未设置FLAG_PERSIST的TicketType及addTicketWithRadius/removeTicketWithRadius。
+票据由同一probe明确移除，不使用Vanilla FORCED或修改持久强加载数据；它不进入产品JAR，也不证明产品能够加载未知目的地。
+对外字段及副作用见[转移合同](../reference/protocol-native_v0.md#debug-live-转移)。
+
+## 原生相机帧与可重入输入
+
+五端Minecraft.runTick的原生鼠标消费点由同一逻辑来源作用域委托，不移动宿主光标或签发键鼠回调许可。
+1.20.1为MouseHandler.turnPlayer()，其余为handleAccumulatedMovement()；电影相机余量由各版本自身的SmoothDouble处理，强停止清空原生滤波器。
+键与按钮held状态须在原生回调前登记；GUI回调可在同线程重入主循环并卸载世界，返回后不能再次登记已被清理的输入。
+KeyEntry读取实际key/name/changeButton/resetButton，1.20.1的KeyBindsList位于screens.controls，其余位于screens.options.controls；不调用按钮业务回调。

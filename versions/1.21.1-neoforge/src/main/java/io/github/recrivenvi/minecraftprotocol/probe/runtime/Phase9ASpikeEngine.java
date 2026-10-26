@@ -9,13 +9,22 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import io.github.recrivenvi.minecraftprotocol.core.BoundedTaskExecutor;
 import io.github.recrivenvi.minecraftprotocol.core.DebugBlockStateRequest;
+import io.github.recrivenvi.minecraftprotocol.core.DebugEntityLifecycleRequest;
+import io.github.recrivenvi.minecraftprotocol.core.DebugEnvironmentRequest;
+import io.github.recrivenvi.minecraftprotocol.core.DebugItemRequest;
 import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
+import io.github.recrivenvi.minecraftprotocol.core.DebugRelationRequest;
+import io.github.recrivenvi.minecraftprotocol.core.DebugTransferRequest;
+import io.github.recrivenvi.minecraftprotocol.core.DeepBlockEntityPages;
 import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
+import io.github.recrivenvi.minecraftprotocol.core.EnvironmentControlRevisions;
+import io.github.recrivenvi.minecraftprotocol.core.LoadedChunkMutationScope;
 import io.github.recrivenvi.minecraftprotocol.core.ObservationLifecycleTracker;
 import io.github.recrivenvi.minecraftprotocol.core.ObservationRevisionTracker;
 import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
+import io.github.recrivenvi.minecraftprotocol.core.ScheduledTickRead;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.BaseContainerBlockEntityAccessor;
@@ -41,7 +50,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
@@ -52,6 +63,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.Ticket;
 import net.minecraft.util.SortedArraySet;
+import net.minecraft.world.Container;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -80,7 +92,7 @@ import net.minecraft.world.ticks.ScheduledTick;
 final class Phase9ASpikeEngine implements AutoCloseable {
     private static final Gson GSON = new Gson();
     private static final int MAX_SNAPSHOTS = 32;
-    private static final int MAX_ENTITIES = 128;
+    private static final int MAX_ENTITIES = DebugTransferRequest.MAX_ENTITY_TARGETS;
     private static final int MAX_BLOCK_ENTITIES = 128;
     private static final int MAX_SELECTED_BLOCKS = 64;
 
@@ -96,6 +108,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private final Map<String, JsonObject> snapshots = new LinkedHashMap<>();
     private final Map<String, JsonObject> selectors = new LinkedHashMap<>();
     private final Map<String, JsonObject> deltas = new LinkedHashMap<>();
+    private final DeepBlockEntityPages blockEntityPages = new DeepBlockEntityPages();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicBoolean ticketHookVerified = new AtomicBoolean();
     private final AtomicBoolean scheduledTickHookVerified = new AtomicBoolean();
@@ -162,15 +175,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("arbitraryReflection", false);
         json.addProperty("arbitraryPacketInjection", false);
         JsonArray operations = new JsonArray();
-        for (String operation :
-                List.of(
-                        "player.health.set",
-                        "player.attribute.set",
-                        "entity.no_gravity.set",
-                        "world.block.set",
-                        "block_entity.custom_name.set",
-                        "menu.slot.set",
-                        "provider.mutate")) {
+        List<String> declared = new ArrayList<>();
+        for (JsonElement descriptor :
+                io.github.recrivenvi.minecraftprotocol.core.WorldDebugInspection.contract()
+                        .getAsJsonArray("operations"))
+            declared.add(descriptor.getAsJsonObject().get("operation").getAsString());
+        for (String operation : declared) {
             JsonObject value = new JsonObject();
             value.addProperty("operation", operation);
             value.addProperty("status", "available");
@@ -254,6 +264,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         budgets.addProperty("maxEntities", MAX_ENTITIES);
         budgets.addProperty("maxBlocks", MAX_SELECTED_BLOCKS);
         budgets.addProperty("maxBlockEntities", MAX_BLOCK_ENTITIES);
+        budgets.addProperty("maxBlockEntityCandidates", DeepBlockEntityPages.MAX_CANDIDATES);
+        json.addProperty("blockEntityPagination", "selector.blockEntityCursor");
         budgets.addProperty("maxProviders", 8);
         budgets.addProperty("maxSerializedBytesPerBlockEntity", 16_384);
         budgets.addProperty("maxTotalSerializedBlockEntityBytes", 65_536);
@@ -315,6 +327,52 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             int radius =
                     io.github.recrivenvi.minecraftprotocol.safety.DeepObservationSelector
                             .chunkRadius(request);
+            String pageCursor =
+                    io.github.recrivenvi.minecraftprotocol.safety.DeepObservationSelector
+                            .blockEntityCursor(request);
+            if (request.has("selector")
+                    && request.getAsJsonObject("selector").has("entityTargets")) {
+                DebugTransferRequest.targets(
+                        request.getAsJsonObject("selector").get("entityTargets"));
+                boolean entities = !request.has("domains");
+                if (request.has("domains"))
+                    for (JsonElement domain : request.getAsJsonArray("domains"))
+                        entities |= domain.getAsString().equals("entities");
+                if (!entities
+                        || !request.has("perspective")
+                        || !request.get("perspective").getAsString().equals("server_authoritative"))
+                    throw new ProtocolState.ProtocolException(
+                            "UNSUPPORTED_DEEP_SELECTOR",
+                            400,
+                            "entityTargets requires entities and explicit server_authoritative perspective");
+            }
+            if (request.has("selector") && request.getAsJsonObject("selector").has("entityChunk")) {
+                JsonElement chunk = request.getAsJsonObject("selector").get("entityChunk");
+                if (!chunk.isJsonObject())
+                    throw new IllegalArgumentException("selector.entityChunk requires x and z");
+                DebugEntityLifecycleRequest.chunk(chunk.getAsJsonObject());
+                boolean entities = !request.has("domains");
+                if (request.has("domains"))
+                    for (JsonElement domain : request.getAsJsonArray("domains"))
+                        entities |= domain.getAsString().equals("entities");
+                if (!entities
+                        || (request.has("perspective")
+                                && request.get("perspective").getAsString().equals("client_known")))
+                    throw new ProtocolState.ProtocolException(
+                            "UNSUPPORTED_DEEP_SELECTOR",
+                            400,
+                            "entityChunk requires entities and server_authoritative or both");
+            }
+            if (pageCursor != null
+                    && (!requestsBlockEntities(request)
+                            || (request.has("perspective")
+                                    && request.get("perspective")
+                                            .getAsString()
+                                            .equals("client_known"))))
+                throw new ProtocolState.ProtocolException(
+                        "UNSUPPORTED_DEEP_SELECTOR",
+                        400,
+                        "Block entity continuation requires block_entities and server_authoritative or both");
             if (requestsBlockEntities(request)
                     && request.has("selector")
                     && request.getAsJsonObject("selector").has("blocks")) {
@@ -419,6 +477,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 request.has("domains") && request.get("domains").isJsonArray()
                         ? request.getAsJsonArray("domains").deepCopy()
                         : allDomains());
+        if (requestedSelector.has("blockEntityCursor"))
+            selector.add(
+                    "blockEntityCursor", requestedSelector.get("blockEntityCursor").deepCopy());
+        if (requestedSelector.has("entityChunk"))
+            selector.add("entityChunk", requestedSelector.get("entityChunk").deepCopy());
+        if (requestedSelector.has("entityTargets"))
+            selector.add("entityTargets", requestedSelector.get("entityTargets").deepCopy());
         JsonObject snapshot = captureSnapshot(server, player, normalizedSelector(selector));
         if (snapshot.has("player")) {
             JsonObject playerSnapshot = snapshot.getAsJsonObject("player");
@@ -431,10 +496,6 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 entity.remove("extensions");
                 entity.remove("nonDefaultTrackedValues");
             }
-        if (snapshot.has("world")) {
-            snapshot.getAsJsonObject("world").remove("scheduledTickDetail");
-            snapshot.getAsJsonObject("world").remove("ticketDetail");
-        }
         snapshot.remove("providerTrack");
         snapshot.remove("tickets");
         return snapshot;
@@ -796,11 +857,31 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     "INVALID_RESOURCE_VERSION", 400, "expectedResourceVersion is required");
         }
         return switch (operation) {
+            case "world.time.set" -> this.debugWorldTime(server, request);
+            case "world.weather.set" -> this.debugWorldWeather(server, request);
+            case "world.rule.set" -> this.debugWorldRule(server, player.serverLevel(), request);
+            case "entity.spawn" -> this.debugEntitySpawn(player, request);
+            case "entity.remove" -> this.debugEntityRemove(server, player, request);
             case "player.health.set" -> this.debugPlayerHealth(player, request);
+            case "player.state.set" -> this.debugPlayerState(player, request);
+            case "entity.state.set" -> this.debugEntityState(player, request);
+            case "entity.attribute.set" -> this.debugEntityAttribute(player, request);
+            case "entity.equipment.set" -> this.debugEntityEquipment(player, request);
+            case "player.effect.set" -> this.debugEffect(player, request, true);
+            case "player.transform.set" -> this.debugTransfer(server, player, request, true);
+            case "entity.transform.set" -> this.debugTransfer(server, player, request, false);
+            case "player.vehicle.set" -> this.debugRelation(player, request, "vehicle", true);
+            case "entity.vehicle.set" -> this.debugRelation(player, request, "vehicle", false);
+            case "entity.leash.set" -> this.debugRelation(player, request, "leash", false);
+            case "entity.owner.set" -> this.debugRelation(player, request, "owner", false);
+            case "entity.effect.set" -> this.debugEffect(player, request, false);
             case "player.attribute.set" -> this.debugPlayerAttribute(player, request);
+            case "player.inventory.slot.set" -> this.debugPlayerInventorySlot(player, request);
+            case "player.equipment.set" -> this.debugPlayerEquipment(player, request);
             case "entity.no_gravity.set" -> this.debugEntityNoGravity(player, request);
             case "world.block.set" -> this.debugWorldBlock(player, request);
             case "block_entity.custom_name.set" -> this.debugBlockEntityCustomName(player, request);
+            case "block_entity.slot.set" -> this.debugBlockEntitySlot(player, request);
             case "menu.slot.set" -> this.debugMenuSlot(player, request);
             default ->
                     throw new ProtocolState.ProtocolException(
@@ -867,40 +948,1347 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 this.playerRevision(after));
     }
 
-    private JsonObject debugPlayerAttribute(ServerPlayer player, JsonObject request) {
-        String attributeId = requiredDebugString(request, "attributeId");
-        if (!"minecraft:max_health".equals(attributeId)) {
-            throw new ProtocolState.ProtocolException(
-                    "CAPABILITY_UNAVAILABLE",
-                    409,
-                    "Phase 9C currently exposes only minecraft:max_health");
-        }
-        AttributeInstance instance = player.getAttribute(Attributes.MAX_HEALTH);
-        if (instance == null)
-            throw new ProtocolState.ProtocolException(
-                    "CAPABILITY_UNAVAILABLE", 409, "minecraft:max_health is unavailable");
-        JsonObject before = player(player);
-        JsonObject beforeRef = this.playerRevision(before);
+    private JsonObject debugPlayerState(ServerPlayer player, JsonObject request) {
+        JsonObject before = player(player), beforeRef = this.playerRevision(before);
         verifyExpected(request, beforeRef);
-        double requested = requiredFiniteDouble(request, "value", 0.001D, 2_048.0D);
-        if (request.has("expectedValue")
-                && Double.compare(
-                                request.get("expectedValue").getAsDouble(), instance.getBaseValue())
-                        != 0) {
-            throw valueMismatch("expectedValue", instance.getBaseValue());
+        JsonObject value =
+                io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.parse(request, true);
+        JsonObject current = debugStateProjection(before, true);
+        io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.verifyValues(
+                request, current);
+        if (value.has("air") && value.get("air").getAsInt() > player.getMaxAirSupply())
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "air exceeds native maxAirSupply");
+        if (value.has("flying")
+                && value.get("flying").getAsBoolean()
+                && !player.getAbilities().mayfly)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_PLAYER_ABILITY_DENIED",
+                    409,
+                    "Native player abilities do not permit flying; no ability or permission is granted");
+        if (value.has("experiencePoints")
+                && value.get("experiencePoints").getAsInt() >= player.getXpNeededForNextLevel())
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "experiencePoints must be below the current native level requirement");
+        if (io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.unchanged(value, current))
+            throw noStateChange();
+        if (value.has("food")) player.getFoodData().setFoodLevel(value.get("food").getAsInt());
+        if (value.has("saturation"))
+            player.getFoodData().setSaturation(value.get("saturation").getAsFloat());
+        if (value.has("air")) player.setAirSupply(value.get("air").getAsInt());
+        if (value.has("absorption"))
+            player.setAbsorptionAmount(value.get("absorption").getAsFloat());
+        if (value.has("experienceLevel"))
+            player.setExperienceLevels(value.get("experienceLevel").getAsInt());
+        if (value.has("experiencePoints"))
+            player.setExperiencePoints(value.get("experiencePoints").getAsInt());
+        if (value.has("flying")) {
+            player.getAbilities().flying = value.get("flying").getAsBoolean();
+            player.onUpdateAbilities();
         }
-        if (Double.compare(requested, instance.getBaseValue()) == 0) throw noStateChange();
-        instance.setBaseValue(requested);
+        if (value.has("velocity")) {
+            applyDebugVelocity(player, value.getAsJsonObject("velocity"));
+            player.connection.send(
+                    new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(
+                            player));
+        }
         JsonObject after = player(player);
         return mutationResult(
                 request,
                 "player",
-                "server_attribute_map",
+                "native_player_state_setters",
                 "normal_network_sync",
                 before,
                 after,
                 beforeRef,
                 this.playerRevision(after));
+    }
+
+    private JsonObject debugEntityState(ServerPlayer player, JsonObject request) {
+        Entity target = loadedEntity(player, requiredDebugString(request, "entityUuid"));
+        if (target instanceof ServerPlayer)
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "Player state requires its own player namespace and operation");
+        JsonObject before = entity(target), beforeRef = entityRevision(before);
+        verifyExpected(request, beforeRef);
+        JsonObject value =
+                io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.parse(request, false);
+        JsonObject current = debugStateProjection(before, false);
+        for (String field : value.keySet())
+            if (!current.has(field))
+                throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                        "State field is not applicable to this native entity: " + field);
+        io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.verifyValues(
+                request, current);
+        if (request.has("expectedEntityType")
+                && !request.get("expectedEntityType").equals(before.get("type")))
+            throw valueMismatch("expectedEntityType", before.get("type").getAsString());
+        if (value.has("air") && value.get("air").getAsInt() > target.getMaxAirSupply())
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "air exceeds native maxAirSupply");
+        if (io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.unchanged(value, current))
+            throw noStateChange();
+        if (value.has("health"))
+            ((LivingEntity) target).setHealth(value.get("health").getAsFloat());
+        if (value.has("absorption"))
+            ((LivingEntity) target).setAbsorptionAmount(value.get("absorption").getAsFloat());
+        if (value.has("air")) target.setAirSupply(value.get("air").getAsInt());
+        if (value.has("silent")) target.setSilent(value.get("silent").getAsBoolean());
+        if (value.has("noGravity")) target.setNoGravity(value.get("noGravity").getAsBoolean());
+        if (value.has("glowing")) target.setGlowingTag(value.get("glowing").getAsBoolean());
+        if (value.has("noAi"))
+            ((net.minecraft.world.entity.Mob) target).setNoAi(value.get("noAi").getAsBoolean());
+        if (value.has("velocity")) applyDebugVelocity(target, value.getAsJsonObject("velocity"));
+        JsonObject after = entity(target);
+        return mutationResult(
+                request,
+                "entity",
+                "native_entity_state_setters",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                entityRevision(after));
+    }
+
+    private JsonObject relationship(Entity target) {
+        JsonObject value = new JsonObject();
+        String uuid = target.getUUID().toString();
+        value.addProperty("uuid", uuid);
+        value.addProperty(
+                "type", BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString());
+        value.addProperty(
+                "lifecycleId", this.lifecycles.lifecycleId("entity_relationship", uuid, target));
+        value.addProperty("removed", target.isRemoved());
+        value.add(
+                "vehicle",
+                target.getVehicle() == null
+                        ? com.google.gson.JsonNull.INSTANCE
+                        : new com.google.gson.JsonPrimitive(
+                                target.getVehicle().getUUID().toString()));
+        JsonArray passengers = new JsonArray();
+        target.getPassengers().forEach(entity -> passengers.add(entity.getUUID().toString()));
+        value.add("passengers", passengers);
+        JsonObject leash = new JsonObject();
+        leash.addProperty("supported", target instanceof net.minecraft.world.entity.Leashable);
+        if (target instanceof net.minecraft.world.entity.Leashable leashable) {
+            var data = leashable.getLeashData();
+            Entity holder = data == null ? null : data.leashHolder;
+            leash.addProperty(
+                    "resolution", data == null ? "none" : holder == null ? "pending" : "resolved");
+            leash.add(
+                    "holderUuid",
+                    holder == null
+                            ? com.google.gson.JsonNull.INSTANCE
+                            : new com.google.gson.JsonPrimitive(holder.getUUID().toString()));
+            if (data != null && data.delayedLeashInfo != null)
+                leash.addProperty(
+                        "pendingReference",
+                        data.delayedLeashInfo.map(UUID::toString, Phase9ASpikeEngine::key));
+        } else leash.addProperty("readOnlyReason", "native_entity_is_not_leashable");
+        value.add("leash", leash);
+        JsonObject owner = new JsonObject();
+        owner.addProperty(
+                "supported",
+                target instanceof net.minecraft.world.entity.TamableAnimal
+                        || target instanceof net.minecraft.world.entity.animal.horse.AbstractHorse);
+        if (target instanceof net.minecraft.world.entity.TamableAnimal animal) {
+            var reference = animal.getOwnerUUID();
+            owner.add(
+                    "ownerUuid",
+                    reference == null
+                            ? com.google.gson.JsonNull.INSTANCE
+                            : new com.google.gson.JsonPrimitive(reference.toString()));
+            owner.addProperty("tamed", animal.isTame());
+        } else if (target instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse) {
+            var reference = horse.getOwnerUUID();
+            owner.add(
+                    "ownerUuid",
+                    reference == null
+                            ? com.google.gson.JsonNull.INSTANCE
+                            : new com.google.gson.JsonPrimitive(reference.toString()));
+            owner.addProperty("tamed", horse.isTamed());
+        } else owner.addProperty("readOnlyReason", "native_type_has_no_approved_tame_owner_setter");
+        value.add("owner", owner);
+        return value;
+    }
+
+    private JsonObject relationshipRevision(JsonObject value) {
+        return this.revisions.revision(
+                "entity_relationship",
+                value.get("uuid").getAsString(),
+                value.get("lifecycleId").getAsString(),
+                value);
+    }
+
+    private void verifyRelationshipParticipants(
+            JsonObject request, Map<String, Entity> participants) {
+        JsonElement values = request.get("relatedResourceVersions");
+        if (values == null || !values.isJsonArray() || values.getAsJsonArray().size() > 3)
+            throw DebugRelationRequest.invalid(
+                    "relatedResourceVersions must explicitly cover affected old/new participants");
+        Map<String, JsonObject> supplied = new LinkedHashMap<>();
+        for (JsonElement element : values.getAsJsonArray()) {
+            if (!element.isJsonObject())
+                throw DebugRelationRequest.invalid("Participant versions must be objects");
+            JsonObject ref = element.getAsJsonObject();
+            ResourceVersionVerifier.token(ref);
+            String key = ref.get("resourceKey").getAsString();
+            if (supplied.put(key, ref) != null)
+                throw DebugRelationRequest.invalid("Duplicate participant version");
+        }
+        if (!supplied.keySet().equals(participants.keySet()))
+            throw DebugRelationRequest.invalid(
+                    "Participant versions must match the affected old/new identities exactly");
+        participants.forEach(
+                (uuid, entity) ->
+                        ResourceVersionVerifier.verifyAuthorized(
+                                supplied.get(uuid), relationshipRevision(relationship(entity))));
+    }
+
+    private JsonObject debugRelation(
+            ServerPlayer player, JsonObject request, String kind, boolean playerSource) {
+        Entity source =
+                playerSource
+                        ? player
+                        : loadedEntity(player, requiredDebugString(request, "entityUuid"));
+        if (!playerSource && source instanceof ServerPlayer)
+            throw DebugRelationRequest.invalid("Player relationships require the player namespace");
+        JsonObject before = relationship(source), beforeRef = relationshipRevision(before);
+        verifyExpected(request, beforeRef);
+        JsonElement value = request.get("value"), expectedCurrent;
+        String targetUuid;
+        if (kind.equals("owner")) {
+            JsonObject owner = DebugRelationRequest.owner(value);
+            if (request.has("expectedValue"))
+                DebugRelationRequest.owner(request.get("expectedValue"));
+            targetUuid = DebugRelationRequest.uuid(owner.get("ownerUuid"));
+            expectedCurrent = before.getAsJsonObject("owner").deepCopy();
+            expectedCurrent.getAsJsonObject().remove("supported");
+            expectedCurrent.getAsJsonObject().remove("readOnlyReason");
+            if (!before.getAsJsonObject("owner").get("supported").getAsBoolean())
+                throw new ProtocolState.ProtocolException(
+                        "DEBUG_RELATION_UNSUPPORTED",
+                        409,
+                        "Native type has no approved owner setter");
+        } else {
+            targetUuid = DebugRelationRequest.uuid(value);
+            if (request.has("expectedValue"))
+                DebugRelationRequest.uuid(request.get("expectedValue"));
+            expectedCurrent =
+                    kind.equals("vehicle")
+                            ? before.get("vehicle")
+                            : before.getAsJsonObject("leash").get("holderUuid");
+            if (kind.equals("leash")
+                    && (!(source instanceof net.minecraft.world.entity.Leashable)
+                            || before.getAsJsonObject("leash")
+                                    .get("resolution")
+                                    .getAsString()
+                                    .equals("pending")))
+                throw new ProtocolState.ProtocolException(
+                        "DEBUG_RELATION_UNSUPPORTED",
+                        409,
+                        "Leash type is unsupported or native saved relation remains unresolved");
+        }
+        DebugRelationRequest.expected(request, expectedCurrent);
+        if (value.equals(expectedCurrent)) throw noStateChange();
+        Entity target = targetUuid == null ? null : loadedEntity(player, targetUuid);
+        if (target == source)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_RELATION_REJECTED", 409, "An entity cannot relate to itself");
+        Map<String, Entity> participants = new LinkedHashMap<>();
+        if (target != null) participants.put(targetUuid, target);
+        if ((kind.equals("vehicle") || (kind.equals("leash") && target != null))
+                && source.getVehicle() != null)
+            participants.put(source.getVehicle().getUUID().toString(), source.getVehicle());
+        if (kind.equals("leash")
+                || (kind.equals("vehicle")
+                        && target != null
+                        && source instanceof net.minecraft.world.entity.Leashable)) {
+            Entity previous =
+                    ((net.minecraft.world.entity.Leashable) source).getLeashData() == null
+                            ? null
+                            : ((net.minecraft.world.entity.Leashable) source)
+                                    .getLeashData()
+                                    .leashHolder;
+            if (previous != null) participants.put(previous.getUUID().toString(), previous);
+        }
+        verifyRelationshipParticipants(request, participants);
+        if (target != null && !target.isAlive())
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_RELATION_REJECTED", 409, "New native participant is not alive");
+        if (kind.equals("owner") && target != null && !(target instanceof ServerPlayer))
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_RELATION_REJECTED",
+                    409,
+                    "Approved tame ownership uses a loaded real player");
+        if (kind.equals("leash") && target != null) {
+            Set<UUID> visited = new HashSet<>();
+            Entity cursor = target;
+            while (cursor != null) {
+                if (cursor == source || !visited.add(cursor.getUUID()))
+                    throw new ProtocolState.ProtocolException(
+                            "DEBUG_RELATION_REJECTED",
+                            409,
+                            "Leash relationship would preserve or create a cycle");
+                if (cursor instanceof net.minecraft.world.entity.Leashable linked) {
+                    var link = linked.getLeashData();
+                    if (link != null && link.leashHolder == null)
+                        throw new ProtocolState.ProtocolException(
+                                "DEBUG_RELATION_UNSUPPORTED",
+                                409,
+                                "Participant leash remains unresolved");
+                    cursor = link == null ? null : link.leashHolder;
+                } else cursor = null;
+            }
+            if (!((net.minecraft.world.entity.Leashable) source).canHaveALeashAttachedToIt())
+                throw new ProtocolState.ProtocolException(
+                        "DEBUG_RELATION_REJECTED",
+                        409,
+                        "Native leash predicate rejected this attachment");
+        }
+        ServerLevel level = (ServerLevel) source.level();
+        requireEntityBoundsLoaded(level, source.getBoundingBox());
+        if (target != null) requireEntityBoundsLoaded(level, target.getBoundingBox());
+        if ((kind.equals("vehicle") || (kind.equals("leash") && target != null))
+                && source.getVehicle() != null) {
+            Entity vehicle = source.getVehicle();
+            // Vanilla searches adjacent dismount blocks and collision escape vectors derived
+            // from both widths. Check their loaded envelope before native stopRiding can read it.
+            double margin = vehicle.getBbWidth() * Math.sqrt(2) + source.getBbWidth() + 2;
+            requireEntityBoundsLoaded(
+                    level,
+                    vehicle.getBoundingBox().minmax(source.getBoundingBox()).inflate(margin));
+        }
+        JsonObject beforeEntity = entity(source);
+        boolean accepted = true;
+        if (kind.equals("vehicle")) {
+            if (target == null) source.stopRiding();
+            else accepted = source.startRiding(target);
+        } else if (kind.equals("leash")) {
+            if (target == null)
+                ((net.minecraft.world.entity.Leashable) source).dropLeash(true, false);
+            else ((net.minecraft.world.entity.Leashable) source).setLeashedTo(target, true);
+        } else {
+            boolean tamed = value.getAsJsonObject().get("tamed").getAsBoolean();
+            if (source instanceof net.minecraft.world.entity.TamableAnimal animal) {
+                animal.setOwnerUUID(target == null ? null : target.getUUID());
+                animal.setTame(tamed, true);
+            } else {
+                var horse = (net.minecraft.world.entity.animal.horse.AbstractHorse) source;
+                horse.setOwnerUUID(target == null ? null : target.getUUID());
+                horse.setTamed(tamed);
+            }
+        }
+        JsonObject after = relationship(source), afterRef = relationshipRevision(after);
+        if (!accepted) {
+            JsonObject details = new JsonObject();
+            details.addProperty("nativeAccepted", false);
+            details.addProperty("relationshipChanged", !before.equals(after));
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_RELATION_REJECTED",
+                    409,
+                    "Native non-forced riding rejected the relationship",
+                    details);
+        }
+        JsonObject result =
+                mutationResult(
+                        request,
+                        playerSource ? "player" : "entity",
+                        "native_" + kind + "_relationship",
+                        "native_relationship_sync",
+                        before,
+                        after,
+                        beforeRef,
+                        afterRef);
+        result.add("beforeEntity", beforeEntity);
+        result.add("afterEntity", entity(source));
+        JsonArray related = new JsonArray();
+        participants
+                .values()
+                .forEach(
+                        participant -> {
+                            JsonObject state = relationship(participant);
+                            state.add(
+                                    "resourceVersion",
+                                    ResourceVersionVerifier.token(relationshipRevision(state)));
+                            related.add(state);
+                        });
+        result.add("relatedAfter", related);
+        result.addProperty(
+                "cleanup", "reinspect_and_restore_relationship_and_any_native_state_side_effects");
+        return result;
+    }
+
+    private JsonObject debugWorldTime(MinecraftServer server, JsonObject request) {
+        ServerLevel level = server.overworld();
+        String id = requiredDebugString(request, "clockId");
+        if (!id.equals(level.dimension().location().toString()))
+            throw DebugEnvironmentRequest.invalid(
+                    "Unknown independent native clockId; derived dimension daytime is not a writable clock");
+        JsonObject before = clock(level), beforeRef = clockRevision(before);
+        verifyExpected(request, beforeRef);
+        long value = DebugEnvironmentRequest.ticks(request.get("value"));
+        if (request.has("expectedValue"))
+            DebugEnvironmentRequest.ticks(request.get("expectedValue"));
+        DebugEnvironmentRequest.expected(request, before.get("totalTicks"));
+        if (value == before.get("totalTicks").getAsLong()) throw noStateChange();
+        level.setDayTime(value);
+        server.getPlayerList()
+                .broadcastAll(
+                        new net.minecraft.network.protocol.game.ClientboundSetTimePacket(
+                                level.getGameTime(),
+                                level.getDayTime(),
+                                level.getGameRules()
+                                        .getBoolean(
+                                                net.minecraft.world.level.GameRules.RULE_DAYLIGHT)),
+                        level.dimension());
+        JsonObject after = clock(level);
+        return mutationResult(
+                request,
+                "world",
+                "native_overworld_setDayTime",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                clockRevision(after));
+    }
+
+    private JsonObject debugWorldWeather(MinecraftServer server, JsonObject request) {
+        ServerLevel level = server.overworld();
+        JsonObject before = weather(server), beforeRef = weatherRevision(before);
+        verifyExpected(request, beforeRef);
+        JsonObject value = DebugEnvironmentRequest.weather(request.get("value"));
+        if (request.has("expectedValue"))
+            DebugEnvironmentRequest.weather(request.get("expectedValue"));
+        JsonObject current = weatherValue(before);
+        DebugEnvironmentRequest.expected(request, current);
+        if (current.equals(value)) throw noStateChange();
+        level.setWeatherParameters(
+                value.get("clearWeatherTime").getAsInt(),
+                value.get("rainTime").getAsInt(),
+                value.get("raining").getAsBoolean(),
+                value.get("thundering").getAsBoolean());
+        ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData())
+                .setThunderTime(value.get("thunderTime").getAsInt());
+        JsonObject after = weather(server);
+        return mutationResult(
+                request,
+                "world",
+                "native_weather_parameters_and_timer_setters",
+                "normal_weather_simulation_sync",
+                before,
+                after,
+                beforeRef,
+                weatherRevision(after));
+    }
+
+    private JsonObject debugWorldRule(
+            MinecraftServer server, ServerLevel level, JsonObject request) {
+        String id = requiredDebugString(request, "ruleId");
+        JsonObject[] result = {null};
+        net.minecraft.world.level.GameRules.visitGameRuleTypes(
+                new net.minecraft.world.level.GameRules.GameRuleTypeVisitor() {
+                    @Override
+                    public <T extends net.minecraft.world.level.GameRules.Value<T>> void visit(
+                            net.minecraft.world.level.GameRules.Key<T> key,
+                            net.minecraft.world.level.GameRules.Type<T> type) {
+                        if (key.getId().equals(id) && level.getGameRules().getRule(key) != null)
+                            result[0] = setGameRule(server, level, key, type, request);
+                    }
+                });
+        if (result[0] == null)
+            throw DebugEnvironmentRequest.invalid("Unknown available native ruleId");
+        return result[0];
+    }
+
+    private <T extends net.minecraft.world.level.GameRules.Value<T>> JsonObject setGameRule(
+            MinecraftServer server,
+            ServerLevel level,
+            net.minecraft.world.level.GameRules.Key<T> key,
+            net.minecraft.world.level.GameRules.Type<T> type,
+            JsonObject request) {
+        var nativeRule = level.getGameRules().getRule(key);
+        JsonObject before = gameRule(level, key, type), beforeRef = gameRuleRevision(before);
+        verifyExpected(request, beforeRef);
+        JsonElement value = DebugEnvironmentRequest.rule(request.get("value"));
+        if (request.has("expectedValue"))
+            DebugEnvironmentRequest.rule(request.get("expectedValue"));
+        DebugEnvironmentRequest.expected(request, before.get("value"));
+        if (!before.get("typedWritable").getAsBoolean()
+                || value.getAsJsonPrimitive().isBoolean()
+                        != (nativeRule instanceof net.minecraft.world.level.GameRules.BooleanValue))
+            throw DebugEnvironmentRequest.invalid(
+                    "Value does not match the native boolean/integer rule type");
+        Object parsed;
+        try {
+            var reader = new com.mojang.brigadier.StringReader(value.toString());
+            parsed = type.createArgument("value").getType().parse(reader);
+            if (reader.canRead())
+                throw DebugEnvironmentRequest.invalid("Trailing rule value input");
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException invalid) {
+            throw DebugEnvironmentRequest.invalid(
+                    "Value violates the native game rule argument domain");
+        }
+        if (value.equals(before.get("value"))) throw noStateChange();
+        if (nativeRule instanceof net.minecraft.world.level.GameRules.BooleanValue booleanRule)
+            booleanRule.set((Boolean) parsed, server);
+        else
+            ((net.minecraft.world.level.GameRules.IntegerValue) nativeRule)
+                    .set((Integer) parsed, server);
+        JsonObject after = gameRule(level, key, type);
+        return mutationResult(
+                request,
+                "world",
+                "native_game_rule_set",
+                "native_rule_callback_and_sync",
+                before,
+                after,
+                beforeRef,
+                gameRuleRevision(after));
+    }
+
+    private JsonObject clock(ServerLevel level) {
+        JsonObject value = new JsonObject();
+        String id = level.dimension().location().toString();
+        value.addProperty("clockId", id);
+        value.addProperty("key", id);
+        value.addProperty("model", "native_overworld_daytime");
+        value.addProperty("totalTicks", level.getDayTime());
+        value.addProperty("lifecycleId", this.lifecycles.lifecycleId("world_time", id, level));
+        value.addProperty("controlRevision", EnvironmentControlRevisions.time(level));
+        value.addProperty("revisionCoverage", "named_native_clock_edits_not_natural_progression");
+        value.addProperty("playbackControl", "read_only_simulation_diagnostic");
+        return value;
+    }
+
+    private JsonObject clockRevision(JsonObject value) {
+        return this.revisions.nativeRevision(
+                "world_time",
+                value.get("key").getAsString(),
+                value.get("lifecycleId").getAsString(),
+                value.get("controlRevision").getAsLong(),
+                "runtime_event_sequence");
+    }
+
+    private JsonObject weather(MinecraftServer server) {
+        ServerLevel level = server.overworld();
+        var data = (net.minecraft.world.level.storage.ServerLevelData) level.getLevelData();
+        JsonObject value = new JsonObject();
+        value.addProperty("key", "server_weather");
+        value.addProperty(
+                "lifecycleId",
+                this.lifecycles.lifecycleId("world_weather", "server_weather", level));
+        value.addProperty("clearWeatherTime", data.getClearWeatherTime());
+        value.addProperty("rainTime", data.getRainTime());
+        value.addProperty("thunderTime", data.getThunderTime());
+        value.addProperty("raining", data.isRaining());
+        value.addProperty("thundering", data.isThundering());
+        value.addProperty("controlRevision", EnvironmentControlRevisions.weather(level));
+        value.addProperty(
+                "revisionCoverage",
+                "named_native_weather_edits_and_current_flags_not_timer_countdown");
+        value.addProperty("scope", "native_overworld_weather");
+        return value;
+    }
+
+    private static JsonObject weatherValue(JsonObject state) {
+        JsonObject result = new JsonObject();
+        for (String field :
+                List.of("clearWeatherTime", "rainTime", "thunderTime", "raining", "thundering"))
+            result.add(field, state.get(field).deepCopy());
+        return result;
+    }
+
+    private JsonObject weatherRevision(JsonObject value) {
+        JsonObject control = new JsonObject();
+        for (String field : List.of("controlRevision", "raining", "thundering"))
+            control.add(field, value.get(field).deepCopy());
+        return this.revisions.revision(
+                "world_weather",
+                value.get("key").getAsString(),
+                value.get("lifecycleId").getAsString(),
+                control);
+    }
+
+    private <T extends net.minecraft.world.level.GameRules.Value<T>> JsonObject gameRule(
+            ServerLevel level,
+            net.minecraft.world.level.GameRules.Key<T> key,
+            net.minecraft.world.level.GameRules.Type<T> type) {
+        var nativeRule = level.getGameRules().getRule(key);
+        JsonObject value = new JsonObject();
+        String id = key.getId();
+        value.addProperty("ruleId", id);
+        value.addProperty("key", level.dimension().location() + "@" + id);
+        value.addProperty(
+                "lifecycleId",
+                this.lifecycles.lifecycleId(
+                        "world_rule", value.get("key").getAsString(), level.getGameRules()));
+        boolean writable =
+                nativeRule instanceof net.minecraft.world.level.GameRules.BooleanValue
+                        || nativeRule instanceof net.minecraft.world.level.GameRules.IntegerValue;
+        if (nativeRule instanceof net.minecraft.world.level.GameRules.BooleanValue flag)
+            value.addProperty("value", flag.get());
+        else if (nativeRule instanceof net.minecraft.world.level.GameRules.IntegerValue number)
+            value.addProperty("value", number.get());
+        else value.addProperty("value", nativeRule.serialize());
+        value.addProperty(
+                "valueType",
+                nativeRule instanceof net.minecraft.world.level.GameRules.BooleanValue
+                        ? "boolean"
+                        : nativeRule instanceof net.minecraft.world.level.GameRules.IntegerValue
+                                ? "integer"
+                                : nativeRule.getClass().getSimpleName());
+        value.addProperty("typedWritable", writable);
+        if (!writable) value.addProperty("readOnlyReason", "unsupported_native_rule_value_type");
+        if (type.createArgument("value").getType()
+                instanceof com.mojang.brigadier.arguments.IntegerArgumentType domain) {
+            value.addProperty("minimum", domain.getMinimum());
+            value.addProperty("maximum", domain.getMaximum());
+        }
+        value.addProperty("scope", "native_level_game_rules");
+        return value;
+    }
+
+    private JsonObject gameRuleRevision(JsonObject value) {
+        JsonObject ref =
+                this.revisions.revision(
+                        "world_rule",
+                        value.get("key").getAsString(),
+                        value.get("lifecycleId").getAsString(),
+                        value);
+        if (!value.get("typedWritable").getAsBoolean())
+            ref.addProperty("mutationPreconditionEligible", false);
+        return ref;
+    }
+
+    private JsonObject environment(MinecraftServer server, ServerLevel level) {
+        JsonObject value = new JsonObject();
+        JsonArray clocks = new JsonArray();
+        clocks.add(clock(server.overworld()));
+        value.add("clocks", clocks);
+        value.add("weather", weather(server));
+        List<JsonObject> rules = new ArrayList<>();
+        net.minecraft.world.level.GameRules.visitGameRuleTypes(
+                new net.minecraft.world.level.GameRules.GameRuleTypeVisitor() {
+                    @Override
+                    public <T extends net.minecraft.world.level.GameRules.Value<T>> void visit(
+                            net.minecraft.world.level.GameRules.Key<T> key,
+                            net.minecraft.world.level.GameRules.Type<T> type) {
+                        if (level.getGameRules().getRule(key) != null)
+                            rules.add(gameRule(level, key, type));
+                    }
+                });
+        JsonArray array = new JsonArray();
+        rules.stream()
+                .sorted(Comparator.comparing(rule -> rule.get("ruleId").getAsString()))
+                .forEach(array::add);
+        value.add("rules", array);
+        value.addProperty("chunkLoadRequested", false);
+        value.addProperty("storageAccessed", false);
+        return value;
+    }
+
+    private static ServerLevel existingDimension(MinecraftServer server, String id) {
+        ServerLevel level =
+                server.getLevel(
+                        ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(id)));
+        if (level == null)
+            throw new ProtocolState.ProtocolException(
+                    "DIMENSION_UNAVAILABLE",
+                    409,
+                    "Dimension has no current LIVE ServerLevel; no creation requested");
+        return level;
+    }
+
+    private JsonArray selectedEntities(MinecraftServer server, JsonElement selector) {
+        JsonArray entries = new JsonArray();
+        for (var target : DebugTransferRequest.targets(selector)) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("dimension", target.dimension());
+            entry.addProperty("entityUuid", target.entityUuid().toString());
+            entry.addProperty("chunkLoadRequested", false);
+            ServerLevel level =
+                    server.getLevel(
+                            ResourceKey.create(
+                                    Registries.DIMENSION,
+                                    ResourceLocation.parse(target.dimension())));
+            Entity entity = level == null ? null : level.getEntity(target.entityUuid());
+            boolean available =
+                    entity != null
+                            && !entity.isRemoved()
+                            && level.getChunkSource()
+                                            .getChunkNow(
+                                                    entity.chunkPosition().x,
+                                                    entity.chunkPosition().z)
+                                    != null;
+            entry.addProperty("available", available);
+            if (available) {
+                JsonObject state = entity(entity);
+                state.remove("extensions");
+                state.remove("nonDefaultTrackedValues");
+                entry.add("state", state);
+            } else
+                entry.addProperty(
+                        "reason", level == null ? "dimension_unavailable" : "entity_not_loaded");
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static JsonObject transferValue(Entity entity) {
+        JsonObject value = new JsonObject(), at = new JsonObject();
+        at.addProperty("x", entity.getX());
+        at.addProperty("y", entity.getY());
+        at.addProperty("z", entity.getZ());
+        value.addProperty("dimension", entity.level().dimension().location().toString());
+        value.add("position", at);
+        value.addProperty("yaw", entity.getYRot());
+        value.addProperty("pitch", entity.getXRot());
+        return value;
+    }
+
+    private JsonObject debugTransfer(
+            MinecraftServer server, ServerPlayer player, JsonObject request, boolean ownPlayer) {
+        ServerLevel source =
+                ownPlayer
+                        ? player.serverLevel()
+                        : existingDimension(
+                                server, DebugTransferRequest.dimension(request, "sourceDimension"));
+        Entity target =
+                ownPlayer
+                        ? player
+                        : loadedEntity(source, requiredDebugString(request, "entityUuid"));
+        if (target == null
+                || target.isRemoved()
+                || source.getChunkSource()
+                                .getChunkNow(target.chunkPosition().x, target.chunkPosition().z)
+                        == null) throw targetNotLoaded("transfer source entity");
+        if (!ownPlayer && target instanceof ServerPlayer)
+            throw DebugTransferRequest.invalid(
+                    "Players require their own current-player namespace");
+        JsonObject before = ownPlayer ? player(player) : entity(target);
+        JsonObject beforeRef = ownPlayer ? playerRevision(before) : entityRevision(before);
+        verifyExpected(request, beforeRef);
+        if (!ownPlayer
+                && request.has("expectedEntityType")
+                && !request.get("expectedEntityType").equals(before.get("type")))
+            throw valueMismatch("expectedEntityType", before.get("type").getAsString());
+        var destination = DebugTransferRequest.destination(request);
+        if (request.has("expectedValue")) {
+            JsonObject expected = new JsonObject();
+            expected.add("value", request.get("expectedValue"));
+            DebugTransferRequest.destination(expected);
+            io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.verifyValues(
+                    request, transferValue(target));
+        }
+        ServerLevel level = existingDimension(server, destination.dimension());
+        float yaw = destination.yaw() == null ? target.getYRot() : destination.yaw();
+        float pitch = destination.pitch() == null ? target.getXRot() : destination.pitch();
+        if (source == level
+                && target.getX() == destination.x()
+                && target.getY() == destination.y()
+                && target.getZ() == destination.z()
+                && target.getYRot() == yaw
+                && target.getXRot() == pitch) throw noStateChange();
+        if (!target.isAlive())
+            throw DebugTransferRequest.invalid(
+                    "Removed or dead actors require the native lifecycle, not transform");
+        JsonObject relation = relationship(target), leash = relation.getAsJsonObject("leash");
+        if (target.isPassenger()
+                || target.isVehicle()
+                || leash.has("resolution") && !leash.get("resolution").getAsString().equals("none"))
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_TRANSFER_RELATION_CONFLICT",
+                    409,
+                    "Detach ride/leash relationships with their explicit versioned operations before transfer");
+        if (source != level)
+            for (ServerPlayer observer : source.players())
+                if (observer != target && observer.getCamera() == target)
+                    throw new ProtocolState.ProtocolException(
+                            "DEBUG_TRANSFER_RELATION_CONFLICT",
+                            409,
+                            "A native spectator follows this actor; detach that camera before cross-dimension transfer");
+        if (!Level.isInSpawnableBounds(
+                BlockPos.containing(destination.x(), destination.y(), destination.z())))
+            throw DebugTransferRequest.invalid("Position is outside native teleport bounds");
+        requireEntityBoundsLoaded(
+                level,
+                target.getBoundingBox()
+                        .move(
+                                destination.x() - target.getX(),
+                                destination.y() - target.getY(),
+                                destination.z() - target.getZ()));
+        boolean accepted;
+        try (LoadedChunkMutationScope noLoad = LoadedChunkMutationScope.open()) {
+            try {
+                accepted =
+                        target.teleportTo(
+                                level,
+                                destination.x(),
+                                destination.y(),
+                                destination.z(),
+                                Set.of(),
+                                yaw,
+                                pitch);
+            } catch (RuntimeException failure) {
+                JsonObject blocked = noLoad.blockedAccess();
+                if (blocked == null) throw failure;
+                Entity actual = level.getEntity(target.getUUID());
+                if (actual == null) actual = source.getEntity(target.getUUID());
+                if (actual == null) actual = target;
+                JsonObject after = ownPlayer ? player(player) : entity(actual);
+                JsonObject ref = ownPlayer ? playerRevision(after) : entityRevision(after);
+                if (actual.isRemoved()) ref.addProperty("mutationPreconditionEligible", false);
+                JsonObject partial =
+                        mutationReceipt(
+                                request,
+                                ownPlayer ? "player" : "entity",
+                                "native_entity_teleportTo",
+                                "partial_native_transfer",
+                                before,
+                                after,
+                                beforeRef,
+                                ref);
+                partial.addProperty("nativeEffectsComplete", false);
+                partial.addProperty("mutationMayHaveApplied", true);
+                partial.addProperty("retrySafe", false);
+                partial.add("blockedChunk", blocked);
+                partial.addProperty(
+                        "destinationEntityPresent", level.getEntity(target.getUUID()) != null);
+                JsonObject details = new JsonObject();
+                details.add("partialMutation", partial);
+                throw new ProtocolState.ProtocolException(
+                        "DEBUG_MUTATION_PARTIAL_NOT_LOADED",
+                        409,
+                        "Native transfer reached an unloaded dependency; effects are not rolled back",
+                        details);
+            }
+        }
+        if (!accepted)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_TRANSFER_REJECTED",
+                    409,
+                    "Native entity teleport rejected the transition");
+        Entity actual = java.util.Objects.requireNonNull(level.getEntity(target.getUUID()));
+        JsonObject after = ownPlayer ? player(player) : entity(actual);
+        JsonObject result =
+                mutationResult(
+                        request,
+                        ownPlayer ? "player" : "entity",
+                        "native_entity_teleportTo",
+                        "native_position_or_dimension_packets",
+                        before,
+                        after,
+                        beforeRef,
+                        ownPlayer ? playerRevision(after) : entityRevision(after));
+        result.addProperty("identityRebuilt", actual != target);
+        result.addProperty("crossDimension", source != level);
+        result.addProperty("requiresFreshWorldFingerprintAndArm", ownPlayer && source != level);
+        result.addProperty("nativeSerializationHooks", !ownPlayer && source != level);
+        result.addProperty(
+                "sideEffects",
+                "native velocity/camera/item-use and dimension triggers; no rollback; not a player input");
+        return result;
+    }
+
+    private JsonObject debugEntitySpawn(ServerPlayer player, JsonObject request) {
+        var factory = DebugEntityLifecycleRequest.spawn(request);
+        ServerLevel level = player.serverLevel();
+        JsonObject before = entityRegistry(level, factory.chunk());
+        requireEntityRegistry(before);
+        JsonObject beforeRef = entityRegistryRevision(before);
+        verifyExpected(request, beforeRef);
+        if (before.get("count").getAsInt() >= DebugEntityLifecycleRequest.MAX_CHUNK_MEMBERS)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_ENTITY_REGISTRY_LIMIT_EXCEEDED",
+                    413,
+                    "Insertion would exceed the complete chunk membership bound");
+        if (request.has("expectedEntityCount")
+                && DebugEntityLifecycleRequest.integer(
+                                request,
+                                "expectedEntityCount",
+                                0,
+                                DebugEntityLifecycleRequest.MAX_CHUNK_MEMBERS)
+                        != before.get("count").getAsInt())
+            throw valueMismatch("expectedEntityCount", before.get("count").getAsString());
+        ResourceLocation identifier = ResourceLocation.tryParse(factory.entityType());
+        var type =
+                identifier == null
+                        ? null
+                        : BuiltInRegistries.ENTITY_TYPE.getOptional(identifier).orElse(null);
+        if (type == null) throw DebugEntityLifecycleRequest.invalid("Unknown native entity type");
+        BlockPos position = BlockPos.containing(factory.x(), factory.y(), factory.z());
+        if (!Level.isInSpawnableBounds(position))
+            throw DebugEntityLifecycleRequest.invalid("Position is outside native spawn bounds");
+        double halfWidth = type.getWidth() / 2.0;
+        requireEntityBoundsLoaded(
+                level,
+                new net.minecraft.world.phys.AABB(
+                        factory.x() - halfWidth,
+                        factory.y(),
+                        factory.z() - halfWidth,
+                        factory.x() + halfWidth,
+                        factory.y() + type.getHeight(),
+                        factory.z() + halfWidth));
+        Entity created = type.create(level);
+        if (created == null)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_ENTITY_FACTORY_UNAVAILABLE",
+                    409,
+                    "Native entity type has no standalone factory; no entity was inserted");
+        created.moveTo(factory.x(), factory.y(), factory.z(), factory.yaw(), factory.pitch());
+        requireEntityBoundsLoaded(level, created.getBoundingBox());
+        if (!level.addFreshEntity(created))
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_ENTITY_INSERTION_REJECTED",
+                    409,
+                    "Native server rejected entity insertion");
+        JsonObject after = entityRegistry(level, factory.chunk());
+        JsonObject result =
+                mutationResult(
+                        request,
+                        "entity",
+                        "native_entity_factory_and_addFreshEntity",
+                        "normal_network_sync",
+                        before,
+                        after,
+                        beforeRef,
+                        entityRegistryRevision(after));
+        JsonObject state = entity(created);
+        result.add("createdEntity", state);
+        result.add(
+                "createdEntityResourceVersion",
+                ResourceVersionVerifier.token(entityRevision(state)));
+        result.addProperty("factorySemantics", "native_factory_defaults_no_nbt_no_finalize_spawn");
+        result.addProperty("cleanup", "remove_only_the_returned_created_entity_uuid");
+        return result;
+    }
+
+    private JsonObject debugEntityRemove(
+            MinecraftServer server, ServerPlayer player, JsonObject request) {
+        ServerLevel level =
+                request.has("sourceDimension")
+                        ? existingDimension(
+                                server, DebugTransferRequest.dimension(request, "sourceDimension"))
+                        : player.serverLevel();
+        Entity target = loadedEntity(level, requiredDebugString(request, "entityUuid"));
+        if (target instanceof ServerPlayer)
+            throw DebugEntityLifecycleRequest.invalid(
+                    "Players cannot be removed through entity namespace");
+        JsonObject before = entity(target), beforeRef = entityRevision(before);
+        verifyExpected(request, beforeRef);
+        if (request.has("expectedEntityType")
+                && !request.get("expectedEntityType").equals(before.get("type")))
+            throw valueMismatch("expectedEntityType", before.get("type").getAsString());
+        var chunk =
+                new DebugEntityLifecycleRequest.Chunk(
+                        target.chunkPosition().x, target.chunkPosition().z);
+        entityRegistry(level, chunk);
+        target.discard();
+        JsonObject after = entity(target), afterRef = entityRevision(after);
+        afterRef.addProperty("mutationPreconditionEligible", false);
+        JsonObject result =
+                mutationResult(
+                        request,
+                        "entity",
+                        "native_entity_discard",
+                        "normal_network_sync",
+                        before,
+                        after,
+                        beforeRef,
+                        afterRef);
+        entityRegistryRevision(entityRegistry(level, chunk));
+        result.addProperty("cleanup", "irreversible_discard_native_cleanup_no_identity_restore");
+        return result;
+    }
+
+    private static void requireEntityBoundsLoaded(
+            ServerLevel level, net.minecraft.world.phys.AABB box) {
+        int minX = ((int) Math.floor(box.minX)) >> 4,
+                maxX = ((int) Math.floor(Math.nextDown(box.maxX))) >> 4;
+        int minZ = ((int) Math.floor(box.minZ)) >> 4,
+                maxZ = ((int) Math.floor(Math.nextDown(box.maxZ))) >> 4;
+        for (int x = minX; x <= maxX; x++)
+            for (int z = minZ; z <= maxZ; z++)
+                if (level.getChunkSource().getChunkNow(x, z) == null)
+                    throw new ProtocolState.ProtocolException(
+                            "TARGET_NOT_LOADED",
+                            409,
+                            "Entity bounds require an unloaded chunk; no load requested");
+    }
+
+    private static void requireEntityRegistry(JsonObject registry) {
+        if (!registry.get("available").getAsBoolean())
+            throw new ProtocolState.ProtocolException(
+                    "TARGET_NOT_LOADED",
+                    409,
+                    "Entity destination chunk is not loaded; no load requested");
+    }
+
+    private JsonObject entityRegistry(
+            ServerLevel level, DebugEntityLifecycleRequest.Chunk position) {
+        JsonObject result = new JsonObject();
+        result.addProperty("chunkX", position.x());
+        result.addProperty("chunkZ", position.z());
+        result.addProperty(
+                "key",
+                level.dimension().location()
+                        + "@entity_chunk:"
+                        + position.x()
+                        + ","
+                        + position.z());
+        result.addProperty("chunkLoadRequested", false);
+        LevelChunk chunk = level.getChunkSource().getChunkNow(position.x(), position.z());
+        result.addProperty("available", chunk != null);
+        if (chunk == null) {
+            result.addProperty("reason", "chunk_not_loaded");
+            return result;
+        }
+        result.addProperty(
+                "lifecycleId",
+                this.lifecycles.lifecycleId(
+                        "entity_registry", result.get("key").getAsString(), chunk));
+        List<Entity> members = new ArrayList<>();
+        double x = position.x() * 16.0, z = position.z() * 16.0;
+        level.getEntities(
+                net.minecraft.world.level.entity.EntityTypeTest.forClass(Entity.class),
+                new net.minecraft.world.phys.AABB(x, -20_000_000, z, x + 16, 20_000_000, z + 16),
+                candidate ->
+                        !candidate.isRemoved()
+                                && candidate.chunkPosition().x == position.x()
+                                && candidate.chunkPosition().z == position.z(),
+                members,
+                DebugEntityLifecycleRequest.MAX_CHUNK_MEMBERS + 1);
+        if (members.size() > DebugEntityLifecycleRequest.MAX_CHUNK_MEMBERS)
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_ENTITY_REGISTRY_LIMIT_EXCEEDED",
+                    413,
+                    "Loaded chunk entity membership exceeds 4096; no partial mutation precondition");
+        JsonArray uuids = new JsonArray();
+        members.stream().map(e -> e.getUUID().toString()).sorted().forEach(uuids::add);
+        result.add("members", uuids);
+        result.addProperty("count", uuids.size());
+        return result;
+    }
+
+    private JsonObject entityRegistryRevision(JsonObject state) {
+        return this.revisions.revision(
+                "entity_registry",
+                state.get("key").getAsString(),
+                state.get("lifecycleId").getAsString(),
+                state);
+    }
+
+    private JsonObject entityRevision(JsonObject state) {
+        return this.revisions.revision(
+                "entity",
+                state.get("uuid").getAsString(),
+                state.get("lifecycleId").getAsString(),
+                canonicalDebugEntity(state));
+    }
+
+    private static JsonObject debugStateProjection(JsonObject state, boolean player) {
+        JsonObject result = new JsonObject();
+        for (String field :
+                player
+                        ? List.of(
+                                "food",
+                                "saturation",
+                                "air",
+                                "absorption",
+                                "experienceLevel",
+                                "experiencePoints",
+                                "flying")
+                        : List.of(
+                                "health",
+                                "air",
+                                "absorption",
+                                "silent",
+                                "noGravity",
+                                "glowing",
+                                "noAi")) if (state.has(field)) result.add(field, state.get(field));
+        JsonObject motion = player ? state.getAsJsonObject("position") : state;
+        JsonObject velocity = new JsonObject();
+        for (String axis : List.of("x", "y", "z"))
+            velocity.add(axis, motion.get("velocity" + axis.toUpperCase(java.util.Locale.ROOT)));
+        result.add("velocity", velocity);
+        return result;
+    }
+
+    private static void applyDebugVelocity(Entity target, JsonObject velocity) {
+        target.setDeltaMovement(
+                velocity.get("x").getAsDouble(),
+                velocity.get("y").getAsDouble(),
+                velocity.get("z").getAsDouble());
+    }
+
+    private JsonObject debugEffect(
+            ServerPlayer player, JsonObject request, boolean playerResource) {
+        LivingEntity target = playerResource ? player : debugLivingEntity(player, request);
+        JsonObject before = playerResource ? player(player) : entity(target);
+        JsonObject beforeRef = playerResource ? playerRevision(before) : entityRevision(before);
+        verifyExpected(request, beforeRef);
+        if (!playerResource) verifyDebugEntityType(request, target);
+        var parsed = io.github.recrivenvi.minecraftprotocol.core.DebugEffectRequest.parse(request);
+        ResourceLocation id = ResourceLocation.tryParse(parsed.effectId());
+        if (id == null
+                || !id.getNamespace().equals("minecraft")
+                || !BuiltInRegistries.MOB_EFFECT.containsKey(id))
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409, "Unknown or unapproved native effect");
+        var holder = BuiltInRegistries.MOB_EFFECT.getHolder(id).orElseThrow();
+        MobEffectInstance current = target.getEffect(holder);
+        JsonObject observed = current == null ? null : effectValue(current);
+        if (observed != null && !observed.remove("hiddenChainComplete").getAsBoolean())
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_EFFECT_CHAIN_INCOMPLETE",
+                    409,
+                    "Current native hidden chain exceeds the typed restoration budget; no change applied");
+        parsed.verifyExpected(observed);
+        if (io.github.recrivenvi.minecraftprotocol.core.DebugEffectRequest.json(parsed.value())
+                .equals(
+                        io.github.recrivenvi.minecraftprotocol.core.DebugEffectRequest.json(
+                                observed))) throw noStateChange();
+        if (parsed.value() == null) target.removeEffect(holder);
+        else target.forceAddEffect(buildEffect(holder, parsed.value()), player);
+        JsonObject after = playerResource ? player(player) : entity(target);
+        return mutationResult(
+                request,
+                playerResource ? "player" : "entity",
+                "native_effect_replace_or_remove",
+                "normal_network_sync_and_native_effect_callbacks",
+                before,
+                after,
+                beforeRef,
+                playerResource ? playerRevision(after) : entityRevision(after));
+    }
+
+    private static MobEffectInstance buildEffect(
+            net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect,
+            JsonObject value) {
+        MobEffectInstance hidden = null;
+        JsonArray chain = value.getAsJsonArray("hidden");
+        for (int index = chain.size() - 1; index >= 0; index--)
+            hidden = effectLeaf(effect, chain.get(index).getAsJsonObject(), hidden);
+        return effectLeaf(effect, value, hidden);
+    }
+
+    private static MobEffectInstance effectLeaf(
+            net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect,
+            JsonObject value,
+            MobEffectInstance hidden) {
+        return new MobEffectInstance(
+                effect,
+                value.get("duration").getAsInt(),
+                value.get("amplifier").getAsInt(),
+                value.get("ambient").getAsBoolean(),
+                value.get("showParticles").getAsBoolean(),
+                value.get("showIcon").getAsBoolean(),
+                hidden);
+    }
+
+    private static JsonObject effectLeafValue(MobEffectInstance instance) {
+        JsonObject result = new JsonObject();
+        result.addProperty("duration", instance.getDuration());
+        result.addProperty("amplifier", instance.getAmplifier());
+        result.addProperty("ambient", instance.isAmbient());
+        result.addProperty("showParticles", instance.isVisible());
+        result.addProperty("showIcon", instance.showIcon());
+        return result;
+    }
+
+    private static MobEffectInstance hiddenEffect(MobEffectInstance instance) {
+        return ((io.github.recrivenvi.minecraftprotocol.probe.mixin.MobEffectInstanceAccessor)
+                        (Object) instance)
+                .minecraftProtocol$getHiddenEffect();
+    }
+
+    private static JsonObject effectValue(MobEffectInstance instance) {
+        JsonObject result = effectLeafValue(instance);
+        JsonArray chain = new JsonArray();
+        MobEffectInstance hidden = hiddenEffect(instance);
+        while (hidden != null
+                && chain.size()
+                        < io.github.recrivenvi.minecraftprotocol.core.DebugEffectRequest
+                                .MAX_HIDDEN_EFFECTS) {
+            chain.add(effectLeafValue(hidden));
+            hidden = hiddenEffect(hidden);
+        }
+        result.add("hidden", chain);
+        result.addProperty("hiddenChainComplete", hidden == null);
+        return result;
+    }
+
+    private static JsonArray nativeEffects(LivingEntity living) {
+        List<JsonObject> entries = new ArrayList<>();
+        for (MobEffectInstance instance : living.getActiveEffects()) {
+            JsonObject value = effectValue(instance);
+            value.addProperty(
+                    "id",
+                    instance.getEffect()
+                            .unwrapKey()
+                            .map(key -> key.location().toString())
+                            .orElse("unregistered"));
+            entries.add(value);
+        }
+        entries.sort(Comparator.comparing(v -> v.get("id").getAsString()));
+        JsonArray result = new JsonArray();
+        entries.forEach(result::add);
+        return result;
+    }
+
+    private JsonObject debugPlayerAttribute(ServerPlayer player, JsonObject request) {
+        return debugAttribute(player, request, true);
+    }
+
+    private JsonObject debugEntityAttribute(ServerPlayer player, JsonObject request) {
+        return debugAttribute(player, request, false);
+    }
+
+    private JsonObject debugAttribute(
+            ServerPlayer player, JsonObject request, boolean playerResource) {
+        LivingEntity target = playerResource ? player : debugLivingEntity(player, request);
+        JsonObject before = playerResource ? player(player) : entity(target);
+        JsonObject beforeRef = playerResource ? playerRevision(before) : entityRevision(before);
+        verifyExpected(request, beforeRef);
+        if (!playerResource) verifyDebugEntityType(request, target);
+        String attributeId = requiredDebugString(request, "attributeId");
+        ResourceLocation id = ResourceLocation.tryParse(attributeId);
+        if (id == null
+                || !id.getNamespace().equals("minecraft")
+                || !BuiltInRegistries.ATTRIBUTE.containsKey(id))
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE",
+                    409,
+                    "Unknown or unapproved native attribute: " + attributeId);
+        var holder = BuiltInRegistries.ATTRIBUTE.getHolder(id).orElseThrow();
+        if (!target.getAttributes().hasAttribute(holder))
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE",
+                    409,
+                    "This native entity does not have the requested attribute");
+        double current = target.getAttributes().getBaseValue(holder);
+        double requested = requiredFiniteDouble(request, "value", -1.0E12, 1.0E12);
+        if (Double.compare(holder.value().sanitizeValue(requested), requested) != 0)
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "value is outside the actual native attribute domain");
+        if (request.has("expectedValue")
+                && Double.compare(
+                                requiredFiniteDouble(request, "expectedValue", -1.0E12, 1.0E12),
+                                current)
+                        != 0) throw valueMismatch("expectedValue", current);
+        if (Double.compare(requested, current) == 0) throw noStateChange();
+        target.getAttribute(holder).setBaseValue(requested);
+        JsonObject after = playerResource ? player(player) : entity(target);
+        return mutationResult(
+                request,
+                playerResource ? "player" : "entity",
+                "native_attribute_base_setter",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                playerResource ? playerRevision(after) : entityRevision(after));
+    }
+
+    private static LivingEntity debugLivingEntity(ServerPlayer player, JsonObject request) {
+        Entity target = loadedEntity(player, requiredDebugString(request, "entityUuid"));
+        if (!(target instanceof LivingEntity living) || target instanceof ServerPlayer)
+            throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
+                    "This operation requires a loaded non-player LivingEntity");
+        return living;
+    }
+
+    private static void verifyDebugEntityType(JsonObject request, LivingEntity target) {
+        if (request.has("expectedEntityType")
+                && !request.get("expectedEntityType")
+                        .getAsString()
+                        .equals(BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString()))
+            throw valueMismatch(
+                    "expectedEntityType",
+                    BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString());
+    }
+
+    private JsonObject debugEntityEquipment(ServerPlayer player, JsonObject request) {
+        LivingEntity target = debugLivingEntity(player, request);
+        JsonObject before = entity(target), beforeRef = entityRevision(before);
+        verifyExpected(request, beforeRef);
+        verifyDebugEntityType(request, target);
+        EquipmentSlot slot = debugEquipmentSlot(request, false);
+        if (!target.canUseSlot(slot))
+            throw new ProtocolState.ProtocolException(
+                    "DEBUG_EQUIPMENT_SLOT_UNAVAILABLE",
+                    409,
+                    "This native entity cannot use that equipment slot");
+        ItemStack current = target.getItemBySlot(slot);
+        verifyExpectedItem(request, current);
+        ItemStack replacement = debugReplacementItem(request);
+        if (ItemStack.matches(current, replacement)) throw noStateChange();
+        target.setItemSlot(slot, replacement);
+        JsonObject after = entity(target);
+        return mutationResult(
+                request,
+                "entity",
+                "native_entity_equipment_setter",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                entityRevision(after));
+    }
+
+    private static EquipmentSlot debugEquipmentSlot(JsonObject request, boolean playerResource) {
+        String name = requiredDebugString(request, "equipmentSlot");
+        if (!playerResource
+                || Set.of("mainhand", "offhand", "head", "chest", "legs", "feet").contains(name))
+            for (EquipmentSlot slot : EquipmentSlot.values())
+                if (slot.getName().equals(name)) return slot;
+        throw new ProtocolState.ProtocolException(
+                "INVALID_DEBUG_ITEM", 400, "Unknown or unsupported native equipmentSlot");
+    }
+
+    private static JsonArray nativeAttributes(LivingEntity living) {
+        JsonArray result = new JsonArray();
+        var instances =
+                ((io.github.recrivenvi.minecraftprotocol.probe.mixin.AttributeMapAccessor)
+                                (Object) living.getAttributes())
+                        .minecraftProtocol$getAttributes();
+        List<JsonObject> entries = new ArrayList<>();
+        for (var attribute : BuiltInRegistries.ATTRIBUTE) {
+            var holder = BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute);
+            if (!living.getAttributes().hasAttribute(holder)) continue;
+            JsonObject value = new JsonObject();
+            var id = BuiltInRegistries.ATTRIBUTE.getKey(attribute);
+            value.addProperty("id", id.toString());
+            value.addProperty("base", living.getAttributes().getBaseValue(holder));
+            value.addProperty("value", living.getAttributes().getValue(holder));
+            value.addProperty("typedBaseWritable", id.getNamespace().equals("minecraft"));
+            if (attribute
+                    instanceof net.minecraft.world.entity.ai.attributes.RangedAttribute range) {
+                value.addProperty("minimum", range.getMinValue());
+                value.addProperty("maximum", range.getMaxValue());
+            }
+            List<JsonObject> modifiers = new ArrayList<>();
+            AttributeInstance instance = instances.get(holder);
+            if (instance != null)
+                for (var modifier : instance.getModifiers()) {
+                    JsonObject entry = new JsonObject();
+                    entry.addProperty("id", modifier.id().toString());
+                    entry.addProperty("amount", modifier.amount());
+                    entry.addProperty("operation", modifier.operation().toString());
+                    modifiers.add(entry);
+                }
+            modifiers.sort(Comparator.comparing(v -> v.get("id").getAsString()));
+            JsonArray normalized = new JsonArray();
+            modifiers.forEach(normalized::add);
+            value.add("modifiers", normalized);
+            entries.add(value);
+        }
+        entries.sort(Comparator.comparing(v -> v.get("id").getAsString()));
+        entries.forEach(result::add);
+        return result;
     }
 
     private JsonObject debugEntityNoGravity(ServerPlayer player, JsonObject request) {
@@ -977,7 +2365,42 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             requested = setDebugProperty(requested, property, entry.getValue());
         }
         if (requested == current) throw noStateChange();
-        level.setBlockAndUpdate(position, requested);
+        for (net.minecraft.core.Direction direction : net.minecraft.core.Direction.values()) {
+            BlockPos neighbor = position.relative(direction);
+            if (level.getChunkSource().getChunkNow(neighbor.getX() >> 4, neighbor.getZ() >> 4)
+                    == null) throw targetNotLoaded("native block update neighbor");
+        }
+        try (LoadedChunkMutationScope noLoad = LoadedChunkMutationScope.open()) {
+            try {
+                level.setBlockAndUpdate(position, requested);
+            } catch (RuntimeException failure) {
+                JsonObject blocked = noLoad.blockedAccess();
+                if (blocked == null) throw failure;
+                JsonObject partialAfter = blockSnapshot(level, position);
+                JsonObject partial =
+                        mutationReceipt(
+                                request,
+                                "world",
+                                "vanilla_server_level_set_block",
+                                "partial_native_neighbor_updates",
+                                before,
+                                partialAfter,
+                                beforeRef,
+                                this.blockRevision(level, partialAfter));
+                partial.addProperty("nativeEffectsComplete", false);
+                partial.addProperty("mutationMayHaveApplied", true);
+                partial.addProperty("retrySafe", false);
+                partial.add("blockedChunk", blocked);
+                JsonObject details = new JsonObject();
+                details.add("partialMutation", partial);
+                details.addProperty("retrySafe", false);
+                throw new ProtocolState.ProtocolException(
+                        "DEBUG_MUTATION_PARTIAL_NOT_LOADED",
+                        409,
+                        "Native propagation reached an unloaded dependency; applied effects are not rolled back",
+                        details);
+            }
+        }
         JsonObject after = blockSnapshot(level, position);
         JsonObject result =
                 mutationResult(
@@ -1089,6 +2512,135 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 this.blockEntitySerializedRevision(level, after));
     }
 
+    private static ItemStack debugReplacementItem(JsonObject request) {
+        DebugItemRequest data = DebugItemRequest.parse(request);
+        if (data.count() == 0) return ItemStack.EMPTY;
+        ResourceLocation id = ResourceLocation.tryParse(data.itemId());
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id))
+            throw new ProtocolState.ProtocolException(
+                    "UNKNOWN_ITEM", 400, "Unknown item: " + data.itemId());
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id), data.count());
+        if (stack.isEmpty() || data.count() > stack.getMaxStackSize())
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_DEBUG_ITEM", 400, "count exceeds the native item stack size");
+        if (data.customName() != null)
+            stack.set(DataComponents.CUSTOM_NAME, Component.literal(data.customName()));
+        if (data.damage() != null) {
+            if (!stack.isDamageableItem() || data.damage() > stack.getMaxDamage())
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_DEBUG_ITEM", 400, "damage is outside the native item domain");
+            stack.setDamageValue(data.damage());
+        }
+        return stack;
+    }
+
+    private static void verifyExpectedItem(JsonObject request, ItemStack current) {
+        String id = BuiltInRegistries.ITEM.getKey(current.getItem()).toString();
+        if (request.has("expectedItemId")
+                && !request.get("expectedItemId").getAsString().equals(id))
+            throw valueMismatch("expectedItemId", id);
+        if (request.has("expectedCount")
+                && DebugItemRequest.integer(request, "expectedCount") != current.getCount())
+            throw valueMismatch("expectedCount", current.getCount());
+    }
+
+    private JsonObject debugPlayerInventorySlot(ServerPlayer player, JsonObject request) {
+        JsonObject before = player(player), beforeRef = this.playerRevision(before);
+        verifyExpected(request, beforeRef);
+        int slot = DebugItemRequest.integer(request, "slot");
+        if (slot < 0 || slot >= player.getInventory().getContainerSize())
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED",
+                    400,
+                    "slot is outside the actual player inventory");
+        ItemStack current = player.getInventory().getItem(slot);
+        verifyExpectedItem(request, current);
+        ItemStack replacement = debugReplacementItem(request);
+        if (ItemStack.matches(current, replacement)) throw noStateChange();
+        player.getInventory().setItem(slot, replacement);
+        player.inventoryMenu.broadcastChanges();
+        if (player.containerMenu != player.inventoryMenu) player.containerMenu.broadcastChanges();
+        JsonObject after = player(player);
+        return mutationResult(
+                request,
+                "player",
+                "native_player_inventory_slot_set",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                this.playerRevision(after));
+    }
+
+    private JsonObject debugPlayerEquipment(ServerPlayer player, JsonObject request) {
+        JsonObject before = player(player), beforeRef = this.playerRevision(before);
+        verifyExpected(request, beforeRef);
+        EquipmentSlot slot = debugEquipmentSlot(request, true);
+        ItemStack current = player.getItemBySlot(slot);
+        verifyExpectedItem(request, current);
+        ItemStack replacement = debugReplacementItem(request);
+        if (ItemStack.matches(current, replacement)) throw noStateChange();
+        player.setItemSlot(slot, replacement);
+        player.inventoryMenu.broadcastChanges();
+        if (player.containerMenu != player.inventoryMenu) player.containerMenu.broadcastChanges();
+        JsonObject after = player(player);
+        return mutationResult(
+                request,
+                "player",
+                "native_player_equipment_set",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                this.playerRevision(after));
+    }
+
+    private JsonObject debugBlockEntitySlot(ServerPlayer player, JsonObject request) {
+        ServerLevel level = player.serverLevel();
+        BlockPos position = requiredPosition(request);
+        JsonObject before = blockEntitySnapshot(level, position, true);
+        if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block_entity");
+        BlockEntity blockEntity = level.getBlockEntity(position);
+        if (!(blockEntity instanceof Container container))
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE",
+                    409,
+                    "slot.set requires a loaded native Container Block Entity");
+        JsonObject beforeRef = this.blockEntitySerializedRevision(level, before);
+        verifyExpected(request, beforeRef);
+        if (request.has("expectedBlockEntityType")
+                && !request.get("expectedBlockEntityType")
+                        .getAsString()
+                        .equals(before.get("type").getAsString()))
+            throw valueMismatch("expectedBlockEntityType", before.get("type").getAsString());
+        int slot = DebugItemRequest.integer(request, "slot");
+        if (slot < 0 || slot >= container.getContainerSize())
+            throw new ProtocolState.ProtocolException(
+                    "VALUE_PRECONDITION_FAILED",
+                    400,
+                    "slot is outside the actual native Container");
+        DebugItemRequest.requireResolvedContainer(before.getAsJsonObject("serializedState"));
+        ItemStack current = container.getItem(slot);
+        verifyExpectedItem(request, current);
+        ItemStack replacement = debugReplacementItem(request);
+        if (ItemStack.matches(current, replacement)) throw noStateChange();
+        container.setItem(slot, replacement);
+        blockEntity.setChanged();
+        player.containerMenu.broadcastChanges();
+        BlockState state = level.getBlockState(position);
+        level.sendBlockUpdated(position, state, state, 3);
+        JsonObject after = blockEntitySnapshot(level, position, true);
+        return mutationResult(
+                request,
+                "block_entity",
+                "native_block_entity_container_slot_set",
+                "normal_network_sync",
+                before,
+                after,
+                beforeRef,
+                this.blockEntitySerializedRevision(level, after));
+    }
+
     private JsonObject debugMenuSlot(ServerPlayer player, JsonObject request) {
         JsonObject before = menu(player);
         JsonObject beforeRef = this.menuRevision(before);
@@ -1156,6 +2708,19 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     409,
                     "Typed Debug mutation did not advance its resource revision");
         }
+        return mutationReceipt(
+                request, domain, mechanism, synchronization, before, after, beforeRef, afterRef);
+    }
+
+    private JsonObject mutationReceipt(
+            JsonObject request,
+            String domain,
+            String mechanism,
+            String synchronization,
+            JsonObject before,
+            JsonObject after,
+            JsonObject beforeRef,
+            JsonObject afterRef) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "debug.mutation.result");
         json.addProperty("schemaVersion", "phase9c-debug-v0");
@@ -1291,9 +2856,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private static Entity loadedEntity(ServerPlayer player, String uuid) {
+        return loadedEntity(player.serverLevel(), uuid);
+    }
+
+    private static Entity loadedEntity(ServerLevel level, String uuid) {
         try {
-            Entity entity = player.serverLevel().getEntity(UUID.fromString(uuid));
-            if (entity != null) return entity;
+            Entity entity = level.getEntity(UUID.fromString(uuid));
+            if (entity != null && !entity.isRemoved()) return entity;
         } catch (IllegalArgumentException exception) {
             throw new ProtocolState.ProtocolException(
                     "INVALID_ENTITY_UUID", 400, "Invalid entity UUID");
@@ -1439,7 +3008,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                         : client != null ? "client_known" : "server_authoritative");
         metadata.addProperty("acquisition", "owner_thread_snapshot");
         metadata.addProperty("completeness", "projected");
-        metadata.addProperty("readEffects", "none");
+        metadata.addProperty(
+                "readEffects", server == null ? "none" : server.get("readEffects").getAsString());
         metadata.addProperty(
                 "consistency",
                 client != null && server != null
@@ -1494,6 +3064,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 server.has("dimension") ? server.get("dimension").getAsString() : "unknown";
         if (server.has("player")) {
             JsonObject player = server.getAsJsonObject("player");
+            if (player.has("relationships"))
+                refs.add(relationshipRevision(player.getAsJsonObject("relationships")));
             String key = player.get("uuid").getAsString() + "@server_authoritative";
             refs.add(
                     this.revisions.revision(
@@ -1512,6 +3084,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (server.has("entities"))
             for (JsonElement element : server.getAsJsonArray("entities")) {
                 JsonObject entity = element.getAsJsonObject();
+                if (entity.has("relationships"))
+                    refs.add(relationshipRevision(entity.getAsJsonObject("relationships")));
                 refs.add(
                         this.revisions.revision(
                                 "entity",
@@ -1519,6 +3093,23 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                                 entity.get("lifecycleId").getAsString(),
                                 entity));
             }
+        if (server.has("entityRegistry")
+                && server.getAsJsonObject("entityRegistry").get("available").getAsBoolean())
+            refs.add(entityRegistryRevision(server.getAsJsonObject("entityRegistry")));
+        if (server.has("entityTargets"))
+            for (JsonElement element : server.getAsJsonArray("entityTargets")) {
+                JsonObject target = element.getAsJsonObject();
+                if (target.get("available").getAsBoolean())
+                    refs.add(entityRevision(target.getAsJsonObject("state")));
+            }
+        if (server.has("world") && server.getAsJsonObject("world").has("environment")) {
+            JsonObject environment = server.getAsJsonObject("world").getAsJsonObject("environment");
+            for (JsonElement clock : environment.getAsJsonArray("clocks"))
+                refs.add(clockRevision(clock.getAsJsonObject()));
+            refs.add(weatherRevision(environment.getAsJsonObject("weather")));
+            for (JsonElement rule : environment.getAsJsonArray("rules"))
+                refs.add(gameRuleRevision(rule.getAsJsonObject()));
+        }
         if (server.has("blocks"))
             for (JsonElement element : server.getAsJsonArray("blocks")) {
                 JsonObject block = element.getAsJsonObject();
@@ -1643,29 +3234,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private static JsonObject providerDescriptor(AgentDataProviderV2.Descriptor descriptor) {
-        JsonObject json = new JsonObject();
-        json.addProperty("providerId", descriptor.providerId());
-        json.addProperty("schemaVersion", descriptor.schemaVersion());
-        json.addProperty("snapshotSchema", descriptor.snapshotSchema());
-        json.addProperty("querySchema", descriptor.querySchema());
-        json.addProperty("threadAffinity", descriptor.threadAffinity());
-        json.addProperty("readEffects", descriptor.readEffects());
-        json.addProperty("snapshotSafe", descriptor.snapshotSafe());
-        json.addProperty("mayInitialize", descriptor.mayInitialize());
-        json.addProperty("mayLoadData", descriptor.mayLoadData());
-        json.addProperty("mayAccessStorage", descriptor.mayAccessStorage());
-        json.addProperty("mayMutate", descriptor.mayMutate());
-        json.addProperty("revisionSource", descriptor.revisionSource());
-        json.addProperty("deltaCapability", descriptor.deltaCapability());
-        json.addProperty("debugSupported", descriptor.debugDeclaration().supported());
-        JsonArray perspectives = new JsonArray();
-        descriptor.perspectives().forEach(perspectives::add);
-        json.add("perspectives", perspectives);
-        JsonArray requiredScopes = new JsonArray();
-        descriptor.requiredScopes().forEach(requiredScopes::add);
-        json.add("requiredScopes", requiredScopes);
-        json.addProperty("status", "registered");
-        return json;
+        return io.github.recrivenvi.minecraftprotocol.core.ProviderInspection.descriptor(
+                descriptor);
     }
 
     private static JsonObject providerResult(
@@ -1712,17 +3282,21 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                                 "maxHealth",
                                 "absorption",
                                 "food",
+                                "saturation",
                                 "air",
+                                "maxAirSupply",
                                 "experienceLevel",
                                 "totalExperience",
-                                "experienceProgress"));
+                                "experienceProgress",
+                                "experiencePoints"));
             if (fields.contains("authority"))
                 keep.addAll(List.of("gameMode", "mayFly", "flying", "instabuild"));
             if (fields.contains("inventory"))
                 keep.addAll(List.of("selectedSlot", "inventory", "carriedStack", "equipment"));
             if (fields.contains("attributes")) keep.add("attributes");
             if (fields.contains("effects")) keep.add("effects");
-            if (fields.contains("relationships")) keep.addAll(List.of("vehicle", "passengers"));
+            if (fields.contains("relationships"))
+                keep.addAll(List.of("vehicle", "passengers", "relationships"));
             if (fields.contains("menu")) keep.addAll(List.of("menuId", "menuRole"));
             if (fields.contains("dimension")) keep.add("dimension");
             if (fields.contains("respawn")) keep.add("respawn");
@@ -1736,9 +3310,25 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             projection
                     .getAsJsonArray("entityFields")
                     .forEach(element -> fields.add(element.getAsString()));
-            for (JsonElement element : snapshot.getAsJsonArray("entities")) {
+            JsonArray projectedEntities = new JsonArray();
+            snapshot.getAsJsonArray("entities").forEach(projectedEntities::add);
+            if (snapshot.has("entityTargets"))
+                for (JsonElement target : snapshot.getAsJsonArray("entityTargets"))
+                    if (target.getAsJsonObject().get("available").getAsBoolean())
+                        projectedEntities.add(target.getAsJsonObject().get("state"));
+            for (JsonElement element : projectedEntities) {
+
                 JsonObject entity = element.getAsJsonObject();
-                Set<String> keep = new HashSet<>(List.of("uuid", "runtimeId", "type"));
+                Set<String> keep =
+                        new HashSet<>(
+                                List.of(
+                                        "uuid",
+                                        "runtimeId",
+                                        "type",
+                                        "lifecycleId",
+                                        "alive",
+                                        "removed",
+                                        "removalReason"));
                 if (fields.contains("transform"))
                     keep.addAll(
                             List.of(
@@ -1751,12 +3341,26 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                                     "yaw",
                                     "pitch",
                                     "pose"));
-                if (fields.contains("living")) keep.addAll(List.of("health", "maxHealth"));
-                if (fields.contains("equipment")) keep.add("equipment");
-                if (fields.contains("effects")) keep.add("effectCount");
-                if (fields.contains("attributes")) keep.add("syncableAttributeCount");
-                if (fields.contains("relationships")) keep.addAll(List.of("vehicle", "passengers"));
-                if (fields.contains("common_state")) keep.add("noGravity");
+                if (fields.contains("dimension")) keep.add("dimension");
+                if (fields.contains("living"))
+                    keep.addAll(List.of("health", "maxHealth", "absorption"));
+                if (fields.contains("equipment"))
+                    keep.addAll(List.of("equipment", "nativeEquipmentSlots"));
+                if (fields.contains("effects")) keep.addAll(List.of("effectCount", "effects"));
+                if (fields.contains("attributes"))
+                    keep.addAll(List.of("syncableAttributeCount", "attributes"));
+                if (fields.contains("relationships"))
+                    keep.addAll(List.of("vehicle", "passengers", "relationships"));
+                if (fields.contains("common_state"))
+                    keep.addAll(
+                            List.of(
+                                    "noGravity",
+                                    "silent",
+                                    "glowing",
+                                    "air",
+                                    "maxAirSupply",
+                                    "noAi",
+                                    "aiTargetUuid"));
                 new ArrayList<>(entity.keySet())
                         .stream().filter(key -> !keep.contains(key)).forEach(entity::remove);
             }
@@ -1779,8 +3383,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("acquisition", "public_api_plus_internal_projection");
         json.addProperty("completeness", "bounded_projected");
         boolean serializedBlockEntities = selector.get("includeSerializedState").getAsBoolean();
-        json.addProperty(
-                "readEffects", serializedBlockEntities ? "serialization_hooks_invoked" : "none");
+        json.addProperty("readEffects", "none");
         json.addProperty("chunkLoadRequested", false);
         json.addProperty("dataSource", "LIVE");
         json.addProperty("storageAccessed", false);
@@ -1792,11 +3395,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (domains.contains("menu")) json.add("menu", menu(player));
         if (domains.contains("entities")) {
             JsonArray entities =
-                    entities(
-                            level,
-                            player,
-                            selector.get("entityRadius").getAsDouble(),
-                            selector.get("entityLimit").getAsInt());
+                    selector.has("entityTargets")
+                            ? new JsonArray()
+                            : entities(
+                                    level,
+                                    player,
+                                    selector.get("entityRadius").getAsDouble(),
+                                    selector.get("entityLimit").getAsInt());
             json.add("entities", entities);
             JsonObject counts = new JsonObject();
             counts.addProperty("returnedCount", entities.size());
@@ -1805,14 +3410,35 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     "truncated", entities.size() >= selector.get("entityLimit").getAsInt());
             counts.addProperty("limit", selector.get("entityLimit").getAsInt());
             json.add("entitiesResult", counts);
+            if (selector.has("entityTargets")) {
+                if (selector.getAsJsonArray("entityTargets").size()
+                        > selector.get("entityLimit").getAsInt())
+                    throw new ProtocolState.ProtocolException(
+                            "QUERY_BUDGET_EXCEEDED",
+                            413,
+                            "Explicit entity identities exceed maxEntities; no silent truncation");
+                json.add("entityTargets", selectedEntities(server, selector.get("entityTargets")));
+            }
+            if (selector.has("entityChunk"))
+                json.add(
+                        "entityRegistry",
+                        entityRegistry(
+                                level,
+                                DebugEntityLifecycleRequest.chunk(
+                                        selector.getAsJsonObject("entityChunk"))));
         }
         JsonArray chunks =
                 domains.contains("chunks") || domains.contains("block_entities")
                         ? chunks(level, player, selector.get("radiusChunks").getAsInt())
                         : new JsonArray();
         if (domains.contains("chunks")) json.add("chunks", chunks);
-        if (domains.contains("block_entities"))
-            json.add("blockEntities", blockEntities(level, chunks, selector));
+        if (domains.contains("block_entities")) {
+            JsonObject page = blockEntities(level, player, chunks, selector);
+            json.add("blockEntities", page.get("entries"));
+            json.add("blockEntitiesResult", page.get("page"));
+            if (serializedBlockEntities && !page.getAsJsonArray("entries").isEmpty())
+                json.addProperty("readEffects", "serialization_hooks_invoked");
+        }
         if (domains.contains("blocks")) json.add("blocks", blocks(level, player, selector));
         if (domains.contains("world")) json.add("world", world(server, level));
         JsonObject ticketFacts = new JsonObject();
@@ -1841,6 +3467,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonObject player(ServerPlayer player) {
         JsonObject json = new JsonObject();
         json.addProperty("uuid", player.getUUID().toString());
+        json.add("relationships", relationship(player));
         json.addProperty(
                 "lifecycleId",
                 this.lifecycles.lifecycleId("player", player.getUUID().toString(), player));
@@ -1866,10 +3493,15 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("maxHealth", player.getMaxHealth());
         json.addProperty("absorption", player.getAbsorptionAmount());
         json.addProperty("food", player.getFoodData().getFoodLevel());
+        json.addProperty("saturation", player.getFoodData().getSaturationLevel());
         json.addProperty("air", player.getAirSupply());
+        json.addProperty("maxAirSupply", player.getMaxAirSupply());
         json.addProperty("experienceLevel", player.experienceLevel);
         json.addProperty("totalExperience", player.totalExperience);
         json.addProperty("experienceProgress", player.experienceProgress);
+        json.addProperty(
+                "experiencePoints",
+                Math.round(player.experienceProgress * player.getXpNeededForNextLevel()));
         json.addProperty("gameMode", player.gameMode.getGameModeForPlayer().getName());
         json.addProperty("mayFly", player.getAbilities().mayfly);
         json.addProperty("flying", player.getAbilities().flying);
@@ -1887,52 +3519,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         for (EquipmentSlot slot : EquipmentSlot.values())
             equipment.add(slot.getName(), item(player.getItemBySlot(slot)));
         json.add("equipment", equipment);
-        JsonArray attributes = new JsonArray();
-        List<JsonObject> normalizedAttributes = new ArrayList<>();
-        for (AttributeInstance instance : player.getAttributes().getSyncableAttributes()) {
-            JsonObject attribute = new JsonObject();
-            attribute.addProperty(
-                    "id",
-                    instance.getAttribute()
-                            .unwrapKey()
-                            .map(key -> key.location().toString())
-                            .orElse("unregistered"));
-            attribute.addProperty("base", instance.getBaseValue());
-            attribute.addProperty("value", instance.getValue());
-            normalizedAttributes.add(attribute);
-        }
-        // Supplier-backed defaults need not have an AttributeInstance; observing must not create
-        // one.
-        String maxHealthId = Attributes.MAX_HEALTH.unwrapKey().orElseThrow().location().toString();
-        if (normalizedAttributes.stream()
-                .noneMatch(attribute -> maxHealthId.equals(attribute.get("id").getAsString()))) {
-            JsonObject attribute = new JsonObject();
-            attribute.addProperty("id", maxHealthId);
-            attribute.addProperty(
-                    "base", player.getAttributes().getBaseValue(Attributes.MAX_HEALTH));
-            attribute.addProperty("value", player.getAttributes().getValue(Attributes.MAX_HEALTH));
-            normalizedAttributes.add(attribute);
-        }
-        normalizedAttributes.sort(Comparator.comparing(value -> value.get("id").getAsString()));
-        normalizedAttributes.forEach(attributes::add);
-        json.add("attributes", attributes);
-        JsonArray effects = new JsonArray();
-        List<JsonObject> normalizedEffects = new ArrayList<>();
-        for (MobEffectInstance instance : player.getActiveEffects()) {
-            JsonObject effect = new JsonObject();
-            effect.addProperty(
-                    "id",
-                    instance.getEffect()
-                            .unwrapKey()
-                            .map(key -> key.location().toString())
-                            .orElse("unregistered"));
-            effect.addProperty("duration", instance.getDuration());
-            effect.addProperty("amplifier", instance.getAmplifier());
-            normalizedEffects.add(effect);
-        }
-        normalizedEffects.sort(Comparator.comparing(value -> value.get("id").getAsString()));
-        normalizedEffects.forEach(effects::add);
-        json.add("effects", effects);
+        json.add("attributes", nativeAttributes(player));
+        json.add("effects", nativeEffects(player));
         json.addProperty(
                 "vehicle",
                 player.getVehicle() == null ? "" : player.getVehicle().getUUID().toString());
@@ -2000,11 +3588,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonObject entity(Entity entity) {
         JsonObject json = new JsonObject();
+        json.addProperty("dimension", entity.level().dimension().location().toString());
         json.addProperty("uuid", entity.getUUID().toString());
+        json.add("relationships", relationship(entity));
         json.addProperty(
                 "lifecycleId",
                 this.lifecycles.lifecycleId("entity", entity.getUUID().toString(), entity));
         json.addProperty("runtimeId", entity.getId());
+        json.addProperty("alive", entity.isAlive());
+        json.addProperty("removed", entity.isRemoved());
+        json.addProperty(
+                "removalReason",
+                entity.getRemovalReason() == null ? "" : entity.getRemovalReason().name());
         json.addProperty("type", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
         json.addProperty("x", entity.getX());
         json.addProperty("y", entity.getY());
@@ -2016,6 +3611,16 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("pitch", entity.getXRot());
         json.addProperty("pose", entity.getPose().toString());
         json.addProperty("noGravity", entity.isNoGravity());
+        if (entity instanceof net.minecraft.world.entity.Mob mob) {
+            json.addProperty("noAi", mob.isNoAi());
+            json.addProperty(
+                    "aiTargetUuid",
+                    mob.getTarget() == null ? "" : mob.getTarget().getUUID().toString());
+        }
+        json.addProperty("silent", entity.isSilent());
+        json.addProperty("glowing", entity.hasGlowingTag());
+        json.addProperty("air", entity.getAirSupply());
+        json.addProperty("maxAirSupply", entity.getMaxAirSupply());
         json.addProperty(
                 "vehicle",
                 entity.getVehicle() == null ? "" : entity.getVehicle().getUUID().toString());
@@ -2028,11 +3633,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (entity instanceof LivingEntity living) {
             json.addProperty("health", living.getHealth());
             json.addProperty("maxHealth", living.getMaxHealth());
+            json.addProperty("absorption", living.getAbsorptionAmount());
             JsonObject equipment = new JsonObject();
             for (EquipmentSlot slot : EquipmentSlot.values())
                 equipment.add(slot.getName(), item(living.getItemBySlot(slot)));
             json.add("equipment", equipment);
+            JsonArray nativeSlots = new JsonArray();
+            for (EquipmentSlot slot : EquipmentSlot.values())
+                if (living.canUseSlot(slot)) nativeSlots.add(slot.getName());
+            json.add("nativeEquipmentSlots", nativeSlots);
+            json.add("attributes", nativeAttributes(living));
             json.addProperty("effectCount", living.getActiveEffects().size());
+            json.add("effects", nativeEffects(living));
             json.addProperty(
                     "syncableAttributeCount",
                     living.getAttributes().getSyncableAttributes().size());
@@ -2070,12 +3682,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     value.addProperty("blockEntityCount", chunk.getBlockEntities().size());
                     value.addProperty("status", chunk.getFullStatus().toString());
                     value.add("loadingSummary", loadingSummary(level, x, z, chunk));
-                    value.add(
-                            "scheduledBlockTicks",
-                            scheduledTicks(level.getBlockTicks(), x, z, true));
-                    value.add(
-                            "scheduledFluidTicks",
-                            scheduledTicks(level.getFluidTicks(), x, z, false));
+                    scheduledTicks(value, "scheduledBlockTicks", level.getBlockTicks(), x, z, true);
+                    scheduledTicks(
+                            value, "scheduledFluidTicks", level.getFluidTicks(), x, z, false);
                 } else {
                     value.addProperty("reason", "NOT_LOADED");
                 }
@@ -2136,40 +3745,48 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return json;
     }
 
-    private JsonArray scheduledTicks(Object ticks, int chunkX, int chunkZ, boolean block) {
+    private void scheduledTicks(
+            JsonObject chunk, String field, Object ticks, int chunkX, int chunkZ, boolean block) {
         JsonArray json = new JsonArray();
         Long2ObjectMap<LevelChunkTicks<?>> containers =
                 ((LevelTicksAccessor) (Object) ticks).minecraftProtocol$getAllContainers();
         this.scheduledTickHookVerified.set(true);
         LevelChunkTicks<?> container = containers.get(ChunkPos.asLong(chunkX, chunkZ));
-        if (container == null) return json;
-        container
-                .getAll()
-                .limit(64)
-                .forEach(
-                        raw -> {
-                            ScheduledTick<?> tick = (ScheduledTick<?>) raw;
-                            JsonObject value = new JsonObject();
-                            value.addProperty("x", tick.pos().getX());
-                            value.addProperty("y", tick.pos().getY());
-                            value.addProperty("z", tick.pos().getZ());
-                            value.addProperty(
-                                    "type",
-                                    block && tick.type() instanceof Block blockType
-                                            ? BuiltInRegistries.BLOCK.getKey(blockType).toString()
-                                            : !block && tick.type() instanceof Fluid fluidType
-                                                    ? BuiltInRegistries.FLUID
-                                                            .getKey(fluidType)
-                                                            .toString()
-                                                    : String.valueOf(tick.type()));
-                            value.addProperty("triggerTick", tick.triggerTick());
-                            value.addProperty("priority", tick.priority().toString());
-                            value.addProperty("subTickOrder", tick.subTickOrder());
-                            value.addProperty("chunkX", chunkX);
-                            value.addProperty("chunkZ", chunkZ);
-                            json.add(value);
-                        });
-        return json;
+        long queuedCount = container == null ? 0 : container.getAll().count();
+        if (container != null)
+            container
+                    .getAll()
+                    .limit(ScheduledTickRead.MAX_PER_CHUNK)
+                    .forEach(
+                            raw -> {
+                                ScheduledTick<?> tick = (ScheduledTick<?>) raw;
+                                JsonObject value = new JsonObject();
+                                value.addProperty("x", tick.pos().getX());
+                                value.addProperty("y", tick.pos().getY());
+                                value.addProperty("z", tick.pos().getZ());
+                                value.addProperty(
+                                        "type",
+                                        block && tick.type() instanceof Block blockType
+                                                ? BuiltInRegistries.BLOCK
+                                                        .getKey(blockType)
+                                                        .toString()
+                                                : !block && tick.type() instanceof Fluid fluidType
+                                                        ? BuiltInRegistries.FLUID
+                                                                .getKey(fluidType)
+                                                                .toString()
+                                                        : String.valueOf(tick.type()));
+                                value.addProperty("triggerTick", tick.triggerTick());
+                                value.addProperty("priority", tick.priority().toString());
+                                value.addProperty("subTickOrder", tick.subTickOrder());
+                                value.addProperty("chunkX", chunkX);
+                                value.addProperty("chunkZ", chunkZ);
+                                json.add(value);
+                            });
+        chunk.add(field, json);
+        chunk.add(
+                field + "Result",
+                ScheduledTickRead.metadata(
+                        container == null ? 0 : container.count(), queuedCount, json.size()));
     }
 
     private static String normalizedTicketReason(String raw) {
@@ -2182,7 +3799,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return "other";
     }
 
-    private JsonArray blockEntities(ServerLevel level, JsonArray chunks, JsonObject selector) {
+    private JsonObject blockEntities(
+            ServerLevel level, ServerPlayer player, JsonArray chunks, JsonObject selector) {
         JsonArray json = new JsonArray();
         int serializedTotal = 0;
         int limit = selector.get("blockEntityLimit").getAsInt();
@@ -2201,10 +3819,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 BlockEntity blockEntity = chunk.getBlockEntities().get(position);
                 if (blockEntity == null) continue;
                 candidates.put(position, blockEntity);
-                if (candidates.size() >= limit) break;
             }
         } else {
-            radius:
             for (JsonElement element : chunks) {
                 JsonObject chunkValue = element.getAsJsonObject();
                 if (!chunkValue.get("loaded").getAsBoolean()) continue;
@@ -2216,11 +3832,29 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 if (chunk == null) continue;
                 for (Map.Entry<BlockPos, BlockEntity> entry : chunk.getBlockEntities().entrySet()) {
                     candidates.put(entry.getKey(), entry.getValue());
-                    if (candidates.size() >= limit) break radius;
+                    if (candidates.size() > DeepBlockEntityPages.MAX_CANDIDATES)
+                        throw new ProtocolState.ProtocolException(
+                                "DEEP_PAGE_SCAN_LIMIT_EXCEEDED",
+                                413,
+                                "Loaded block entity candidate bound exceeded; narrow selector.chunkRadius");
                 }
             }
         }
-        for (Map.Entry<BlockPos, BlockEntity> entry : candidates.entrySet()) {
+        Map<String, Map.Entry<BlockPos, BlockEntity>> keyed = new LinkedHashMap<>();
+        for (Map.Entry<BlockPos, BlockEntity> entry : candidates.entrySet())
+            keyed.put(key(entry.getKey()), entry);
+        JsonObject binding = selector.deepCopy();
+        binding.remove("blockEntityCursor");
+        String context = player.chunkPosition() + "/" + binding;
+        String cursor =
+                selector.has("blockEntityCursor")
+                        ? selector.get("blockEntityCursor").getAsString()
+                        : null;
+        DeepBlockEntityPages.Page page =
+                this.blockEntityPages.select(
+                        level, player, context, cursor, new ArrayList<>(keyed.keySet()), limit);
+        for (String selected : page.keys()) {
+            Map.Entry<BlockPos, BlockEntity> entry = keyed.get(selected);
             BlockEntity blockEntity = entry.getValue();
             JsonObject value = new JsonObject();
             value.addProperty("key", key(entry.getKey()));
@@ -2249,7 +3883,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             }
             json.add(value);
         }
-        return json;
+        JsonObject result = new JsonObject();
+        result.add("entries", json);
+        result.add("page", page.metadata());
+        return result;
     }
 
     private JsonArray blocks(ServerLevel level, ServerPlayer player, JsonObject selector) {
@@ -2294,6 +3931,20 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonObject world(MinecraftServer server, ServerLevel level) {
         JsonObject json = new JsonObject();
+        JsonArray dimensions = new JsonArray();
+        for (ServerLevel existing : server.getAllLevels()) {
+            JsonObject entry = new JsonObject();
+            String id = existing.dimension().location().toString();
+            entry.addProperty("dimension", id);
+            entry.addProperty(
+                    "lifecycleId", this.lifecycles.lifecycleId("dimension", id, existing));
+            entry.addProperty("currentPlayerDimension", existing == level);
+            entry.addProperty("readOnly", true);
+            entry.addProperty("chunkLoadRequested", false);
+            dimensions.add(entry);
+        }
+        json.add("dimensions", dimensions);
+        json.add("environment", environment(server, level));
         json.addProperty("dimension", level.dimension().location().toString());
         json.addProperty("gameTime", level.getGameTime());
         json.addProperty("dayTime", level.getDayTime());
@@ -2301,10 +3952,26 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("thundering", level.isThundering());
         json.addProperty("blockScheduledTickCount", level.getBlockTicks().count());
         json.addProperty("fluidScheduledTickCount", level.getFluidTicks().count());
-        json.addProperty("scheduledTickDetail", "REQUIRES_NEW_HOOK");
-        json.addProperty("ticketDetail", "REQUIRES_NEW_HOOK");
+        json.add("simulation", simulation(server));
         json.addProperty("serverTick", server.getTickCount());
         return json;
+    }
+
+    private JsonObject simulation(MinecraftServer server) {
+        JsonObject value = new JsonObject();
+        value.addProperty("readOnly", true);
+        value.addProperty("readOnlyReason", "simulation_control_not_in_approved_mutation_catalog");
+        if (server instanceof net.minecraft.client.server.IntegratedServer integrated)
+            value.addProperty("integratedPaused", integrated.isPaused());
+        var manager = server.tickRateManager();
+        value.addProperty("tickRateControlAvailable", true);
+        value.addProperty("configuredTickRate", manager.tickrate());
+        value.addProperty("frozen", manager.isFrozen());
+        value.addProperty("stepping", manager.isSteppingForward());
+        value.addProperty("runsNormally", manager.runsNormally());
+        value.addProperty("sprinting", manager.isSprinting());
+        value.addProperty("isPerformanceMeasurement", false);
+        return value;
     }
 
     private JsonObject item(ItemStack stack) {
@@ -2316,6 +3983,11 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                         ? "minecraft:air"
                         : BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
         json.addProperty("count", stack.getCount());
+        Component customName = stack.get(DataComponents.CUSTOM_NAME);
+        if (customName == null) json.add("customName", com.google.gson.JsonNull.INSTANCE);
+        else json.addProperty("customName", customName.getString());
+        json.addProperty("damage", stack.getDamageValue());
+        json.addProperty("maxDamage", stack.getMaxDamage());
         json.addProperty(
                 "componentsHash", stack.isEmpty() ? "" : sha256(stack.getComponents().toString()));
         return json;
@@ -2554,6 +4226,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 request.has("domains") && request.get("domains").isJsonArray()
                         ? request.getAsJsonArray("domains").deepCopy()
                         : allDomains());
+        if (request.has("blockEntityCursor"))
+            selector.add("blockEntityCursor", request.get("blockEntityCursor").deepCopy());
+        if (request.has("entityTargets"))
+            selector.add("entityTargets", request.get("entityTargets").deepCopy());
+        if (request.has("entityChunk"))
+            selector.add("entityChunk", request.get("entityChunk").deepCopy());
         return selector;
     }
 
@@ -2608,6 +4286,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     @Override
     public void close() {
         if (!this.closed.compareAndSet(false, true)) return;
+        this.blockEntityPages.clear();
         this.providerExecution.close();
         this.revisionWorker.close();
         this.storageAdapter.close();

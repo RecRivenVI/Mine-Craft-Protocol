@@ -32,7 +32,8 @@ export class RuntimeError extends Error {
   readonly reconsentRequired?: boolean;
   readonly manualRevocationReason?: string;
   readonly control?: JsonObject;
-  readonly executionOutcome?: 'not_confirmed';
+  readonly executionOutcome?: 'not_confirmed' | 'partial';
+  readonly partialMutation?: JsonObject;
   readonly retrySafe?: false;
   readonly retryAfterMillis?: number;
   readonly rateLimit?: JsonObject;
@@ -92,6 +93,13 @@ export class RuntimeError extends Error {
         && details?.executionOutcome === 'not_confirmed' && details.retrySafe === false) {
       this.executionOutcome = 'not_confirmed';
       this.retrySafe = false;
+    }
+    const partial = details?.partialMutation;
+    if (code === 'DEBUG_MUTATION_PARTIAL_NOT_LOADED' && details?.executionOutcome === 'partial'
+        && details.retrySafe === false && partial && typeof partial === 'object' && !Array.isArray(partial)) {
+      this.executionOutcome = 'partial';
+      this.retrySafe = false;
+      this.partialMutation = partial;
     }
     const control = details?.control;
     if (control && typeof control === 'object' && !Array.isArray(control)
@@ -188,7 +196,8 @@ export class RuntimeClient {
       try {
         const current = readRuntimeDiscovery(this.config.instanceDirectory!, this.config.discovery.target);
         if (current.runtimeInstanceId !== this.config.discovery.runtimeInstanceId || current.baseUrl !== this.config.discovery.baseUrl
-            || current.pid !== this.config.discovery.pid || current.processStartedAt !== this.config.discovery.processStartedAt) {
+            || current.pid !== this.config.discovery.pid || current.processStartedAt !== this.config.discovery.processStartedAt
+            || (current.deploymentRole ?? 'CLIENT') !== (this.config.discovery.deploymentRole ?? 'CLIENT')) {
           throw new Error('Runtime instance changed; explicitly reconnect');
         }
       } catch (error) {
@@ -244,9 +253,10 @@ export class RuntimeClient {
       signal: AbortSignal.timeout(this.config.timeoutMs), redirect: 'error'
     });
     const bytes = await this.readBounded(response, this.config.maxJsonBytes, 'Runtime identity response exceeded limit');
-    const session = JSON.parse(new TextDecoder().decode(bytes)) as { target?: string; runtimeConnection?: { runtimeInstanceId?: string } };
+    const session = JSON.parse(new TextDecoder().decode(bytes)) as { target?: string; runtimeConnection?: { runtimeInstanceId?: string; deploymentRole?: string } };
     if (!response.ok || response.headers.get('x-mcp-runtime-instance') !== discovery.runtimeInstanceId
-        || session.runtimeConnection?.runtimeInstanceId !== discovery.runtimeInstanceId || session.target !== discovery.target) {
+        || session.runtimeConnection?.runtimeInstanceId !== discovery.runtimeInstanceId || session.target !== discovery.target
+        || (session.runtimeConnection?.deploymentRole ?? 'CLIENT') !== (discovery.deploymentRole ?? 'CLIENT')) {
       throw new RuntimeError('COMPANION_RUNTIME_INSTANCE_MISMATCH', 409, 'Runtime discovery handshake failed; no control request dispatched');
     }
     this.verified = true;
