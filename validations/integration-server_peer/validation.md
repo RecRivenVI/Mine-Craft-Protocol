@@ -40,6 +40,21 @@ PLAYTEST / FIXTURE / DEBUG_PRIVILEGED 不混用；不实现 Persistent Write 或
 
 ## 运行
 
+可选双端安装的真实互通检查（每次一个客户端和一个服务器）：
+
+```powershell
+./gradlew.bat verifyRelease :companion:assemble
+node components/validation_tools/integration-server_peer/task/optional-install-smoke.mjs --target=26.3-neoforge
+```
+
+对五个已登记Target分别执行。同项instance/<target>/optional-install保存三个独立组合：产品客户端加入原版服务器、
+原版客户端加入产品服务器、双方最终单JAR。使用既有官方安装缓存及console-server的官方服务端依赖，不使用开发classpath或probe。
+工具仅在用户已接受EULA时运行，自动客户端1920×1080静音、最多4GiB；固定结果为result/<target>-optional-install.json。
+只有当前进程确实入服、客户端USER读取/真实背包输入、无Peer明确不可用、双端Peer往返、服务端独立入口与禁用接管、
+断线清空Peer及正常停服均成立才通过。原版客户端没有Runtime退出接口，服务端正常保存退出后仅终止本工具拥有的已断线客户端；
+结果明确标注这项清理，不将其写成原版客户端正常退出。产品客户端使用GAME_ROUTED语义退出，检查endpoint清理。
+旧endpoint不作为新进程就绪证据，既有活动实例拒绝覆盖；不从单端互通推断完整Peer委托或全部服务端目录已经验收。
+
 独立服务端控制台的最终单JAR场景，不需要客户端或实验probe。先完成构建及Companion编译，再逐端执行：
 
 ```powershell

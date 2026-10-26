@@ -68,12 +68,12 @@ Operator UI/Pointer 在 framebuffer evidence 之后渲染，不能污染截图�
 ## Dedicated Peer 与持久化
 
 三种部署目标（仅客户端、仅服务端、双端联动）的主体、权限、能力矩阵和里程碑要求，
-统一见[部署场景设计](concept-deployment_scenarios.md)。新增部署合同为 DESIGN/PENDING，
-当前 mod_client_side=true、mod_server_side=true、客户端启动的 HTTP 入口及有限 Peer 不等于已实现三场景。
+统一见[部署场景设计](concept-deployment_scenarios.md)。当前 mod_client_side=optional、mod_server_side=optional，
+客户端与独立服务器各有自己的认证 Runtime；安装兼容不等于完整三场景能力已全部交付。
 
 现有 Server Peer 基于游戏玩家连接提供有限服务器读取，mutation 另按服务端开关/operator 检查，
 客户端 HTTP 入口保留自己的授权；这不等于服务端已完整验证 scope/Arm/资源版本委托。
-完整授权和独立服务器入口属于上述待实施设计；不能由客户端构建成功推断 server safety，
+独立服务器已有零玩家控制台及首批主世界DEBUG；完整 Peer 委托仍待实施，不能由客户端构建成功推断 server safety，
 也不宣称完整 ResourceVersion parity。
 
 Persistent Read 五端有安全 context、world/player/chunk adapter、有界读取、

@@ -54,6 +54,8 @@ foreach($gate in $gatePaths){
  $route=if($gate.Contains('ServerPeer')){'/v0/server/peer'}else{'/v0/diagnostics/hooks'}
  With-Text $schema {param($s)$j=$s|ConvertFrom-Json -AsHashtable;$j.paths.Remove($route);$j|ConvertTo-Json -Depth 100} {Run-Gate $gate $false 'missing-contract-route' 'path must exist'}
  if($gate.Contains('ServerPeer')){
+  With-Text 'gradle.properties' {param($s)$s.Replace('mod_client_side=optional','mod_client_side=true')} {Run-Gate $gate $false 'mandatory-client-regression' 'optional contract'}
+  With-Text 'gradle.properties' {param($s)$s.Replace('mod_server_side=optional','mod_server_side=true')} {Run-Gate $gate $false 'mandatory-server-regression' 'optional contract'}
   With-Text 'versions/26.3-neoforge/build.gradle.kts' {param($s)$s.Replace('net.neoforged.moddev','removedLoader')} {Run-Gate $gate $false 'wrong-source-contract' 'native Loader launch model'}
  }else{
   With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java' {param($s)$s.Replace('Compatibility Text','removed text')} {Run-Gate $gate $false 'wrong-source-contract' 'Compatibility Text'}

@@ -22,6 +22,26 @@ import org.objectweb.asm.tree.TypeInsnNode;
 
 class NativeWorldReadBoundaryTest {
     @Test
+    void optionalPeerChecksTheRemoteChannelBeforeSending() throws Exception {
+        var send = calls(method(compiled(RUNTIME + "DedicatedPeerClient"), "send"));
+        int guard = -1;
+        int dispatch = -1;
+        for (int i = 0; i < send.size(); i++) {
+            if (send.get(i).name.equals("isRemotePresent")) guard = i;
+            if (send.get(i).name.equals("sendToServer")) dispatch = i;
+        }
+        assertTrue(guard >= 0 && dispatch > guard, "Absent Peer must not receive payloads");
+        var registry =
+                calls(
+                        method(
+                                compiled(
+                                        "io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking"),
+                                "<clinit>"));
+        assertEquals(
+                2, registry.stream().filter(call -> call.name.equals("acceptMissingOr")).count());
+    }
+
+    @Test
     void nativePartsUseLoadedClientMembershipAndNativeParentLiveness() throws Exception {
         var source = calls(method(compiled(RUNTIME + "WorldClientSnapshot$1"), "entities"));
         assertTrue(source.stream().anyMatch(call -> call.name.equals("entitiesForRendering")));

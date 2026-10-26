@@ -47,6 +47,7 @@ try {
 
     $facts = Get-Content (Join-Path $repositoryRoot 'gradle.properties') -Raw | ConvertFrom-StringData
     Assert-True (-not [string]::IsNullOrWhiteSpace($facts.mod_id) -and -not [string]::IsNullOrWhiteSpace($facts.mod_version)) 'Project artifact identity/version must be present'
+    Assert-True ($facts.mod_client_side -eq 'optional' -and $facts.mod_server_side -eq 'optional') 'Both installation sides must retain the optional contract'
     $artifacts = foreach ($target in $targets) {
         $runtime = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.RuntimeSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
         $peerClient = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.PeerClientSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime\DedicatedPeerClient.java"

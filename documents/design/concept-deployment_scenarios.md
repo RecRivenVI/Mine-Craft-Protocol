@@ -1,14 +1,16 @@
 # 三种部署场景与能力边界
 
 已批准目标：仅客户端、仅服务端、双端联动完整纳入 UI/世界首个里程碑的适用范围。
-独立服务器 Runtime、有限非图形控制台及首批主世界DEBUG已接入；完整单端互通、其余服务器目录及 Peer 委托仍待实施。
+独立服务器 Runtime、有限非图形控制台及首批主世界DEBUG已接入；两端安装均可选，其余服务器目录及完整 Peer 委托仍待实施。
 本文负责部署设计；[当前状态](../project/status-milestones.md)负责进度，[执行计划](../project/plan-execution.md)负责当前目标与步骤，
 [控制模型](concept-agent_control.md)和[世界模型](concept-world_control.md)继续负责模式、类别、输入与证据。
 不因新增部署目标开放 Persistent Write、宿主控制或任意命令/对象后门，不把设计标成现有能力。
 
 ## 当前实现与差距
 
-当前产品事实为 mod_client_side=true、mod_server_side=true，不能据可选 Peer channel 宣称单端安装已受支持。
+当前产品事实为 mod_client_side=optional、mod_server_side=optional；两端分别可用，双方安装时启用已有有限 Peer。
+Forge 使用原生缺失/原版通道兼容谓词；NeoForge 注册 optional 负载，发送前验证 hasChannel；Fabric 发送前验证 canSend。
+未安装对端不发送 Peer 请求，不将服务器能力回退为客户端真值、磁盘读取或隐式玩家命令。
 五端除客户端 Runtime 外，独立服务器在 SERVER_STARTED 建立自己的认证 loopback Runtime，
 SERVER_STOPPING 关闭。只在 DedicatedServer 启动，集成服不会再创建第二个 endpoint。
 原 DedicatedPeerServer 仍依赖已连接 ServerPlayer 接收游戏负载，与独立入口分开。
@@ -20,11 +22,10 @@ hello/hello_ack 不等于细粒度授权、启动身份绑定或完成配对证�
 这些是真实待补边界，不能依赖可信 Companion、客户端检查或 peerAuthenticated 字段代替服务端验证。
 
 当前固定Alpha保持既有both安装说明；本地开发候选已支持独立服务端控制台，不要求有玩家连接。
-仅客户端互通、无模组客户端加入及完整可选协商不因可选Peer或本次零玩家测试就成为已验安装承诺。
-用户已批准以可选协商推进部署实现；模板允许独立声明两端可选，是否启用仍须完成对应运行与互通证明，并明确安装承诺。
-当前 mod_client_side=true、mod_server_side=true，双端必装要求不变；零玩家控制台可用不代表无模组客户端加入或全部单端互通已验收。
+本地候选启用可选安装；最终 JAR 的仅客户端、仅服务端和双端互通结果独立记录，不用零玩家控制台或集成服结果替代。
+安装声明只影响安装与通道协商，不改变模式、scope、原版玩家权限、Arm、资源版本或证据合同。
 正式安装承诺仍按逐 Target 实机证明收口，不把有限 Peer 或代表端结果当作所有组合通过。
-当前安装说明见[使用指南](../usage/guide-installation.md)，本设计不修改运行端或元数据。
+当前安装说明见[使用指南](../usage/guide-installation.md)。
 
 ## 首个里程碑的主体合同
 

@@ -1,17 +1,17 @@
 # UI 与世界首个里程碑状态
 
 UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验收未执行。
-既有批次E世界Alpha继续有效；M-09初始控制台与首批服务端主世界DEBUG已完成，完整三部署尚未闭合。
+既有批次E世界Alpha继续有效；M-09初始控制台、首批服务端主世界DEBUG及两端可选安装互通已完成，完整三部署尚未闭合。
 恢复先读本页及[执行计划](plan-execution.md)，普通开发直接与用户协作；不自动恢复旧Goal或扩展其他批次。
 冻结结果及复用依据见[第一检查点](phase-1-core_delivery.md#2026-10-22第一检查点结果)，安装和发布见[交付记录](phase-1-core_delivery.md#2026-10-22-e世界单jar与alpha交付)。
 
 ## 当前工作与下三步
 
-本轮由主线程直接推进，不操作Goal/其他线程、不提交或推送、不测性能，Persistent Write=0。
+本轮由主线程直接推进，不操作Goal/其他线程、不测性能，Persistent Write=0；用户已授权将本轮成果打包提交推送。
 
 1. 完成：五端零玩家Runtime/控制台、Native与真实Companion、原控制台并存、独立时间回读和正常关闭；参考端客户端单JAR入世界/退出回归通过。
 2. 完成：零玩家主世界/方块深读、typed world.block.set和批次、独立scope/Arm/版本与取消；五端最终单JAR经实际Companion通过，HTTP负控及参考端/Fabric客户端回归通过。
-3. 待安排：其余M-01、部署/展示/交付及最终统一验收；本轮未做人工验收，未发布新Alpha，Persistent Write=0。
+3. 完成：两端安装事实改为optional，五端最终JAR逐一验证客户端接原版服、原版客户端接产品服及双端Peer；其余M-01/部署/展示/交付与统一人工验收待用户安排。
 
 服务端READ日志/OPERATE原生命令需独立server_console授权；不持玩家Lease，TAKEOVER不适用。
 目录和限制见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)，
@@ -19,8 +19,21 @@ UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验�
 首批世界DEBUG证据为同项result/<target>-server-debug.json，绑定其原始JAR；模板升级会重新生成发行JAR，既有功能结果不自动证明新制品，仍须按发布范围重新验证。
 读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮模板启动验证不替代五端完整功能验收。
 修改回执需要DEBUG读取scope，在执行前检查，不借server_console；旧版本/原值/非法原生属性及未加载拒绝、批次恢复和disarm均已实测。
-其余维度、玩家/实体/容器/Provider目录和完整Peer委托、无模组客户端互通仍待实施；新代码尚未发布到固定Alpha。
+其余维度、玩家/实体/容器/Provider目录和完整Peer委托仍待实施；当前安装互通验证独立记录，新代码尚未发布到固定Alpha。
 check/verifyRelease和严格合规通过；本地发行JAR已更新，旧固定Alpha及清单不变。
+
+可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果均绑定当前候选JAR，
+包含真实入服、USER读取/背包输入、无Peer拒绝、双端往返与断线清理；不证明完整服务器目录或Peer细粒度委托。
+默认未授予服务端控制台权限，TAKEOVER在独立服务器明确不适用；安装不授予OP、scope或Arm。
+产品客户端及服务器正常退出；真正原版客户端无Runtime退出入口，在服务器正常保存关闭后终止自有已断线进程，未记作正常客户端退出。
+
+| Target | 仅客户端 | 仅服务端 | 双端有限Peer | 证据 |
+| --- | --- | --- | --- | --- |
+| Forge 1.20.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.20.1-forge-optional-install.json) |
+| NeoForge 1.21.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.21.1-neoforge-optional-install.json) |
+| NeoForge 26.1.2 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.1.2-neoforge-optional-install.json) |
+| NeoForge 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-neoforge-optional-install.json) |
+| Fabric 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-fabric-optional-install.json) |
 
 ## 双里程碑五端矩阵
 
@@ -38,7 +51,7 @@ P=仍有必需实现/覆盖，V=本包有限自动验收已具备、共同交付
 | M-06 世界 DEBUG | V | V | V | V | V | 0 | 自动闭合 | 06a～h既有集成服批准目录五端专项闭合，含CF-022；06i版本链保留；新部署收口计M-09 |
 | M-07 命令 | V | V | V | V | V | 1 | 1～3小时 | 07d五端自动权限变化各6项；剩真人协作、普通服务器权限变化与Esc |
 | M-08 固定副本 | P | P | P | P | P | 2 | 2～4小时 | 08a恢复/锁/凭据；08b部署夹具，不无故重建基准 |
-| M-09 三部署/Peer | P | P | P | P | P | 6 | 分组复核 | 09c/d初始控制台及首批主世界DEBUG五端单JAR通过；其余目录、单端互通、完整委托/录制仍待办，完整组未关闭 |
+| M-09 三部署/Peer | P | P | P | P | P | 6 | 分组复核 | 初始控制台、首批主世界DEBUG与可选安装三组合已五端单JAR通过；其余目录、完整委托/录制仍待办，完整组未关闭 |
 | M-10 回归/制品 | P | P | P | P | P | 4 | 8～16小时 | 10a领域、10b安装、10c取消/证据、10d连续正确性；性能暂缓 |
 | M-11 展示 | P | P | P | P | P | 2 | 2～5小时 | 11d协作/连续操作，11e三部署；已有17项基础保留 |
 | M-12 交付 | V | V | V | V | V | 2 | 1～3小时 | 12a目录/手册，12b同批七文件固定分发；V不代表完整READY |
@@ -91,7 +104,7 @@ M-09的产品方向已获用户批准，不再等模板决策；完整部署矩�
   USER/DEBUG独立读取授权，模式不授予scope/Arm；Esc仅撤销接管并持续要求重新同意，合法独立DEBUG由模型结合用户决定。
 - UI USER只读实际呈现；世界USER为有界客户端缓存，不自动加载Chunk、读存档或开放服务器内部数据。
   PLAYTEST、FIXTURE、DEBUG_PRIVILEGED不混淆，Operator UI不进入默认截图/录制。
-- mod_client_side=true、mod_server_side=true，双端必装要求不变；M-09独立Runtime/初始控制台已五端验证，有限Peer仍依赖在线ServerPlayer。
+- mod_client_side=optional、mod_server_side=optional，两端均可单独安装；M-09独立Runtime/初始控制台已五端验证，有限Peer仍依赖在线ServerPlayer。
   命令统一USER，原生可见性不代表授权或执行成功，不提升主体。
 - 第三方Sodium/自绘UI存在语义缺口，授权后可截图/坐标回退；不宣称自动适配。模板/Target/依赖固定，不开展整合包测试。
 - 自动测试1920×1080静音、4GiB、一次一个自有客户端；禁止Computer-Use/宿主输入注入/操作用户Prism或重要存档。

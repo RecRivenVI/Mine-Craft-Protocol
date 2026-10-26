@@ -11,7 +11,7 @@
 服务器控制台提供有界输出/补全和授权原生命令操作，不伪造Screen/HUD/截图；零玩家服务器没有真人玩家输入端时不提供假TAKEOVER。
 客户端 USER 真实语义输入仍需TAKEOVER/Lease，DEBUG读取不再因接管互斥，typed DEBUG可在OPERATE/TAKEOVER独立授权。
 共享读取/修改准入已接入新合同；完整原版目录、协作与单端/零玩家矩阵仍未覆盖，不把专项运行当作完整里程碑。
-下方历史客户端矩阵不证明新增部署目标，当前mod_client_side=true、mod_server_side=true，双端必装要求不变；当前进度见[状态页](../project/status-milestones.md)。
+下方历史客户端矩阵不证明新增部署目标，当前mod_client_side=optional、mod_server_side=optional；可选安装的互通证明独立记录，当前进度见[状态页](../project/status-milestones.md)。
 当前树读取默认 USER；隐藏/遮挡节点及内部字段不进入用户视图，技术身份/版本/边界保留用于安全定位。
 显式 category=DEBUG 要求 ui、debug、debug.ui.read，返回受预算限制的已捕获图，不自动取得输入 Lease 或 Arm。
 resolve 使用相同类别，USER 无法解析并读出隐藏内容；真实输入仅接受 USER，不静默降级为 Debug。

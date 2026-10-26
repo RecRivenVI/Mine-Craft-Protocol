@@ -10,14 +10,8 @@ public final class PeerNetworking {
             NetworkRegistry.ChannelBuilder.named(
                             new ResourceLocation("minecraft_protocol", "peer_v0"))
                     .networkProtocolVersion(() -> "peer-v0")
-                    .clientAcceptedVersions(
-                            version ->
-                                    version.equals("peer-v0")
-                                            || version.equals(NetworkRegistry.ABSENT))
-                    .serverAcceptedVersions(
-                            version ->
-                                    version.equals("peer-v0")
-                                            || version.equals(NetworkRegistry.ABSENT))
+                    .clientAcceptedVersions(NetworkRegistry.acceptMissingOr("peer-v0"))
+                    .serverAcceptedVersions(NetworkRegistry.acceptMissingOr("peer-v0"))
                     .simpleChannel();
     private static boolean initialized;
 

@@ -159,6 +159,11 @@ public final class DedicatedPeerClient {
 
     private static boolean send(JsonObject message) {
         try {
+            ClientPacketListener current = Minecraft.getInstance().getConnection();
+            if (current == null || !current.hasChannel(PeerPayload.TYPE)) {
+                connected = false;
+                return false;
+            }
             PacketDistributor.sendToServer(new PeerPayload(GSON.toJson(message)));
             return true;
         } catch (Throwable throwable) {

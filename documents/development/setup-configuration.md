@@ -7,7 +7,7 @@
 
 | 文件 | 本项目用途 |
 | --- | --- |
-| `gradle.properties` | 产品身份、许可、描述与 Gradle 参数；`mod_client_side=true`、`mod_server_side=true` |
+| `gradle.properties` | 产品身份、许可、描述与 Gradle 参数；`mod_client_side=optional`、`mod_server_side=optional` |
 | `versions/<target>/target.properties` | Java、编译 Loader、原最低 Loader 要求、Target 专属依赖 |
 | `gradle/libs.versions.toml` | 共享库与构建工具；产品库版本保留 |
 | `instances.toml` | 客户端默认 2560×1440 启动窗口与失焦继续运行的现有 JVM 参数 |

@@ -28,13 +28,13 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 | Fixture / Debug | 独立授权、scope、Debug Arm、资源/值前置条件；不得冒充正常玩家验收 |
 | Provider | V2 schema/policy/affinity/budget/lifecycle；可信资源 revision 与 query-shaped payload 分离 |
 | 证据 | Capture、Recording、Timeline、Artifact、manifest、checksums；来源和预算明确 |
-| 部署与 Peer | 目标覆盖仅客户端、仅服务端和双端联动；当前 both 安装与有限 Peer 不等于单端/零玩家已实现 |
+| 部署与 Peer | 两端可选安装，各有独立Runtime；零玩家控制台/首批主世界DEBUG与有限Peer已实现，完整目录及委托仍待完成 |
 | 持久化 | PERSISTED 与 LIVE 严格分开；正式只读已成立，正式写入未实现 |
 | 安全 | 本机认证、Host/Origin、预算、审计、取消、Human Override 与注入隔离 |
 
 五个已有 Target 是独立实现，不通过构建继承推断行为等价。
 不要求内部代码共享率最大化，不恢复全局 expectedWorldRevision。
-产品 ID、显示名、版本、包与许可保持现有事实；mod_client_side=true、mod_server_side=true，三部署实施仍须完成相应产物与互通验收，不以文档改写双端必装要求。
+产品 ID、显示名、版本、包与许可保持现有事实；mod_client_side=optional、mod_server_side=optional，安装兼容和完整三部署能力分别验收。
 
 ## 两个首个里程碑
 

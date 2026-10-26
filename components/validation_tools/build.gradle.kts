@@ -147,11 +147,22 @@ val verifyServerWorldDebugTools by
         )
     }
 
+val verifyOptionalInstallationTools by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--check",
+            "components/validation_tools/integration-server_peer/task/optional-install-smoke.mjs",
+        )
+    }
+
 tasks.check {
     dependsOn(
         verifyInstanceProfiles,
         verifyServerConsoleTools,
         verifyServerWorldDebugTools,
+        verifyOptionalInstallationTools,
         verifyAlphaSnapshots,
         verifyInstalledEvidence,
         verifyInstalledCleanup,
