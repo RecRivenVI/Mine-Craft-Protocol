@@ -86,6 +86,7 @@ public final class ProbeTransport implements AutoCloseable {
     private final ObservationEngine observation;
     private final WorldReadEngine worldReads;
     private final PlayerStateStream playerStates = new PlayerStateStream();
+    private String lastTargetBlock = "";
     private volatile io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot
             nativeContext;
     private final RecordingEngine recording;
@@ -94,6 +95,7 @@ public final class ProbeTransport implements AutoCloseable {
     private final EventHub debugEventHub;
     private final ConditionEngine conditions;
     private final DebugBatchEngine debugBatches;
+    private final PeerDelegations peerDelegations;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile CompletableFuture<JsonObject> closingInputRelease =
@@ -159,6 +161,8 @@ public final class ProbeTransport implements AutoCloseable {
         this.worldReads = new WorldReadEngine(service, this.protocolState);
         this.observation = new ObservationEngine(service, this.worldReads);
         this.recording = new RecordingEngine(service, this.observation, this.protocolState);
+        this.peerDelegations =
+                new PeerDelegations(protocolState, service, this::delegatedMutation, securityGate);
         this.commandGate =
                 new PlayerCommandGate(
                         this.protocolState.controlSession(),
@@ -201,7 +205,24 @@ public final class ProbeTransport implements AutoCloseable {
                         () -> {
                             protocolState.requireScope("event");
                             worldReads.authorize("DEBUG");
-                        });
+                        },
+                        this::currentConsoleEvent);
+        if (service instanceof ServerConsoleService console)
+            console.console()
+                    .listener(
+                            record -> {
+                                if (closed.get()
+                                        || !protocolState.hasScope("server_console")
+                                        || !protocolState.hasScope("event")) return;
+                                record.addProperty("type", "server.console.output");
+                                record.addProperty("category", "console");
+                                record.add("consoleSequence", record.get("sequence"));
+                                try {
+                                    eventHub.publish(record);
+                                } catch (ProtocolState.ProtocolException denied) {
+                                    /* Observation cannot interrupt native logging. */
+                                }
+                            });
         this.conditions =
                 new ConditionEngine(
                         service,
@@ -211,6 +232,7 @@ public final class ProbeTransport implements AutoCloseable {
                         this.recording,
                         this.observation);
         this.automation.setConditionEngine(this.conditions);
+        this.automation.setObservationEngine(this.observation);
         this.debugBatches =
                 new DebugBatchEngine(service, this.protocolState, this::observeDebugMutation);
         this.protocolState.taskListener(this::broadcast);
@@ -388,7 +410,10 @@ public final class ProbeTransport implements AutoCloseable {
     public void nativeInputContextChanged(
             io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context) {
         if (this.closed.get()) return;
+        if (context == this.nativeContext) return;
+        this.peerDelegations.invalidate();
         this.nativeContext = context;
+        this.lastTargetBlock = "";
         this.protocolState.nativeInputContextChanged(context);
         try {
             this.playerStates.setContext(
@@ -426,6 +451,50 @@ public final class ProbeTransport implements AutoCloseable {
         }
     }
 
+    public boolean wantsTargetBlock(
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context) {
+        return !closed.get()
+                && context == nativeContext
+                && context.worldAvailable()
+                && eventHub.wantsWorldEvent("world.target.block");
+    }
+
+    /** Owner client tick, only the current native target; never scans or loads a region. */
+    public void publishTargetBlock(
+            io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot context,
+            long tick,
+            JsonObject block) {
+        if (!wantsTargetBlock(context)) return;
+        String signature = block.toString();
+        if (signature.equals(lastTargetBlock)) return;
+        try {
+            protocolState.requireScope("event");
+            worldReads.authorize("USER");
+            JsonObject value = new JsonObject();
+            value.addProperty("type", "world.target.block");
+            value.addProperty("category", "world");
+            value.addProperty("domain", "WORLD");
+            value.addProperty("dataCategory", "USER");
+            value.addProperty("authority", "CLIENT_KNOWN");
+            value.addProperty("source", "native_client_target_loaded_block");
+            value.addProperty("stateStream", "client_target_block");
+            JsonObject identity = new JsonObject();
+            identity.addProperty("generation", context.generation());
+            identity.addProperty("opaqueId", context.opaqueId());
+            value.add("streamContext", identity);
+            value.addProperty("sourceTick", tick);
+            value.addProperty("sampledAtMillis", System.currentTimeMillis());
+            value.addProperty("chunkLoadRequested", false);
+            value.addProperty("storageAccessed", false);
+            value.add("block", block.deepCopy());
+            if (context != nativeContext || closed.get()) return;
+            lastTargetBlock = signature;
+            eventHub.publish(value);
+        } catch (ProtocolState.ProtocolException denied) {
+            // Read authority is independent from mandatory native client lifecycle work.
+        }
+    }
+
     /** Read-only attribution for an actual native consumption callback, not an input permit. */
     public boolean nativeInputLeaseActive(
             io.github.recrivenvi.minecraftprotocol.safety.InputContextEpoch.Snapshot expected) {
@@ -435,6 +504,23 @@ public final class ProbeTransport implements AutoCloseable {
     }
 
     private boolean currentUserEvent(JsonObject event) {
+        if (!currentConsoleEvent(event)) return false;
+        if (event.has("stateStream")
+                && "client_target_block".equals(event.get("stateStream").getAsString())) {
+            var context = nativeContext;
+            return !closed.get()
+                    && context != null
+                    && context.worldAvailable()
+                    && event.has("streamContext")
+                    && event.get("streamContext").isJsonObject()
+                    && context.opaqueId()
+                            .equals(
+                                    event.getAsJsonObject("streamContext")
+                                            .get("opaqueId")
+                                            .getAsString())
+                    && context.generation()
+                            == event.getAsJsonObject("streamContext").get("generation").getAsLong();
+        }
         if (!playerStates.current(event)) return false;
         if (PlayerStateStream.isStateEvent(event)) {
             var context = nativeContext;
@@ -460,6 +546,12 @@ public final class ProbeTransport implements AutoCloseable {
                                         .equals(snapshot.get("inputContextId").getAsString()));
     }
 
+    private boolean currentConsoleEvent(JsonObject event) {
+        return !event.has("type")
+                || !"server.console.output".equals(event.get("type").getAsString())
+                || !closed.get() && protocolState.hasScope("server_console");
+    }
+
     @Override
     public void close() {
         synchronized (this.transportLifecycle) {
@@ -480,6 +572,7 @@ public final class ProbeTransport implements AutoCloseable {
             this.automation.close();
             this.commandGate.close();
             this.protocolState.close();
+            this.peerDelegations.close();
             this.recording.close();
             if (this.serverChannel != null)
                 this.serverChannel
@@ -652,10 +745,22 @@ public final class ProbeTransport implements AutoCloseable {
                                                 "/v0/debug/mutations",
                                                 "/v0/debug/batches",
                                                 "/v0/debug/evidence",
+                                                "/v0/providers",
+                                                "/v0/providers/read",
+                                                "/v0/state/frames",
+                                                "/v0/wait/until",
+                                                "/v0/assert",
+                                                "/v0/events/resync",
+                                                "/v0/diagnostics/phase9a/storage/read",
+                                                "/v0/recordings",
                                                 "/v0/server/console",
+                                                "/v0/server/peer/delegations",
+                                                "/v0/server/console/suggestions",
                                                 "/v0/server/console/commands")
                                         .contains(path)
                                 || path.startsWith("/v0/operations/")
+                                || path.startsWith("/v0/recordings/")
+                                || path.startsWith("/v0/server/peer/delegations/")
                                 || path.startsWith("/v0/requests/");
                 if (!available)
                     throw new ProtocolState.ProtocolException(
@@ -683,6 +788,33 @@ public final class ProbeTransport implements AutoCloseable {
                         path,
                         "read",
                         () -> connectionSnapshot(service.capabilities(), true));
+            } else if (path.equals("/v0/server/peer/delegations")
+                    || path.startsWith("/v0/server/peer/delegations/")) {
+                protocolState.requireScope("server_peer");
+                if (request.method() == HttpMethod.GET
+                        && path.equals("/v0/server/peer/delegations"))
+                    sendImmediate(context, metadata, path, peerDelegations.list());
+                else if (request.method() == HttpMethod.POST
+                        && path.equals("/v0/server/peer/delegations"))
+                    sendJsonFuture(
+                            context, metadata, path, peerDelegations.issue(jsonBody(request)));
+                else if (request.method() == HttpMethod.DELETE
+                        && path.startsWith("/v0/server/peer/delegations/"))
+                    sendImmediate(
+                            context,
+                            metadata,
+                            path,
+                            peerDelegations.revoke(
+                                    path.substring("/v0/server/peer/delegations/".length())));
+                else
+                    throw new ProtocolState.ProtocolException(
+                            "METHOD_NOT_ALLOWED", 405, "Unsupported delegation method");
+            } else if (request.method() == HttpMethod.POST
+                    && path.equals("/v0/server/peer/delegation")) {
+                protocolState.requireScope("read");
+                protocolState.requireScope("debug");
+                sendJsonFuture(
+                        context, metadata, path, service.attachPeerDelegation(jsonBody(request)));
             } else if (request.method() == HttpMethod.GET && path.equals("/v0/server/console")) {
                 protocolState.requireScope("read");
                 protocolState.requireScope("server_console");
@@ -706,6 +838,63 @@ public final class ProbeTransport implements AutoCloseable {
                             "INVALID_CONSOLE_QUERY", 400, "Integer console cursor/limit required");
                 }
                 sendImmediate(context, metadata, path, serverConsole().read(after, limit));
+            } else if (request.method() == HttpMethod.POST
+                    && path.equals("/v0/server/console/suggestions")) {
+                protocolState.requireScope("read");
+                protocolState.requireScope("server_console");
+                if (serverConsole() == null)
+                    throw new ProtocolState.ProtocolException(
+                            "CAPABILITY_UNAVAILABLE",
+                            409,
+                            "No independent server console on this Runtime");
+                JsonObject body = jsonBody(request);
+                if (!Set.of("input", "cursor").containsAll(body.keySet()) || !body.has("input"))
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_CONSOLE_QUERY", 400, "input and optional cursor required");
+                if (!body.get("input").isJsonPrimitive()
+                        || !body.getAsJsonPrimitive("input").isString())
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_CONSOLE_QUERY", 400, "input must be a string");
+                String input = body.get("input").getAsString();
+                int cursor;
+                try {
+                    if (body.has("cursor")
+                            && (!body.get("cursor").isJsonPrimitive()
+                                    || !body.getAsJsonPrimitive("cursor").isNumber()))
+                        throw new IllegalArgumentException();
+                    cursor =
+                            body.has("cursor")
+                                    ? body.get("cursor").getAsBigDecimal().intValueExact()
+                                    : input.length();
+                } catch (RuntimeException invalid) {
+                    throw new ProtocolState.ProtocolException(
+                            "INVALID_CONSOLE_QUERY", 400, "cursor must be an integer");
+                }
+                long deadline =
+                        Math.min(
+                                System.currentTimeMillis() + 1500,
+                                metadata.deadlineAtMillis() > 0
+                                        ? metadata.deadlineAtMillis()
+                                        : Long.MAX_VALUE);
+                sendJsonFuture(
+                        context,
+                        metadata,
+                        path,
+                        protocolState.applyDeadline(
+                                serverConsole()
+                                        .complete(
+                                                input,
+                                                cursor,
+                                                () -> {
+                                                    protocolState.requireScope("read");
+                                                    protocolState.requireScope("server_console");
+                                                    if (System.currentTimeMillis() >= deadline)
+                                                        throw new ProtocolState.ProtocolException(
+                                                                "DEADLINE_EXCEEDED",
+                                                                408,
+                                                                "Console completion expired");
+                                                }),
+                                deadline));
             } else if (request.method() == HttpMethod.POST
                     && path.equals("/v0/server/console/commands")) {
                 protocolState.requireScope("server_console");
@@ -1663,7 +1852,8 @@ public final class ProbeTransport implements AutoCloseable {
                         recording.list(stringQuery(uri, "category", "USER")));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/recordings")) {
                 protocolState.requireScope("read");
-                protocolState.requireScope("capture");
+                if (!(service instanceof HeadlessProbeService))
+                    protocolState.requireScope("capture");
                 sendImmediate(context, metadata, path, recording.start(jsonBody(request)));
             } else if (path.startsWith("/v0/recordings/")) {
                 protocolState.requireScope("read");
@@ -2125,6 +2315,31 @@ public final class ProbeTransport implements AutoCloseable {
                             if (mode.has(name)) result.add(name, mode.get(name));
                     }
                     if (capabilities) {
+                        JsonObject streams = new JsonObject();
+                        streams.addProperty("path", "/v0/events");
+                        streams.addProperty(
+                                "playerPose", !(service instanceof HeadlessProbeService));
+                        streams.addProperty(
+                                "targetBlockChanges", !(service instanceof HeadlessProbeService));
+                        streams.addProperty("targetBlockEvent", "world.target.block");
+                        streams.addProperty(
+                                "targetBlockSource", "native_client_target_loaded_block");
+                        streams.addProperty("targetBlockChangeDriven", true);
+                        streams.addProperty("automaticChunkLoading", false);
+                        streams.addProperty(
+                                "serverConsoleOutput", service instanceof ServerConsoleService);
+                        streams.addProperty("consoleRequiresScope", "server_console");
+                        result.add("stateStreams", streams);
+                        JsonObject delegation = new JsonObject();
+                        delegation.addProperty("serverIssued", true);
+                        delegation.addProperty("inputLeaseGranted", false);
+                        delegation.addProperty("requiresActualPlayerPermission", true);
+                        delegation.addProperty("scope", "server_peer");
+                        delegation.addProperty("maxDelegations", 32);
+                        delegation.addProperty("maxTtlMs", 60000);
+                        delegation.addProperty("maxPeerResponseBytes", 30 * 1024);
+                        delegation.addProperty("independentServerArmRequiredForWrites", true);
+                        result.add("peerDelegationContract", delegation);
                         result.add("playerCommandContract", PlayerCommandDiscovery.contract());
                         JsonObject contract = new JsonObject();
                         contract.addProperty("automaticPort", true);
@@ -2148,8 +2363,13 @@ public final class ProbeTransport implements AutoCloseable {
         java.util.List<CompletableFuture<?>> owned = new java.util.ArrayList<>();
         try {
             CompletableFuture<JsonObject> player =
-                    this.worldReads.read(
-                            category, "client/player", new JsonObject(), this.service::playerState);
+                    service instanceof HeadlessProbeService
+                            ? this.service.playerState()
+                            : this.worldReads.read(
+                                    category,
+                                    "client/player",
+                                    new JsonObject(),
+                                    this.service::playerState);
             owned.add(player);
             CompletableFuture<JsonObject> session = this.service.session();
             owned.add(session);
@@ -2526,6 +2746,15 @@ public final class ProbeTransport implements AutoCloseable {
                 .getOrDefault(type, List.of())
                 .forEach(protocolState::requireScope);
         switch (type) {
+            case "state.read" -> {
+                JsonObject read = step.getAsJsonObject("read");
+                if (read == null || !worldReads.category(read).name().equals("USER"))
+                    throw new ProtocolState.ProtocolException(
+                            "WORLD_CATEGORY_MIXED",
+                            409,
+                            "Input pipeline readback is USER; independently authorized DEBUG reads use State Frames");
+                observation.validateRead(read);
+            }
             case "wait.until", "assert.that" ->
                     conditions.authorize(step.getAsJsonObject("condition"));
             default -> {}
@@ -2638,6 +2867,166 @@ public final class ProbeTransport implements AutoCloseable {
                 return work.isCancelled();
             }
         };
+    }
+
+    public void invalidatePeerDelegations() {
+        peerDelegations.invalidate();
+    }
+
+    public void notePeerPrivilegedSubmission(String operation, String requestId) {
+        if (closed.get() || !(operation.equals("debug.mutate") || operation.startsWith("fixture.")))
+            return;
+        JsonObject evidence = new JsonObject();
+        evidence.addProperty("peerRequestId", requestId);
+        evidence.addProperty("operation", operation);
+        evidence.addProperty("nativeEffectConfirmed", false);
+        evidence.addProperty("basis", "privileged_peer_payload_submitted_not_world_mutation_count");
+        protocolState.notePeerPrivilegedSubmission(requestId);
+        recording.contaminate(
+                operation.startsWith("fixture.") ? "FIXTURE" : "DEBUG_PRIVILEGED",
+                operation + ".peer_submitted",
+                evidence);
+    }
+
+    public void requirePeerPublication(
+            String player,
+            String connection,
+            java.util.function.BooleanSupplier operator,
+            JsonObject params) {
+        try {
+            peerDelegations.requirePublication(player, connection, operator, params);
+        } catch (RuntimeException denied) {
+            protocolState.audit(
+                    params.has("peerRequestId")
+                            ? params.get("peerRequestId").getAsString()
+                            : "peer",
+                    connection,
+                    "peer/publication",
+                    "peer_publication_denied");
+            throw denied;
+        }
+    }
+
+    public CompletableFuture<JsonObject> receivePeer(
+            String player,
+            String connection,
+            java.util.function.BooleanSupplier operator,
+            String operation,
+            JsonObject params,
+            ServerPeerReceiver.NativeAction nativeRead) {
+        if (closed.get())
+            return CompletableFuture.failedFuture(new CancellationException("server_peer_closed"));
+        try {
+            var result =
+                    peerDelegations.execute(
+                            player, connection, operator, operation, params.deepCopy(), nativeRead);
+            result.whenComplete(
+                    (value, error) -> {
+                        if (error != null)
+                            protocolState.audit(
+                                    params.has("peerRequestId")
+                                            ? params.get("peerRequestId").getAsString()
+                                            : "peer",
+                                    connection,
+                                    "peer/" + operation,
+                                    "peer_request_failed");
+                    });
+            if (operation.startsWith("fixture."))
+                return observeFixture(result, UUID.randomUUID().toString(), operation);
+            return result;
+        } catch (Throwable failure) {
+            protocolState.audit(
+                    params.has("peerRequestId")
+                            ? params.get("peerRequestId").getAsString()
+                            : "peer",
+                    connection,
+                    "peer/" + operation,
+                    "peer_request_rejected");
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    private CompletableFuture<JsonObject> delegatedMutation(
+            JsonObject request,
+            String armId,
+            Runnable guard,
+            String requestId,
+            Set<String> scopes) {
+        return protocolState.operate(
+                work -> {
+                    guard.run();
+                    var metadata =
+                            new ProtocolState.RequestMetadata(
+                                    requestId,
+                                    "v0",
+                                    System.currentTimeMillis() + 1500,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    armId);
+                    var base = singleDebugAuthorization(metadata, work);
+                    DebugMutationAuthorization authority =
+                            new DebugMutationAuthorization() {
+                                @Override
+                                public Permit authorize(
+                                        String fp, String epoch, String domain, String namespace) {
+                                    return authorizeAll(
+                                            fp, epoch, java.util.Map.of(domain, namespace));
+                                }
+
+                                @Override
+                                public Permit authorizeAll(
+                                        String fp,
+                                        String epoch,
+                                        java.util.Map<String, String> domains) {
+                                    guard.run();
+                                    for (String domain : domains.keySet())
+                                        if (!scopes.containsAll(
+                                                Set.of("debug", "debug.write", "debug." + domain)))
+                                            throw new ProtocolState.ProtocolException(
+                                                    "DEBUG_SCOPE_DENIED",
+                                                    403,
+                                                    "Namespace is not delegated: " + domain);
+                                    return base.authorizeAll(fp, epoch, domains);
+                                }
+
+                                @Override
+                                public boolean hasScope(String scope) {
+                                    guard.run();
+                                    return scopes.contains(scope) && base.hasScope(scope);
+                                }
+
+                                @Override
+                                public String principalId() {
+                                    return base.principalId();
+                                }
+
+                                @Override
+                                public String debugArmId() {
+                                    return base.debugArmId();
+                                }
+
+                                @Override
+                                public boolean isCancelled() {
+                                    try {
+                                        guard.run();
+                                        return base.isCancelled();
+                                    } catch (RuntimeException revoked) {
+                                        return true;
+                                    }
+                                }
+                            };
+                    CompletableFuture<JsonObject> source =
+                            service.peerWorldMutation(request, authority);
+                    source.thenAccept(this::observeDebugMutation);
+                    return CancellableWork.map(
+                            source,
+                            result -> {
+                                guard.run();
+                                return result;
+                            });
+                });
     }
 
     private CompletableFuture<JsonObject> observeFixture(

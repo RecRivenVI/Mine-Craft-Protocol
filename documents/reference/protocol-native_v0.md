@@ -1,6 +1,6 @@
 # Native V0 协议
 
-当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 82 formal HTTP operations`。
+当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 87 formal HTTP operations`。主体候选已有具名集中验证；审查修复及完整领域验收状态见[状态页](../project/status-milestones.md)。
 
 ## 独立服务器控制台
 
@@ -15,22 +15,31 @@ SessionResponse 区分 ClientSessionResponse 与 DedicatedServerSession，服务
   返回 Operation；五秒内未分发会超时取消，显式 DELETE Operation 与 Runtime close 阻止未开始分发，已执行效果不回滚。
   commandRequestId 为唯一 Operation ID；直接 native source 反馈可确定关联，普通日志不按时间附会为命令结果。
   resultCallbackReceived=false 可能是语法错误或无该回调；feedback、nativeResult、dispatchState 分开，worldEffectConfirmed 始终为 false。
+- POST /v0/server/console/suggestions：input与可选整数cursor；read/server_console，只查询当前控制台原生dispatcher。
+  最多64条候选、1500ms期限，不执行命令，不修改玩家聊天；候选的start/end为原生替换范围。
 
 独立控制台 READ 不执行命令补数据；TAKEOVER_NOT_APPLICABLE 表示没有客户端输入表面。
-服务器存档/Recording/补全未随此初始目录开放。已有 Peer 仍按其独立有限合同运行。
+控制台事件为server.console.output/category=console，需event/read/server_console；consoleSequence保留控制台游标，
+事件sequence仍由既有EventHub负责重放、gap和背压。日志文本是不可信数据。
+服务端Recording默认captureFrames=false、无Contact Sheet；控制台Provider或显式DEBUG世界Provider构成结构化轨道，
+不会调用截图、UI树或玩家输入。显式请求图像表面返回不适用。
 
 ## 独立服务器世界 DEBUG
 
 复用既有端点，不增加命令包装或玩家代理；主体为独立服务器操作员，数据类别DEBUG、领域WORLD。
 GET /v0/observe/deep/capabilities 与 GET /v0/debug/capabilities 分别发布当前读取/修改目录，不代表当前调用方已获授权。
 POST /v0/observe/deep 需 read/debug/debug.world.read，category=DEBUG、perspective=server_authoritative，
-domains 只支持 world/blocks，selector.blocks 显式选择最多64个主世界坐标；无玩家锚点、投影、Provider或序列化方块实体。
-world 返回时钟、天气、调度数量、已加载区块数和在线人数；不是全服务器内容导出。
+domains复用既有world/blocks/entities/block_entities/chunks/player/menu/providers目录。
+selector.dimension选择已有维度，selector.anchor选择整数锚点，缺省选在线玩家或原点；不创建或加载目标。
+player/menu必须显式selector.playerUuid选择真实在线玩家；零玩家world/blocks/entities等查询不创建代理玩家。
+DEBUG world返回最多128个在线玩家的UUID、名称和维度用于明确选择，附真实在线总数和playersTruncated；不进入玩家USER模型。
+selector.blocks最多64坐标，实体/方块实体/序列化/Provider继续受既有预算及读副作用声明约束；不是全服务器导出。
 未加载方块返回 available=false、reason=NOT_LOADED、loadRequested=false，没有可写版本，不触发加载或磁盘回退。
 
 GET /v0/world/fingerprint?category=DEBUG 返回本次独立服务器生命周期绑定的指纹。
-显式 POST /v0/debug/arm，namespace=world；POST /v0/debug/mutations 支持 world.block.set，
-仍需 OPERATE、debug/debug.write/debug.world、当前Arm、worldFingerprint和完整 expectedResourceVersion，另可检查原方块/属性。
+显式POST /v0/debug/arm按实际namespace授权；POST /v0/debug/mutations复用既有世界、实体、玩家和容器typed目录，
+仍需OPERATE、debug/debug.write/debug.<namespace>、当前Arm、worldFingerprint和完整expectedResourceVersion。
+actorUuid是玩家/menu修改的明确主体；dimension只选择已有维度。客户端/网络表面不适用，不能用服务器身份模拟键鼠。
 修改回执包含深层before/after，因此其read/debug/debug.world.read亦在执行前检查；缺少读取授权时不能先修改再在返回时拒绝。
 相同方块省略的属性保持不变，替换类型采用新方块默认属性；原生相邻更新和副作用继续生效，恢复原值不是事务回滚。
 资源版本绑定Runtime epoch、坐标与已加载区块对象生命周期，按观察状态变化计数；并非连续监听每次修改的全世界事务令牌。
@@ -38,7 +47,38 @@ GET /v0/world/fingerprint?category=DEBUG 返回本次独立服务器生命周期
 原生传播遇到未加载依赖会阻止加载并报告部分修改，不能盲目重试。
 批次复用 POST /v0/debug/batches；查询 Operation 使用 category=DEBUG 与世界读取授权，不要求 server_console。
 结果保留 before/after、前后版本、DEBUG_PRIVILEGED 与 gameplayEvidence=false；没有玩家Lease、截图或键鼠输入。
-其余维度、实体/玩家/容器/Provider修改及完整Peer委托仍不在此首批目录内。
+服务端Persistent Read复用storage.read和安全上下文，只返回PERSISTED/last_saved_state，不加载区块或回退LIVE。
+player域需明确playerUuid；没有任意文件路径、Persistent Write或借客户端读取远端磁盘的入口。
+
+## 能力发现与Provider条件
+
+客户端GET /v0/debug/capabilities独立组合本地UI与远端世界目录。
+已知Peer未连接/未委托/撤权/超时时仍返回CLIENT_UI操作，并在worldDiscovery中给出available=false、errorCode、httpStatus；
+不返回可用的远端操作、不授予远端权限；取消、shutdown和未知实现异常仍失败。成功时worldDiscovery.available=true，原世界目录保留。
+UI修改仍需本地debug.ui、Arm和UI资源版本；UI Arm不借远端世界指纹。
+
+GET /v0/providers的readCategories说明支持类别，不能替代当前授权。控制台为USER/DEBUG，世界内部Provider仍为DEBUG。
+支持默认读取时defaultReadCategory为USER；内部Provider不返回该字段，并以explicitCategoryRequired=true要求显式DEBUG。
+省略请求category仍默认USER并安全拒绝内部读取，不自动升级。
+
+Provider等待/断言的expected按响应包匹配：expected.data指向实际数据，对象递归匹配已给字段，数组必须完整相等。
+独立服务器选择minecraft:server/world/deep，params带domains及selector；普通player/block/entity条件不会自动选择服务器玩家或维度。
+类别、读取scope、期限和取消传播不变。Companion接受相同递归JSON，不要求调用者自行轮询。
+
+## 双端委托
+
+服务器所有者通过GET/POST /v0/server/peer/delegations与DELETE /v0/server/peer/delegations/{delegationId}管理委托，
+独立server_peer默认不授予。请求指定playerUuid、真实游戏connectionId、scopes及1000～60000ms期限；
+scope必须是服务器所有者已有权限的子集，不能因为拥有客户端token或OP而自己授权服务器Runtime。
+DEBUG写委托还需服务器自己的debugArmId；实际写入仍要求服务器OPERATE、对应namespace及资源版本。
+客户端POST /v0/server/peer/delegation显式绑定delegationId/connectionId，不切模式、不获取Lease、不提升权限。
+断线清空attach；每次接收、原生分发和异步发布重查连接、真实玩家权限、期限及服务器世界生命周期。
+正式深读和typed Debug经同一原生资源引擎处理，保持资源版本和DEBUG_PRIVILEGED证据。
+旧远端health/block无资源版本直写不再开放，调用方改用正式typed修改；未授权和不适用不会回退为命令或直接修改。
+当前Peer响应预算30KiB，超限明确返回错误，调用方缩小读取；已分发修改不承诺回滚，不能自动重放。
+客户端取消/超时传播具名cancel负载，接收端只取消该真实连接拥有的请求。
+已发出的跨owner特权负载不能因取消、断线或回执丢失而被算成纯玩家证据：活动Act/Recording保留特权提交标记。
+peerPrivilegedSubmissionCount只统计实际发出的特权负载，nativeEffectConfirmed=false；不冒充debugMutationCount或已确认世界效果。
 
 V0 是未冻结的产品原生合同，Wire Protocol v1 NOT FROZEN。
 机器权威为[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)；
@@ -466,7 +506,9 @@ category=USER且需read/event；三模式均可，不取得输入Lease。每个�
 包括sourceTick、sampledAtMillis、streamContext、位置/朝向/着地/velocityXYZ；不是服务器真值或世界模拟tick。
 暂停时允许重复位姿而tick推进，最小化/卡顿不承诺墙钟20Hz。GET USER player另含同源有限速度分量，跨请求不保证原子同刻。
 入ring、发送、重放与event条件取证复验授权/上下文；旧世界帧只报告gap/resync，不回放为新世界数据。普通只读断流恢复不自动接管。
-方块变化流尚未提供；状态流不等同新增输入通道。
+world.target.block也需显式type或world namespace订阅；仅在当前原生瞄准方块、可用性或状态变化时发送，
+不是全世界变化广播。来源为当前客户端已加载缓存，保留streamContext、sourceTick、未加载状态和零加载声明；
+切换世界失效旧帧，沿用同一ring/重放/gap/权限合同，不新增输入通道。
 第一人称 mouse.delta 仍走 Vanilla sensitivity/inversion；0.15 不是跨版本、玩家设置或帧处理的通用角度换算常量。
 电影相机的平滑余量由原版逐帧消费，成功输入终态不表示余量已停止；语义aim在此设置下明确拒绝。
 取消、Lease结束、接管/原生上下文或GUI/世界指针平面切换清除余量，不改写yaw/pitch或宿主光标。
@@ -494,7 +536,7 @@ Provider、Fixture/typed Debug/batch、Event、capture/recording/artifact、Pers
 ## 意图、身份与来源
 
 正式路径及HTTP method的唯一接口目录是OpenAPI；当前验证输入逐项对照其80个operationId和x-agent-mode，
-并核对24个实际MCP listTools结果及typed discriminator，不按HTTP POST或Tool名字粗分读取/修改。
+并核对26个实际MCP listTools结果及typed discriminator，不按HTTP POST或Tool名字粗分读取/修改。
 
 | 表面/typed分支 | 模式/类别 | 独立授权及证据边界 |
 | --- | --- | --- |
@@ -593,7 +635,8 @@ player.effect.set/entity.effect.set接收effectId与显式value；null移除，o
 value/expectedValue的对象字段为duration、amplifier、ambient、showParticles、showIcon和最多16项hidden，hidden每项只含前五字段；未给showIcon时随showParticles。
 server.player/entity.effects保留id/duration/amplifier并增加flags/hidden/hiddenChainComplete；提交value时去掉只读id和hiddenChainComplete，expectedValue=null可断言原先不存在。
 当前native链超过预算时DEBUG_EFFECT_CHAIN_INCOMPLETE且不修改未知尾部；完整链按native构造与forceAddEffect/removeEffect回调应用，可能改变属性或产生后续效果，不承诺取消回滚或复制图形渐变缓存。
-这些新正式typed路径当前仅集成世界提供；既有Peer仍只有声明的旧health/block能力，无Peer明确不可用。
+这些typed路径由同Target原生服务器引擎承载；独立服务器显式选择真实玩家，远端Peer另需服务器所有者委托。
+旧的无ResourceVersion远端health/block写入不接受；无Peer或无委托明确拒绝，不回退为客户端修改。
 
 ## DEBUG 世界环境
 
@@ -644,7 +687,7 @@ entity.remove要求entityUuid、对应完整entity版本，可附expectedEntityT
 回执保留UUID/lifecycleId、removed和removalReason，afterResourceVersion不再可写；之后旧身份不能继续写入。
 删除不可撤销，不提供同UUID恢复；测试创建的对象按返回UUID单独清理，不能宽范围kill或重建未知实体。
 上述操作为DEBUG_PRIVILEGED，不获取输入Lease、不加载Chunk、不访问Persistent Storage；原生实体/加载器回调仍是实际副作用。
-当前正式路径只提供集成世界；无Peer明确不可用，有限Peer不因此新增能力。
+正式原生目录也用于独立服务器和已授权Peer；玩家资源必须指向实际在线玩家，不能创建代理玩家。
 
 ## DEBUG LIVE 转移
 
@@ -667,7 +710,7 @@ entity.remove可显式指定sourceDimension清理本任务在其他已加载维�
 非玩家跨维度按原版重建对象并保留UUID，新lifecycle使旧token失效；原生内存复制/同步回调不是Persistent Storage写入。
 当前玩家跨维度改变世界指纹，requiresFreshWorldFingerprintAndArm=true；调用方必须显式重新读取并授权，不能沿用旧Arm或盲目重试。
 速度、摄像机、物品使用及维度触发器保持该版本原生副作用，返回位置不等于还原这些效果。
-约束只覆盖正式typed同步转移，不冻结转移后普通Vanilla模拟/玩家视距加载，不扩展有限Peer或无Peer能力。
+约束只覆盖正式typed同步转移，不冻结转移后普通Vanilla模拟/玩家视距加载；远端仍需独立Peer委托和实际服务器权限。
 
 ## DEBUG 关系
 
@@ -683,7 +726,7 @@ relatedResourceVersions必须显式提供，最多三项，无重复或多余项
 
 回执的before/after与版本为关系专用；beforeEntity/afterEntity、relatedAfter提供实际连带变化。原生骑乘可能断绳/掉落绳索，挂绳可能下马，狼驯服会补血、解除驯服不自动还原生命。
 恢复关系不保证回滚位置、生命、物品或外部回调；须重新检查版本并显式恢复批准状态，删除的物品也不自动重建。
-这些操作仅集成世界DEBUG_PRIVILEGED，INPUT派发为零，不增加Peer能力，不访问Persistent Storage。
+这些操作属于服务器DEBUG_PRIVILEGED，INPUT派发为零；独立/远端资源沿用相同原生前置条件，远端额外检查委托，不访问Persistent Storage。
 
 ## DEBUG 库存与装备
 
@@ -732,7 +775,7 @@ allowReadEffects只覆盖获准的lazy initialization，不授予加载、存档
 现有Fixture使用独立fixture scope及OPERATE/TAKEOVER，不需要输入Lease或Debug Arm；不因此获得typed Debug权限。
 其现有响应mode=FIXTURE是证据标签，不是第四种Control Mode；实际控制状态仍由Control Session提供。
 fixture.player.teleport是明确的FIXTURE准备动作，不是USER玩法、Provider能力或DEBUG原子批次；使用自有副本并显式恢复，不把其原生移动/加载副作用描述为只读操作。
-演示测试界面的fixture入口同样保留FIXTURE authority；不把准备结果当作原版核心操作已验收，旧Peer范围不因本目录扩大。
+演示测试界面的fixture入口同样保留FIXTURE authority；不把准备结果当作原版核心操作已验收，服务器没有本地测试Screen。
 已应用的Fixture在成功响应前标记录制和当时活动的Gameplay Act；fixtureMutationCount/fixtureOperationDuringAct单独记录，不伪装成Debug修改次数。即使随后恢复原值，该Act仍invalid_for_acceptance；在Act开始之前完成的Arrange不污染之后的新窗口。
 
 ## 验证与生成

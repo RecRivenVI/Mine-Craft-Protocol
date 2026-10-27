@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {checkServerWorldDebug} from './server-world-debug-checks.mjs';
+import {prepareServerWorld} from './server-world-fixture.mjs';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createWriteStream} from 'node:fs';
@@ -63,8 +64,28 @@ await writeFile(join(game,'eula.txt'),'eula=true\n');
 const reservation=createServer();await new Promise(done=>reservation.listen(0,'127.0.0.1',done));const gamePort=reservation.address().port;await new Promise(done=>reservation.close(done));
 await writeFile(join(game,'server.properties'),`server-ip=127.0.0.1\nserver-port=${gamePort}\nlevel-name=Console-Smoke\nonline-mode=false\nwhite-list=false\nmax-players=1\nview-distance=2\nsimulation-distance=2\npause-when-empty-seconds=-1\n`);
 const report={target,jarSha256:digest(await readFile(jar)),startedAt:new Date().toISOString(),scope:worldDebug?'single_final_jar_dedicated_world_debug_and_console_zero_players_no_client':'single_final_jar_dedicated_console_zero_players_no_client',checks:{},persistentWriteCalls:0,persistentWriteBasis:'This runner invokes no Persistent Storage write API; ordinary native server saving is separate.'};
+report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,facts:join(repo,'versions',target,'target.properties'),
+  start:async()=>{
+    const output=createWriteStream(join(game,'fixture-preparation.log'));
+    const native=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false',...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
+    await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:process.pid,serverPid:native.pid}));
+    native.stdout.pipe(output,{end:false});native.stderr.pipe(output,{end:false});
+    const ready=new Promise((done,fail)=>{
+      let text='';const inspect=bytes=>{text=(text+bytes).slice(-65536);if(/Done \(/.test(text))done();};
+      native.stdout.on('data',inspect);native.stderr.on('data',inspect);native.once('error',fail);native.once('exit',code=>fail(Error('Fixture preparation exited '+code)));
+    });
+    const exit=new Promise(done=>native.once('exit',done));
+    let timer;
+    try{await Promise.race([ready,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Fixture preparation deadline')),180000);})]);}
+    catch(error){native.kill();await exit;output.end();throw error;}finally{clearTimeout(timer);}
+    return {native,exit,output};
+  },stop:async({native,exit,output})=>{
+    native.stdin.write('stop\n');let timer;
+    try{assert.equal(await Promise.race([exit,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Fixture stop deadline')),45000);})]),0);}
+    catch(error){native.kill();await exit;throw error;}finally{clearTimeout(timer);output.end();}
+  }});
 const log=createWriteStream(join(game,'console-smoke.log'));
-const child=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false','-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console'+(worldDebug?',debug,debug.world.read,debug.write,debug.world':''),...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
+const child=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false','-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console'+(worldDebug?',storage.read,server_peer,debug,debug.world.read,debug.write,debug.world,debug.entity,debug.block_entity,debug.player,debug.menu,debug.provider':''),...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
 report.pid=child.pid;report.gamePort=gamePort;child.stdout.pipe(log,{end:false});child.stderr.pipe(log,{end:false});
 await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:process.pid,serverPid:child.pid}));
 let exited=false,exitCode,mcp,mcpTransport;const exit=new Promise(done=>child.once('exit',code=>{exited=true;exitCode=code;done(code);}));
@@ -80,7 +101,7 @@ async function nativeCommand(command){
   const terminal=await until(()=>call('GET','/v0/operations/'+operation.operationId),value=>['completed','failed','cancelled'].includes(value.state),'console Operation terminal');assert.equal(terminal.state,'completed',JSON.stringify(terminal));return terminal.result;
 }
 try{
-  endpoint=await until(async()=>await exists(join(game,'minecraft-protocol/endpoint.json'))?JSON.parse(await readFile(join(game,'minecraft-protocol/endpoint.json'),'utf8')):null,Boolean,'dedicated endpoint',120000);
+  endpoint=await until(async()=>await exists(join(game,'minecraft-protocol/endpoint.json'))?JSON.parse(await readFile(join(game,'minecraft-protocol/endpoint.json'),'utf8')):null,value=>value?.pid===child.pid&&value?.target===target,'dedicated endpoint for this owned process',120000);
   assert.equal(endpoint.deploymentRole,'DEDICATED_SERVER');token=(await readFile(join(game,'minecraft-protocol/token'),'utf8')).trim();report.runtimeInstanceId=endpoint.runtimeInstanceId;report.runtimePort=endpoint.port;
   report.session=await call('GET','/v0/session');assert.equal(report.session.deploymentRole,'DEDICATED_SERVER');assert.equal(report.session.inputSurfaceAvailable,false);
   await call('GET','/v0/session',undefined,401,{Authorization:'Bearer wrong'});await call('GET','/v0/session',undefined,409,{'X-MCP-Runtime-Instance':'00000000-0000-0000-0000-000000000000'});report.checks.authAndInstancePin=true;
@@ -107,6 +128,20 @@ try{
   const page=await until(()=>call('GET','/v0/server/console?after=0&limit=128'),value=>value.records.some(item=>item.text.includes('NATIVE_CONSOLE_COEXISTS')),'native console coexistence');
   assert.equal(page.storageAccessed,false);assert(!page.records.some(item=>item.text.includes('READ_DENIED')));report.console=page;report.checks.liveOutputAndNativeConsoleCoexist=true;
   const readReply=await mcp.callTool({name:'minecraft_server_console',arguments:{action:'read',after:0,limit:64}});assert(!readReply.isError);assert.equal(readReply.structuredContent.data.authority,'SERVER_CONSOLE');
+  report.providerDescriptors=await call('GET','/v0/providers');
+  const consoleDescriptor=report.providerDescriptors.providers.find(item=>item.id==='minecraft:server/console');
+  assert.deepEqual(consoleDescriptor.readCategories,['USER','DEBUG']);assert.equal(consoleDescriptor.defaultReadCategory,'USER');assert.equal(consoleDescriptor.explicitCategoryRequired,false);
+  const worldDescriptor=report.providerDescriptors.providers.find(item=>item.id==='minecraft:server/world/deep');
+  assert.deepEqual(worldDescriptor.readCategories,['DEBUG']);assert.equal(Object.hasOwn(worldDescriptor,'defaultReadCategory'),false);assert.equal(worldDescriptor.explicitCategoryRequired,true);
+  const consoleCondition=await mcp.callTool({name:'minecraft_assert',arguments:{condition:{type:'provider',category:'USER',providerId:'minecraft:server/console',expected:{data:{authority:'SERVER_CONSOLE',actor:'server_operator'}}}}});
+  assert(!consoleCondition.isError,JSON.stringify(consoleCondition));assert.equal(consoleCondition.structuredContent.data.passed,true);report.checks.consoleProviderCategoriesAndMcpCondition=true;
+  const suggestions=await mcp.callTool({name:'minecraft_server_console',arguments:{action:'complete',input:'li',cursor:2}});
+  assert(!suggestions.isError,JSON.stringify(suggestions));assert.equal(suggestions.structuredContent.data.commandExecuted,false);
+  assert(suggestions.structuredContent.data.suggestions.some(item=>item.text==='list'));report.checks.nativeCompletionWithoutExecution=true;
+  const recording=await call('POST','/v0/recordings',{durationMs:5000,intervalMs:100,maxSamples:8});
+  const recorded=await until(()=>call('GET','/v0/recordings/'+recording.recordingId),value=>value.writtenStates>=2,'headless structured recording');
+  assert.equal(recorded.writtenFrames,0);assert.equal(recorded.deploymentRole,'DEDICATED_SERVER');
+  await call('DELETE','/v0/recordings/'+recording.recordingId);report.recording=recorded;
   if(worldDebug)report.worldDebug=await checkServerWorldDebug({call,mcp,child,until});
   await mcp.close();mcp=undefined;await mcpTransport.close();
   child.stdin.write('stop\n');assert.equal(await Promise.race([exit,sleep(30000).then(()=>{throw Error('normal stop deadline');})]),0);

@@ -107,6 +107,32 @@ final class RecordingEngine implements AutoCloseable {
     }
 
     JsonObject start(JsonObject request) {
+        request = request.deepCopy();
+        if (service instanceof HeadlessProbeService) {
+            if (request.has("contactSheet")
+                    && request.getAsJsonObject("contactSheet").has("enabled")
+                    && request.getAsJsonObject("contactSheet").get("enabled").getAsBoolean())
+                throw new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE",
+                        409,
+                        "Dedicated recordings have no image frames for contact sheets");
+            if (request.has("captureFrames") && request.get("captureFrames").getAsBoolean())
+                throw new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE",
+                        409,
+                        "Dedicated recordings contain structured state and timeline, not framebuffer images");
+            request.addProperty("captureFrames", false);
+            JsonObject contact = new JsonObject();
+            contact.addProperty("enabled", false);
+            request.add("contactSheet", contact);
+            if (!request.has("stateReads")) {
+                JsonArray reads = new JsonArray();
+                JsonObject console = new JsonObject();
+                console.addProperty("providerId", "minecraft:server/console");
+                reads.add(console);
+                request.add("stateReads", reads);
+            }
+        }
         Config config = Config.from(request);
         this.observation.worldReads().authorize(config.category());
         for (var read : config.stateReads()) {
@@ -376,7 +402,10 @@ final class RecordingEngine implements AutoCloseable {
             Runnable uiPublication;
             try {
                 uiPublication = protocolState.uiReadGuard("USER");
-                tree = this.service.uiTree();
+                tree =
+                        service instanceof HeadlessProbeService
+                                ? CompletableFuture.completedFuture(absentClientSurface())
+                                : this.service.uiTree();
             } catch (ProtocolState.ProtocolException denied) {
                 JsonObject unavailable = new JsonObject();
                 unavailable.addProperty("available", false);
@@ -388,7 +417,10 @@ final class RecordingEngine implements AutoCloseable {
             final var uiTree = tree;
             final var uiGuard = uiPublication;
             owned.add(tree);
-            CompletableFuture<JsonObject> input = this.service.inputState();
+            CompletableFuture<JsonObject> input =
+                    service instanceof HeadlessProbeService
+                            ? CompletableFuture.completedFuture(absentClientSurface())
+                            : this.service.inputState();
             owned.add(input);
             CompletableFuture<Void> sampleWork =
                     CancellableWork.handle(
@@ -710,6 +742,7 @@ final class RecordingEngine implements AutoCloseable {
         private JsonObject manifest() {
             JsonObject json = new JsonObject();
             json.addProperty("artifactVersion", "mcp-artifact-v0");
+            deploymentMetadata(json);
             json.addProperty("domain", "WORLD");
             json.addProperty("dataCategory", this.config.category());
             json.addProperty("schemaVersion", "0.0.1-phase5");
@@ -756,6 +789,7 @@ final class RecordingEngine implements AutoCloseable {
 
         private JsonObject statusJson() {
             JsonObject json = new JsonObject();
+            deploymentMetadata(json);
             json.addProperty("type", "recording.session");
             json.addProperty("domain", "WORLD");
             json.addProperty("dataCategory", this.config.category());
@@ -1162,6 +1196,21 @@ final class RecordingEngine implements AutoCloseable {
             reads.add(capture);
             return reads;
         }
+    }
+
+    private void deploymentMetadata(JsonObject json) {
+        boolean dedicated = service instanceof HeadlessProbeService;
+        json.addProperty("deploymentRole", dedicated ? "DEDICATED_SERVER" : "CLIENT");
+        json.addProperty("graphicalSurfaceAvailable", !dedicated);
+        json.addProperty("actor", dedicated ? "server_operator" : "client_player");
+    }
+
+    private static JsonObject absentClientSurface() {
+        JsonObject value = new JsonObject();
+        value.addProperty("available", false);
+        value.addProperty("reason", "no_client_surface");
+        value.addProperty("deploymentRole", "DEDICATED_SERVER");
+        return value;
     }
 
     private static long longValue(JsonObject object, String name, long fallback) {

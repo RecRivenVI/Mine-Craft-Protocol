@@ -10,6 +10,11 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"POST","path":"/v0/server/console/suggestions","operationId":"completeServerConsole","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"GET","path":"/v0/server/peer/delegations","operationId":"listServerPeerDelegations","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"POST","path":"/v0/server/peer/delegations","operationId":"issueServerPeerDelegation","modeRequirement":"MODE_INDEPENDENT"},
+    {"method":"DELETE","path":"/v0/server/peer/delegations/{delegationId}","operationId":"revokeServerPeerDelegation","modeRequirement":"MODE_INDEPENDENT"},
+    {"method":"POST","path":"/v0/server/peer/delegation","operationId":"attachServerPeerDelegation","modeRequirement":"MODE_INDEPENDENT"},
     {"method":"GET","path":"/v0/server/console","operationId":"readServerConsole","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/server/console/commands","operationId":"executeServerConsoleCommand","modeRequirement":"OPERATE_OR_TAKEOVER"},
     {"method":"POST","path":"/v0/world/region","operationId":"readWorldRegion","modeRequirement":"READ_COMPATIBLE"},
@@ -560,7 +565,8 @@
     "optionalControlLeaseBinding": "existing control channel; disconnect ends TAKEOVER, unbound readers do not change intent"
   },
   "mcp": {
-    "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
+    "minecraft_read_storage":{"default":"READ_COMPATIBLE"},
+    "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","complete":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
     "minecraft_get_session": {
       "default": "READ_COMPATIBLE"
     },
@@ -639,7 +645,9 @@
       "default": "READ_COMPATIBLE"
     },
     "minecraft_peer": {
-      "default": "READ_COMPATIBLE"
+      "default": "READ_COMPATIBLE",
+      "discriminator":"action",
+      "actions":{"status":"READ_COMPATIBLE","probe":"READ_COMPATIBLE","list":"READ_COMPATIBLE","issue":"MODE_INDEPENDENT","revoke":"MODE_INDEPENDENT","attach":"MODE_INDEPENDENT","detach":"MODE_INDEPENDENT"}
     },
     "minecraft_fixture": {
       "default": "OPERATE_OR_TAKEOVER"
@@ -664,8 +672,8 @@
     "Input pipeline is a TAKEOVER control macro including its embedded wait/assert steps. Standalone Wait/Assert remains READ-compatible.",
     "Arm management, cancellation and explicit mode/Lease management are mode-independent but retain their scopes and credentials.",
     "Recording observation and Artifact IO are READ-compatible; they are not Persistent Write.",
-    "Persistent Read is READ-compatible in native HTTP; the current curated MCP tool set has no dedicated Persistent Read tool.",
-    "Peer queries/probe are READ-compatible. Existing typed Peer Fixture/Debug requests enter through OPERATE-gated client Runtime workflows and retain independent server operator/feature gates. Mode is not a remote-server authentication credential.",
+    "Persistent Read is READ-compatible in native HTTP and minecraft_read_storage, with independent storage.read scope; no LIVE fallback or write.",
+    "Peer status/probe are READ-compatible. Formal Peer operations require explicit server-owned connection-bound delegation, actual player permission and independent server scopes/Arm. Neither a client mode nor its Arm authenticates remote authority.",
     "Ordinary pooled HTTP disconnect does not change stable intent. Lease-bound control WS disconnect/TTL loss ends TAKEOVER. Runtime close ends its entire control session.",
     "No mode automatically upgrades scopes, obtains a Debug Arm, or turns Fixture/Debug evidence into PLAYTEST."
   ]

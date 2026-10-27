@@ -28,6 +28,35 @@ final class PlayerStateStreamTransportTest {
     @TempDir Path artifacts;
 
     @Test
+    void currentTargetBlockStreamIsReadOnlyChangeDrivenAndRejectsOldWorldFrames() throws Exception {
+        try (Fixture fixture = new Fixture("read,event");
+                Socket socket = fixture.connect("?type=world.target.block&eventCategory=world")) {
+            JsonObject block =
+                    JsonParser.parseString(
+                                    "{\"available\":true,\"x\":1,\"y\":64,\"z\":2,\"blockId\":\"minecraft:stone\",\"state\":\"minecraft:stone\"}")
+                            .getAsJsonObject();
+            var original = fixture.context;
+            fixture.transport.publishTargetBlock(original, 1, block);
+            JsonObject first = socket.await("world.target.block");
+            assertEquals("USER", first.get("dataCategory").getAsString());
+            assertEquals("CLIENT_KNOWN", first.get("authority").getAsString());
+            assertFalse(first.get("chunkLoadRequested").getAsBoolean());
+            fixture.transport.publishTargetBlock(original, 2, block);
+            socket.assertNoEvent("world.target.block");
+            fixture.replaceContext(true);
+            fixture.transport.publishTargetBlock(original, 3, block);
+            socket.assertNoEvent("world.target.block");
+            block.addProperty("blockId", "minecraft:glass");
+            fixture.transport.publishTargetBlock(fixture.context, 4, block);
+            JsonObject changed = socket.await("world.target.block");
+            assertEquals(
+                    "minecraft:glass",
+                    changed.getAsJsonObject("block").get("blockId").getAsString());
+            assertEquals(0, fixture.inputCalls.get());
+        }
+    }
+
+    @Test
     void actualUserWebSocketReceivesPoseInReadWithoutAnInputLeaseAndMatchesItsGetSource()
             throws Exception {
         try (Fixture fixture = new Fixture("read,event");
@@ -299,6 +328,19 @@ final class PlayerStateStreamTransportTest {
                                 Math.max(1, end - System.nanoTime()), TimeUnit.NANOSECONDS);
                 if (value == null) return;
                 assertFalse(PlayerStateStream.isStateEvent(value), "Unexpected pose: " + value);
+            }
+        }
+
+        void assertNoEvent(String type) throws Exception {
+            long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(150);
+            while (System.nanoTime() < end) {
+                JsonObject value =
+                        capture.messages.poll(
+                                Math.max(1, end - System.nanoTime()), TimeUnit.NANOSECONDS);
+                if (value == null) return;
+                assertFalse(
+                        value.has("type") && type.equals(value.get("type").getAsString()),
+                        "Unexpected event: " + value);
             }
         }
 

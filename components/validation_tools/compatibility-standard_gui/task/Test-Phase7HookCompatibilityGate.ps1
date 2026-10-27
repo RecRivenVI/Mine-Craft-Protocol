@@ -24,7 +24,7 @@ foreach ($target in $targets) {
     $base = "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe"
     $mixins = @(Get-ChildItem -LiteralPath (Join-Path $root "$base/mixin") -Filter '*.java' -File)
     if ($target -eq '26.3-fabric') {
-        $mixins += Get-Item -LiteralPath (Join-Path $root 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DebugLoadedChunkAccessMixin.java')
+        $mixins += Get-ChildItem -LiteralPath (Join-Path $root 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin') -Filter '*.java' -File
         Copy-HookFixtureFile 'versions/26.3-fabric/src/main/resources/minecraft_protocol_probe.server.mixins.json'
     }
     foreach ($file in $mixins) { Copy-HookFixtureFile ([IO.Path]::GetRelativePath($root, $file.FullName)) }
@@ -35,7 +35,8 @@ foreach ($target in $targets) {
     Copy-HookFixtureFile "versions/$target/src/$source/resources/$config"
     $configPath = Join-Path $fixture "versions/$target/src/$source/resources/$config"
     $configInput = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-    $configInput.client = @($mixins | Where-Object { $_.BaseName -notin @($configInput.mixins) -and -not ($target -eq '26.3-fabric' -and $_.BaseName -eq 'DebugLoadedChunkAccessMixin') } | ForEach-Object BaseName)
+    $commonRegistered=if($target-eq'26.3-fabric'){@((Get-Content (Join-Path $root 'versions/26.3-fabric/src/main/resources/minecraft_protocol_probe.server.mixins.json') -Raw|ConvertFrom-Json).mixins)}else{@()}
+    $configInput.client = @($mixins | Where-Object { $_.BaseName -notin @($configInput.mixins) -and $_.BaseName -notin $commonRegistered } | ForEach-Object BaseName)
     [IO.File]::WriteAllText($configPath, ($configInput | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
     foreach ($test in @('HudDrawDelegationTest.java', 'HudPresentationTest.java', 'HudCameraPresentationTest.java', 'LateGuiPresentationTest.java', 'LegacyNauseaPresentationTest.java', 'UiToastDrawTest.java', 'PlayerTabPresentationTest.java')) {
         $relative = "versions/$target/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/$test"

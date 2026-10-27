@@ -4,7 +4,14 @@
     "package": "io.github.recrivenvi.minecraftprotocol.probe.mixin",
     "compatibilityLevel": "JAVA_25",
     "mixins": [
-        "DebugLoadedChunkAccessMixin"
+        "DebugLoadedChunkAccessMixin",
+        "ClockControlRevisionMixin",
+        "WeatherControlRevisionMixin",
+        "BaseContainerBlockEntityAccessor",
+        "DistanceManagerAccessor",
+        "LevelTicksAccessor",
+        "AttributeMapAccessor",
+        "MobEffectInstanceAccessor"
     ],
     "injectors": {
         "defaultRequire": 1

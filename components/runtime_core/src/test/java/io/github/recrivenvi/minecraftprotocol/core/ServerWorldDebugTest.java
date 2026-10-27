@@ -14,6 +14,7 @@ final class ServerWorldDebugTest {
         String blockId = "minecraft:air", lifecycle = "chunk1";
         int mutations;
         boolean immediate = true;
+        final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
 
         public void schedule(Runnable work) {
             if (immediate) work.run();
@@ -37,6 +38,110 @@ final class ServerWorldDebugTest {
             blockId = id;
             mutations++;
         }
+
+        public JsonObject fingerprint() {
+            JsonObject value = new JsonObject();
+            value.addProperty("worldFingerprint", "a".repeat(64));
+            value.addProperty("sessionEpoch", revisions.sessionEpoch());
+            return value;
+        }
+
+        public JsonObject capabilities() {
+            return fingerprint();
+        }
+
+        public JsonObject observationCapabilities() {
+            return fingerprint();
+        }
+
+        private JsonObject reference() {
+            return revisions.revision("block", "8,100,8", lifecycle, block(8, 100, 8));
+        }
+
+        public java.util.concurrent.CompletableFuture<JsonObject> observe(
+                JsonObject request, DeepObservationRequestContext context) {
+            // The fake resource owner validates its native selector, not the transport wrapper.
+            try {
+                request.getAsJsonObject("selector")
+                        .getAsJsonArray("blocks")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("x")
+                        .getAsBigDecimal()
+                        .intValueExact();
+            } catch (RuntimeException invalid) {
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_DEBUG_REQUEST", 400, "Invalid native coordinate");
+            }
+            return queued(
+                    () -> {
+                        if (context.isCancelled())
+                            throw new java.util.concurrent.CancellationException();
+                        JsonObject value = new JsonObject();
+                        value.addProperty("dataCategory", "DEBUG");
+                        com.google.gson.JsonArray refs = new com.google.gson.JsonArray();
+                        refs.add(reference());
+                        value.add("resourceRevisionRefs", refs);
+                        return value;
+                    });
+        }
+
+        public java.util.concurrent.CompletableFuture<JsonObject> mutate(
+                JsonObject request, DebugMutationAuthorization authority) {
+            return queued(
+                    () -> {
+                        if (authority.isCancelled())
+                            throw new java.util.concurrent.CancellationException();
+                        try (var permit =
+                                authority.authorize(
+                                        "a".repeat(64),
+                                        revisions.sessionEpoch(),
+                                        "world",
+                                        "world")) {
+                            if (!"a"
+                                    .repeat(64)
+                                    .equals(request.get("worldFingerprint").getAsString()))
+                                throw new ProtocolState.ProtocolException(
+                                        "WORLD_FINGERPRINT_MISMATCH", 409, "Wrong world");
+                            ResourceVersionVerifier.verifyAuthorized(
+                                    request.getAsJsonObject("expectedResourceVersion"),
+                                    reference());
+                            JsonObject before = block(8, 100, 8), beforeRef = reference();
+                            setBlock(8, 100, 8, request.get("blockId").getAsString(), request);
+                            JsonObject value = new JsonObject();
+                            value.addProperty("evidenceAuthority", "DEBUG_PRIVILEGED");
+                            value.addProperty("gameplayEvidence", false);
+                            value.addProperty("operation", "world.block.set");
+                            value.add("before", before);
+                            value.add("after", block(8, 100, 8));
+                            value.add("beforeResourceVersion", beforeRef);
+                            value.add("afterResourceVersion", reference());
+                            return value;
+                        }
+                    });
+        }
+
+        public java.util.concurrent.CompletableFuture<JsonObject> storageRead(JsonObject request) {
+            return java.util.concurrent.CompletableFuture.failedFuture(
+                    new UnsupportedOperationException("No fake disk"));
+        }
+
+        private java.util.concurrent.CompletableFuture<JsonObject> queued(
+                java.util.function.Supplier<JsonObject> action) {
+            var future = new java.util.concurrent.CompletableFuture<JsonObject>();
+            schedule(
+                    () -> {
+                        if (future.isDone()) return;
+                        try {
+                            future.complete(action.get());
+                        } catch (Throwable failure) {
+                            future.completeExceptionally(failure);
+                        }
+                    });
+            return future;
+        }
+
+        public void close() {}
     }
 
     static JsonObject query() {
@@ -171,9 +276,7 @@ final class ServerWorldDebugTest {
                             .code());
             JsonObject unsupported = query();
             unsupported.getAsJsonObject("selector").addProperty("chunkRadius", 2);
-            assertThrows(
-                    ProtocolState.ProtocolException.class,
-                    () -> engine.observe(unsupported, context()));
+            assertNotNull(engine.observe(unsupported, context()).join());
             assertEquals(0, host.mutations);
         }
     }

@@ -44,6 +44,7 @@ public final class AutomationEngine implements AutoCloseable {
                     Map.entry("ui.drag", List.of("ui")),
                     Map.entry("wait.until", List.of("read")),
                     Map.entry("assert.that", List.of("read")),
+                    Map.entry("state.read", List.of("read")),
                     Map.entry("world.action", List.of()));
 
     private final ProbeService service;
@@ -51,6 +52,7 @@ public final class AutomationEngine implements AutoCloseable {
     private final ScheduledExecutorService scheduler;
     private final Set<PipelineExecution> activeExecutions = ConcurrentHashMap.newKeySet();
     private volatile ConditionEngine conditionEngine;
+    private volatile ObservationEngine observationEngine;
     private final io.github.recrivenvi.minecraftprotocol.safety.InputSequenceQueue sequences =
             new io.github.recrivenvi.minecraftprotocol.safety.InputSequenceQueue();
     private volatile boolean closed;
@@ -82,6 +84,10 @@ public final class AutomationEngine implements AutoCloseable {
 
     void setConditionEngine(ConditionEngine conditionEngine) {
         this.conditionEngine = conditionEngine;
+    }
+
+    void setObservationEngine(ObservationEngine observationEngine) {
+        this.observationEngine = observationEngine;
     }
 
     void requireCommandDispatch(String gestureId) {
@@ -1429,6 +1435,12 @@ public final class AutomationEngine implements AutoCloseable {
                             longValue(step, "timeoutMs", 5_000L),
                             execution);
             case "assert.that" -> this.assertThat(requiredObject(step, "condition"), execution);
+            case "state.read" -> {
+                if (observationEngine == null)
+                    yield failed(
+                            "CAPABILITY_UNAVAILABLE", 409, "Observation engine is unavailable");
+                yield execution.track(observationEngine.read(requiredObject(step, "read")));
+            }
             default ->
                     failed("UNSUPPORTED_PIPELINE_STEP", 400, "Unsupported pipeline step: " + type);
         };

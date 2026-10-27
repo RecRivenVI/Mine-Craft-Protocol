@@ -28,6 +28,30 @@ final class ObservationEngine {
     ObservationEngine(ProbeService service, WorldReadEngine worldReads) {
         this.service = service;
         this.worldReads = worldReads;
+        if (service instanceof ServerConsoleService console) {
+            this.register(
+                    "minecraft:server/console",
+                    "server_console",
+                    "server_thread",
+                    "server_console_ring",
+                    query ->
+                            CompletableFuture.completedFuture(
+                                    console.console()
+                                            .read(
+                                                    query.has("after")
+                                                            ? query.get("after").getAsLong()
+                                                            : 0,
+                                                    query.has("limit")
+                                                            ? query.get("limit").getAsInt()
+                                                            : 128)));
+            this.register(
+                    "minecraft:server/world/deep",
+                    "server_authoritative",
+                    "server_thread",
+                    "server_authority_runtime",
+                    worldReads::deepServer);
+            return;
+        }
         this.register(
                 "minecraft:client/player",
                 "client_known",
@@ -133,7 +157,19 @@ final class ObservationEngine {
         BuiltinProvider builtin = this.builtins.get(providerId);
         if (builtin != null) {
             CompletableFuture<JsonObject> captured;
-            if (providerId.equals("minecraft:client/world/scene")) {
+            if (providerId.equals("minecraft:server/console")) {
+                Runnable guard = worldReads.consoleGuard(category);
+                captured =
+                        CancellableWork.map(
+                                builtin.reader().apply(query),
+                                value -> {
+                                    guard.run();
+                                    return value;
+                                });
+            } else if (providerId.equals("minecraft:server/world/deep")) {
+                query.addProperty("category", category);
+                captured = builtin.reader().apply(query);
+            } else if (providerId.equals("minecraft:client/world/scene")) {
                 captured = worldReads.scene(category, query);
             } else if (providerId.equals("minecraft:capture/info")) {
                 captured = worldReads.guarded(category, () -> builtin.reader().apply(query));
@@ -241,7 +277,17 @@ final class ObservationEngine {
                         results.add(future.join().deepCopy());
                     JsonObject json = new JsonObject();
                     json.addProperty("type", "state.frame");
-                    json.addProperty("domain", "WORLD");
+                    json.addProperty(
+                            "domain",
+                            normalized.stream()
+                                            .allMatch(
+                                                    read ->
+                                                            "minecraft:server/console"
+                                                                    .equals(
+                                                                            read.get("providerId")
+                                                                                    .getAsString()))
+                                    ? "UI"
+                                    : "WORLD");
                     json.addProperty("dataCategory", category);
                     json.addProperty("stateFrameId", stateFrameId);
                     json.addProperty("stateFrameSequence", sequence);
@@ -263,12 +309,7 @@ final class ObservationEngine {
             throw new ProtocolState.ProtocolException(
                     "INVALID_PROVIDER_REQUEST", 400, "providerId is required");
         String id = request.get("providerId").getAsString();
-        if (category.equals("USER")
-                && !id.equals("minecraft:client/player")
-                && !id.equals("minecraft:client/world/scene")
-                && !id.equals("minecraft:client/world/block")
-                && !id.equals("minecraft:client/world/entities")
-                && !id.equals("minecraft:capture/info"))
+        if (category.equals("USER") && !supportsUser(id))
             throw new ProtocolState.ProtocolException(
                     "WORLD_USER_PERCEPTION_UNAVAILABLE",
                     409,
@@ -278,7 +319,10 @@ final class ObservationEngine {
                     "INVALID_PROVIDER_REQUEST", 400, "query must be an object");
         JsonObject query =
                 request.has("query") ? request.getAsJsonObject("query") : new JsonObject();
-        if (category.equals("USER") && !id.equals("minecraft:capture/info")) {
+        if (id.equals("minecraft:server/console")) worldReads.consoleGuard(category);
+        if (category.equals("USER")
+                && !id.equals("minecraft:capture/info")
+                && !id.equals("minecraft:server/console")) {
             worldReads.validateUser(id.substring(id.lastIndexOf('/') + 1), query);
         }
         if (id.equals("minecraft:client/world/block")
@@ -330,7 +374,7 @@ final class ObservationEngine {
             JsonObject data) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "provider.read");
-        json.addProperty("domain", "WORLD");
+        json.addProperty("domain", providerId.equals("minecraft:server/console") ? "UI" : "WORLD");
         json.addProperty("providerId", providerId);
         json.addProperty(
                 "providerRevision",
@@ -350,7 +394,17 @@ final class ObservationEngine {
         return json;
     }
 
-    private static JsonObject descriptor(
+    private boolean supportsUser(String id) {
+        return id.equals("minecraft:client/player")
+                || id.equals("minecraft:client/world/scene")
+                || id.equals("minecraft:client/world/block")
+                || id.equals("minecraft:client/world/entities")
+                || id.equals("minecraft:capture/info")
+                || (id.equals("minecraft:server/console")
+                        && service instanceof ServerConsoleService);
+    }
+
+    private JsonObject descriptor(
             String id,
             String perspective,
             String threadAffinity,
@@ -367,14 +421,12 @@ final class ObservationEngine {
         json.addProperty("trust", trust);
         json.addProperty("thirdParty", thirdParty);
         JsonArray categories = new JsonArray();
-        if (id.equals("minecraft:client/player")
-                || id.equals("minecraft:client/world/scene")
-                || id.equals("minecraft:client/world/block")
-                || id.equals("minecraft:client/world/entities")
-                || id.equals("minecraft:capture/info")) categories.add("USER");
+        if (supportsUser(id)) categories.add("USER");
         if (!id.equals("minecraft:client/world/scene")) categories.add("DEBUG");
         json.add("readCategories", categories);
-        json.addProperty("defaultReadCategory", "USER");
+        // Omitted request category stays USER and fails closed for internal-only Providers.
+        if (supportsUser(id)) json.addProperty("defaultReadCategory", "USER");
+        json.addProperty("explicitCategoryRequired", !supportsUser(id));
         return json;
     }
 

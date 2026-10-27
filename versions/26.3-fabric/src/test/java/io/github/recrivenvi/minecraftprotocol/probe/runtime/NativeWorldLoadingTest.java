@@ -24,11 +24,16 @@ class NativeWorldLoadingTest {
         assertTrue(
                 simulation.containsAll(
                         List.of(
-                                "isPaused",
+                                "apply",
                                 "tickRateManager",
                                 "tickrate",
                                 "isFrozen",
                                 "isSteppingForward")));
+        assertTrue(
+                calls(
+                                "io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.class",
+                                "*")
+                        .contains("isPaused"));
         assertFalse(
                 simulation.stream()
                         .anyMatch(
@@ -81,12 +86,9 @@ class NativeWorldLoadingTest {
             assertNotNull(input);
             ClassNode node = new ClassNode();
             new ClassReader(input).accept(node, 0);
-            var method =
-                    node.methods.stream()
-                            .filter(m -> m.name.equals(name))
-                            .findFirst()
-                            .orElseThrow();
-            return Arrays.stream(method.instructions.toArray())
+            return node.methods.stream()
+                    .filter(m -> name.equals("*") || m.name.equals(name))
+                    .flatMap(method -> Arrays.stream(method.instructions.toArray()))
                     .filter(MethodInsnNode.class::isInstance)
                     .map(MethodInsnNode.class::cast)
                     .map(m -> m.name)

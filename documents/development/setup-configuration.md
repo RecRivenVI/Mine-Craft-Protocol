@@ -34,7 +34,8 @@ Companion 设置 MCP_MINECRAFT_INSTANCE_DIR 为此实例目录，并可设 MCP_M
 ```
 
 只读用途可省略debug.write/debug.world；修改仍须显式OPERATE与world Arm、指纹及资源版本。
-首批只支持主世界有界读取和已加载方块修改，具体请求见[Native合同](../reference/protocol-native_v0.md#独立服务器世界-debug)。
+服务端复用适用原生资源目录；玩家/菜单显式选择真实在线玩家，其他世界资源无需玩家在线，维度只选择已存在的维度。
+不同修改namespace仍需对应debug scope和Arm；Provider世界条件显式使用DEBUG，具体请求见[Native合同](../reference/protocol-native_v0.md#独立服务器世界-debug)。
 
 日常客户端（含多人客户端）与 Control UI Showcase 默认以 2560×1440 启动。
 日常实例仍可通过 `local.toml` 覆盖窗口尺寸；Showcase 使用自己的验证配置。

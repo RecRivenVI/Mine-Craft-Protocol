@@ -1213,6 +1213,13 @@ public final class ProtocolState implements AutoCloseable {
         for (GameplayActWindow window : this.gameplayActs.values()) window.noteFixture(requestId);
     }
 
+    synchronized void notePeerPrivilegedSubmission(String requestId) {
+        for (GameplayActWindow window : this.gameplayActs.values()) {
+            window.peerPrivilegedSubmissions++;
+            window.latestPeerSubmission = requestId;
+        }
+    }
+
     JsonObject startGameplayAct() {
         String id = UUID.randomUUID().toString();
         GameplayActWindow window =
@@ -1802,6 +1809,8 @@ public final class ProtocolState implements AutoCloseable {
         private volatile String latestDebugOperationId = "";
         private volatile int fixtureMutationCount;
         private volatile String latestFixtureOperationId = "";
+        private volatile int peerPrivilegedSubmissions;
+        private volatile String latestPeerSubmission = "";
 
         private GameplayActWindow(String id, long debugSequenceAtStart, long startedAtMillis) {
             this.id = id;
@@ -1823,7 +1832,8 @@ public final class ProtocolState implements AutoCloseable {
         private JsonObject snapshot(boolean terminal) {
             boolean contaminated =
                     this.latestDebugSequence > this.debugSequenceAtStart
-                            || this.fixtureMutationCount > 0;
+                            || this.fixtureMutationCount > 0
+                            || this.peerPrivilegedSubmissions > 0;
             JsonObject json = new JsonObject();
             json.addProperty("type", "debug.evidence.gameplay_act");
             json.addProperty("actId", this.id);
@@ -1837,6 +1847,8 @@ public final class ProtocolState implements AutoCloseable {
             json.addProperty("debugOperationDuringAct", this.latestDebugOperationId);
             json.addProperty("fixtureMutationCount", this.fixtureMutationCount);
             json.addProperty("fixtureOperationDuringAct", this.latestFixtureOperationId);
+            json.addProperty("peerPrivilegedSubmissionCount", this.peerPrivilegedSubmissions);
+            json.addProperty("peerSubmissionDuringAct", this.latestPeerSubmission);
             json.addProperty("contaminated", contaminated);
             json.addProperty(
                     "gameplayEvidence", contaminated ? "invalid_for_acceptance" : "gameplay");

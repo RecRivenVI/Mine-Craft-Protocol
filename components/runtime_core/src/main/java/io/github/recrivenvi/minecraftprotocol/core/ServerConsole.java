@@ -17,6 +17,14 @@ public final class ServerConsole implements AutoCloseable {
         void schedule(Runnable action);
 
         void dispatch(String command, Consumer<String> feedback, Consumer<JsonObject> result);
+
+        default CompletableFuture<JsonObject> complete(String input, int cursor) {
+            return CompletableFuture.failedFuture(
+                    new ProtocolState.ProtocolException(
+                            "CAPABILITY_UNAVAILABLE",
+                            409,
+                            "Native console completion unavailable"));
+        }
     }
 
     private static final Set<String> ROOTS =
@@ -25,7 +33,14 @@ public final class ServerConsole implements AutoCloseable {
     private final ArrayDeque<JsonObject> output = new ArrayDeque<>();
     private final Host host;
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final Set<CompletableFuture<?>> pending =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
     private long sequence;
+    private volatile Consumer<JsonObject> listener = ignored -> {};
+
+    public void listener(Consumer<JsonObject> listener) {
+        this.listener = java.util.Objects.requireNonNull(listener);
+    }
 
     public ServerConsole(Host host) {
         this.host = host;
@@ -54,6 +69,8 @@ public final class ServerConsole implements AutoCloseable {
         value.addProperty("textLimit", 4096);
         value.addProperty("pageLimit", 128);
         value.addProperty("commandLengthLimit", 2048);
+        value.addProperty("completionLimit", 64);
+        value.addProperty("completionExecutesCommands", false);
         value.addProperty(
                 "outputSource", "published_info_and_higher_log_events_not_terminal_pixels");
         value.addProperty("historicalFilesRead", false);
@@ -66,20 +83,23 @@ public final class ServerConsole implements AutoCloseable {
         return value;
     }
 
-    public synchronized void publish(
-            String level, String logger, String thread, String text, String requestId) {
-        if (closed.get()) return;
-        if (output.size() == CAPACITY) output.removeFirst();
-        JsonObject record = identity();
-        record.addProperty("sequence", ++sequence);
-        record.addProperty("timeMillis", System.currentTimeMillis());
-        record.addProperty("level", bounded(level, 16));
-        record.addProperty("logger", bounded(logger, 256));
-        record.addProperty("thread", bounded(thread, 128));
-        record.addProperty("text", bounded(text, 4096));
-        record.addProperty("truncated", text != null && text.length() > 4096);
-        if (requestId != null) record.addProperty("commandRequestId", requestId);
-        output.add(record);
+    public void publish(String level, String logger, String thread, String text, String requestId) {
+        JsonObject record;
+        synchronized (this) {
+            if (closed.get()) return;
+            if (output.size() == CAPACITY) output.removeFirst();
+            record = identity();
+            record.addProperty("sequence", ++sequence);
+            record.addProperty("timeMillis", System.currentTimeMillis());
+            record.addProperty("level", bounded(level, 16));
+            record.addProperty("logger", bounded(logger, 256));
+            record.addProperty("thread", bounded(thread, 128));
+            record.addProperty("text", bounded(text, 4096));
+            record.addProperty("truncated", text != null && text.length() > 4096);
+            if (requestId != null) record.addProperty("commandRequestId", requestId);
+            output.add(record);
+        }
+        listener.accept(record.deepCopy());
     }
 
     public synchronized JsonObject read(long after, int limit) {
@@ -122,7 +142,7 @@ public final class ServerConsole implements AutoCloseable {
                     "CONSOLE_COMMAND_UNSUPPORTED",
                     409,
                     "Command is outside the initial server console catalogue");
-        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        CompletableFuture<JsonObject> future = track();
         host.schedule(
                 () -> {
                     if (future.isCancelled()) return;
@@ -179,6 +199,85 @@ public final class ServerConsole implements AutoCloseable {
         return future;
     }
 
+    public CompletableFuture<JsonObject> complete(
+            String input, int cursor, Runnable authorization) {
+        requireOpen();
+        if (input == null
+                || input.length() > 2048
+                || cursor < 0
+                || cursor > input.length()
+                || input.indexOf('\n') >= 0
+                || input.indexOf('\r') >= 0
+                || input.indexOf('\0') >= 0)
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_CONSOLE_QUERY",
+                    400,
+                    "Completion requires one bounded line and a cursor inside it");
+        CompletableFuture<JsonObject> future = track();
+        host.schedule(
+                () -> {
+                    if (future.isDone()) return;
+                    try {
+                        requireOpen();
+                        authorization.run();
+                        CompletableFuture<JsonObject> nativeFuture = host.complete(input, cursor);
+                        future.whenComplete(
+                                (ignored, error) -> {
+                                    if (future.isCancelled()) nativeFuture.cancel(false);
+                                });
+                        nativeFuture.whenComplete(
+                                (nativeValue, failure) -> {
+                                    if (future.isDone()) return;
+                                    try {
+                                        requireOpen();
+                                        authorization.run();
+                                        if (failure != null) {
+                                            future.completeExceptionally(failure);
+                                            return;
+                                        }
+                                        JsonObject value = identity();
+                                        value.addProperty("type", "server.console.suggestions");
+                                        value.addProperty("input", input);
+                                        value.addProperty("cursor", cursor);
+                                        value.addProperty("commandExecuted", false);
+                                        value.addProperty(
+                                                "completionSource", "NATIVE_SERVER_DISPATCHER");
+                                        JsonArray suggestions =
+                                                nativeValue.getAsJsonArray("suggestions");
+                                        if (suggestions == null
+                                                || suggestions.size() > 64
+                                                || nativeValue.toString().length() > 65536)
+                                            throw new ProtocolState.ProtocolException(
+                                                    "RESPONSE_BUDGET_EXCEEDED",
+                                                    413,
+                                                    "Native console completion exceeded its bounded projection");
+                                        value.add("suggestions", suggestions.deepCopy());
+                                        value.addProperty(
+                                                "truncated",
+                                                nativeValue.has("truncated")
+                                                        && nativeValue
+                                                                .get("truncated")
+                                                                .getAsBoolean());
+                                        future.complete(value);
+                                    } catch (Throwable error) {
+                                        future.completeExceptionally(error);
+                                    }
+                                });
+                    } catch (Throwable error) {
+                        future.completeExceptionally(error);
+                    }
+                });
+        return future;
+    }
+
+    private <T> CompletableFuture<T> track() {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        pending.add(future);
+        future.whenComplete((value, error) -> pending.remove(future));
+        if (closed.get()) future.cancel(false);
+        return future;
+    }
+
     private void requireOpen() {
         if (closed.get())
             throw new ProtocolState.ProtocolException(
@@ -192,5 +291,8 @@ public final class ServerConsole implements AutoCloseable {
     @Override
     public void close() {
         closed.set(true);
+        listener = ignored -> {};
+        for (CompletableFuture<?> future : pending) future.cancel(false);
+        pending.clear();
     }
 }

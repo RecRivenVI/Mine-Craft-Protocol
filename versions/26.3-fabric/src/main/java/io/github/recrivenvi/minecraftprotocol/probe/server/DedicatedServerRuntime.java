@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;
 import io.github.recrivenvi.minecraftprotocol.core.ServerConsole;
 import io.github.recrivenvi.minecraftprotocol.core.ServerConsoleService;
+import io.github.recrivenvi.minecraftprotocol.probe.runtime.DedicatedWorldDebug;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.network.chat.Component;
@@ -32,6 +33,48 @@ public final class DedicatedServerRuntime {
                             @Override
                             public void schedule(Runnable action) {
                                 server.execute(action);
+                            }
+
+                            @Override
+                            public java.util.concurrent.CompletableFuture<JsonObject> complete(
+                                    String input, int cursor) {
+                                var dispatcher = server.getCommands().getDispatcher();
+                                return dispatcher
+                                        .getCompletionSuggestions(
+                                                dispatcher.parse(
+                                                        input, server.createCommandSourceStack()),
+                                                cursor)
+                                        .thenApply(
+                                                suggestions -> {
+                                                    JsonObject value = new JsonObject();
+                                                    com.google.gson.JsonArray entries =
+                                                            new com.google.gson.JsonArray();
+                                                    for (var suggestion : suggestions.getList()) {
+                                                        if (entries.size() >= 64) break;
+                                                        JsonObject entry = new JsonObject();
+                                                        String text = suggestion.getText();
+                                                        entry.addProperty(
+                                                                "text",
+                                                                text.substring(
+                                                                        0,
+                                                                        Math.min(
+                                                                                text.length(),
+                                                                                2048)));
+                                                        entry.addProperty(
+                                                                "start",
+                                                                suggestion.getRange().getStart());
+                                                        entry.addProperty(
+                                                                "end",
+                                                                suggestion.getRange().getEnd());
+                                                        entries.add(entry);
+                                                    }
+                                                    value.add("suggestions", entries);
+                                                    value.addProperty(
+                                                            "truncated",
+                                                            suggestions.getList().size()
+                                                                    > entries.size());
+                                                    return value;
+                                                });
                             }
 
                             @Override
@@ -79,11 +122,19 @@ public final class DedicatedServerRuntime {
                                 server.getCommands().performPrefixedCommand(source, command);
                             }
                         },
-                        new DedicatedWorldDebug(server));
+                        new DedicatedWorldDebug(server, "26.3-fabric"));
         try {
             transport = ProbeTransport.forInstance(service, directory, "26.3-fabric");
+            io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.attach(
+                    server, transport);
             transport.startAsync();
         } catch (RuntimeException failure) {
+            if (transport != null) {
+                io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.detach(
+                        server, transport);
+                transport.close();
+                transport = null;
+            }
             service.close();
             service = null;
             throw failure;
@@ -93,6 +144,8 @@ public final class DedicatedServerRuntime {
     private static void stopping(MinecraftServer minecraftServer) {
         if (!(minecraftServer instanceof DedicatedServer)) return;
         if (transport != null) {
+            io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.detach(
+                    minecraftServer, transport);
             transport.close();
             transport = null;
         }

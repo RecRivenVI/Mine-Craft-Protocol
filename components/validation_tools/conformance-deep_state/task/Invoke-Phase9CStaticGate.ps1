@@ -25,7 +25,7 @@ $targets=@(
     @{Id='26.3-fabric';Src='src\client\java';Mixin='src\client\resources\minecraft_protocol_probe.client.mixins.json'})
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
-    $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
     $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
     $batch=Get-Content (Join-Path $runtimeCore 'DebugBatchEngine.java') -Raw
     $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw

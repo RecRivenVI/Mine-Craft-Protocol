@@ -1,33 +1,38 @@
 # UI 与世界首个里程碑状态
 
 UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验收未执行。
-既有批次E世界Alpha继续有效；M-09初始控制台、首批服务端主世界DEBUG及两端可选安装互通已完成，完整三部署尚未闭合。
+既有批次E世界Alpha继续有效；主体实现与独立审查发现的四项消费者整合缺口均已完成本轮相关自动验证，新同批Alpha尚未发布。
+五端当前单JAR的服务端目录与三安装组合已重跑通过；此前集成服委托/目标事件/动作回读证明其原候选，不等于本轮全领域冻结或人工接受。
 恢复先读本页及[执行计划](plan-execution.md)，普通开发直接与用户协作；不自动恢复旧Goal或扩展其他批次。
 冻结结果及复用依据见[第一检查点](phase-1-core_delivery.md#2026-10-22第一检查点结果)，安装和发布见[交付记录](phase-1-core_delivery.md#2026-10-22-e世界单jar与alpha交付)。
 
 ## 当前工作与下三步
 
-本轮由主线程直接推进，不操作Goal/其他线程、不测性能，Persistent Write=0；用户已授权将本轮成果打包提交推送。
+本轮由主线程直接推进，不操作Goal/其他线程、不测性能，Persistent Write=0；提交/推送按用户当次明确授权执行，不自动发布Alpha。
 
-1. 完成：五端零玩家Runtime/控制台、Native与真实Companion、原控制台并存、独立时间回读和正常关闭；参考端客户端单JAR入世界/退出回归通过。
-2. 完成：零玩家主世界/方块深读、typed world.block.set和批次、独立scope/Arm/版本与取消；五端最终单JAR经实际Companion通过，HTTP负控及参考端/Fabric客户端回归通过。
-3. 完成：两端安装事实改为optional，五端最终JAR逐一验证客户端接原版服、原版客户端接产品服及双端Peer；其余M-01/部署/展示/交付与统一人工验收待用户安排。
+1. 完成：MCP嵌套Provider条件、五端本地UI能力独立发现、控制台类别声明及现行说明已修复；主体目录和授权边界保留。
+2. 完成：集中构建/测试及五端当前单JAR回归；实际MCP修改后等待/断言、错误预期拒绝、无Peer/无委托本地目录及有授权完整目录通过。
+3. 待办：全领域冻结、集中合作验收与交付复核；需要真人输入时直接请求用户，不自动提交、推送或发布Alpha。
 
 服务端READ日志/OPERATE原生命令需独立server_console授权；不持玩家Lease，TAKEOVER不适用。
 目录和限制见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)，
-五端当前单JAR证据见[服务端验证](../../validations/integration-server_peer/validation.md)的result/<target>-console.json。
-首批世界DEBUG证据为同项result/<target>-server-debug.json，绑定其原始JAR；模板升级会重新生成发行JAR，既有功能结果不自动证明新制品，仍须按发布范围重新验证。
-读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮模板启动验证不替代五端完整功能验收。
+五端当前单JAR控制台及世界目录证据见[服务端验证](../../validations/integration-server_peer/validation.md)的result/<target>-server-debug.json。
+服务器目录证据为同项result/<target>-server-debug.json，绑定当前发行JAR；后续构建改变哈希时必须重新核对，不能沿用不匹配证据。
+读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮具名运行组不替代五端全部组合的穷尽验收。
 修改回执需要DEBUG读取scope，在执行前检查，不借server_console；旧版本/原值/非法原生属性及未加载拒绝、批次恢复和disarm均已实测。
-其余维度、玩家/实体/容器/Provider目录和完整Peer委托仍待实施；当前安装互通验证独立记录，新代码尚未发布到固定Alpha。
+服务器适用目录复用原生引擎，显式维度/真实玩家；当前实测包含环境、实体创建/移除、容器物品恢复、State Frame和Persistent Read。
+Peer已实测未委托/非OP拒绝、所有者issue/attach、原生读写/恢复、错误连接/旧版本/撤销/deop拒绝，不取得输入Lease。
+共享生产引擎测试覆盖排队撤销、发布时权限重查与无迟到修改；不冒充真人Esc、全部资源分支或第三方组合验收。
 check/verifyRelease和严格合规通过；本地发行JAR已更新，旧固定Alpha及清单不变。
+本轮四项审查回归另由真实HTTP与MCP验证：expected保留递归JSON，数组完整比较；控制台支持USER，内部Provider要求显式DEBUG。
+本地UI目录不借服务器委托；worldDiscovery明确保留远端失败原因，取消/shutdown/未知异常不伪装成部分成功。
 
-可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果均绑定当前候选JAR，
-包含真实入服、USER读取/背包输入、无Peer拒绝、双端往返与断线清理；不证明完整服务器目录或Peer细粒度委托。
+可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果已逐哈希核对当前本轮发行JAR，
+包含真实入服、USER读取/背包输入、无Peer拒绝、双端委托/版本/撤权与断线清理；有限具名组不代表穷尽全部资源与并发组合。
 默认未授予服务端控制台权限，TAKEOVER在独立服务器明确不适用；安装不授予OP、scope或Arm。
 产品客户端及服务器正常退出；真正原版客户端无Runtime退出入口，在服务器正常保存关闭后终止自有已断线进程，未记作正常客户端退出。
 
-| Target | 仅客户端 | 仅服务端 | 双端有限Peer | 证据 |
+| Target | 仅客户端 | 仅服务端 | 双端委托组 | 证据 |
 | --- | --- | --- | --- | --- |
 | Forge 1.20.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.20.1-forge-optional-install.json) |
 | NeoForge 1.21.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.21.1-neoforge-optional-install.json) |
@@ -35,30 +40,36 @@ check/verifyRelease和严格合规通过；本地发行JAR已更新，旧固定A
 | NeoForge 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-neoforge-optional-install.json) |
 | Fabric 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-fabric-optional-install.json) |
 
+此前集成服补充场景为conformance-world_read/result/<target>-integrated-peer.json，原候选五端均正常退出、端口释放、源码未在运行中变化。
+本轮未重跑该组，不将其当作审查修复后新JAR的运行证明。
+这是既有同进程序列化诊断：复用房主入口，不证明独立principal；独立主体由上述真实双端单JAR组合证明。
+该组另实测USER目标方块变化事件和“实际背包按键→USER Provider读回”分段结果；Agent Esc未触发人工撤销。
+正常保存退出有输入上下文切换导致的未确认回执，工具独立核验新原生上下文、标题页和held清零，未重放点击；未记作已确认点击回执。
+
 ## 双里程碑五端矩阵
 
 P=仍有必需实现/覆盖，V=本包有限自动验收已具备、共同交付/真人可能仍待，均非领域READY。
-剩余数按独立验收组计数，共25组；不是缺陷数、测试数或百分比。共同最终交付计M-10。
-估时低置信，M-09决策后重估。
+剩余数按交付验收组计数，共8组；审查整合修复及对应五端单JAR组已关闭。不是缺陷数、测试数或百分比，共同最终交付计M-10。
+主体静态实现及本轮消费者整合已落地；剩余为完整冻结、合作体验及新同批分发，不把已实现目录写成待开发。
 
 | 工作包 | Forge 1.20.1 | NeoForge 1.21.1 | NeoForge 26.1.2 | NeoForge 26.3 | Fabric 26.3 | 剩余组 | 粗估工作量 | 完成条件与最近证据 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| M-01 分类/权限 | P | P | P | P | P | 8 | 12～24小时 | 01c～j：Peer/读取/非接管协作/诊断订阅；01a/b新准入保留，本批不实施 |
+| M-01 分类/权限 | P | P | P | P | P | 2 | 集中真人验收 | 01c/d/e/h/i/j自动组已具备；01f/g的真人撤销、非接管并行体验仍待，不借脚本OP或Agent Esc代替 |
 | M-02 UI USER | V | V | V | V | V | 0 | 自动闭合 | 02a～g五端有限all；外部服务、缺类、管理发送前拒绝边界明确 |
 | M-03 UI DEBUG | V | V | V | V | V | 0 | 自动闭合 | 03c含建议/旁观/本地typed、MCP与网页隔离五端整组通过 |
 | M-04 HUD/Toast | V | V | V | V | V | 0 | 自动闭合 | H-02～10适用native draw/生命周期及Demo；不外推最终像素/网络/第三方 |
 | M-05 世界 USER | V | V | V | V | V | 0 | 自动专项闭合 | 05a～h五端专项齐备；05g当前命令/生命周期通过，最终受影响冻结计M-10 |
 | M-06 世界 DEBUG | V | V | V | V | V | 0 | 自动闭合 | 06a～h既有集成服批准目录五端专项闭合，含CF-022；06i版本链保留；新部署收口计M-09 |
 | M-07 命令 | V | V | V | V | V | 1 | 1～3小时 | 07d五端自动权限变化各6项；剩真人协作、普通服务器权限变化与Esc |
-| M-08 固定副本 | P | P | P | P | P | 2 | 2～4小时 | 08a恢复/锁/凭据；08b部署夹具，不无故重建基准 |
-| M-09 三部署/Peer | P | P | P | P | P | 6 | 分组复核 | 初始控制台、首批主世界DEBUG与可选安装三组合已五端单JAR通过；其余目录、完整委托/录制仍待办，完整组未关闭 |
-| M-10 回归/制品 | P | P | P | P | P | 4 | 8～16小时 | 10a领域、10b安装、10c取消/证据、10d连续正确性；性能暂缓 |
-| M-11 展示 | P | P | P | P | P | 2 | 2～5小时 | 11d协作/连续操作，11e三部署；已有17项基础保留 |
-| M-12 交付 | V | V | V | V | V | 2 | 1～3小时 | 12a目录/手册，12b同批七文件固定分发；V不代表完整READY |
+| M-08 固定副本 | V | V | V | V | V | 0 | 自动组闭合 | 客户端与服务器不可变副本/事实哈希、锁、主体夹具；不复制Runtime凭据，不覆盖未知目录 |
+| M-09 三部署/Peer | V | V | V | V | V | 0 | 适用自动组闭合 | 当前五端单JAR服务端/三组合重跑通过，含嵌套MCP条件、无Peer/委托本地UI发现及控制台类别；不外推全部边界或真人体验 |
+| M-10 回归/制品 | P | P | P | P | P | 2 | 最终冻结回归 | 当前五端发行/取消/证据自动检查已过；完整领域冻结和30～60秒连续正确性仍待，性能暂缓 |
+| M-11 展示 | P | P | P | P | P | 2 | 用户集中体验 | 保留客户端17项基础，增加服务器/委托展示入口；完整合作展示与现场体验尚未执行 |
+| M-12 交付 | P | P | P | P | P | 1 | 等待分发授权 | 当前目录/Agent手册源已同步；新同批固定快照未发布，旧Alpha不变 |
 
 推进顺序：M-02/03/04自动组和既有M-05/M-06专项保留；当前M-09初始控制台与首批主世界DEBUG已闭合。
-之后按用户安排推进M-09其余资源/Peer/互通、M-01、M-08及M-10/11/12；M-07真人集中执行，不自动恢复旧Goal。
-M-09的产品方向已获用户批准，不再等模板决策；完整部署矩阵尚未闭合，两个里程碑仍没有可信READY日期。
+后续按用户安排集中M-01/M-07真人协作、M-10完整冻结、M-11体验与M-12交付；不自动恢复旧Goal。
+四项静态审查发现已收口；完整里程碑仍待上述接受步骤，不依据既有测试数量推算READY日期。
 
 ## 世界组完成口径
 

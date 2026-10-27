@@ -140,6 +140,24 @@ final class Phase9CDebugAuthorizationTest {
     }
 
     @Test
+    void submittedRemotePrivilegeCannotBeMisreportedAsCleanGameplayOrConfirmedMutation() {
+        try (ProtocolState state = state(Set.of("debug"))) {
+            state.notePeerPrivilegedSubmission("before-act");
+            String clean = state.startGameplayAct().get("actId").getAsString();
+            assertFalse(state.finishGameplayAct(clean).get("contaminated").getAsBoolean());
+            String id = state.startGameplayAct().get("actId").getAsString();
+            state.notePeerPrivilegedSubmission("submitted-without-receipt");
+            JsonObject result = state.finishGameplayAct(id);
+            assertTrue(result.get("contaminated").getAsBoolean());
+            assertEquals(0, result.get("debugMutationCount").getAsInt());
+            assertEquals(1, result.get("peerPrivilegedSubmissionCount").getAsInt());
+            assertEquals(
+                    "submitted-without-receipt",
+                    result.get("peerSubmissionDuringAct").getAsString());
+        }
+    }
+
+    @Test
     void cancelledOperationRetainsBatchPartialResult() {
         try (ProtocolState state = state(Set.of("read"))) {
             JsonObject partial = new JsonObject();

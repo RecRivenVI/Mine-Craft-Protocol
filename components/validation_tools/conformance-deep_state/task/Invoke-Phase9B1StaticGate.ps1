@@ -21,7 +21,7 @@ foreach($target in $targets) {
     $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
     $registry=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java') -Raw
     $schema=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java') -Raw
-    $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
     foreach($marker in @('DEFAULT_MAX_ENTRIES','LinkedHashMap','nextGeneration','canonicalize','evictedResourceReobservation')) {
         A ($tracker.Contains($marker)) "$($target.Id) tracker $marker"
     }

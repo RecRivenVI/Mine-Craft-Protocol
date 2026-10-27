@@ -14,6 +14,34 @@ import org.junit.jupiter.api.Test;
 
 class PipelineTimingTest {
     @Test
+    void userReadbackIsAnOrderedResultSegmentWithoutInventingAnotherInputCallback()
+            throws Exception {
+        AtomicInteger cleanups = new AtomicInteger();
+        ProbeService service = service(cleanups);
+        try (var state = new ProtocolState(java.util.Set.of("read"), "reader", reason -> {});
+                var engine = new AutomationEngine(service)) {
+            engine.setObservationEngine(
+                    new ObservationEngine(service, new WorldReadEngine(service, state)));
+            JsonObject value =
+                    engine.executePipeline(
+                                    request(
+                                            "[{\"type\":\"key.tap\",\"key\":87,\"holdMs\":1},{\"type\":\"state.read\",\"read\":{\"providerId\":\"minecraft:client/player\",\"category\":\"USER\"}}]"),
+                                    () -> {})
+                            .get(3, TimeUnit.SECONDS);
+            assertEquals(2, value.getAsJsonArray("steps").size());
+            var read =
+                    value.getAsJsonArray("steps")
+                            .get(1)
+                            .getAsJsonObject()
+                            .getAsJsonObject("result");
+            assertEquals("provider.read", read.get("type").getAsString());
+            assertEquals("USER", read.get("dataCategory").getAsString());
+            assertEquals(2, value.getAsJsonObject("timing").get("inputCallbackCount").getAsInt());
+            assertEquals(1, cleanups.get());
+        }
+    }
+
+    @Test
     void monotonicOffsetsAndStagesNeverPretendToMeasureServerEffects() {
         AtomicLong clock = new AtomicLong(10_000_000);
         PipelineTiming timing = new PipelineTiming(clock::get);

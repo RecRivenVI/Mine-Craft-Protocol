@@ -20,6 +20,79 @@ import org.junit.jupiter.api.io.TempDir;
 
 final class RecordingEngineTest {
     @Test
+    void dedicatedRecordingDefaultsToAuthorizedStructuredTracksWithoutClientCalls(
+            @TempDir Path directory) throws Exception {
+        java.util.concurrent.atomic.AtomicInteger commands =
+                new java.util.concurrent.atomic.AtomicInteger();
+        try (var service =
+                        new ServerConsoleService(
+                                directory,
+                                "26.3-neoforge",
+                                new ServerConsole.Host() {
+                                    public void schedule(Runnable action) {
+                                        action.run();
+                                    }
+
+                                    public void dispatch(
+                                            String command,
+                                            java.util.function.Consumer<String> feedback,
+                                            java.util.function.Consumer<JsonObject> result) {
+                                        commands.incrementAndGet();
+                                    }
+                                });
+                var state =
+                        new ProtocolState(
+                                java.util.Set.of("read", "event", "server_console"),
+                                "owner",
+                                reason -> {})) {
+            var observation = new ObservationEngine(service, new WorldReadEngine(service, state));
+            try (var engine = new RecordingEngine(service, observation, state)) {
+                service.console()
+                        .publish("INFO", "test", "Server thread", "published console text", null);
+                var started =
+                        engine.start(
+                                JsonParser.parseString(
+                                                "{\"durationMs\":10000,\"intervalMs\":50,\"maxSamples\":2}")
+                                        .getAsJsonObject());
+                String id = started.get("recordingId").getAsString();
+                long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (engine.status(id).get("writtenStates").getAsLong() == 0
+                        && System.nanoTime() < until) Thread.sleep(10);
+                assertTrue(engine.status(id).get("writtenStates").getAsLong() > 0);
+                engine.stop(id, "test_complete");
+                long finalizedBy = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (!engine.status(id).get("artifactReady").getAsBoolean()
+                        && System.nanoTime() < finalizedBy) Thread.sleep(10);
+                assertTrue(
+                        engine.status(id).get("artifactReady").getAsBoolean(),
+                        engine.status(id).toString());
+                Path bundle = engine.artifact(id).get(5, TimeUnit.SECONDS);
+                try (var zip = new java.util.zip.ZipFile(bundle.toFile())) {
+                    JsonObject manifest =
+                            JsonParser.parseString(
+                                            new String(
+                                                    zip.getInputStream(
+                                                                    zip.getEntry("manifest.json"))
+                                                            .readAllBytes(),
+                                                    java.nio.charset.StandardCharsets.UTF_8))
+                                    .getAsJsonObject();
+                    assertEquals(0, manifest.get("writtenFrames").getAsInt());
+                    assertEquals("DEDICATED_SERVER", manifest.get("deploymentRole").getAsString());
+                    assertEquals("server_operator", manifest.get("actor").getAsString());
+                    assertTrue(zip.stream().noneMatch(entry -> entry.getName().endsWith(".png")));
+                }
+                assertEquals(0, commands.get());
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        ProtocolState.ProtocolException.class,
+                        () ->
+                                engine.start(
+                                        JsonParser.parseString("{\"captureFrames\":true}")
+                                                .getAsJsonObject()));
+            }
+        }
+    }
+
+    @Test
     void diagnosticRecordingRetainsAuthorizedEventsDuringTakeover(@TempDir Path artifactRoot)
             throws Exception {
         CountDownLatch sampleStarted = new CountDownLatch(1);

@@ -258,7 +258,7 @@ $results = foreach ($target in $targets) {
     $mixinDirectory = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\mixin"
     $files = @(Get-ChildItem -LiteralPath $mixinDirectory -Filter '*.java' -File)
     if ($target.Name -eq '26.3-fabric') {
-        $files += Get-Item -LiteralPath (Join-Path $repositoryRoot 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/DebugLoadedChunkAccessMixin.java')
+        $files += Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin') -Filter '*.java' -File
     }
     Assert-True ($files.Count -gt 0) "$($target.Name) must own concrete Hook sources"
     $texts = @($files | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw })
@@ -545,7 +545,8 @@ $results = foreach ($target in $targets) {
     $registered = @(@($config.client) + @($config.mixins) | Where-Object { $_ })
     if ($target.Name -eq '26.3-fabric') {
         $serverConfig = Get-Content -LiteralPath (Join-Path $repositoryRoot 'versions/26.3-fabric/src/main/resources/minecraft_protocol_probe.server.mixins.json') -Raw | ConvertFrom-Json
-        Assert-True ($serverConfig.required -and $serverConfig.injectors.defaultRequire -eq 1 -and (@($serverConfig.mixins) -join ',') -ceq 'DebugLoadedChunkAccessMixin') 'Fabric server guard must be required on the common source set'
+        $commonHooks=@('DebugLoadedChunkAccessMixin','ClockControlRevisionMixin','WeatherControlRevisionMixin','BaseContainerBlockEntityAccessor','DistanceManagerAccessor','LevelTicksAccessor','AttributeMapAccessor','MobEffectInstanceAccessor')
+        Assert-True ($serverConfig.required -and $serverConfig.injectors.defaultRequire -eq 1 -and ((@($serverConfig.mixins)|Sort-Object) -join ',') -ceq (($commonHooks|Sort-Object) -join ',')) 'Fabric native server resource hooks must be required on the common source set'
         $registered += @($serverConfig.mixins)
     }
     Assert-True ($registered.Count -eq $files.Count) "$($target.Name) Mixin config and owned Hook source count must agree"

@@ -155,6 +155,14 @@ class SurfaceContractCatalogueTest {
                 for (var category : descriptor.getAsJsonArray("readCategories"))
                     categories.add(category.getAsString());
                 assertFalse(categories.isEmpty(), id);
+                if (descriptor.get("explicitCategoryRequired").getAsBoolean()) {
+                    assertFalse(descriptor.has("defaultReadCategory"), id);
+                } else {
+                    assertTrue(
+                            categories.contains(
+                                    descriptor.get("defaultReadCategory").getAsString()),
+                            id);
+                }
                 if (categories.contains("USER")) user.add(id);
                 if (descriptor.get("thirdParty").getAsBoolean()
                         || id.startsWith("minecraft:server/")) {
@@ -234,7 +242,7 @@ class SurfaceContractCatalogueTest {
                 expected,
                 actual,
                 "Formal routes cannot silently outgrow or disagree with the catalogue");
-        assertEquals(82, actual.size());
+        assertEquals(87, actual.size());
         assertEquals("readServerConsole:READ_COMPATIBLE", actual.get("GET /v0/server/console"));
         assertEquals(
                 "executeServerConsoleCommand:OPERATE_OR_TAKEOVER",

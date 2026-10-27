@@ -53,8 +53,18 @@ export class UiConsole {
   async snapshot(browser: string, attempt=0): Promise<JsonObject> {
     const version = this.generation;
     if (this.owner === browser) this.lastSeen = Date.now();
-    const [session, control, tree, input] = await Promise.all([
-      this.client.json('GET', '/v0/session'), this.client.json('GET', '/v0/control/mode'),
+    const session = await this.client.json('GET', '/v0/session');
+    if (session.deploymentRole === 'DEDICATED_SERVER') {
+      const [control, console] = await Promise.all([this.client.json('GET', '/v0/control/mode'),
+        this.client.json('GET','/v0/server/console?after=0&limit=128').catch((error:unknown) => {
+          if(error instanceof RuntimeError)return {available:false,error:error.code,message:error.message};
+          throw error;
+        })]);
+      return {session,control,console,headless:true,ownsLease:false,otherBrowserOwnsLease:false,
+        runtimeUrl:this.client.config.baseUrl.origin,observedAt:Date.now()};
+    }
+    const [control, tree, input] = await Promise.all([
+      this.client.json('GET', '/v0/control/mode'),
       this.client.json('GET', '/v0/ui/tree'), this.client.json('GET', '/v0/input/state')
     ]);
     if(version===this.generation)this.lastControl=control;
@@ -99,6 +109,19 @@ export class UiConsole {
       await this.releaseOwned();
       throw error;
     } finally { this.busy = false; }
+  }
+
+  async consoleAction(body:JsonObject):Promise<JsonObject> {
+    const session=await this.client.json('GET','/v0/session');
+    if(session.deploymentRole!=='DEDICATED_SERVER')failure('WEB_CONSOLE_NOT_APPLICABLE','当前实例不是独立服务器');
+    if(body.action==='set_mode') {
+      if(body.mode!=='READ'&&body.mode!=='OPERATE')failure('WEB_CONSOLE_MODE','服务端仅适用 READ/OPERATE');
+      const current=await this.client.json('GET','/v0/control/mode');
+      return this.client.json('POST','/v0/control/mode',{mode:body.mode,expectedModeVersion:current.modeVersion??null});
+    }
+    if(body.action==='complete')return this.client.json('POST','/v0/server/console/suggestions',{input:body.input??'',...(body.cursor===undefined?{}:{cursor:body.cursor})});
+    if(body.action==='execute')return this.client.json('POST','/v0/server/console/commands',{command:body.command??''});
+    failure('WEB_CONSOLE_ACTION','不支持的控制台操作');
   }
 
   async release(browser: string): Promise<JsonObject> {

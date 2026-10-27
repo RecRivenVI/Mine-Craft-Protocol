@@ -14,7 +14,7 @@ function Get-RuntimeConnection {
     $token=(Get-Content -LiteralPath $tokenFile -Raw).Trim()
     if(-not$token){throw 'Runtime token is empty'}
     $headers=@{Authorization='Bearer '+$token;'X-MCP-Runtime-Instance'=$record.runtimeInstanceId}
-    $session=Invoke-RestMethod "$($record.baseUrl)/v0/session" -Headers $headers -TimeoutSec 3 -MaximumRedirection 0 -ResponseHeadersVariable responseHeaders
+    $session=Invoke-RestMethod "$($record.baseUrl)/v0/session" -Headers $headers -TimeoutSec 3 -MaximumRedirection 0 -NoProxy -ResponseHeadersVariable responseHeaders
     if($session.target-ne$ExpectedTarget-or$session.runtimeConnection.runtimeInstanceId-ne$record.runtimeInstanceId-or$responseHeaders['X-MCP-Runtime-Instance']-ne$record.runtimeInstanceId){throw 'Runtime identity handshake failed'}
     [pscustomobject]@{BaseUri=$record.baseUrl;Port=[int]$record.port;TokenFile=$tokenFile;Headers=$headers;RuntimeInstanceId=$record.runtimeInstanceId;ProcessId=[int]$record.pid;StartedAt=$record.startedAt;InstanceDirectory=$game}
 }

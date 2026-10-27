@@ -74,6 +74,15 @@ final class ServerConsoleTest {
     private static final class Host implements ServerConsole.Host {
         final ArrayDeque<Runnable> queue = new ArrayDeque<>();
         final AtomicInteger calls = new AtomicInteger();
+        final java.util.concurrent.CompletableFuture<JsonObject> suggestions =
+                new java.util.concurrent.CompletableFuture<>();
+        final AtomicInteger completionCalls = new AtomicInteger();
+
+        public java.util.concurrent.CompletableFuture<JsonObject> complete(
+                String input, int cursor) {
+            completionCalls.incrementAndGet();
+            return suggestions;
+        }
 
         public void schedule(Runnable action) {
             queue.add(action);
@@ -86,5 +95,48 @@ final class ServerConsoleTest {
             calls.incrementAndGet();
             output.accept("native");
         }
+    }
+
+    @Test
+    void nativeCompletionNeverDispatchesAndRechecksAuthorityBeforePublication() {
+        var host = new Host();
+        var console = new ServerConsole(host);
+        var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var future =
+                console.complete(
+                        "wea",
+                        3,
+                        () -> {
+                            if (!allowed.get()) throw new IllegalStateException("revoked");
+                        });
+        host.queue.remove().run();
+        assertEquals(1, host.completionCalls.get());
+        assertEquals(0, host.calls.get());
+        allowed.set(false);
+        host.suggestions.complete(
+                com.google.gson.JsonParser.parseString(
+                                "{\"suggestions\":[{\"text\":\"weather\",\"start\":0,\"end\":3}]}")
+                        .getAsJsonObject());
+        assertTrue(future.isCompletedExceptionally());
+        assertEquals(0, host.calls.get());
+        console.close();
+    }
+
+    @Test
+    void completionCancellationAndShutdownCannotReachQueuedNativeWork() {
+        var host = new Host();
+        var console = new ServerConsole(host);
+        var cancelled = console.complete("", 0, () -> {});
+        cancelled.cancel(false);
+        host.queue.remove().run();
+        assertEquals(0, host.completionCalls.get());
+        var closing = console.complete("", 0, () -> {});
+        console.close();
+        host.queue.remove().run();
+        assertTrue(closing.isCancelled());
+        assertEquals(0, host.completionCalls.get());
+        assertThrows(
+                ProtocolState.ProtocolException.class,
+                () -> new ServerConsole(new Host()).complete("one\ntwo", 2, () -> {}));
     }
 }

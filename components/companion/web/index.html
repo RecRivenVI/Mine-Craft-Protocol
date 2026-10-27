@@ -11,6 +11,13 @@
   <main>
     <header><strong>Mine-Craft-Protocol</strong><span id="status">正在连接</span><button id="acquire">接管</button><button id="release" disabled>释放</button><button id="escape" disabled>Esc</button><button id="inventory" disabled>背包</button></header>
     <p id="notice" role="status" hidden></p>
+    <section id="console" hidden aria-label="独立服务器控制台">
+      <p>服务端原生控制台 · 无玩家键鼠、游戏画面或 TAKEOVER。命令仍受原版权限和独立授权约束。</p>
+      <button id="console-read">READ</button><button id="console-operate">OPERATE</button>
+      <pre id="console-output" aria-live="polite"></pre>
+      <form id="console-form"><input id="console-input" aria-label="服务器命令" maxlength="2048" autocomplete="off"><button type="button" id="console-complete">补全</button><button type="submit">发送</button></form>
+      <pre id="console-result"></pre><div id="console-suggestions"></div>
+    </section>
     <div id="stage" tabindex="0" role="application" aria-label="Minecraft 游戏窗口：点击、拖拽、滚动和键盘输入">
       <img id="background" alt="Minecraft 当前截图" hidden>
       <svg id="surface" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>

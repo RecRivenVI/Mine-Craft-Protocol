@@ -137,16 +137,18 @@ try {
 } finally { $socket.Dispose(); $deadline.Dispose() }
 `;
 
-export async function collectPlayerStateEvents(connection, {collectMillis = 1250, resumeFromSequence} = {}) {
+export async function collectPlayerStateEvents(connection, {collectMillis = 1250, resumeFromSequence, eventType = TYPE} = {}) {
   assert(Number.isSafeInteger(collectMillis) && collectMillis >= 1000 && collectMillis <= 3000);
-  const url = new URL('/v0/events?category=USER&type=' + TYPE, connection.base);
+  assert([TYPE,'world.target.block'].includes(eventType));
+  const url = new URL('/v0/events?category=USER&type=' + eventType, connection.base);
   assert(['http:', 'https:'].includes(url.protocol)); url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   if (resumeFromSequence !== undefined) {integer(resumeFromSequence, 'resume sequence'); url.searchParams.set('resumeFromSequence', String(resumeFromSequence));}
   assert.equal(typeof connection.token, 'string'); assert(connection.token.length > 0);
   const headers = Object.fromEntries(Object.entries(connection.headers ?? {}).map(([name, value]) => [name.toLowerCase(), value])
     .filter(([name]) => name !== 'x-mcp-control-lease'));
   headers.authorization = 'Bearer ' + connection.token;
-  const child = spawn('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(STREAM_SCRIPT, 'utf16le').toString('base64')],
+  const script = eventType === TYPE ? STREAM_SCRIPT : STREAM_SCRIPT.replaceAll(TYPE,eventType);
+  const child = spawn('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
     {stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true});
   child.stdout.setEncoding('utf8'); child.stderr.resume();
   let pending = '', bytes = 0, hello, subscription, normalClose = false, failure; const messages = [];

@@ -220,7 +220,35 @@ public interface ProbeService {
 
     CompletableFuture<JsonObject> peerStatus();
 
+    default CompletableFuture<JsonObject> attachPeerDelegation(JsonObject request) {
+        return CompletableFuture.failedFuture(
+                new ProtocolState.ProtocolException(
+                        "CAPABILITY_UNAVAILABLE", 409, "No connected client Peer surface"));
+    }
+
     CompletableFuture<JsonObject> peerProbe();
+
+    default CompletableFuture<Boolean> peerAuthorityAvailable() {
+        return CompletableFuture.completedFuture(false);
+    }
+
+    default CompletableFuture<JsonObject> peerWorldFingerprint() {
+        return worldFingerprint();
+    }
+
+    default CompletableFuture<JsonObject> peerWorldCapabilities() {
+        return phase9cDebugCapabilities();
+    }
+
+    default CompletableFuture<JsonObject> peerWorldObservation(
+            JsonObject request, DeepObservationRequestContext context) {
+        return formalDeepObservation(request, context);
+    }
+
+    default CompletableFuture<JsonObject> peerWorldMutation(
+            JsonObject request, DebugMutationAuthorization authority) {
+        return phase9cDebugMutation(request, authority);
+    }
 
     CompletableFuture<JsonObject> waitForScreen(String classContains, long timeoutMillis);
 

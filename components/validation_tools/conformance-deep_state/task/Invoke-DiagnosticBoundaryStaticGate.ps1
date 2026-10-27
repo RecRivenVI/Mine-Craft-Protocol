@@ -13,7 +13,7 @@ foreach($gate in @('Invoke-Phase9BStaticGate.ps1','Invoke-Phase9CStaticGate.ps1'
 foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')){
  $source=if($target-eq'26.3-fabric'){'client'}else{'main'}
  $dir=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe/runtime"
- $engine=Get-Content (Join-Path $dir 'Phase9ASpikeEngine.java') -Raw
+ $engine=Get-Content (Join-Path $root "versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
  $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
  Require ($engine-notmatch 'getChunk\([^,]+,[^,]+\)|setChunk|writeCompressed|\.save\(|java\.lang\.reflect|Class\.forName|setAccessible') "$target no-load/no-write/no-reflection boundary"
  foreach($marker in @('getChunkNow','runtime_internal','diagnostic','gameplayEvidence')){Require ($engine.Contains($marker)) "$target missing $marker"}

@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   try {
     await client.connect(transport);
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 24);
+    assert.equal(tools.tools.length, 26);
     const resources = await client.listResources();
     assert.equal(resources.resources.length, 4);
     const prompts = await client.listPrompts();

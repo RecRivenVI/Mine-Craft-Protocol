@@ -95,7 +95,15 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     private final AtomicLong renderTextSequence = new AtomicLong();
     private final AtomicLong renderPictureSequence = new AtomicLong();
     private final AtomicLong renderFactSequence = new AtomicLong();
-    private final Phase9ASpikeEngine phase9a = new Phase9ASpikeEngine("26.3-neoforge");
+    private final Phase9ASpikeEngine phase9a =
+            new Phase9ASpikeEngine(
+                    "26.3-neoforge",
+                    server ->
+                            server
+                                            instanceof
+                                            net.minecraft.client.server.IntegratedServer integrated
+                                    ? integrated.isPaused()
+                                    : null);
     private final Deque<RenderFact> recentRenderFacts = new ArrayDeque<>();
     private final Map<Integer, KeyState> pressedKeys =
             new java.util.concurrent.ConcurrentHashMap<>();
@@ -108,6 +116,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     private final Map<Integer, String> buttonFrames = new HashMap<>();
     private volatile Minecraft minecraft;
     private volatile ProbeTransport transport;
+    private MinecraftServer peerAuthorityServer;
     private volatile Screen lastScreen;
     private volatile long clientTick;
     private volatile long screenRevision;
@@ -1107,8 +1116,39 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                             velocity.x,
                             velocity.y,
                             velocity.z));
+            if (this.transport.wantsTargetBlock(this.publishedInputContext)) {
+                JsonObject target = new JsonObject();
+                target.addProperty("available", false);
+                target.addProperty("reason", "no_block_target");
+                if (minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit
+                        && hit.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
+                    var position = hit.getBlockPos();
+                    target.addProperty("x", position.getX());
+                    target.addProperty("y", position.getY());
+                    target.addProperty("z", position.getZ());
+                    target.addProperty("face", hit.getDirection().getName());
+                    if (minecraft
+                                    .level
+                                    .getChunkSource()
+                                    .getChunkNow(position.getX() >> 4, position.getZ() >> 4)
+                            != null) {
+                        var state = minecraft.level.getBlockState(position);
+                        target.addProperty("available", true);
+                        target.remove("reason");
+                        target.addProperty(
+                                "blockId",
+                                net.minecraft.core.registries.BuiltInRegistries.BLOCK
+                                        .getKey(state.getBlock())
+                                        .toString());
+                        target.addProperty("state", state.toString());
+                    } else target.addProperty("reason", "chunk_not_loaded");
+                }
+                this.transport.publishTargetBlock(
+                        this.publishedInputContext, this.clientTick, target);
+            }
         }
         MinecraftServer singleplayerServer = minecraft.getSingleplayerServer();
+        this.refreshPeerAuthority(singleplayerServer);
         this.phase9a.observeStorageLifecycle(
                 minecraft.level,
                 singleplayerServer != null && singleplayerServer.isCurrentlySaving(),
@@ -1135,6 +1175,7 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
         this.evidenceCaptures.close();
         this.phase9a.observeStorageShutdown();
         ProbeTransport current = this.transport;
+        this.detachPeerAuthority(current);
         if (current != null) current.close();
         this.regionPages.close();
         this.phase9a.close();
@@ -1258,7 +1299,8 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                     capabilities.addProperty(
                             "server.peer.fixture", "server_flag_and_operator_gated");
                     capabilities.addProperty(
-                            "server.peer.debug", "server_flag_operator_scope_and_arm_gated");
+                            "server.peer.debug",
+                            "server_owner_delegation_operator_scope_and_arm_gated");
                     capabilities.addProperty("capture.input_concurrent", "runtime_verified");
                     capabilities.addProperty("recording.basic", "available_bounded_async");
                     capabilities.addProperty("artifact.bundle", "available_experimental_v0");
@@ -3463,6 +3505,38 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                 request.has("perspective")
                         ? request.get("perspective").getAsString()
                         : "server_authoritative";
+        if (this.shouldUsePeer() && !perspective.equals("client_known")) {
+            if (!requestContext.hasScopes(java.util.Set.of("read", "debug", "debug.world.read")))
+                return CompletableFuture.failedFuture(
+                        new ProtocolState.ProtocolException(
+                                "SCOPE_DENIED",
+                                403,
+                                "Independent client DEBUG read scopes required"));
+            if (!perspective.equals("server_authoritative") && !perspective.equals("both"))
+                return CompletableFuture.failedFuture(
+                        new ProtocolState.ProtocolException(
+                                "INVALID_PERSPECTIVE", 400, "Unknown perspective"));
+            JsonObject params = new JsonObject();
+            params.add("request", request.deepCopy());
+            var remote =
+                    io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.map(
+                            this.peerRequest("observe.deep", params),
+                            value -> {
+                                if (requestContext.isCancelled())
+                                    throw new java.util.concurrent.CancellationException(
+                                            "peer_read_cancelled");
+                                return value;
+                            });
+            if (perspective.equals("server_authoritative")) return remote;
+            return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                    remote,
+                    value ->
+                            io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.map(
+                                    this.playerState(),
+                                    client ->
+                                            this.phase9a.combinePeerObservation(
+                                                    request, client, value)));
+        }
         if (perspective.equals("client_known")) {
             return this.playerState()
                     .thenCompose(
@@ -3501,24 +3575,12 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
 
     @Override
     public CompletableFuture<JsonObject> phase9cDebugCapabilities() {
-        JsonObject result = this.phase9a.formalDebugCapabilities();
-        result.add(
-                "resourceInspection",
-                io.github.recrivenvi.minecraftprotocol.core.WorldDebugInspection.contract());
-        for (String operation : UiDebugEngine.OPERATIONS) {
-            JsonObject entry = new JsonObject();
-            entry.addProperty("operation", operation);
-            entry.addProperty("status", "available");
-            entry.addProperty("authority", "CLIENT_UI");
-            entry.addProperty("requiredScope", "debug.ui");
-            entry.addProperty("requiresArm", true);
-            entry.addProperty("resourceVersionPrecondition", true);
-            entry.addProperty("batch", true);
-            result.getAsJsonArray("operations").add(entry);
-        }
-        result.addProperty("uiRequiresWorldFingerprint", false);
-        result.addProperty("uiRequiresSessionContext", true);
-        return CompletableFuture.completedFuture(result);
+        var world =
+                this.shouldUsePeer()
+                        ? this.peerRequest("debug.capabilities", new JsonObject())
+                        : CompletableFuture.completedFuture(this.phase9a.formalDebugCapabilities());
+        return io.github.recrivenvi.minecraftprotocol.core.ClientDebugCapabilities.combine(
+                world, this.phase9a.sessionEpoch(), UiDebugEngine.OPERATIONS);
     }
 
     @Override
@@ -3561,12 +3623,47 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                     });
         }
         if (this.shouldUsePeer()) {
-            return CompletableFuture.failedFuture(
-                    new ProtocolState.ProtocolException(
-                            "CAPABILITY_UNAVAILABLE",
-                            409,
-                            "Phase 9C resource-version Debug requires Integrated Server authority; "
-                                    + "the Dedicated Peer currently retains only legacy typed health/block Debug"));
+            return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                    this.worldFingerprint(),
+                    fingerprint ->
+                            io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                                    this.phase9cDebugCapabilities(),
+                                    caps -> {
+                                        if (authorization.isCancelled())
+                                            throw new java.util.concurrent.CancellationException(
+                                                    "peer_debug_cancelled");
+                                        String operation = request.get("operation").getAsString();
+                                        String domain =
+                                                operation.contains(".")
+                                                        ? operation.substring(
+                                                                0, operation.indexOf('.'))
+                                                        : "unknown";
+                                        java.util.Map<String, String> required =
+                                                new java.util.LinkedHashMap<>();
+                                        required.put(domain, domain);
+                                        if (operation.equals("player.vehicle.set"))
+                                            required.put("entity", "entity");
+                                        try (var permit =
+                                                authorization.authorizeAll(
+                                                        fingerprint
+                                                                .get("worldFingerprint")
+                                                                .getAsString(),
+                                                        caps.get("sessionEpoch").getAsString(),
+                                                        required)) {
+                                            JsonObject params = new JsonObject();
+                                            params.add("request", request.deepCopy());
+                                            return io.github.recrivenvi.minecraftprotocol.safety
+                                                    .CancellableWork.map(
+                                                    this.peerRequest("debug.mutate", params),
+                                                    result -> {
+                                                        if (authorization.isCancelled())
+                                                            throw new java.util.concurrent
+                                                                    .CancellationException(
+                                                                    "peer_debug_cancelled");
+                                                        return result;
+                                                    });
+                                        }
+                                    }));
         }
         String operation = request.has("operation") ? request.get("operation").getAsString() : "";
         if (operation.equals("provider.mutate")) {
@@ -3591,6 +3688,116 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     }
 
     @Override
+    public CompletableFuture<Boolean> peerAuthorityAvailable() {
+        return this.onClient(
+                () -> {
+                    Minecraft client = requireClient();
+                    return client.getSingleplayerServer() != null && client.player != null;
+                });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> peerWorldFingerprint() {
+        return this.onIntegratedServer(
+                (server, player) -> {
+                    JsonObject value = new JsonObject();
+                    value.addProperty(
+                            "worldFingerprint", this.phase9cWorldFingerprint(server, player));
+                    value.addProperty("sessionEpoch", this.phase9a.sessionEpoch());
+                    value.addProperty("authority", "INTEGRATED_SERVER_OWNER");
+                    return value;
+                });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> peerWorldCapabilities() {
+        return CompletableFuture.completedFuture(this.phase9a.formalDebugCapabilities());
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> peerWorldObservation(
+            JsonObject request, DeepObservationRequestContext context) {
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                this.onIntegratedServer(
+                        (server, owner) -> {
+                            if (context.isCancelled()
+                                    || !context.hasScopes(
+                                            java.util.Set.of("read", "debug", "debug.world.read")))
+                                throw new ProtocolState.ProtocolException(
+                                        "SCOPE_DENIED",
+                                        403,
+                                        "Peer observation context is no longer authorized");
+                            return this.phase9a.withServerSelection(
+                                    server,
+                                    request,
+                                    actor -> this.phase9a.captureFormal(server, actor, request));
+                        }),
+                captured ->
+                        io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.compose(
+                                this.phase9a.prepareFormalServerSnapshot(request, captured),
+                                prepared ->
+                                        this.phase9a.formalize(request, null, prepared, context)));
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> peerWorldMutation(
+            JsonObject request, DebugMutationAuthorization authority) {
+        if ("provider.mutate"
+                .equals(request.has("operation") ? request.get("operation").getAsString() : ""))
+            return this.phase9a.debugProviderMutation(request, authority);
+        return this.onIntegratedServer(
+                (server, owner) -> {
+                    if (authority.isCancelled())
+                        throw new java.util.concurrent.CancellationException(
+                                "peer_mutation_cancelled");
+                    String operation = request.get("operation").getAsString();
+                    String domain =
+                            operation.contains(".")
+                                    ? operation.substring(0, operation.indexOf('.'))
+                                    : "unknown";
+                    java.util.Map<String, String> required = new java.util.LinkedHashMap<>();
+                    required.put(domain, domain);
+                    if (operation.equals("player.vehicle.set")) required.put("entity", "entity");
+                    String fingerprint = this.phase9cWorldFingerprint(server, owner);
+                    try (var permit =
+                            authority.authorizeAll(
+                                    fingerprint, this.phase9a.sessionEpoch(), required)) {
+                        return this.phase9a.withServerSelection(
+                                server,
+                                request,
+                                actor -> {
+                                    JsonObject nativeRequest = request.deepCopy();
+                                    nativeRequest.remove("actorUuid");
+                                    nativeRequest.remove("dimension");
+                                    return this.phase9a.debugMutation(
+                                            server, actor, nativeRequest, fingerprint);
+                                });
+                    }
+                });
+    }
+
+    private synchronized void detachPeerAuthority(ProbeTransport current) {
+        if (this.peerAuthorityServer != null && current != null)
+            io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.detach(
+                    this.peerAuthorityServer, current);
+        this.peerAuthorityServer = null;
+    }
+
+    private synchronized void refreshPeerAuthority(MinecraftServer server) {
+        if (this.shutdownStarted.get()
+                || this.transport == null
+                || server == this.peerAuthorityServer) return;
+        if (this.peerAuthorityServer != null)
+            io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.detach(
+                    this.peerAuthorityServer, this.transport);
+        this.transport.invalidatePeerDelegations();
+        this.peerAuthorityServer = server;
+        if (server != null)
+            io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.attach(
+                    server, this.transport);
+    }
+
+    @Override
     public CompletableFuture<JsonObject> peerStatus() {
         return this.onClient(
                 () -> {
@@ -3601,6 +3808,11 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
                             "integratedServer", requireClient().getSingleplayerServer() != null);
                     return json;
                 });
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> attachPeerDelegation(JsonObject request) {
+        return this.onClient(() -> DedicatedPeerClient.attach(request));
     }
 
     @Override
@@ -4001,9 +4213,14 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
             guard.close();
             throw error;
         }
-        // Retain admission until native completion even if the HTTP caller cancels.
+        // Cancellation is forwarded to the receiver; an already submitted native effect is not
+        // rolled back.
         source.whenComplete((value, error) -> guard.close());
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        response.whenComplete(
+                (value, error) -> {
+                    if (response.isCancelled()) source.cancel(false);
+                });
         source.whenComplete(
                 (value, error) -> {
                     if (error == null) response.complete(value);
@@ -4098,13 +4315,20 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     }
 
     private CompletableFuture<JsonObject> peerRequest(String operation, JsonObject params) {
-        return DedicatedPeerClient.request(operation, params)
-                .thenApply(
-                        json -> {
-                            json.addProperty("target", "26.3-neoforge");
-                            json.addProperty("clientTick", this.clientTick);
-                            return json;
-                        });
+        return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork.map(
+                DedicatedPeerClient.request(
+                        operation,
+                        params,
+                        requestId -> {
+                            if (this.transport != null)
+                                this.transport.notePeerPrivilegedSubmission(operation, requestId);
+                        }),
+                json -> {
+                    if (json.has("target")) json.add("serverTarget", json.get("target").deepCopy());
+                    json.addProperty("target", "26.3-neoforge");
+                    json.addProperty("clientTick", this.clientTick);
+                    return json;
+                });
     }
 
     private <T> CompletableFuture<T> onIntegratedServer(

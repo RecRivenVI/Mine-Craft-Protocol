@@ -325,10 +325,10 @@ class InputPreconditionTransportTest {
             }
             assertNotNull(pipeline);
             var scopes = pipeline.getAsJsonObject("additionalScopesByStep");
-            assertEquals(15, scopes.size());
+            assertEquals(16, scopes.size());
             for (String type : new String[] {"ui.action", "ui.drag"})
                 assertEquals("ui", scopes.getAsJsonArray(type).get(0).getAsString());
-            for (String type : new String[] {"wait.until", "assert.that"})
+            for (String type : new String[] {"wait.until", "assert.that", "state.read"})
                 assertEquals("read", scopes.getAsJsonArray(type).get(0).getAsString());
             assertTrue(scopes.getAsJsonArray("key.tap").isEmpty());
             assertFalse(scopes.has("internal.player.command"));

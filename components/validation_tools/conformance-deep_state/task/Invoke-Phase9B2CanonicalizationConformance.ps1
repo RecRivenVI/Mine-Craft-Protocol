@@ -14,7 +14,7 @@ $targets=@(
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
     $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
-    $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
     Assert-True ($tracker.Contains(
         'value.getAsJsonArray().forEach(element -> result.add(canonicalize(element)))')) "$($target.Id) ordered arrays"
     Assert-True (-not $tracker.Contains(

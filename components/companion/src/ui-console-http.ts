@@ -68,7 +68,8 @@ export async function startUiConsole(controller: UiConsole, port = 4317) {
       if (request.method !== 'POST') { send(404, { error: 'WEB_UI_ROUTE_NOT_FOUND' }); return; }
       if (!(request.headers['content-type'] ?? '').startsWith('application/json')) { send(415, { error: 'WEB_UI_JSON_REQUIRED' }); return; }
       const body = await readBody(request);
-      if (path === '/api/acquire') send(200, await controller.acquire(known));
+      if (path === '/api/console') send(200, await controller.consoleAction(body));
+      else if (path === '/api/acquire') send(200, await controller.acquire(known));
       else if (path === '/api/release') send(200, await controller.release(known));
       else if (path === '/api/action') send(200, await controller.action(known, body));
       else if (path === '/api/input') send(200, await controller.input(known, body));

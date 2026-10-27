@@ -1,6 +1,7 @@
 // Static discovery metadata only. Native Runtime performs authorization and intent checks.
 export const TOOL_MODE_POLICY = {
-  "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
+  "minecraft_read_storage":{"default":"READ_COMPATIBLE"},
+  "minecraft_server_console": {"discriminator":"action","actions":{"read":"READ_COMPATIBLE","complete":"READ_COMPATIBLE","execute":"OPERATE_OR_TAKEOVER"}},
   "minecraft_get_session": {
     "default": "READ_COMPATIBLE"
   },
@@ -79,7 +80,9 @@ export const TOOL_MODE_POLICY = {
     "default": "READ_COMPATIBLE"
   },
   "minecraft_peer": {
-    "default": "READ_COMPATIBLE"
+    "default": "READ_COMPATIBLE",
+    "discriminator":"action",
+    "actions":{"status":"READ_COMPATIBLE","probe":"READ_COMPATIBLE","list":"READ_COMPATIBLE","issue":"MODE_INDEPENDENT","revoke":"MODE_INDEPENDENT","attach":"MODE_INDEPENDENT","detach":"MODE_INDEPENDENT"}
   },
   "minecraft_fixture": {
     "default": "OPERATE_OR_TAKEOVER"

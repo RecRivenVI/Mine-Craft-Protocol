@@ -27,8 +27,8 @@ Assert-True ($openApi.Contains('/v0/diagnostics/phase9a/storage/read') `
 foreach ($target in $targets) {
     $targetRoot = Join-Path $root "versions\$($target.Id)"
     $runtimeRoot = Join-Path $targetRoot "$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
-    $engine = Get-Content -LiteralPath (Join-Path $runtimeRoot 'Phase9ASpikeEngine.java') -Raw
-    $adapter = Get-Content -LiteralPath (Join-Path $runtimeRoot 'PersistentStorageAdapter.java') -Raw
+    $engine = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
+    $adapter = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java") -Raw
     $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
     $runtime = Get-Content -LiteralPath (Join-Path $runtimeRoot $target.Runtime) -Raw
 

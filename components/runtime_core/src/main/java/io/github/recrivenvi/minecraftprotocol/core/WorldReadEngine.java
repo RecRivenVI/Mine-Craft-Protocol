@@ -80,6 +80,55 @@ final class WorldReadEngine {
         return () -> authorize(category);
     }
 
+    Runnable consoleGuard(String category) {
+        Runnable world = publicationGuard(category);
+        Runnable guard =
+                () -> {
+                    world.run();
+                    state.requireScope("server_console");
+                };
+        guard.run();
+        return guard;
+    }
+
+    CompletableFuture<JsonObject> deepServer(JsonObject request) {
+        category(request);
+        String id = java.util.UUID.randomUUID().toString();
+        var context =
+                state.deepObservationContext(
+                        new ProtocolState.RequestMetadata(
+                                id,
+                                "v0",
+                                System.currentTimeMillis() + 1500,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null),
+                        "provider");
+        state.registerDeepObservation(id, context);
+        try {
+            CompletableFuture<JsonObject> result =
+                    internal(
+                            "DEBUG",
+                            () ->
+                                    state.applyDeadline(
+                                            service.formalDeepObservation(
+                                                    request.deepCopy(), context),
+                                            context.deadlineAtMillis()));
+            result.whenComplete(
+                    (value, failure) -> {
+                        if (failure != null) context.cancel("provider_cancelled_or_failed");
+                        state.unregisterDeepObservation(id, context);
+                    });
+            return result;
+        } catch (Throwable failure) {
+            context.cancel("provider_rejected");
+            state.unregisterDeepObservation(id, context);
+            return CompletableFuture.failedFuture(failure);
+        }
+    }
+
     CompletableFuture<JsonObject> internal(
             String category, Supplier<CompletableFuture<JsonObject>> capture) {
         if (authorize(category) != WorldDataView.Category.DEBUG) {

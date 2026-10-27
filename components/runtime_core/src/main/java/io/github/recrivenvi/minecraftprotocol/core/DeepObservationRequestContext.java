@@ -30,6 +30,7 @@ public final class DeepObservationRequestContext {
     private final String connectionId;
     private final long deadlineAtMillis;
     private final AuditSink auditSink;
+    private final Runnable authorityGuard;
     private final AtomicBoolean cancelled = new AtomicBoolean();
     private final Set<CompletableFuture<?>> pending = ConcurrentHashMap.newKeySet();
     private volatile String cancellationReason = "";
@@ -41,15 +42,35 @@ public final class DeepObservationRequestContext {
             String connectionId,
             long deadlineAtMillis,
             AuditSink auditSink) {
+        this(
+                grantedScopes,
+                principalId,
+                requestId,
+                connectionId,
+                deadlineAtMillis,
+                auditSink,
+                () -> {});
+    }
+
+    public DeepObservationRequestContext(
+            Set<String> grantedScopes,
+            String principalId,
+            String requestId,
+            String connectionId,
+            long deadlineAtMillis,
+            AuditSink auditSink,
+            Runnable authorityGuard) {
         this.grantedScopes = Set.copyOf(grantedScopes);
         this.principalId = principalId;
         this.requestId = requestId;
         this.connectionId = connectionId;
         this.deadlineAtMillis = deadlineAtMillis;
         this.auditSink = auditSink;
+        this.authorityGuard = java.util.Objects.requireNonNull(authorityGuard);
     }
 
     public boolean hasScopes(Set<String> required) {
+        this.authorityGuard.run();
         return this.grantedScopes.containsAll(required);
     }
 

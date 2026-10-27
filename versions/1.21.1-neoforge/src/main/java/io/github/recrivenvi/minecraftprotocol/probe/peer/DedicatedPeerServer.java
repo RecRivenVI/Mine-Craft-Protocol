@@ -5,25 +5,40 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 final class DedicatedPeerServer {
     private static final Gson GSON = new Gson();
+    private static final java.util.Map<
+                    Object,
+                    java.util.concurrent.ConcurrentHashMap<
+                            String, java.util.concurrent.CompletableFuture<JsonObject>>>
+            ACTIVE = java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
+    private static java.util.concurrent.ConcurrentHashMap<
+                    String, java.util.concurrent.CompletableFuture<JsonObject>>
+            active(ServerPlayer player) {
+        return ACTIVE.computeIfAbsent(
+                player.connection, ignored -> new java.util.concurrent.ConcurrentHashMap<>());
+    }
+
+    private static final java.util.Map<Object, String> CONNECTIONS =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
+    private static String connectionId(ServerPlayer player) {
+        return CONNECTIONS.computeIfAbsent(
+                player.connection, ignored -> java.util.UUID.randomUUID().toString());
+    }
 
     private DedicatedPeerServer() {}
 
@@ -36,14 +51,25 @@ final class DedicatedPeerServer {
             return;
         }
         String kind = string(message, "kind", "");
+        if (kind.equals("cancel") && message.has("requestId")) {
+            var pending = active(player).remove(message.get("requestId").getAsString());
+            if (pending != null) pending.cancel(false);
+            return;
+        }
         if (kind.equals("hello")) {
             JsonObject ack = new JsonObject();
             ack.addProperty("kind", "hello_ack");
             ack.addProperty("protocol", "peer-v0");
             ack.addProperty("serverTick", player.serverLevel().getServer().getTickCount());
             ack.addProperty("read", true);
+            ack.addProperty("authorization", "SERVER_DELEGATION_REQUIRED");
+            ack.addProperty("typedDebugSupported", true);
+            ack.addProperty("legacyDirectDebugSupported", false);
+            ack.addProperty("requiresServerDelegation", true);
+            ack.addProperty("connectionId", connectionId(player));
+            ack.addProperty("playerUuid", player.getUUID().toString());
             ack.addProperty("fixture", fixtureEnabled() && isOperator(player));
-            ack.addProperty("debug", debugEnabled() && isOperator(player));
+            ack.addProperty("debug", true);
             reply.accept(new PeerPayload(GSON.toJson(ack)));
             return;
         }
@@ -51,6 +77,9 @@ final class DedicatedPeerServer {
             return;
         String requestId = message.get("requestId").getAsString();
         String operation = message.get("operation").getAsString();
+        if (requestId.length() > 128
+                || active(player).size() >= 64
+                || active(player).containsKey(requestId)) return;
         JsonObject params =
                 message.has("params") && message.get("params").isJsonObject()
                         ? message.getAsJsonObject("params")
@@ -60,23 +89,129 @@ final class DedicatedPeerServer {
         response.addProperty("protocol", "peer-v0");
         response.addProperty("requestId", requestId);
         response.addProperty("serverTick", player.serverLevel().getServer().getTickCount());
-        try {
+        if (operation.equals("peer.status")) {
             response.addProperty("ok", true);
-            response.add("data", execute(operation, params, player));
-        } catch (PeerFailure failure) {
-            response.addProperty("ok", false);
-            response.addProperty("error", failure.code);
-            response.addProperty("message", failure.getMessage());
-        } catch (Throwable throwable) {
-            response.addProperty("ok", false);
-            response.addProperty("error", "SERVER_PEER_ERROR");
-            response.addProperty(
-                    "message",
-                    throwable.getMessage() == null
-                            ? "Peer operation failed"
-                            : throwable.getMessage());
+            response.add("data", status(player));
+            reply.accept(new PeerPayload(GSON.toJson(response)));
+            return;
         }
-        reply.accept(new PeerPayload(GSON.toJson(response)));
+        MinecraftServer server = player.serverLevel().getServer();
+        java.util.concurrent.CompletableFuture<JsonObject> operationResult;
+        var nativePermission = new java.util.concurrent.atomic.AtomicBoolean(isOperator(player));
+        java.util.function.BooleanSupplier permission =
+                () -> {
+                    if (server.isSameThread())
+                        nativePermission.set(
+                                server.isRunning()
+                                        && server.getPlayerList().getPlayer(player.getUUID())
+                                                == player
+                                        && isOperator(player));
+                    return nativePermission.get();
+                };
+        params.addProperty("peerRequestId", requestId);
+        try {
+            operationResult =
+                    io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver.request(
+                            server,
+                            player.getUUID().toString(),
+                            connectionId(player),
+                            permission,
+                            operation,
+                            params,
+                            (authorization, work) -> {
+                                java.util.concurrent.CompletableFuture<JsonObject> result =
+                                        new java.util.concurrent.CompletableFuture<>();
+                                server.execute(
+                                        () -> {
+                                            if (result.isDone()) return;
+                                            try (var permit = work == null ? null : work.enter()) {
+                                                authorization.run();
+                                                result.complete(execute(operation, params, player));
+                                            } catch (Throwable failure) {
+                                                result.completeExceptionally(failure);
+                                            }
+                                        });
+                                return result;
+                            });
+        } catch (Throwable failure) {
+            operationResult = java.util.concurrent.CompletableFuture.failedFuture(failure);
+        }
+        active(player).put(requestId, operationResult);
+        operationResult.whenComplete(
+                (value, failure) -> {
+                    active(player).remove(requestId);
+                    server.execute(
+                            () -> {
+                                if (server.getPlayerList().getPlayer(player.getUUID()) != player)
+                                    return;
+                                Throwable outcome = failure;
+                                try {
+                                    io.github.recrivenvi.minecraftprotocol.core.ServerPeerReceiver
+                                            .requirePublication(
+                                                    server,
+                                                    player.getUUID().toString(),
+                                                    connectionId(player),
+                                                    permission,
+                                                    params);
+                                } catch (Throwable denied) {
+                                    outcome = denied;
+                                }
+                                if (outcome == null) {
+                                    response.addProperty("ok", true);
+                                    response.add("data", value);
+                                } else {
+                                    Throwable cause = outcome;
+                                    while (cause.getCause() != null
+                                            && (cause
+                                                            instanceof
+                                                            java.util.concurrent.CompletionException
+                                                    || cause
+                                                            instanceof
+                                                            java.util.concurrent
+                                                                    .ExecutionException))
+                                        cause = cause.getCause();
+                                    response.addProperty("ok", false);
+                                    if (cause
+                                            instanceof
+                                            io.github.recrivenvi.minecraftprotocol.core
+                                                            .ProtocolState.ProtocolException
+                                                    error) {
+                                        response.addProperty("error", error.code());
+                                        response.addProperty("httpStatus", error.httpStatus());
+                                        response.add("details", error.details());
+                                    } else response.addProperty("error", "SERVER_PEER_ERROR");
+                                    response.addProperty(
+                                            "message",
+                                            cause.getMessage() == null
+                                                    ? "Peer operation failed"
+                                                    : cause.getMessage());
+                                }
+                                String encoded = GSON.toJson(response);
+                                if (encoded.length() > PeerPayload.MAX_JSON_BYTES - 1024
+                                        || encoded.getBytes(StandardCharsets.UTF_8).length
+                                                > PeerPayload.MAX_JSON_BYTES - 1024) {
+                                    response.remove("data");
+                                    response.addProperty("ok", false);
+                                    response.addProperty("error", "PEER_RESPONSE_BUDGET_EXCEEDED");
+                                    response.addProperty("httpStatus", 413);
+                                    JsonObject details = new JsonObject();
+                                    details.addProperty("executionOutcome", "not_confirmed");
+                                    details.addProperty("retrySafe", false);
+                                    details.addProperty(
+                                            "mutationMayHaveCommitted",
+                                            operation.equals("debug.mutate"));
+                                    response.add("details", details);
+                                    response.addProperty(
+                                            "message",
+                                            "Peer payload budget is 30 KiB; narrow the query. A submitted mutation may already have committed; inspect before retry.");
+                                    response.addProperty(
+                                            "mutationMayHaveCommitted",
+                                            operation.equals("debug.mutate"));
+                                    encoded = GSON.toJson(response);
+                                }
+                                reply.accept(new PeerPayload(encoded));
+                            });
+                });
     }
 
     private static JsonObject execute(String operation, JsonObject params, ServerPlayer player) {
@@ -90,7 +225,6 @@ final class DedicatedPeerServer {
                             requiredInt(params, "y"),
                             requiredInt(params, "z"));
             case "world.entities.query" -> entities(player, doubleValue(params, "radius", 16.0));
-            case "world.fingerprint" -> fingerprint(player);
             case "fixture.player.teleport" -> {
                 requireFixture(player);
                 yield teleport(
@@ -98,20 +232,6 @@ final class DedicatedPeerServer {
                         requiredDouble(params, "x"),
                         requiredDouble(params, "y"),
                         requiredDouble(params, "z"));
-            }
-            case "debug.player.health" -> {
-                requireDebug(player);
-                yield setHealth(player, (float) requiredDouble(params, "health"));
-            }
-            case "debug.world.block" -> {
-                requireDebug(player);
-                yield setBlock(
-                        player,
-                        requiredInt(params, "x"),
-                        requiredInt(params, "y"),
-                        requiredInt(params, "z"),
-                        requiredString(params, "blockId"),
-                        nullableString(params, "expectedBlockId"));
             }
             default ->
                     throw new PeerFailure(
@@ -123,8 +243,14 @@ final class DedicatedPeerServer {
     private static JsonObject status(ServerPlayer player) {
         JsonObject json = base(player, "server.peer.capabilities");
         json.addProperty("read", true);
+        json.addProperty("authorization", "SERVER_DELEGATION_REQUIRED");
+        json.addProperty("typedDebugSupported", true);
+        json.addProperty("legacyDirectDebugSupported", false);
+        json.addProperty("requiresServerDelegation", true);
+        json.addProperty("connectionId", connectionId(player));
+        json.addProperty("maxResponseBytes", 30 * 1024);
         json.addProperty("fixture", fixtureEnabled() && isOperator(player));
-        json.addProperty("debug", debugEnabled() && isOperator(player));
+        json.addProperty("debug", true);
         json.addProperty("operator", isOperator(player));
         return json;
     }
@@ -191,18 +317,6 @@ final class DedicatedPeerServer {
         return json;
     }
 
-    private static JsonObject fingerprint(ServerPlayer player) {
-        String material =
-                "dedicated-peer|"
-                        + player.serverLevel().getServer().getWorldData().getLevelName()
-                        + "|"
-                        + player.serverLevel().dimension().location();
-        JsonObject json = base(player, "world.fingerprint");
-        json.addProperty("worldFingerprint", sha256(material));
-        json.addProperty("sessionBound", true);
-        return json;
-    }
-
     private static JsonObject teleport(ServerPlayer player, double x, double y, double z) {
         double beforeX = player.getX();
         double beforeY = player.getY();
@@ -215,50 +329,6 @@ final class DedicatedPeerServer {
         json.addProperty("x", player.getX());
         json.addProperty("y", player.getY());
         json.addProperty("z", player.getZ());
-        return json;
-    }
-
-    private static JsonObject setHealth(ServerPlayer player, float requested) {
-        float before = player.getHealth();
-        player.setHealth(Mth.clamp(requested, 0.0F, player.getMaxHealth()));
-        JsonObject json =
-                mutation(player, "debug.player.health", "DEBUG_PRIVILEGED", "DIRECT_MUTATION");
-        json.addProperty("before", before);
-        json.addProperty("requested", requested);
-        json.addProperty("applied", player.getHealth());
-        return json;
-    }
-
-    private static JsonObject setBlock(
-            ServerPlayer player, int x, int y, int z, String blockId, String expectedBlockId) {
-        ServerLevel level = player.serverLevel();
-        BlockPos position = new BlockPos(x, y, z);
-        if (!level.hasChunkAt(position))
-            throw new PeerFailure("CHUNK_NOT_LOADED", "Debug block target is not loaded");
-        ResourceLocation id = ResourceLocation.tryParse(blockId);
-        if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
-            throw new PeerFailure("UNKNOWN_BLOCK", "Unknown block: " + blockId);
-        }
-        BlockState before = level.getBlockState(position);
-        String beforeId = BuiltInRegistries.BLOCK.getKey(before.getBlock()).toString();
-        if (expectedBlockId != null && !expectedBlockId.equals(beforeId)) {
-            throw new PeerFailure(
-                    "PRECONDITION_FAILED",
-                    "Expected block " + expectedBlockId + " but found " + beforeId);
-        }
-        Block block = BuiltInRegistries.BLOCK.get(id);
-        level.setBlockAndUpdate(position, block.defaultBlockState());
-        JsonObject json =
-                mutation(player, "debug.world.block", "DEBUG_PRIVILEGED", "DIRECT_MUTATION");
-        json.addProperty("x", x);
-        json.addProperty("y", y);
-        json.addProperty("z", z);
-        json.addProperty("before", beforeId);
-        json.addProperty(
-                "after",
-                BuiltInRegistries.BLOCK
-                        .getKey(level.getBlockState(position).getBlock())
-                        .toString());
         return json;
     }
 
@@ -295,14 +365,6 @@ final class DedicatedPeerServer {
         }
     }
 
-    private static void requireDebug(ServerPlayer player) {
-        if (!debugEnabled() || !isOperator(player)) {
-            throw new PeerFailure(
-                    "PEER_DEBUG_DENIED",
-                    "Server Peer Debug is disabled or player is not an operator");
-        }
-    }
-
     private static boolean isOperator(ServerPlayer player) {
         MinecraftServer server = player.serverLevel().getServer();
         return server.isSingleplayerOwner(player.getGameProfile())
@@ -311,10 +373,6 @@ final class DedicatedPeerServer {
 
     private static boolean fixtureEnabled() {
         return enabled("minecraft.protocol.peer.allowFixture", "MCP_PEER_ALLOW_FIXTURE");
-    }
-
-    private static boolean debugEnabled() {
-        return enabled("minecraft.protocol.peer.allowDebug", "MCP_PEER_ALLOW_DEBUG");
     }
 
     private static boolean enabled(String property, String environment) {
@@ -333,34 +391,12 @@ final class DedicatedPeerServer {
         return object.get(name).getAsDouble();
     }
 
-    private static String requiredString(JsonObject object, String name) {
-        if (!object.has(name)) throw new PeerFailure("INVALID_ARGUMENT", "Missing " + name);
-        return object.get(name).getAsString();
-    }
-
     private static double doubleValue(JsonObject object, String name, double fallback) {
         return object.has(name) ? object.get(name).getAsDouble() : fallback;
     }
 
-    private static String nullableString(JsonObject object, String name) {
-        return object.has(name) && !object.get(name).isJsonNull()
-                ? object.get(name).getAsString()
-                : null;
-    }
-
     private static String string(JsonObject object, String name, String fallback) {
         return object.has(name) ? object.get(name).getAsString() : fallback;
-    }
-
-    private static String sha256(String value) {
-        try {
-            return HexFormat.of()
-                    .formatHex(
-                            MessageDigest.getInstance("SHA-256")
-                                    .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
     }
 
     private static final class PeerFailure extends RuntimeException {

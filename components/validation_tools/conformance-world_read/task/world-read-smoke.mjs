@@ -29,6 +29,7 @@ import { consumerTitleReadiness, consumerWorldReadiness } from './consumer-readi
 import { consumerPlayerTitle, consumerPlayerFlags } from './consumer-player-feedback.mjs';
 import { consumerHitFeedback } from './consumer-hit-feedback.mjs';
 import { modeCollaborationActions } from './mode-collaboration-actions.mjs';
+import { integratedPeerActions } from './integrated-peer-actions.mjs';
 import { resourceVersionActions } from './resource-version-actions.mjs';
 import { commandDiscoveryBatchActions } from './command-discovery-batch-actions.mjs';
 import { serverCompletionActions } from './server-completion-actions.mjs';
@@ -73,7 +74,7 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration','integrated-peer'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
@@ -214,6 +215,8 @@ for(const path of ['components/protocol_schema/src/main/openapi/minecraft-contro
   hashes[hitFeedback]=createHash('sha256').update(await readFile(resolve(repo,hitFeedback))).digest('hex');
   const collaboration='components/validation_tools/conformance-world_read/task/mode-collaboration-actions.mjs';
   hashes[collaboration]=createHash('sha256').update(await readFile(resolve(repo,collaboration))).digest('hex');
+  const peerOwner='components/validation_tools/conformance-world_read/task/integrated-peer-actions.mjs';
+  hashes[peerOwner]=createHash('sha256').update(await readFile(resolve(repo,peerOwner))).digest('hex');
   const baseline='components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs';
   hashes[baseline]=createHash('sha256').update(await readFile(resolve(repo,baseline))).digest('hex');
   const continuous='components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs';
@@ -262,6 +265,8 @@ try {
     await blockEntityPagesActions({api,connection,target,repo,instance,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
   } else if(scenario==='block-entity-selector') {
     await blockEntitySelectorActions({api,connection,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,enterWorld:true});
+  } else if(scenario==='integrated-peer') {
+    await integratedPeerActions({api,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,setArm:value=>{debugArm=value;}});
   } else if(scenario==='command-collaboration') {
     await commandCollaborationActions({api,repo,instance,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
   } else if(scenario==='first-camera') {

@@ -9,7 +9,7 @@ foreach($target in $targets){
     $runtimeName=if($target -eq '1.20.1-forge'){'ForgeProbeRuntime'}elseif($target -eq '26.3-fabric'){'FabricProbeRuntime'}else{'NeoForgeProbeRuntime'}
     $base=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe"
     $runtime=Get-Content (Join-Path $base "runtime/$runtimeName.java") -Raw
-    $storage=Get-Content (Join-Path $base 'runtime/PersistentStorageAdapter.java') -Raw
+    $storage=Get-Content (Join-Path $root "versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java") -Raw
     $mouse=Get-Content (Join-Path $base 'mixin/MouseHandlerMixin.java') -Raw
     $window=Get-Content (Join-Path $base 'mixin/WindowMixin.java') -Raw
     $frame=Get-Content (Join-Path $base 'mixin/MinecraftMixin.java') -Raw

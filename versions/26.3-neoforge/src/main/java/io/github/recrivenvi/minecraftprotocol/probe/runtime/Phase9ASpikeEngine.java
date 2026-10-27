@@ -96,6 +96,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private static final int MAX_SELECTED_BLOCKS = 64;
 
     private final String target;
+    private final java.util.function.Function<MinecraftServer, Boolean> integratedPause;
+    // Native server-owner selection is dynamically scoped, never authority or a fake player.
+    private final ThreadLocal<ServerSelection> serverSelection = new ThreadLocal<>();
+
+    private record ServerSelection(ServerLevel level, BlockPos anchor, ServerPlayer actor) {}
+
     private final ObservationRevisionTracker revisions = new ObservationRevisionTracker();
     private final ObservationLifecycleTracker lifecycles = new ObservationLifecycleTracker();
     private final ProviderExecutionEngine providerExecution =
@@ -113,7 +119,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private final AtomicBoolean scheduledTickHookVerified = new AtomicBoolean();
 
     Phase9ASpikeEngine(String target) {
+        this(target, server -> null);
+    }
+
+    Phase9ASpikeEngine(
+            String target, java.util.function.Function<MinecraftServer, Boolean> integratedPause) {
         this.target = target;
+        this.integratedPause = java.util.Objects.requireNonNull(integratedPause);
         this.storageAdapter = new PersistentStorageAdapter(target);
         this.revisionWorker =
                 new BoundedTaskExecutor("minecraft-protocol-observation-revisions", 1, 8);
@@ -204,7 +216,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.add("operations", operations);
         JsonObject deployments = new JsonObject();
         deployments.addProperty("integratedServer", "available");
-        deployments.addProperty("dedicatedServerPeer", "legacy_typed_health_and_block_only");
+        deployments.addProperty("dedicatedServerPeer", "server_owned_connection_scoped_delegation");
+        deployments.addProperty("peerMaxResponseBytes", 30 * 1024);
         deployments.addProperty("remoteWithoutPeer", "unavailable");
         json.add("deployments", deployments);
         return json;
@@ -606,6 +619,18 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                         });
     }
 
+    JsonObject combinePeerObservation(JsonObject request, JsonObject client, JsonObject remote) {
+        JsonObject response = remote.deepCopy();
+        response.addProperty("perspective", "both");
+        response.add("client", client.deepCopy());
+        response.addProperty("clientSessionEpoch", this.revisions.sessionEpoch());
+        if (response.has("server"))
+            response.add("comparison", compare(client, response.getAsJsonObject("server")));
+        response.getAsJsonObject("metadata").addProperty("perspective", "both");
+        response.getAsJsonObject("metadata").addProperty("crossOwnerAtomic", false);
+        return checkedResponse(response, request);
+    }
+
     JsonObject observe(MinecraftServer server, ServerPlayer player, JsonObject request) {
         JsonObject snapshot = captureSnapshot(server, player, normalizedSelector(request));
         snapshot.addProperty("type", "phase9a.deep_observation");
@@ -733,7 +758,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                     "UNSUPPORTED_DEBUG_ENTITY_STATE", 400, "Phase 9A supports only no_gravity");
         Entity entity;
         try {
-            entity = player.level().getEntity(UUID.fromString(entityUuid));
+            entity = selectedLevel(player).getEntity(UUID.fromString(entityUuid));
         } catch (IllegalArgumentException exception) {
             throw new ProtocolState.ProtocolException(
                     "INVALID_ENTITY_UUID", 400, "Invalid entity UUID");
@@ -793,8 +818,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             case "entity_spawn_pig" -> {
                 Entity pig =
                         EntityTypes.PIG.spawn(
-                                player.level(),
-                                player.blockPosition().offset(2, 0, 0),
+                                selectedLevel(player),
+                                selectedAnchor(player).offset(2, 0, 0),
                                 EntitySpawnReason.COMMAND);
                 if (pig == null)
                     throw new ProtocolState.ProtocolException(
@@ -814,7 +839,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 String uuid = requiredString(request, "entityUuid");
                 Entity entity;
                 try {
-                    entity = player.level().getEntity(UUID.fromString(uuid));
+                    entity = selectedLevel(player).getEntity(UUID.fromString(uuid));
                 } catch (IllegalArgumentException exception) {
                     throw new ProtocolState.ProtocolException(
                             "INVALID_ENTITY_UUID", 400, "Invalid entity UUID");
@@ -864,7 +889,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             case "entity.owner.set" -> this.debugRelation(player, request, "owner", false);
             case "world.time.set" -> this.debugWorldTime(server, request);
             case "world.weather.set" -> this.debugWorldWeather(server, request);
-            case "world.rule.set" -> this.debugWorldRule(server, player.level(), request);
+            case "world.rule.set" -> this.debugWorldRule(server, selectedLevel(player), request);
             case "entity.spawn" -> this.debugEntitySpawn(player, request);
             case "entity.remove" -> this.debugEntityRemove(server, player, request);
             case "player.health.set" -> this.debugPlayerHealth(player, request);
@@ -1631,7 +1656,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             MinecraftServer server, ServerPlayer player, JsonObject request, boolean ownPlayer) {
         ServerLevel source =
                 ownPlayer
-                        ? player.level()
+                        ? selectedLevel(player)
                         : existingDimension(
                                 server, DebugTransferRequest.dimension(request, "sourceDimension"));
         Entity target =
@@ -1774,7 +1799,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonObject debugEntitySpawn(ServerPlayer player, JsonObject request) {
         var factory = DebugEntityLifecycleRequest.spawn(request);
-        ServerLevel level = player.level();
+        ServerLevel level = selectedLevel(player);
         JsonObject before = entityRegistry(level, factory.chunk());
         requireEntityRegistry(before);
         JsonObject beforeRef = entityRegistryRevision(before);
@@ -1851,7 +1876,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 request.has("sourceDimension")
                         ? existingDimension(
                                 server, DebugTransferRequest.dimension(request, "sourceDimension"))
-                        : player.level();
+                        : selectedLevel(player);
         Entity target = loadedEntity(level, requiredDebugString(request, "entityUuid"));
         if (target instanceof ServerPlayer)
             throw DebugEntityLifecycleRequest.invalid(
@@ -2172,7 +2197,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 playerResource ? playerRevision(after) : entityRevision(after));
     }
 
-    private static LivingEntity debugLivingEntity(ServerPlayer player, JsonObject request) {
+    private LivingEntity debugLivingEntity(ServerPlayer player, JsonObject request) {
         Entity target = loadedEntity(player, requiredDebugString(request, "entityUuid"));
         if (!(target instanceof LivingEntity living) || target instanceof ServerPlayer)
             throw io.github.recrivenvi.minecraftprotocol.core.DebugStateRequest.invalid(
@@ -2313,7 +2338,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private JsonObject debugWorldBlock(ServerPlayer player, JsonObject request) {
-        ServerLevel level = player.level();
+        ServerLevel level = selectedLevel(player);
         BlockPos position = requiredPosition(request);
         JsonObject before = blockSnapshot(level, position);
         if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block");
@@ -2434,7 +2459,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private JsonObject debugBlockEntityCustomName(ServerPlayer player, JsonObject request) {
-        ServerLevel level = player.level();
+        ServerLevel level = selectedLevel(player);
         BlockPos position = requiredPosition(request);
         JsonObject before = blockEntitySnapshot(level, position, true);
         if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block_entity");
@@ -2575,7 +2600,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     }
 
     private JsonObject debugBlockEntitySlot(ServerPlayer player, JsonObject request) {
-        ServerLevel level = player.level();
+        ServerLevel level = selectedLevel(player);
         BlockPos position = requiredPosition(request);
         JsonObject before = blockEntitySnapshot(level, position, true);
         if (!before.get("available").getAsBoolean()) throw targetNotLoaded("block_entity");
@@ -2605,7 +2630,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (ItemStack.matches(current, replacement)) throw noStateChange();
         container.setItem(slot, replacement);
         blockEntity.setChanged();
-        player.containerMenu.broadcastChanges();
+        // Zero-player server resources have no selected menu; Vanilla still synchronizes watchers
+        // on tick.
+        if (player != null) player.containerMenu.broadcastChanges();
         BlockState state = level.getBlockState(position);
         level.sendBlockUpdated(position, state, state, 3);
         JsonObject after = blockEntitySnapshot(level, position, true);
@@ -2711,6 +2738,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty("auditReference", json.get("debugOperationId").getAsString());
         json.addProperty("operation", request.get("operation").getAsString());
         json.addProperty("namespace", domain);
+        json.addProperty("evidenceAuthority", "DEBUG_PRIVILEGED");
         json.addProperty("authority", "runtime_internal");
         json.addProperty("mechanism", mechanism);
         json.addProperty("invariants", "partial_invariants");
@@ -2834,8 +2862,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         return value;
     }
 
-    private static Entity loadedEntity(ServerPlayer player, String uuid) {
-        return loadedEntity(player.level(), uuid);
+    private Entity loadedEntity(ServerPlayer player, String uuid) {
+        return loadedEntity(selectedLevel(player), uuid);
     }
 
     private static Entity loadedEntity(ServerLevel level, String uuid) {
@@ -2926,12 +2954,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         int chunkX =
                 request.has("chunkX")
                         ? request.get("chunkX").getAsInt()
-                        : player.chunkPosition().x();
+                        : selectedAnchor(player).getX() >> 4;
         int chunkZ =
                 request.has("chunkZ")
                         ? request.get("chunkZ").getAsInt()
-                        : player.chunkPosition().z();
-        ServerLevel level = player.level();
+                        : selectedAnchor(player).getZ() >> 4;
+        ServerLevel level = selectedLevel(player);
         boolean loaded = level.getChunkSource().getChunkNow(chunkX, chunkZ) != null;
         return new StorageRequest(
                 domain,
@@ -2939,7 +2967,12 @@ final class Phase9ASpikeEngine implements AutoCloseable {
                 server.getWorldPath(LevelResource.PLAYER_DATA_DIR),
                 server.getWorldData().getLevelName(),
                 level.dimension(),
-                player.getUUID().toString(),
+                player == null
+                        ? (request.has("playerUuid")
+                                ? UUID.fromString(request.get("playerUuid").getAsString())
+                                        .toString()
+                                : "")
+                        : player.getUUID().toString(),
                 new ChunkPos(chunkX, chunkZ),
                 loaded,
                 true,
@@ -3096,6 +3129,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         if (server.has("blocks"))
             for (JsonElement element : server.getAsJsonArray("blocks")) {
                 JsonObject block = element.getAsJsonObject();
+                if (!block.has("available") || !block.get("available").getAsBoolean()) continue;
                 String key = dimension + "@" + block.get("key").getAsString();
                 refs.add(
                         this.revisions.revision(
@@ -3353,7 +3387,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonObject captureSnapshot(
             MinecraftServer server, ServerPlayer player, JsonObject selector) {
         long captureStarted = System.nanoTime();
-        ServerLevel level = player.level();
+        ServerLevel level = selectedLevel(player);
         JsonObject json = base("phase9a.snapshot");
         json.addProperty("snapshotId", UUID.randomUUID().toString());
         json.addProperty("snapshotSequence", server.getTickCount());
@@ -3515,7 +3549,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         json.addProperty(
                 "menuRole",
                 player.containerMenu.containerId == 0 ? "player_inventory" : "container");
-        json.addProperty("dimension", player.level().dimension().identifier().toString());
+        json.addProperty("dimension", selectedLevel(player).dimension().identifier().toString());
         json.addProperty(
                 "respawn",
                 player.getRespawnConfig() == null ? "unset" : player.getRespawnConfig().toString());
@@ -3556,7 +3590,13 @@ final class Phase9ASpikeEngine implements AutoCloseable {
     private JsonArray entities(ServerLevel level, ServerPlayer player, double radius, int limit) {
         JsonArray json = new JsonArray();
         List<Entity> entities =
-                level.getEntities(player, player.getBoundingBox().inflate(radius), ignored -> true);
+                level.getEntities(
+                        player,
+                        (player == null || serverSelection.get() != null
+                                        ? new net.minecraft.world.phys.AABB(selectedAnchor(player))
+                                        : player.getBoundingBox())
+                                .inflate(radius),
+                        ignored -> true);
         entities.stream()
                 .sorted(Comparator.comparing(entity -> entity.getUUID().toString()))
                 .limit(limit)
@@ -3638,8 +3678,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonArray chunks(ServerLevel level, ServerPlayer player, int radius) {
         JsonArray json = new JsonArray();
-        int centerX = player.chunkPosition().x();
-        int centerZ = player.chunkPosition().z();
+        int centerX = selectedAnchor(player).getX() >> 4;
+        int centerZ = selectedAnchor(player).getZ() >> 4;
         for (int x = centerX - radius; x <= centerX + radius; x++) {
             for (int z = centerZ - radius; z <= centerZ + radius; z++) {
                 LevelChunk chunk = level.getChunkSource().getChunkNow(x, z);
@@ -3816,7 +3856,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
             keyed.put(key(entry.getKey()), entry);
         JsonObject binding = selector.deepCopy();
         binding.remove("blockEntityCursor");
-        String context = player.chunkPosition() + "/" + binding;
+        String context =
+                new ChunkPos(selectedAnchor(player).getX() >> 4, selectedAnchor(player).getZ() >> 4)
+                        + "/"
+                        + binding;
         String cursor =
                 selector.has("blockEntityCursor")
                         ? selector.get("blockEntityCursor").getAsString()
@@ -3865,9 +3908,9 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         JsonArray json = new JsonArray();
         if (positions.isEmpty()) {
             JsonObject position = new JsonObject();
-            position.addProperty("x", player.blockPosition().getX());
-            position.addProperty("y", player.blockPosition().getY() - 1);
-            position.addProperty("z", player.blockPosition().getZ());
+            position.addProperty("x", selectedAnchor(player).getX());
+            position.addProperty("y", selectedAnchor(player).getY() - 1);
+            position.addProperty("z", selectedAnchor(player).getZ());
             positions.add(position);
         }
         for (JsonElement element : positions) {
@@ -3902,6 +3945,20 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private JsonObject world(MinecraftServer server, ServerLevel level) {
         JsonObject json = new JsonObject();
+        json.addProperty("onlinePlayerCount", server.getPlayerList().getPlayers().size());
+        JsonArray online = new JsonArray();
+        for (var connected : server.getPlayerList().getPlayers()) {
+            if (online.size() >= 128) break;
+            JsonObject identity = new JsonObject();
+            identity.addProperty("uuid", connected.getUUID().toString());
+            identity.addProperty("name", connected.getName().getString());
+            identity.addProperty(
+                    "dimension", connected.level().dimension().identifier().toString());
+            online.add(identity);
+        }
+        json.add("players", online);
+        json.addProperty(
+                "playersTruncated", server.getPlayerList().getPlayers().size() > online.size());
         JsonArray dimensions = new JsonArray();
         for (ServerLevel existing : server.getAllLevels()) {
             JsonObject entry = new JsonObject();
@@ -3931,8 +3988,8 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         JsonObject value = new JsonObject();
         value.addProperty("readOnly", true);
         value.addProperty("readOnlyReason", "simulation_control_not_in_approved_mutation_catalog");
-        if (server instanceof net.minecraft.client.server.IntegratedServer integrated)
-            value.addProperty("integratedPaused", integrated.isPaused());
+        Boolean paused = this.integratedPause.apply(server);
+        if (paused != null) value.addProperty("integratedPaused", paused);
         var manager = server.tickRateManager();
         value.addProperty("tickRateControlAvailable", true);
         value.addProperty("configuredTickRate", manager.tickrate());
@@ -4251,6 +4308,122 @@ final class Phase9ASpikeEngine implements AutoCloseable {
 
     private static <T> void trim(Map<String, T> values) {
         while (values.size() > MAX_SNAPSHOTS) values.remove(values.keySet().iterator().next());
+    }
+
+    <T> T withServerSelection(
+            MinecraftServer server,
+            JsonObject request,
+            java.util.function.Function<ServerPlayer, T> action) {
+        JsonObject selector =
+                request.has("selector") && request.get("selector").isJsonObject()
+                        ? request.getAsJsonObject("selector")
+                        : new JsonObject();
+        String actorId =
+                request.has("actorUuid")
+                        ? requiredDebugString(request, "actorUuid")
+                        : selector.has("playerUuid")
+                                ? requiredDebugString(selector, "playerUuid")
+                                : null;
+        ServerPlayer actor;
+        try {
+            actor =
+                    actorId == null
+                            ? null
+                            : server.getPlayerList().getPlayer(UUID.fromString(actorId));
+        } catch (IllegalArgumentException invalid) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_SELECTOR", 400, "Player selector must be a UUID");
+        }
+        if (actorId != null && actor == null)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_NOT_AVAILABLE",
+                    409,
+                    "Explicit player is not connected; no player proxy is created");
+        String dimension =
+                request.has("dimension")
+                        ? requiredDebugString(request, "dimension")
+                        : selector.has("dimension")
+                                ? requiredDebugString(selector, "dimension")
+                                : null;
+        ServerLevel level =
+                dimension != null
+                        ? existingDimension(server, dimension)
+                        : actor != null ? actor.level() : server.overworld();
+        String operation =
+                request.has("operation") ? requiredDebugString(request, "operation") : "";
+        if ((operation.startsWith("player.") || operation.startsWith("menu.")) && actor == null)
+            throw new ProtocolState.ProtocolException(
+                    "EXPLICIT_PLAYER_REQUIRED", 400, "Player/menu mutations require actorUuid");
+        if (actor != null && actor.level() != level)
+            throw new ProtocolState.ProtocolException(
+                    "PLAYER_DIMENSION_MISMATCH",
+                    409,
+                    "Selected player is not in the selected source dimension");
+        if (request.has("domains"))
+            for (JsonElement domain : request.getAsJsonArray("domains"))
+                if ((domain.getAsString().equals("player") || domain.getAsString().equals("menu"))
+                        && actor == null)
+                    throw new ProtocolState.ProtocolException(
+                            "EXPLICIT_PLAYER_REQUIRED",
+                            400,
+                            "Player/menu reads require selector.playerUuid");
+        if ("player".equals(request.has("domain") ? request.get("domain").getAsString() : "")
+                && actor == null
+                && !request.has("playerUuid"))
+            throw new ProtocolState.ProtocolException(
+                    "EXPLICIT_PLAYER_REQUIRED", 400, "Persisted player reads require playerUuid");
+        BlockPos anchor = actor == null ? BlockPos.ZERO : actor.blockPosition();
+        if (selector.has("anchor")) {
+            JsonObject value = selector.getAsJsonObject("anchor");
+            if (!value.keySet().equals(Set.of("x", "y", "z")))
+                throw new ProtocolState.ProtocolException(
+                        "INVALID_SELECTOR", 400, "Anchor requires exact x,y,z");
+            anchor =
+                    new BlockPos(
+                            exactCoordinate(value, "x"),
+                            exactCoordinate(value, "y"),
+                            exactCoordinate(value, "z"));
+        }
+        ServerSelection previous = serverSelection.get();
+        serverSelection.set(new ServerSelection(level, anchor, actor));
+        try {
+            return action.apply(actor);
+        } finally {
+            if (previous == null) serverSelection.remove();
+            else serverSelection.set(previous);
+        }
+    }
+
+    private static int exactCoordinate(JsonObject value, String key) {
+        try {
+            if (!value.get(key).isJsonPrimitive() || !value.getAsJsonPrimitive(key).isNumber())
+                throw new ArithmeticException();
+            int number = new java.math.BigDecimal(value.get(key).getAsString()).intValueExact();
+            if (number < -29999984 || number > 29999983) throw new ArithmeticException();
+            return number;
+        } catch (RuntimeException error) {
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_SELECTOR", 400, "Anchor coordinates must be bounded integers");
+        }
+    }
+
+    private ServerLevel selectedLevel(ServerPlayer player) {
+        if (player != null) return player.level();
+        ServerSelection selected = serverSelection.get();
+        if (selected == null)
+            throw new ProtocolState.ProtocolException(
+                    "SERVER_SELECTION_REQUIRED", 409, "No native server world selection");
+        return selected.level();
+    }
+
+    private BlockPos selectedAnchor(ServerPlayer player) {
+        ServerSelection selected = serverSelection.get();
+        if (selected != null) return selected.anchor();
+        if (player != null) return player.blockPosition();
+        if (selected == null)
+            throw new ProtocolState.ProtocolException(
+                    "SERVER_SELECTION_REQUIRED", 409, "No native server anchor selection");
+        return selected.anchor();
     }
 
     @Override

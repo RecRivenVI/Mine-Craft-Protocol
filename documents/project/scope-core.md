@@ -28,7 +28,7 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 | Fixture / Debug | 独立授权、scope、Debug Arm、资源/值前置条件；不得冒充正常玩家验收 |
 | Provider | V2 schema/policy/affinity/budget/lifecycle；可信资源 revision 与 query-shaped payload 分离 |
 | 证据 | Capture、Recording、Timeline、Artifact、manifest、checksums；来源和预算明确 |
-| 部署与 Peer | 两端可选安装，各有独立Runtime；零玩家控制台/首批主世界DEBUG与有限Peer已实现，完整目录及委托仍待完成 |
+| 部署与 Peer | 两端可选安装，各有独立Runtime；服务器适用原生资源、显式真实玩家与已有维度、限时连接委托已实现，有限具名自动组不替代完整领域与真人验收 |
 | 持久化 | PERSISTED 与 LIVE 严格分开；正式只读已成立，正式写入未实现 |
 | 安全 | 本机认证、Host/Origin、预算、审计、取消、Human Override 与注入隔离 |
 

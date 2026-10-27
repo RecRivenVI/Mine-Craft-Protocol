@@ -297,9 +297,10 @@ test('web close during acquire never publishes or leaves a late Lease', async ()
 
 test('web an older READ poll cannot forget a concurrently acquired Lease', async () => {
   const runtime = new MockRuntime(), console = new UiConsole(runtime);
-  let resume!: () => void;
-  runtime.delayModeOnce = () => new Promise(resolve => { resume = resolve; });
-  const oldPoll = console.snapshot('browser');
+  let resume!: () => void, entered!: () => void;
+  const modeRead = new Promise<void>(resolve => { entered = resolve; });
+  runtime.delayModeOnce = () => new Promise(resolve => { resume = resolve; entered(); });
+  const oldPoll = console.snapshot('browser');await modeRead;
   await console.acquire('browser'); resume(); const reconciled=await oldPoll;
   assert.equal((reconciled.control as JsonObject).mode,'TAKEOVER');
   const current = await console.snapshot('browser');
@@ -525,4 +526,32 @@ test('gesture frame ignores only own menu changes, not screen replacement, size 
  const tree:JsonObject={screenClass:'InventoryScreen',screenIdentity:1,menuRevision:1,guiScale:4,width:480,height:270};
  const key=inputFrameKey(tree);assert.equal(inputFrameKey({...tree,menuRevision:2}),key);
  for(const change of [{guiScale:3},{width:640},{screenIdentity:2},{screenClass:'AnotherScreen'}])assert.notEqual(inputFrameKey({...tree,...change}),key);
+});
+
+test('dedicated web snapshot and console actions never request graphical or player input surfaces',async()=>{
+  class DedicatedRuntime extends RuntimeClient {
+    calls:Array<{method:string;path:string;body:JsonValue|undefined}>=[];
+    mode='READ';
+    constructor(){super({baseUrl:new URL('http://127.0.0.1:25603'),token:'server-token',timeoutMs:1000,maxJsonBytes:100000,maxArtifactBytes:100000});}
+    override async json<T extends JsonValue=JsonObject>(method:'GET'|'POST'|'DELETE',path:string,body?:JsonValue):Promise<T>{
+      this.calls.push({method,path,body});let value:JsonObject;
+      if(path==='/v0/session')value={target:'26.3-neoforge',deploymentRole:'DEDICATED_SERVER'};
+      else if(path==='/v0/control/mode'){if(method==='POST')this.mode=String((body as JsonObject).mode);value={mode:this.mode,modeVersion:{generation:1}};}
+      else if(path.startsWith('/v0/server/console?'))value={records:[{level:'INFO',text:'<script>untrusted server text</script>'}]};
+      else if(path==='/v0/server/console/suggestions')value={commandExecuted:false,suggestions:[{text:'list',start:0,end:2}]};
+      else if(path==='/v0/server/console/commands'){
+        if(this.mode!=='OPERATE')throw new RuntimeError('OPERATE_REQUIRED',409,'Explicit intent required');
+        value={operationId:'server-operation',state:'accepted'};
+      }else throw new Error('Unexpected graphical/player call: '+path);
+      return value as T;
+    }
+  }
+  const runtime=new DedicatedRuntime(),controller=new UiConsole(runtime);
+  const snapshot=await controller.snapshot('browser');assert.equal(snapshot.headless,true);assert.equal(snapshot.ownsLease,false);
+  await assert.rejects(controller.consoleAction({action:'execute',command:'list'}),{code:'OPERATE_REQUIRED'});
+  const completion=await controller.consoleAction({action:'complete',input:'li',cursor:2});assert.equal(completion.commandExecuted,false);
+  await controller.consoleAction({action:'set_mode',mode:'OPERATE'});
+  assert.equal((await controller.consoleAction({action:'execute',command:'list'})).operationId,'server-operation');
+  assert(!runtime.calls.some(call=>/ui\/tree|capture|input|control\/acquire/.test(call.path)));
+  await controller.close();
 });

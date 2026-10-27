@@ -32,6 +32,11 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
     }
 
     @Override
+    public CompletableFuture<Boolean> peerAuthorityAvailable() {
+        return CompletableFuture.completedFuture(worldDebug != null);
+    }
+
+    @Override
     public CompletableFuture<JsonObject> session() {
         JsonObject value = ServerConsole.identity();
         value.addProperty("target", target);
@@ -43,7 +48,7 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
         value.addProperty("inputSurfaceAvailable", false);
         value.addProperty("graphicalSurfaceAvailable", false);
         value.addProperty("worldDebugImplemented", worldDebug != null);
-        value.addProperty("persistentReadImplemented", false);
+        value.addProperty("persistentReadImplemented", worldDebug != null);
         value.addProperty("serverReady", true);
         return CompletableFuture.completedFuture(value);
     }
@@ -60,6 +65,9 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
                             supported.addProperty("input", false);
                             supported.addProperty("capture", false);
                             supported.addProperty("world.debug", worldDebug != null);
+                            supported.addProperty("storage.read", worldDebug != null);
+                            supported.addProperty("recording", true);
+                            supported.addProperty("recording.framebuffer", false);
                             if (worldDebug != null)
                                 value.add("worldDebug", worldDebug.capabilities());
                             value.add("capabilities", supported);
@@ -123,5 +131,14 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
     public CompletableFuture<JsonObject> phase9cDebugMutation(
             JsonObject request, DebugMutationAuthorization authorization) {
         return worldDebug == null ? unavailable() : worldDebug.mutate(request, authorization);
+    }
+
+    @Override
+    public CompletableFuture<JsonObject> phase9aStorageRead(JsonObject request) {
+        return worldDebug == null ? unavailable() : worldDebug.storageRead(request);
+    }
+
+    public JsonObject consoleSnapshot() {
+        return console.read(0, 128);
     }
 }

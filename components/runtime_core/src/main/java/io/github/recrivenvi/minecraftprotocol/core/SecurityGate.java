@@ -67,6 +67,18 @@ final class SecurityGate {
         if (id != null) this.connections.remove(id);
     }
 
+    void admitPeer(String operation) {
+        String category =
+                operation.startsWith("debug.") && !operation.equals("debug.capabilities")
+                                || operation.startsWith("fixture.")
+                        ? "debug"
+                        : "world";
+        principalRequests.acquire("principal", "requests", category);
+        principalExpensive
+                .computeIfAbsent(category, this::bucket)
+                .acquire("principal", category, category);
+    }
+
     int connectionCount() {
         return this.connections.size();
     }

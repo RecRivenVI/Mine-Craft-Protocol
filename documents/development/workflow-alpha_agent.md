@@ -74,8 +74,10 @@ E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受�
 使用方自行移除旧的临时HTTP类路径补丁，再在自己的独立实例复验；本线程不改其他线程的实例。
 dirty=true 表示包含未提交源码，不能仅凭 HEAD 判断构建相同；同时核对 sourceFingerprint、sourceHashes 与 JAR SHA-256。
 目标版本、加载器和 Java 事实以生成快照及[项目规范](../AGENTS.md)为准。
-当前运行端合同仍为双端安装；仅客户端、独立仅服务端及完整联动的新增能力见[部署设计](../design/concept-deployment_scenarios.md)，
-其状态为 DESIGN/PENDING，不由本 alpha、玩家 OP 或可达 Peer 推定已经实现。
+两端均为可选安装；仅客户端保留本地玩家与界面功能，服务端权威读取需要实际可用且独立授权的服务器。
+独立服务器没有玩家屏幕、截图或输入Lease；使用实际控制台、显式真实玩家选择器和服务器资源目录。
+当前工作树补齐中的控制台补全、结构化录制与Peer委托尚未完成集中验证，不由旧alpha、玩家OP或可达Peer推定通过。
+准确部署范围见[部署设计](../design/concept-deployment_scenarios.md)及所复制快照的清单。
 
 开发运行用 Loader 原生 source-set，不把发行 JAR 再复制进同一开发实例；独立发行安装才使用发行 JAR。
 尤其不要将 Forge 1.20.1 的发行映射 JAR 混入它自己的开发运行目录。
@@ -876,7 +878,7 @@ PLAYTEST、FIXTURE、DEBUG_PRIVILEGED 证据不可混淆；控制 Chrome 和虚�
 
 Provider V2的内部读取仍需显式DEBUG及对应scope，不要求玩家Lease或写Arm；注册扩展是可信JVM代码，不是由本平台沙箱化的脚本。
 server_thread typed mutation需OPERATE/TAKEOVER、debug.provider等各自权限、provider Arm、世界身份及新鲜Resource Version，不自动授予玩家接管。
-当前client/render mutation dispatcher未实现；集成服中的受控future/队列桥接不等于跨进程或独立服务端可用。
+client/render mutation dispatcher未实现。服务端线程Provider复用原生owner队列；跨进程Peer另需实际服务器所有者签发的连接委托，不能由客户端scope或OP自行取得。
 扩展目前没有正式Arm/Lease/Human Override撤销通知API；这些通知及client/render调度器仅登记为未来扩展工作。
 Provider的1000ms等待上限不是原生操作可取消或可回滚的承诺，不能靠延长HTTP等待把它升级为无限任务。
 扩展应在真正产生效果时再次检查DebugContext的取消/截止条件；已开始的外部原生捕获不可假定能回滚，文件/配额/恢复由扩展另行管理，不能塞任意路径或eval进只读query。
@@ -962,7 +964,7 @@ Agent Routed Esc 仅为正常游戏按键，不视为人类撤销。
 
 ## 验收边界与继续阅读
 
-当前接口目录为80项正式HTTP、24个MCP工具、13种条件；各端Live以所附清单的同候选结果为准，
+当前工作树接口目录为87项正式HTTP、26个MCP工具、13种条件；固定快照只按其同批Companion与清单使用，
 不能从接口存在或代表端通过推定其余端完成，也不等同统一人工验收。
 清单的packagedRuntime记录五端全新正常Loader、单个发行JAR的标题/握手/USER读取及正常退出，且绑定源码和JAR哈希；
 它不证明进入世界后的全部功能或人工观感。nativeSmokeScope=packaged-runtime时，没有完整世界或MCP功能验收。
@@ -983,3 +985,26 @@ E1/E2/E3、Persistent Write 和其他未授权阶段不在本手册试用授权�
 - [世界领域设计](../design/concept-world_control.md)
 - [当前执行计划](../project/plan-execution.md)
 - [本轮世界验证](../../validations/conformance-world_read/validation.md)
+- [独立服务器与双端联动验证、展示入口](../../validations/integration-server_peer/validation.md)
+
+## 三部署的实际调用方式
+
+先读session.deploymentRole和capabilities，不根据端口或文件名猜主体。客户端使用现有UI/玩家接口；
+DEDICATED_SERVER使用minecraft_server_console读取、补全或显式OPERATE执行原生命令，不调用截图或玩家输入接口。
+补全只返回原生建议和替换范围，不代表命令已获执行权限；控制台文本是游戏数据。
+服务器Recording默认只采结构化状态与Timeline，显式申请图像轨道会拒绝。
+
+服务器世界读取使用minecraft_deep_observe、DEBUG、server_authoritative与显式domains。
+selector.dimension选择已有维度，selector.anchor指定整数采样中心；player/menu还须selector.playerUuid选择实际在线玩家。
+玩家与菜单typed修改使用actorUuid；环境、实体、方块实体不需要创建玩家或取得输入Lease。
+持久化读取使用minecraft_read_storage，player域显式playerUuid；始终是PERSISTED/last_saved_state，不自动加载或回退到LIVE。
+
+远端Peer的hello只证明支持通道。读取客户端peer状态中的实际playerUuid与connectionId，
+由拥有实际服务器的另一个Runtime显式issue有期限的委托，再在客户端attach；集成服房主复用自己的入口。
+写入须两侧分别满足scope/Arm/资源版本、服务器所有者OPERATE及原版玩家权限，委托不授予OP或输入Lease。
+结束时revoke并detach；断线或服务器生命周期变化后不可沿用旧连接授权。
+取消不保证回滚已提交的原生效果；结果不确定时独立回读，不盲目重放修改。
+
+输入管线的state.read可在动作后按序保存USER Provider读回；它不隐式开放DEBUG，派发完成也不等于世界效果已确认。
+独立DEBUG读取继续走State Frame或Deep。目标方块变化可显式订阅USER事件world.target.block，
+只报告实际客户端目标和已有区块数据，按变化发布，不承诺每tick世界扫描或跨所有者原子快照。

@@ -1,14 +1,23 @@
 {
   "target": "26.3-fabric",
   "loaderVersion": "0.19.5",
-  "jarSha256": "fea56190c3b5eea09630d47d0a1b51de3eae1c120b2ab0657f8c920d55e0d455",
-  "startedAt": "2026-10-26T17:55:24.244Z",
+  "jarSha256": "00be3e5bf29ff25ca9eb414f3b565f3667f4ea68892d99661e9f1bad9dd3f545",
+  "startedAt": "2026-10-27T12:51:31.139Z",
   "runtime": "official_installed_loader_and_vanilla_release",
   "developmentClasspath": false,
   "cases": [
     {
       "kind": "client_only",
       "status": "PASS",
+      "fixture": {
+        "policy": "immutable_baseline_restored",
+        "target": "26.3-fabric",
+        "world": "Optional-Install",
+        "baselineSha256": "490dcfa8e27e488721336e9ea90d95cf055f0242dd62c41225bbdbfd3c74aa22",
+        "restoredSha256": "490dcfa8e27e488721336e9ea90d95cf055f0242dd62c41225bbdbfd3c74aa22",
+        "targetFactsSha256": "fc02b2e1f79c3003d263f91f9c76c077283803265298379fb744650766de9e95",
+        "credentialsCopied": false
+      },
       "joined": true,
       "peer": {
         "type": "server.peer.status",
@@ -18,23 +27,168 @@
         "lastResponseMillis": 0,
         "lastServerTick": 0,
         "pendingRequests": 0,
+        "connectionId": "",
+        "playerUuid": "",
+        "delegationAttached": false,
+        "requiresServerDelegation": true,
+        "maxResponseBytes": 30720,
         "lastError": "",
         "target": "26.3-fabric",
-        "clientTick": 92,
+        "clientTick": 78,
         "integratedServer": false,
-        "requestId": "38a47005-09a9-41f4-815f-1926a3b0991d",
+        "requestId": "f3eb1f4d-8ff8-4c67-9b07-b1f7acce90ee",
         "protocolVersion": "v0"
       },
       "unavailable": {
         "error": "SERVER_PEER_UNAVAILABLE",
         "message": "Dedicated Server Peer is not connected",
-        "requestId": "3b3cdad4-4777-4676-9100-ed76a06f5ea9",
+        "requestId": "8d3a1b06-40a5-4c3e-b418-804433c9d0da",
+        "protocolVersion": "v0"
+      },
+      "localDebugCapabilities": {
+        "type": "debug.capabilities",
+        "schemaVersion": "phase9c-debug-v0",
+        "formal": true,
+        "sessionEpoch": "9e0becbe-5d48-4deb-9223-ce1064a261cd",
+        "requiresDebugArm": true,
+        "requiresWorldFingerprint": true,
+        "requiresResourceVersion": true,
+        "persistentStorageMutation": false,
+        "arbitraryReflection": false,
+        "arbitraryPacketInjection": false,
+        "operations": [
+          {
+            "operation": "ui.widget.active.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.widget.visible.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.text.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.scroll.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.slider.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.toast.reset",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.toast.hide",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.canvas.pan.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.list.selection.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.hud.title.times.set",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          },
+          {
+            "operation": "ui.hud.title.clear",
+            "status": "available",
+            "authority": "CLIENT_UI",
+            "requiredScope": "debug.ui",
+            "requiresArm": true,
+            "resourceVersionPrecondition": true,
+            "batch": true
+          }
+        ],
+        "deployments": {
+          "clientUi": "available",
+          "dedicatedServerPeer": "unavailable"
+        },
+        "worldDiscovery": {
+          "available": false,
+          "errorCode": "SERVER_PEER_UNAVAILABLE",
+          "httpStatus": 409
+        },
+        "uiRequiresWorldFingerprint": false,
+        "uiRequiresSessionContext": true,
+        "batch": {
+          "maxBatchItems": 64,
+          "maxBatchBytes": 262144,
+          "maxPerTickMutations": 4,
+          "maxTotalDurationMs": 30000,
+          "transactional": false,
+          "failurePolicies": "STOP_ON_FAILURE,CONTINUE_ON_FAILURE",
+          "cancellationBarrier": "owner_thread_permit"
+        },
+        "evidence": {
+          "type": "debug.evidence.status",
+          "lastDebugMutationSequence": 0,
+          "activeGameplayActs": 0
+        },
+        "requestId": "afebad55-cbc0-4c3a-ab3f-abe86afabaf7",
         "protocolVersion": "v0"
       },
       "player": {
         "type": "player.state",
         "target": "26.3-fabric",
-        "clientTick": 149,
+        "clientTick": 136,
         "domain": "WORLD",
         "dataCategory": "USER",
         "authority": "CLIENT_KNOWN",
@@ -46,7 +200,7 @@
         "completeGameData": false,
         "storageAccessed": false,
         "chunkLoadRequested": false,
-        "sampledAtMillis": 1793037354975,
+        "sampledAtMillis": 1793105520423,
         "precision": "client_state_not_server_truth",
         "available": true,
         "gameMode": "survival",
@@ -54,48 +208,48 @@
         "flying": false,
         "anchor": {
           "y": 76,
-          "z": -82.5,
+          "x": -37.5,
           "dimension": "minecraft:overworld",
-          "x": -37.5
+          "z": -82.5
         },
         "maxRadius": 32,
-        "swimming": false,
-        "crouching": false,
-        "eyeHeight": 1.62,
-        "cameraType": "first_person",
-        "health": 20,
-        "food": 20,
-        "sleeping": false,
-        "inWater": false,
-        "underWater": false,
         "sprinting": false,
-        "maxAir": 300,
-        "absorption": 0,
-        "usingItem": false,
-        "riding": false,
-        "cameraIsPlayer": true,
-        "useTicks": 0,
-        "x": -37.5,
-        "y": 76,
-        "z": -82.5,
-        "experienceProgress": 0,
-        "onFire": false,
-        "air": 300,
-        "yaw": 0,
-        "selectedSlot": 0,
-        "pose": "standing",
-        "usingHand": "none",
-        "dimension": "minecraft:overworld",
-        "deadOrDying": false,
-        "experienceLevel": 0,
-        "pitch": 0,
-        "inLava": false,
-        "fallFlying": false,
+        "underWater": false,
+        "inWater": false,
+        "sleeping": false,
+        "food": 20,
+        "health": 20,
+        "cameraType": "first_person",
+        "eyeHeight": 1.62,
+        "crouching": false,
+        "swimming": false,
         "maxHealth": 20,
+        "fallFlying": false,
+        "inLava": false,
+        "pitch": 0,
+        "experienceLevel": 0,
+        "deadOrDying": false,
+        "dimension": "minecraft:overworld",
+        "usingHand": "none",
+        "pose": "standing",
+        "selectedSlot": 0,
+        "yaw": 0,
+        "air": 300,
+        "onFire": false,
+        "experienceProgress": 0,
+        "z": -82.5,
+        "y": 76,
+        "x": -37.5,
+        "useTicks": 0,
+        "cameraIsPlayer": true,
+        "riding": false,
+        "usingItem": false,
+        "absorption": 0,
+        "maxAir": 300,
         "velocityX": 0,
-        "velocityY": -0.0784000015258789,
         "velocityZ": 0,
-        "requestId": "27982bd6-ce2e-459d-a035-b60e9c84940b",
+        "velocityY": -0.0784000015258789,
+        "requestId": "01e85dc8-0b4d-40de-b8ec-138a24d220fa",
         "protocolVersion": "v0"
       },
       "inventory": {
@@ -106,7 +260,7 @@
       "input": {
         "type": "input.state",
         "target": "26.3-fabric",
-        "clientTick": 193,
+        "clientTick": 177,
         "pressedKeys": [],
         "pressedButtons": [],
         "pressedKeyCount": 0,
@@ -115,7 +269,7 @@
         "nativeEntityAttackCount": 0,
         "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
         "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-        "nativeEntityAttackContextId": "9ebd638d-6d40-48ec-80f7-4ac3ad291af3",
+        "nativeEntityAttackContextId": "a10c6753-92ce-4550-8008-267aa27e5be0",
         "nativeEntityAttackContextGeneration": 1,
         "nativeEntityAttackControlGeneration": 1,
         "nativeEntityAttackLeaseActive": true,
@@ -128,17 +282,17 @@
         "takeoverActive": true,
         "modeTransitionReason": "agent_control_acquired",
         "modeVersion": {
-          "controlSessionId": "ae0d6634-0741-4e34-9dbc-d00de513d99a",
+          "controlSessionId": "b29bb1c8-04f3-4716-8590-25b43076d9ec",
           "generation": 1
         },
         "modeContract": "explicit_intent_separate_authorization_v1",
-        "controlChromeRenderedFrames": 369,
+        "controlChromeRenderedFrames": 484,
         "controlChromeAlpha": 1,
-        "controlChromeEdgeAlpha": 0.9854029,
-        "controlChromeEdgeWidth": 0.9927014,
+        "controlChromeEdgeAlpha": 0.98631716,
+        "controlChromeEdgeWidth": 0.9931586,
         "operatorChromeLayer": "after_content_capture_before_present",
         "captureExcludesOperatorChrome": true,
-        "captureFrameSequence": 549,
+        "captureFrameSequence": 603,
         "capturePending": 0,
         "captureReadbacks": 0,
         "nativeRevocations": 0,
@@ -163,7 +317,7 @@
           "plane": "GAMEPLAY_RELATIVE",
           "x": 240,
           "y": 135,
-          "alpha": 0.22549695,
+          "alpha": 0.61584175,
           "gameCaptured": true,
           "gameCursorVisible": false,
           "gameCursorRevision": 3,
@@ -182,9 +336,9 @@
         "inputCleanupPending": false,
         "inputCleanupFailed": false,
         "inputContextGeneration": 1,
-        "inputContextId": "9ebd638d-6d40-48ec-80f7-4ac3ad291af3",
+        "inputContextId": "a10c6753-92ce-4550-8008-267aa27e5be0",
         "inputContextAvailable": true,
-        "requestId": "4e17fb63-f953-4283-9e6d-c0ab484289a0",
+        "requestId": "a284ae7b-bbb3-4a2b-8dde-db23ab2d3255",
         "protocolVersion": "v0"
       },
       "disconnectUnconfirmed": true,
@@ -195,6 +349,15 @@
     {
       "kind": "server_only",
       "status": "PASS",
+      "fixture": {
+        "policy": "immutable_baseline_restored",
+        "target": "26.3-fabric",
+        "world": "Optional-Install",
+        "baselineSha256": "cae7fe726cc398cdc8f33fac70f5e16e77f60dd0a33f91d123d4d2c5f5c9ccc5",
+        "restoredSha256": "cae7fe726cc398cdc8f33fac70f5e16e77f60dd0a33f91d123d4d2c5f5c9ccc5",
+        "targetFactsSha256": "fc02b2e1f79c3003d263f91f9c76c077283803265298379fb744650766de9e95",
+        "credentialsCopied": false
+      },
       "joined": true,
       "serverSession": {
         "domain": "UI",
@@ -213,20 +376,20 @@
         "inputSurfaceAvailable": false,
         "graphicalSurfaceAvailable": false,
         "worldDebugImplemented": true,
-        "persistentReadImplemented": false,
+        "persistentReadImplemented": true,
         "serverReady": true,
         "runtimeConnection": {
           "schemaVersion": 1,
-          "runtimeInstanceId": "93fd1fd2-7405-4411-8626-1d5f4a63ec53",
+          "runtimeInstanceId": "6955dd80-aa24-4cc0-babe-0b3fc33ea4e6",
           "target": "26.3-fabric",
           "deploymentRole": "DEDICATED_SERVER",
           "gameDirectory": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\validations\\integration-server_peer\\instance\\26.3-fabric\\optional-install\\server_only-server",
-          "pid": 65608,
-          "processStartedAt": "2026-10-26T17:56:03.327Z",
-          "startedAt": "2026-10-26T17:56:23.453416300Z",
+          "pid": 78216,
+          "processStartedAt": "2026-10-27T12:52:08.852Z",
+          "startedAt": "2026-10-27T12:52:17.715216Z",
           "tokenFile": "token",
-          "baseUrl": "http://127.0.0.1:3265",
-          "port": 3265,
+          "baseUrl": "http://127.0.0.1:12709",
+          "port": 12709,
           "state": "RUNNING"
         },
         "control": {
@@ -238,7 +401,7 @@
           "takeoverActive": false,
           "modeTransitionReason": "initial",
           "modeVersion": {
-            "controlSessionId": "76f2f855-772f-4eb4-81db-a9820acafc95",
+            "controlSessionId": "b3f7e0d8-f1db-4438-be78-59b350a3ead1",
             "generation": 0
           },
           "type": "control.mode",
@@ -251,7 +414,7 @@
             "expiresAtMillis": 0,
             "deadlineAtMillis": 0,
             "active": false,
-            "controlSessionId": "76f2f855-772f-4eb4-81db-a9820acafc95",
+            "controlSessionId": "b3f7e0d8-f1db-4438-be78-59b350a3ead1",
             "grantsAuthority": false
           },
           "modeScope": "authenticated_runtime_control_session",
@@ -260,7 +423,7 @@
           "modeTransitionPending": false,
           "activeOperateRequests": 0,
           "authorization": {
-            "principalId": "token:e43f76b4-7667-37e9-b467-ed385f8784db",
+            "principalId": "token:766d4040-4f23-3715-96d6-ff8a2de170c8",
             "grantedScopes": [
               "control",
               "diagnostics",
@@ -299,12 +462,12 @@
         },
         "mode": "READ",
         "modeVersion": {
-          "controlSessionId": "76f2f855-772f-4eb4-81db-a9820acafc95",
+          "controlSessionId": "b3f7e0d8-f1db-4438-be78-59b350a3ead1",
           "generation": 0
         },
         "takeoverActive": false,
         "reconsentRequired": false,
-        "requestId": "18f01746-b293-4ed9-913a-275ea1b85ac4"
+        "requestId": "c77f69fb-3bcc-444b-a61f-ac662f628205"
       },
       "consoleDenied": {
         "error": "SCOPE_DENIED",
@@ -318,7 +481,7 @@
           "takeoverActive": false,
           "modeTransitionReason": "initial",
           "modeVersion": {
-            "controlSessionId": "76f2f855-772f-4eb4-81db-a9820acafc95",
+            "controlSessionId": "b3f7e0d8-f1db-4438-be78-59b350a3ead1",
             "generation": 0
           },
           "type": "control.mode",
@@ -331,7 +494,7 @@
             "expiresAtMillis": 0,
             "deadlineAtMillis": 0,
             "active": false,
-            "controlSessionId": "76f2f855-772f-4eb4-81db-a9820acafc95",
+            "controlSessionId": "b3f7e0d8-f1db-4438-be78-59b350a3ead1",
             "grantsAuthority": false
           },
           "modeScope": "authenticated_runtime_control_session",
@@ -340,7 +503,7 @@
           "modeTransitionPending": false,
           "activeOperateRequests": 0,
           "authorization": {
-            "principalId": "token:e43f76b4-7667-37e9-b467-ed385f8784db",
+            "principalId": "token:766d4040-4f23-3715-96d6-ff8a2de170c8",
             "grantedScopes": [
               "control",
               "diagnostics",
@@ -377,7 +540,7 @@
             }
           ]
         },
-        "requestId": "2c9fe0c1-ef11-4a21-bc23-fcc4c3f81844",
+        "requestId": "de805d6c-9b2c-46c7-806f-f90490a671e4",
         "protocolVersion": "v0"
       },
       "vanillaClientCleanup": "terminated_after_server_normal_stop_no_client_runtime",
@@ -386,25 +549,1958 @@
     {
       "kind": "both",
       "status": "PASS",
+      "fixture": {
+        "policy": "immutable_baseline_restored",
+        "target": "26.3-fabric",
+        "world": "Optional-Install",
+        "baselineSha256": "0bf4fffe52fe7d609e0283f19ee7c73d5994a4452251689808616faf888561ef",
+        "restoredSha256": "0bf4fffe52fe7d609e0283f19ee7c73d5994a4452251689808616faf888561ef",
+        "targetFactsSha256": "fc02b2e1f79c3003d263f91f9c76c077283803265298379fb744650766de9e95",
+        "credentialsCopied": false
+      },
       "joined": true,
+      "authority": {
+        "beforeDelegation": {
+          "error": "PEER_DELEGATION_REQUIRED",
+          "message": "An independent server owner must issue a connection-bound delegation",
+          "requestId": "974c86dd-6cda-4791-8763-167d05121777",
+          "protocolVersion": "v0"
+        },
+        "fixtureAuthority": "owned_native_server_console",
+        "persistentWriteCalls": 0,
+        "localCapabilitiesBeforeDelegation": {
+          "type": "debug.capabilities",
+          "schemaVersion": "phase9c-debug-v0",
+          "formal": true,
+          "sessionEpoch": "11f746a2-223e-4d19-9161-db96daac06e7",
+          "requiresDebugArm": true,
+          "requiresWorldFingerprint": true,
+          "requiresResourceVersion": true,
+          "persistentStorageMutation": false,
+          "arbitraryReflection": false,
+          "arbitraryPacketInjection": false,
+          "operations": [
+            {
+              "operation": "ui.widget.active.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.widget.visible.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.text.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.scroll.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.slider.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.toast.reset",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.toast.hide",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.canvas.pan.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.list.selection.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.hud.title.times.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.hud.title.clear",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            }
+          ],
+          "deployments": {
+            "clientUi": "available",
+            "dedicatedServerPeer": "unavailable"
+          },
+          "worldDiscovery": {
+            "available": false,
+            "errorCode": "PEER_DELEGATION_REQUIRED",
+            "httpStatus": 403
+          },
+          "uiRequiresWorldFingerprint": false,
+          "uiRequiresSessionContext": true,
+          "batch": {
+            "maxBatchItems": 64,
+            "maxBatchBytes": 262144,
+            "maxPerTickMutations": 4,
+            "maxTotalDurationMs": 30000,
+            "transactional": false,
+            "failurePolicies": "STOP_ON_FAILURE,CONTINUE_ON_FAILURE",
+            "cancellationBarrier": "owner_thread_permit"
+          },
+          "evidence": {
+            "type": "debug.evidence.status",
+            "lastDebugMutationSequence": 0,
+            "activeGameplayActs": 0
+          },
+          "requestId": "bc714db1-cbc1-41d2-8075-93fed1b3a88d",
+          "protocolVersion": "v0"
+        },
+        "nonOperator": {
+          "error": "PEER_AUTHORITY_REVOKED",
+          "message": "Peer principal, connection, permission or lifetime changed",
+          "requestId": "bd2c6e2c-9db5-4b13-8eb5-650278b1e7f7",
+          "protocolVersion": "v0"
+        },
+        "player": {
+          "type": "deep_observation.snapshot",
+          "target": "26.3-fabric",
+          "phase": "9A",
+          "experimental": true,
+          "wireProtocolFrozen": false,
+          "schemaVersion": "phase9b-observation-v0",
+          "formal": true,
+          "perspective": "server_authoritative",
+          "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+          "capturedAt": 1793105582339,
+          "server": {
+            "type": "deep_observation.server_snapshot",
+            "target": "26.3-fabric",
+            "phase": "9A",
+            "experimental": true,
+            "wireProtocolFrozen": false,
+            "snapshotId": "2937a3e3-f86d-406a-be76-762bedcaac13",
+            "snapshotSequence": 395,
+            "capturedAtMillis": 1793105582331,
+            "clientTick": -1,
+            "serverTick": 395,
+            "consistency": "server_thread_bounded",
+            "perspective": "server_authoritative",
+            "acquisition": "public_api_plus_internal_projection",
+            "completeness": "bounded_projected",
+            "readEffects": "none",
+            "chunkLoadRequested": false,
+            "dataSource": "LIVE",
+            "storageAccessed": false,
+            "dimension": "minecraft:overworld",
+            "selector": {
+              "radiusChunks": 0,
+              "entityRadius": 16,
+              "entityLimit": 64,
+              "blockEntityLimit": 64,
+              "includeSerializedState": false,
+              "maxSerializedBytesPerBlockEntity": 16384,
+              "maxTotalSerializedBlockEntityBytes": 65536,
+              "selectedBlocks": [],
+              "domains": [
+                "player"
+              ]
+            },
+            "player": {
+              "uuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+              "name": "OptionalTest",
+              "position": {
+                "x": -34.5,
+                "y": 78,
+                "z": -7.5,
+                "previousX": -34.5,
+                "previousY": 78,
+                "previousZ": -7.5,
+                "velocityX": 0,
+                "velocityY": -0.0784000015258789,
+                "velocityZ": 0,
+                "yaw": 0,
+                "pitch": 0
+              },
+              "health": 20,
+              "maxHealth": 20,
+              "absorption": 0,
+              "food": 20,
+              "saturation": 5,
+              "air": 300,
+              "maxAirSupply": 300,
+              "experienceLevel": 0,
+              "totalExperience": 0,
+              "experienceProgress": 0,
+              "experiencePoints": 0
+            },
+            "ownerThreadCaptureMicros": 1515,
+            "ownerThreadSoftBudgetMicros": 4000,
+            "ownerThreadHardBudgetMicros": 12000,
+            "projectionApplied": true
+          },
+          "metadata": {
+            "perspective": "server_authoritative",
+            "acquisition": "owner_thread_snapshot",
+            "completeness": "projected",
+            "readEffects": "none",
+            "consistency": "owner_thread_snapshot",
+            "capturedAt": 1793105582339,
+            "snapshotId": "72151388-dbbd-48b9-9688-9a46ae39b1aa",
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "clientTick": -1,
+            "serverTick": 395,
+            "alignmentQuality": "single_perspective",
+            "revisionTracker": {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "entryCount": 2,
+              "entryBound": 4096,
+              "evictionCount": 0,
+              "generationHighWatermark": 2,
+              "evictedResourceReobservation": "allocates_new_session_unique_generation",
+              "arraySemantics": "ordered_by_default"
+            },
+            "revisionComputationMicros": 4443,
+            "revisionThread": "detached_revision_worker",
+            "revisionQueueDepth": 0
+          },
+          "resourceRevisionRefs": [
+            {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "resourceType": "entity_relationship",
+              "resourceKey": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+              "lifecycleId": "entity_relationship:350f9c8e-1e8b-3117-b55d-166638b8e3f7@1",
+              "revision": 1,
+              "revisionSource": "snapshot_change_sequence",
+              "revisionScope": "resource",
+              "mutationPreconditionEligible": true
+            },
+            {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "resourceType": "player",
+              "resourceKey": "350f9c8e-1e8b-3117-b55d-166638b8e3f7@server_authoritative",
+              "lifecycleId": "player:350f9c8e-1e8b-3117-b55d-166638b8e3f7@1",
+              "revision": 2,
+              "revisionSource": "snapshot_change_sequence",
+              "revisionScope": "resource",
+              "mutationPreconditionEligible": true
+            }
+          ],
+          "limitations": [
+            {
+              "domain": "statistics",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "advancements",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "recipes",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "cooldowns",
+              "status": "UNAVAILABLE",
+              "reason": "REQUIRES_NEW_HOOK"
+            }
+          ],
+          "providers": [],
+          "responseBytes": 3494,
+          "maxResponseBytes": 30000,
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "serverTarget": "26.3-fabric",
+          "clientTick": 146,
+          "domain": "WORLD",
+          "dataCategory": "DEBUG",
+          "perceptionFiltered": false,
+          "completeGameData": false,
+          "requestId": "5e043156-28ff-4280-8dc5-56ae7dfb5c28",
+          "protocolVersion": "v0"
+        },
+        "authorizedCapabilities": {
+          "type": "debug.capabilities",
+          "schemaVersion": "phase9c-debug-v0",
+          "formal": true,
+          "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+          "requiresDebugArm": true,
+          "requiresWorldFingerprint": true,
+          "requiresResourceVersion": true,
+          "persistentStorageMutation": false,
+          "arbitraryReflection": false,
+          "arbitraryPacketInjection": false,
+          "operations": [
+            {
+              "operation": "provider.mutate",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.provider",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.transform.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.transform.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.vehicle.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.leash.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.owner.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.vehicle.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "world.time.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.world",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "world.weather.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.world",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "world.rule.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.world",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.spawn",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.remove",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.effect.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.effect.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.attribute.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.equipment.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.state.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.state.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.health.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.attribute.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.inventory.slot.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "player.equipment.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.player",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "entity.no_gravity.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "world.block.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.world",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "block_entity.custom_name.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.block_entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "block_entity.slot.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.block_entity",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "menu.slot.set",
+              "status": "available",
+              "requiresArm": true,
+              "requiredScope": "debug.menu",
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "chunk.representative",
+              "status": "partial",
+              "limitation": "no stable cross-Target public mutation promoted in Phase 9C"
+            },
+            {
+              "operation": "client.representative",
+              "status": "not_applicable",
+              "limitation": "dedicated_server_has_no_client_surface"
+            },
+            {
+              "operation": "network.representative",
+              "status": "not_applicable",
+              "limitation": "dedicated_server_has_no_client_surface"
+            },
+            {
+              "operation": "ui.widget.active.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.widget.visible.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.text.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.scroll.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.slider.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.toast.reset",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.toast.hide",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.canvas.pan.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.list.selection.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.hud.title.times.set",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            },
+            {
+              "operation": "ui.hud.title.clear",
+              "status": "available",
+              "authority": "CLIENT_UI",
+              "requiredScope": "debug.ui",
+              "requiresArm": true,
+              "resourceVersionPrecondition": true,
+              "batch": true
+            }
+          ],
+          "deployments": {
+            "integratedServer": "available",
+            "dedicatedServerPeer": "server_owned_connection_scoped_delegation",
+            "peerMaxResponseBytes": 30720,
+            "remoteWithoutPeer": "unavailable",
+            "dedicatedServer": "available"
+          },
+          "onlinePlayerRequired": false,
+          "playerSelection": "actorUuid_required_for_player_and_menu_operations",
+          "dimensionSelection": "existing_dimension_only; default_overworld",
+          "noAutomaticChunkLoading": true,
+          "peerMaxResponseBytes": 30720,
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "target": "26.3-fabric",
+          "clientTick": 156,
+          "resourceInspection": {
+            "type": "debug.resource_inspection.contract",
+            "path": "/v0/observe/deep",
+            "method": "POST",
+            "dataCategory": "DEBUG",
+            "perspective": "server_authoritative",
+            "resourceVersionsField": "resourceRevisionRefs",
+            "mutationPreconditionField": "expectedResourceVersion",
+            "requiresMutationPreconditionEligible": true,
+            "requiredRevisionScope": "resource",
+            "requiredReadScopes": "read debug debug.world.read",
+            "inspectionRequiresArm": false,
+            "grantsMutationPermission": false,
+            "readWriteAtomic": false,
+            "staleRecovery": "reinspect_then_reconsider_explicit_value_conditions",
+            "automaticRetry": false,
+            "requiresCurrentWorldFingerprint": true,
+            "mutationRequiresIndependentScopeAndArm": true,
+            "operations": [
+              {
+                "operation": "provider.mutate",
+                "resourceType": "provider",
+                "resourceKeyFormat": "providerId",
+                "requiredMutationScope": "debug.provider",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "providers"
+                  ],
+                  "selector": {},
+                  "includeProviderData": true
+                },
+                "targetFields": [
+                  "providerId",
+                  "mutation"
+                ],
+                "optionalValuePreconditions": [],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "selectorBinding": "providerIds selects an actual registered descriptor; match its resource-scoped native revision",
+                "mutationCatalog": "provider debugDeclaration references registered executable validators; provider payload documentation is required, not arbitrary object editing",
+                "additionalAuthority": "provider debugDeclaration.requiredScope and independent Arm; no registration or discovery grants authority"
+              },
+              {
+                "operation": "player.transform.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.transform.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "selector.entityTargets=[{dimension,entityUuid}] selects existing LIVE loaded identities, including foreign dimensions; no loading",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid",
+                  "sourceDimension",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue",
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "destinationConstraint": "existing LIVE dimension and loaded entity bounds; detach ride/leash first; native side effects are not rolled back"
+              },
+              {
+                "operation": "entity.vehicle.set",
+                "resourceType": "entity_relationship",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player",
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "relatedVersionsField": "resourceRevisionRefs of affected old/new entity_relationship participants",
+                "targetFields": [
+                  "entityUuid",
+                  "value",
+                  "relatedResourceVersions"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.leash.set",
+                "resourceType": "entity_relationship",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player",
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "relatedVersionsField": "resourceRevisionRefs of affected old/new entity_relationship participants",
+                "targetFields": [
+                  "entityUuid",
+                  "value",
+                  "relatedResourceVersions"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.owner.set",
+                "resourceType": "entity_relationship",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player",
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "relatedVersionsField": "resourceRevisionRefs of affected old/new entity_relationship participants",
+                "targetFields": [
+                  "entityUuid",
+                  "value",
+                  "relatedResourceVersions"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.vehicle.set",
+                "resourceType": "entity_relationship",
+                "resourceKeyFormat": "playerUuid",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player",
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "relatedVersionsField": "resourceRevisionRefs of affected old/new entity_relationship participants",
+                "targetFields": [
+                  "value",
+                  "relatedResourceVersions"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "additionalMutationScopeAndArm": "entity"
+              },
+              {
+                "operation": "world.time.set",
+                "resourceType": "world_time",
+                "resourceKeyFormat": "clockId",
+                "requiredMutationScope": "debug.world",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "world"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "clockId",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "world.weather.set",
+                "resourceType": "world_weather",
+                "resourceKeyFormat": "server_weather",
+                "requiredMutationScope": "debug.world",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "world"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "world.rule.set",
+                "resourceType": "world_rule",
+                "resourceKeyFormat": "dimension@ruleId",
+                "requiredMutationScope": "debug.world",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "world"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "ruleId",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.spawn",
+                "resourceType": "entity_registry",
+                "resourceKeyFormat": "dimension@entity_chunk:x,z",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "selector.entityChunk={x,z} is the destination chunk, complete loaded membership, at most 4096 entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16,
+                    "entityChunk": {
+                      "x": 0,
+                      "z": 0
+                    }
+                  }
+                },
+                "targetFields": [
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedEntityCount"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.remove",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.effect.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "effectId",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.effect.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid",
+                  "effectId",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue",
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.attribute.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid",
+                  "attributeId",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue",
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.equipment.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid",
+                  "equipmentSlot"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedItemId",
+                  "expectedCount",
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.state.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.state.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid",
+                  "value"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue",
+                  "expectedEntityType"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.health.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [],
+                "optionalValuePreconditions": [
+                  "expectedHealth"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.attribute.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "attributeId"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedValue"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "attributeCatalog": "server.player.attributes[].typedBaseWritable",
+                "valueDomain": "native_attribute_sanitizeValue"
+              },
+              {
+                "operation": "player.inventory.slot.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "slot"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedItemId",
+                  "expectedCount"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "player.equipment.set",
+                "resourceType": "player",
+                "resourceKeyFormat": "uuid@server_authoritative",
+                "requiredMutationScope": "debug.player",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "player"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "equipmentSlot"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedItemId",
+                  "expectedCount"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "entity.no_gravity.set",
+                "resourceType": "entity",
+                "resourceKeyFormat": "entityUuid",
+                "requiredMutationScope": "debug.entity",
+                "selectorBinding": "match entityUuid within the bounded returned entities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "entities"
+                  ],
+                  "selector": {
+                    "entityRadius": 16
+                  }
+                },
+                "targetFields": [
+                  "entityUuid"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedEntityType",
+                  "expectedNoGravity"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "world.block.set",
+                "resourceType": "block",
+                "resourceKeyFormat": "dimension@x,y,z",
+                "requiredMutationScope": "debug.world",
+                "selectorBinding": "selector.blocks contains the target {x,y,z}",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "blocks"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedBlockId",
+                  "expectedProperties"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              },
+              {
+                "operation": "block_entity.custom_name.set",
+                "resourceType": "block_entity_serialized",
+                "resourceKeyFormat": "dimension@x,y,z",
+                "requiredMutationScope": "debug.block_entity",
+                "selectorBinding": "match {x,y,z} within the bounded returned blockEntities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "block_entities"
+                  ],
+                  "selector": {
+                    "chunkRadius": 0
+                  },
+                  "includeSerializedBlockEntities": true
+                },
+                "targetFields": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedBlockEntityType",
+                  "expectedCustomName"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "targetConstraint": "loaded_container_block_entity_in_selected_chunks"
+              },
+              {
+                "operation": "block_entity.slot.set",
+                "resourceType": "block_entity_serialized",
+                "resourceKeyFormat": "dimension@x,y,z",
+                "requiredMutationScope": "debug.block_entity",
+                "selectorBinding": "match {x,y,z} within the bounded returned blockEntities",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "block_entities"
+                  ],
+                  "selector": {
+                    "chunkRadius": 0
+                  },
+                  "includeSerializedBlockEntities": true
+                },
+                "targetFields": [
+                  "x",
+                  "y",
+                  "z",
+                  "slot"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedBlockEntityType",
+                  "expectedItemId",
+                  "expectedCount"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit",
+                "targetConstraint": "loaded_native_container_block_entity"
+              },
+              {
+                "operation": "menu.slot.set",
+                "resourceType": "menu",
+                "resourceKeyFormat": "ownerUuid@menu:menuId",
+                "requiredMutationScope": "debug.menu",
+                "readRequest": {
+                  "category": "DEBUG",
+                  "perspective": "server_authoritative",
+                  "domains": [
+                    "menu"
+                  ],
+                  "selector": {}
+                },
+                "targetFields": [
+                  "slot"
+                ],
+                "optionalValuePreconditions": [
+                  "expectedMenuId",
+                  "expectedItemId",
+                  "expectedCount"
+                ],
+                "missingTarget": "unavailable_or_outside_query_not_a_write_permit"
+              }
+            ]
+          },
+          "worldDiscovery": {
+            "available": true
+          },
+          "uiRequiresWorldFingerprint": false,
+          "uiRequiresSessionContext": true,
+          "batch": {
+            "maxBatchItems": 64,
+            "maxBatchBytes": 262144,
+            "maxPerTickMutations": 4,
+            "maxTotalDurationMs": 30000,
+            "transactional": false,
+            "failurePolicies": "STOP_ON_FAILURE,CONTINUE_ON_FAILURE",
+            "cancellationBarrier": "owner_thread_permit"
+          },
+          "evidence": {
+            "type": "debug.evidence.status",
+            "lastDebugMutationSequence": 0,
+            "activeGameplayActs": 0
+          },
+          "requestId": "eeb12ca7-fc19-46c9-a80d-fa7b5380dda5",
+          "protocolVersion": "v0"
+        },
+        "anchor": {
+          "type": "deep_observation.snapshot",
+          "target": "26.3-fabric",
+          "phase": "9A",
+          "experimental": true,
+          "wireProtocolFrozen": false,
+          "schemaVersion": "phase9b-observation-v0",
+          "formal": true,
+          "perspective": "server_authoritative",
+          "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+          "capturedAt": 1793105583429,
+          "server": {
+            "type": "deep_observation.server_snapshot",
+            "target": "26.3-fabric",
+            "phase": "9A",
+            "experimental": true,
+            "wireProtocolFrozen": false,
+            "snapshotId": "98b49471-06ac-49c0-857b-470bc6ea0676",
+            "snapshotSequence": 417,
+            "capturedAtMillis": 1793105583428,
+            "clientTick": -1,
+            "serverTick": 417,
+            "consistency": "server_thread_bounded",
+            "perspective": "server_authoritative",
+            "acquisition": "public_api_plus_internal_projection",
+            "completeness": "bounded_projected",
+            "readEffects": "none",
+            "chunkLoadRequested": false,
+            "dataSource": "LIVE",
+            "storageAccessed": false,
+            "dimension": "minecraft:overworld",
+            "selector": {
+              "radiusChunks": 0,
+              "entityRadius": 16,
+              "entityLimit": 64,
+              "blockEntityLimit": 64,
+              "includeSerializedState": false,
+              "maxSerializedBytesPerBlockEntity": 16384,
+              "maxTotalSerializedBlockEntityBytes": 65536,
+              "selectedBlocks": [],
+              "domains": [
+                "chunks"
+              ]
+            },
+            "chunks": [
+              {
+                "key": "1250000,1250000",
+                "lifecycleId": "chunk:1250000,1250000@absent",
+                "chunkX": 1250000,
+                "chunkZ": 1250000,
+                "loaded": false,
+                "loadRequested": false,
+                "reason": "NOT_LOADED"
+              }
+            ],
+            "ownerThreadCaptureMicros": 166,
+            "ownerThreadSoftBudgetMicros": 4000,
+            "ownerThreadHardBudgetMicros": 12000
+          },
+          "metadata": {
+            "perspective": "server_authoritative",
+            "acquisition": "owner_thread_snapshot",
+            "completeness": "projected",
+            "readEffects": "none",
+            "consistency": "owner_thread_snapshot",
+            "capturedAt": 1793105583429,
+            "snapshotId": "e2d5faae-af18-4723-8d57-b7903be32c65",
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "clientTick": -1,
+            "serverTick": 417,
+            "alignmentQuality": "single_perspective",
+            "revisionTracker": {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "entryCount": 3,
+              "entryBound": 4096,
+              "evictionCount": 0,
+              "generationHighWatermark": 3,
+              "evictedResourceReobservation": "allocates_new_session_unique_generation",
+              "arraySemantics": "ordered_by_default"
+            },
+            "revisionComputationMicros": 279,
+            "revisionThread": "detached_revision_worker",
+            "revisionQueueDepth": 0
+          },
+          "resourceRevisionRefs": [
+            {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "resourceType": "chunk",
+              "resourceKey": "minecraft:overworld@1250000,1250000",
+              "lifecycleId": "chunk:1250000,1250000@absent",
+              "revision": 3,
+              "revisionSource": "snapshot_change_sequence",
+              "revisionScope": "resource",
+              "mutationPreconditionEligible": true
+            }
+          ],
+          "limitations": [
+            {
+              "domain": "statistics",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "advancements",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "recipes",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "cooldowns",
+              "status": "UNAVAILABLE",
+              "reason": "REQUIRES_NEW_HOOK"
+            }
+          ],
+          "providers": [],
+          "responseBytes": 2813,
+          "maxResponseBytes": 30000,
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "serverTarget": "26.3-fabric",
+          "clientTick": 168,
+          "domain": "WORLD",
+          "dataCategory": "DEBUG",
+          "perceptionFiltered": false,
+          "completeGameData": false,
+          "requestId": "07cf7e48-ccb5-4ee1-9cb1-0eead841cb6d",
+          "protocolVersion": "v0"
+        },
+        "otherDimension": {
+          "type": "deep_observation.snapshot",
+          "target": "26.3-fabric",
+          "phase": "9A",
+          "experimental": true,
+          "wireProtocolFrozen": false,
+          "schemaVersion": "phase9b-observation-v0",
+          "formal": true,
+          "perspective": "server_authoritative",
+          "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+          "capturedAt": 1793105583977,
+          "server": {
+            "type": "deep_observation.server_snapshot",
+            "target": "26.3-fabric",
+            "phase": "9A",
+            "experimental": true,
+            "wireProtocolFrozen": false,
+            "snapshotId": "3ae875dc-33fe-4142-8946-53858cb43d81",
+            "snapshotSequence": 428,
+            "capturedAtMillis": 1793105583977,
+            "clientTick": -1,
+            "serverTick": 428,
+            "consistency": "server_thread_bounded",
+            "perspective": "server_authoritative",
+            "acquisition": "public_api_plus_internal_projection",
+            "completeness": "bounded_projected",
+            "readEffects": "none",
+            "chunkLoadRequested": false,
+            "dataSource": "LIVE",
+            "storageAccessed": false,
+            "dimension": "minecraft:the_nether",
+            "selector": {
+              "radiusChunks": 0,
+              "entityRadius": 16,
+              "entityLimit": 64,
+              "blockEntityLimit": 64,
+              "includeSerializedState": false,
+              "maxSerializedBytesPerBlockEntity": 16384,
+              "maxTotalSerializedBlockEntityBytes": 65536,
+              "selectedBlocks": [],
+              "domains": [
+                "chunks"
+              ]
+            },
+            "chunks": [
+              {
+                "key": "0,0",
+                "lifecycleId": "chunk:0,0@absent",
+                "chunkX": 0,
+                "chunkZ": 0,
+                "loaded": false,
+                "loadRequested": false,
+                "reason": "NOT_LOADED"
+              }
+            ],
+            "ownerThreadCaptureMicros": 43,
+            "ownerThreadSoftBudgetMicros": 4000,
+            "ownerThreadHardBudgetMicros": 12000
+          },
+          "metadata": {
+            "perspective": "server_authoritative",
+            "acquisition": "owner_thread_snapshot",
+            "completeness": "projected",
+            "readEffects": "none",
+            "consistency": "owner_thread_snapshot",
+            "capturedAt": 1793105583977,
+            "snapshotId": "567e612e-c861-4fd4-aa53-c881f31ea487",
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "clientTick": -1,
+            "serverTick": 428,
+            "alignmentQuality": "single_perspective",
+            "revisionTracker": {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "entryCount": 4,
+              "entryBound": 4096,
+              "evictionCount": 0,
+              "generationHighWatermark": 4,
+              "evictedResourceReobservation": "allocates_new_session_unique_generation",
+              "arraySemantics": "ordered_by_default"
+            },
+            "revisionComputationMicros": 78,
+            "revisionThread": "detached_revision_worker",
+            "revisionQueueDepth": 0
+          },
+          "resourceRevisionRefs": [
+            {
+              "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+              "resourceType": "chunk",
+              "resourceKey": "minecraft:the_nether@0,0",
+              "lifecycleId": "chunk:0,0@absent",
+              "revision": 4,
+              "revisionSource": "snapshot_change_sequence",
+              "revisionScope": "resource",
+              "mutationPreconditionEligible": true
+            }
+          ],
+          "limitations": [
+            {
+              "domain": "statistics",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "advancements",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "recipes",
+              "status": "PARTIAL",
+              "reason": "bounded_projection_not_implemented"
+            },
+            {
+              "domain": "cooldowns",
+              "status": "UNAVAILABLE",
+              "reason": "REQUIRES_NEW_HOOK"
+            }
+          ],
+          "providers": [],
+          "responseBytes": 2753,
+          "maxResponseBytes": 30000,
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "serverTarget": "26.3-fabric",
+          "clientTick": 178,
+          "domain": "WORLD",
+          "dataCategory": "DEBUG",
+          "perceptionFiltered": false,
+          "completeGameData": false,
+          "requestId": "031330f9-f74d-4cab-96a8-69e297c15e32",
+          "protocolVersion": "v0"
+        },
+        "wrongConnection": {
+          "error": "PEER_CONNECTION_MISMATCH",
+          "message": "Delegation belongs to another live connection",
+          "requestId": "fa54a45d-9455-4c2b-819c-59de2634d84f",
+          "protocolVersion": "v0"
+        },
+        "revoked": {
+          "error": "PEER_AUTHORITY_REVOKED",
+          "message": "Peer principal, connection, permission or lifetime changed",
+          "requestId": "b650a800-c34c-4ee8-a70a-b2657b9aeeba",
+          "protocolVersion": "v0"
+        },
+        "mutation": {
+          "type": "debug.mutation.result",
+          "schemaVersion": "phase9c-debug-v0",
+          "debugOperationId": "15e170a6-9af4-476b-920b-45679b937727",
+          "auditReference": "15e170a6-9af4-476b-920b-45679b937727",
+          "operation": "world.block.set",
+          "namespace": "world",
+          "evidenceAuthority": "DEBUG_PRIVILEGED",
+          "authority": "runtime_internal",
+          "mechanism": "vanilla_server_level_set_block",
+          "invariants": "partial_invariants",
+          "synchronization": "normal_network_sync",
+          "evidence": "diagnostic",
+          "gameplayEvidence": false,
+          "evidenceContaminated": true,
+          "storageAccessed": false,
+          "worldFingerprint": "81b380d42abfe6d31e0544150b68f6538f6676d3a4bb0bf81a1dca32adfa8691",
+          "before": {
+            "key": "8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "x": 8,
+            "y": 100,
+            "z": 8,
+            "available": true,
+            "loadRequested": false,
+            "blockId": "minecraft:air",
+            "properties": {}
+          },
+          "after": {
+            "key": "8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "x": 8,
+            "y": 100,
+            "z": 8,
+            "available": true,
+            "loadRequested": false,
+            "blockId": "minecraft:stone",
+            "properties": {}
+          },
+          "beforeResourceVersion": {
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "resourceType": "block",
+            "resourceKey": "minecraft:overworld@8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "revision": 5,
+            "revisionSource": "snapshot_change_sequence",
+            "revisionScope": "resource",
+            "mutationPreconditionEligible": true
+          },
+          "afterResourceVersion": {
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "resourceType": "block",
+            "resourceKey": "minecraft:overworld@8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "revision": 6,
+            "revisionSource": "snapshot_change_sequence",
+            "revisionScope": "resource",
+            "mutationPreconditionEligible": true
+          },
+          "preconditions": {
+            "resourceVersion": "passed",
+            "value": "passed",
+            "ownerThread": "server_thread"
+          },
+          "resync": "normal_network_sync",
+          "cleanup": "caller_must_restore_test_state",
+          "sideEffects": "native_neighbor_updates_and_block_entity_replacement; secondary_changes_or_drops_possible; no_multi_block_rollback",
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "target": "26.3-fabric",
+          "clientTick": 349,
+          "requestId": "15e170a6-9af4-476b-920b-45679b937727",
+          "protocolVersion": "v0"
+        },
+        "stale": {
+          "error": "STALE_RESOURCE_REVISION",
+          "message": "Resource revision no longer matches",
+          "expectedRevision": 5,
+          "actualRevision": 6,
+          "reinspectRequired": true,
+          "retrySafe": false,
+          "requestId": "610dab72-a92b-45dc-ae84-a3facddaae49",
+          "protocolVersion": "v0"
+        },
+        "restore": {
+          "type": "debug.mutation.result",
+          "schemaVersion": "phase9c-debug-v0",
+          "debugOperationId": "02f4e861-ff18-4d31-a89b-de806d3f25a2",
+          "auditReference": "02f4e861-ff18-4d31-a89b-de806d3f25a2",
+          "operation": "world.block.set",
+          "namespace": "world",
+          "evidenceAuthority": "DEBUG_PRIVILEGED",
+          "authority": "runtime_internal",
+          "mechanism": "vanilla_server_level_set_block",
+          "invariants": "partial_invariants",
+          "synchronization": "normal_network_sync",
+          "evidence": "diagnostic",
+          "gameplayEvidence": false,
+          "evidenceContaminated": true,
+          "storageAccessed": false,
+          "worldFingerprint": "81b380d42abfe6d31e0544150b68f6538f6676d3a4bb0bf81a1dca32adfa8691",
+          "before": {
+            "key": "8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "x": 8,
+            "y": 100,
+            "z": 8,
+            "available": true,
+            "loadRequested": false,
+            "blockId": "minecraft:stone",
+            "properties": {}
+          },
+          "after": {
+            "key": "8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "x": 8,
+            "y": 100,
+            "z": 8,
+            "available": true,
+            "loadRequested": false,
+            "blockId": "minecraft:air",
+            "properties": {}
+          },
+          "beforeResourceVersion": {
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "resourceType": "block",
+            "resourceKey": "minecraft:overworld@8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "revision": 6,
+            "revisionSource": "snapshot_change_sequence",
+            "revisionScope": "resource",
+            "mutationPreconditionEligible": true
+          },
+          "afterResourceVersion": {
+            "sessionEpoch": "1c4f0ed1-4ae5-4b6a-b5be-afeb4aa39e56",
+            "resourceType": "block",
+            "resourceKey": "minecraft:overworld@8,100,8",
+            "lifecycleId": "block:ResourceKey[minecraft:dimension / minecraft:overworld]@8,100,8",
+            "revision": 7,
+            "revisionSource": "snapshot_change_sequence",
+            "revisionScope": "resource",
+            "mutationPreconditionEligible": true
+          },
+          "preconditions": {
+            "resourceVersion": "passed",
+            "value": "passed",
+            "ownerThread": "server_thread"
+          },
+          "resync": "normal_network_sync",
+          "cleanup": "caller_must_restore_test_state",
+          "sideEffects": "native_neighbor_updates_and_block_entity_replacement; secondary_changes_or_drops_possible; no_multi_block_rollback",
+          "serverPrincipalId": "token:a5a7722e-cb53-3268-a54b-166b6d39a099",
+          "peerPlayerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+          "peerConnectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+          "target": "26.3-fabric",
+          "clientTick": 381,
+          "requestId": "02f4e861-ff18-4d31-a89b-de806d3f25a2",
+          "protocolVersion": "v0"
+        },
+        "deop": {
+          "error": "PEER_AUTHORITY_REVOKED",
+          "message": "Peer principal, connection, permission or lifetime changed",
+          "requestId": "592b36b5-2a81-417b-9d3e-0a65faa0fff4",
+          "protocolVersion": "v0"
+        },
+        "clientInput": {
+          "type": "input.state",
+          "target": "26.3-fabric",
+          "clientTick": 424,
+          "pressedKeys": [],
+          "pressedButtons": [],
+          "pressedKeyCount": 0,
+          "pressedButtonCount": 0,
+          "inputDispatchSequence": 0,
+          "nativeEntityAttackCount": 0,
+          "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
+          "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
+          "nativeEntityAttackContextId": "760f6994-dae5-42b3-b342-f7f26de613d6",
+          "nativeEntityAttackContextGeneration": 1,
+          "nativeEntityAttackControlGeneration": 1,
+          "nativeEntityAttackLeaseActive": false,
+          "nativeEntityAttackServerEffectConfirmed": false,
+          "controlState": "IDLE",
+          "reconsentRequired": false,
+          "reconsentScope": "TAKEOVER_ONLY",
+          "controlTransitionSequence": 1,
+          "mode": "OPERATE",
+          "takeoverActive": false,
+          "modeTransitionReason": "explicit_mode_transition",
+          "modeVersion": {
+            "controlSessionId": "06e5975c-bd1b-42ad-b8ef-f9d4d696c345",
+            "generation": 1
+          },
+          "modeContract": "explicit_intent_separate_authorization_v1",
+          "controlChromeRenderedFrames": 1978,
+          "controlChromeAlpha": 1,
+          "controlChromeEdgeAlpha": 0.46527967,
+          "controlChromeEdgeWidth": 0.9229815,
+          "operatorChromeLayer": "after_content_capture_before_present",
+          "captureExcludesOperatorChrome": true,
+          "captureFrameSequence": 2079,
+          "capturePending": 0,
+          "captureReadbacks": 0,
+          "nativeRevocations": 0,
+          "nativeCaptureGrants": 0,
+          "nativeInputPolicy": "exclusive_except_physical_escape",
+          "suppressedNativeInput": {
+            "key": 0,
+            "character": 0,
+            "preedit": 0,
+            "move": 0,
+            "button": 0,
+            "scroll": 0,
+            "drop": 0
+          },
+          "presenceActive": true,
+          "presenceBasis": "bounded_task_or_activity_grace_or_observation_work_or_takeover",
+          "presenceInactivityTimeoutMs": 15000,
+          "hostCursorPolicy": "never_capture_or_warp_during_takeover",
+          "activeGestureId": "",
+          "pointerOwnership": "none",
+          "agentPointer": {
+            "plane": "HIDDEN",
+            "x": 0,
+            "y": 0,
+            "alpha": 0,
+            "gameCaptured": false,
+            "gameCursorVisible": true,
+            "gameCursorRevision": 0,
+            "evidencePixels": false
+          },
+          "rejectedHostGrabs": 0,
+          "hostFocused": true,
+          "hostCursorCaptureGranted": false,
+          "hostCursorCaptured": true,
+          "windowIconState": "original_minecraft",
+          "originalWindowIconCount": 5,
+          "windowBaseTitle": "Minecraft* 26.3 - Multiplayer (3rd-party Server)",
+          "windowTitle": "Minecraft* 26.3 - Multiplayer (3rd-party Server) - 智能体操控中",
+          "windowDecorationError": "",
+          "inputGeneration": 1,
+          "inputCleanupPending": false,
+          "inputCleanupFailed": false,
+          "inputContextGeneration": 1,
+          "inputContextId": "760f6994-dae5-42b3-b342-f7f26de613d6",
+          "inputContextAvailable": true,
+          "requestId": "92eda5f4-4364-46d8-9dbb-699d7c52a10f",
+          "protocolVersion": "v0"
+        },
+        "noInputLease": true
+      },
       "peer": {
         "type": "server.peer.status",
         "connected": true,
         "protocol": "peer-v0",
-        "lastHelloMillis": 1793037431798,
-        "lastResponseMillis": 1793037431916,
-        "lastServerTick": 363,
+        "lastHelloMillis": 1793105578808,
+        "lastResponseMillis": 1793105594584,
+        "lastServerTick": 640,
         "pendingRequests": 0,
+        "connectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+        "playerUuid": "350f9c8e-1e8b-3117-b55d-166638b8e3f7",
+        "delegationAttached": false,
+        "requiresServerDelegation": true,
+        "maxResponseBytes": 30720,
         "lastError": "",
         "target": "26.3-fabric",
-        "clientTick": 116,
+        "clientTick": 514,
         "integratedServer": false,
-        "requestId": "57a07f66-1c9e-4d71-bfee-1993e9e80298",
+        "requestId": "62bb4350-531f-4280-a3ee-fd8c527a1d44",
         "protocolVersion": "v0"
       },
       "probe": {
         "type": "server.peer.capabilities",
-        "serverTick": 368,
+        "serverTick": 764,
         "thread": "Server thread",
         "perspective": "server_authoritative_live",
         "source": "dedicated_server_peer",
@@ -414,18 +2510,24 @@
         "stalePossible": false,
         "peerAuthenticated": true,
         "read": true,
+        "authorization": "SERVER_DELEGATION_REQUIRED",
+        "typedDebugSupported": true,
+        "legacyDirectDebugSupported": false,
+        "requiresServerDelegation": true,
+        "connectionId": "141a1c06-c874-4dd4-96d3-d06e0027ed85",
+        "maxResponseBytes": 30720,
         "fixture": false,
-        "debug": false,
+        "debug": true,
         "operator": false,
         "target": "26.3-fabric",
-        "clientTick": 124,
-        "requestId": "de674edb-f67c-445e-a056-9573170d8b48",
+        "clientTick": 514,
+        "requestId": "898a69bb-14f3-4b7a-b49e-9d1dfc991ef9",
         "protocolVersion": "v0"
       },
       "player": {
         "type": "player.state",
         "target": "26.3-fabric",
-        "clientTick": 124,
+        "clientTick": 515,
         "domain": "WORLD",
         "dataCategory": "USER",
         "authority": "CLIENT_KNOWN",
@@ -437,67 +2539,67 @@
         "completeGameData": false,
         "storageAccessed": false,
         "chunkLoadRequested": false,
-        "sampledAtMillis": 1793037431991,
+        "sampledAtMillis": 1793105600789,
         "precision": "client_state_not_server_truth",
         "available": true,
         "gameMode": "survival",
-        "onGround": false,
+        "onGround": true,
         "flying": false,
         "anchor": {
-          "x": -34.5,
-          "y": 78,
           "z": -7.5,
+          "y": 78,
+          "x": -34.5,
           "dimension": "minecraft:overworld"
         },
         "maxRadius": 32,
-        "fallFlying": false,
-        "maxHealth": 20,
-        "swimming": false,
-        "crouching": false,
-        "eyeHeight": 1.62,
-        "cameraType": "first_person",
-        "health": 20,
-        "food": 20,
-        "sleeping": false,
-        "inWater": false,
-        "underWater": false,
-        "sprinting": false,
-        "maxAir": 300,
-        "absorption": 0,
-        "usingItem": false,
-        "riding": false,
         "cameraIsPlayer": true,
-        "useTicks": 0,
-        "x": -34.5,
-        "y": 78,
-        "z": -7.5,
-        "experienceProgress": 0,
-        "onFire": false,
-        "air": 300,
-        "yaw": 0,
-        "selectedSlot": 0,
-        "pose": "standing",
-        "usingHand": "none",
-        "dimension": "minecraft:overworld",
-        "deadOrDying": false,
-        "experienceLevel": 0,
-        "pitch": 0,
+        "riding": false,
+        "usingItem": false,
+        "absorption": 0,
+        "maxAir": 300,
+        "sprinting": false,
+        "underWater": false,
+        "inWater": false,
+        "sleeping": false,
+        "food": 20,
+        "health": 20,
+        "cameraType": "first_person",
+        "eyeHeight": 1.62,
+        "crouching": false,
+        "swimming": false,
+        "maxHealth": 20,
+        "fallFlying": false,
         "inLava": false,
+        "pitch": 0,
+        "experienceLevel": 0,
+        "deadOrDying": false,
+        "dimension": "minecraft:overworld",
+        "usingHand": "none",
+        "pose": "standing",
+        "selectedSlot": 0,
+        "yaw": 0,
+        "air": 300,
+        "onFire": false,
+        "experienceProgress": 0,
+        "z": -7.5,
+        "y": 78,
+        "x": -34.5,
+        "useTicks": 0,
+        "velocityY": -0.0784000015258789,
         "velocityX": 0,
-        "velocityY": 0,
         "velocityZ": 0,
-        "requestId": "a648154d-acb2-444d-a354-8397b2c6adbf",
+        "requestId": "59d8d3aa-98fb-42ac-9b9c-1baf513b43e8",
         "protocolVersion": "v0"
       },
       "inventory": {
         "screenClass": "net.minecraft.client.gui.screens.inventory.InventoryScreen",
         "screenRevision": 5,
-        "menuIdentity": 59
+        "menuIdentity": 56
       },
       "input": {
         "type": "input.state",
         "target": "26.3-fabric",
-        "clientTick": 174,
+        "clientTick": 555,
         "pressedKeys": [],
         "pressedButtons": [],
         "pressedKeyCount": 0,
@@ -506,30 +2608,30 @@
         "nativeEntityAttackCount": 0,
         "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
         "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-        "nativeEntityAttackContextId": "fbfc4875-f74b-4ac5-b7ea-dcc0f5260e21",
+        "nativeEntityAttackContextId": "760f6994-dae5-42b3-b342-f7f26de613d6",
         "nativeEntityAttackContextGeneration": 1,
-        "nativeEntityAttackControlGeneration": 1,
+        "nativeEntityAttackControlGeneration": 3,
         "nativeEntityAttackLeaseActive": true,
         "nativeEntityAttackServerEffectConfirmed": false,
         "controlState": "AGENT_CONTROLLED",
         "reconsentRequired": false,
         "reconsentScope": "TAKEOVER_ONLY",
-        "controlTransitionSequence": 1,
+        "controlTransitionSequence": 3,
         "mode": "TAKEOVER",
         "takeoverActive": true,
         "modeTransitionReason": "agent_control_acquired",
         "modeVersion": {
-          "controlSessionId": "82717205-edb2-4324-88b7-cec8b89c78b8",
-          "generation": 1
+          "controlSessionId": "06e5975c-bd1b-42ad-b8ef-f9d4d696c345",
+          "generation": 3
         },
         "modeContract": "explicit_intent_separate_authorization_v1",
-        "controlChromeRenderedFrames": 167,
+        "controlChromeRenderedFrames": 2739,
         "controlChromeAlpha": 1,
-        "controlChromeEdgeAlpha": 0.81251,
-        "controlChromeEdgeWidth": 0.906255,
+        "controlChromeEdgeAlpha": 0.76147175,
+        "controlChromeEdgeWidth": 0.8807359,
         "operatorChromeLayer": "after_content_capture_before_present",
         "captureExcludesOperatorChrome": true,
-        "captureFrameSequence": 394,
+        "captureFrameSequence": 2840,
         "capturePending": 0,
         "captureReadbacks": 0,
         "nativeRevocations": 0,
@@ -554,7 +2656,7 @@
           "plane": "GAMEPLAY_RELATIVE",
           "x": 240,
           "y": 135,
-          "alpha": 0.59642404,
+          "alpha": 0.5775769,
           "gameCaptured": true,
           "gameCursorVisible": false,
           "gameCursorRevision": 3,
@@ -573,9 +2675,9 @@
         "inputCleanupPending": false,
         "inputCleanupFailed": false,
         "inputContextGeneration": 1,
-        "inputContextId": "fbfc4875-f74b-4ac5-b7ea-dcc0f5260e21",
+        "inputContextId": "760f6994-dae5-42b3-b342-f7f26de613d6",
         "inputContextAvailable": true,
-        "requestId": "c9813fad-c438-468d-9dbe-f5db8e9d4e9b",
+        "requestId": "b9420dc8-981c-4ae9-baa6-341de6ad7819",
         "protocolVersion": "v0"
       },
       "disconnectUnconfirmed": true,
@@ -586,6 +2688,6 @@
   ],
   "persistentWriteCalls": 0,
   "status": "PASS",
-  "finishedAt": "2026-10-26T17:57:19.930Z",
+  "finishedAt": "2026-10-27T12:53:28.251Z",
   "allOwnedProcessesExited": true
 }

@@ -16,7 +16,7 @@ $targets=@(
  @{Id='26.3-fabric';Src='src\client\java';Mixin='src\client\resources\minecraft_protocol_probe.client.mixins.json';Has9A=$true})
 foreach($t in $targets){
  $base=Join-Path $root "versions\$($t.Id)\$($t.Src)\io\github\recrivenvi\minecraftprotocol\probe"
- $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
+ $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
  $revisions=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
  $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
  $provider=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw

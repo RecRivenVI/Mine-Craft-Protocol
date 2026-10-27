@@ -5,7 +5,13 @@
     "compatibilityLevel": "JAVA_21",
     "refmap": "minecraft_protocol_probe.refmap.json",
     "mixins": [
-        "DebugLoadedChunkAccessMixin"
+        "DebugLoadedChunkAccessMixin",
+        "LegacyEnvironmentRevisionMixin",
+        "BaseContainerBlockEntityAccessor",
+        "DistanceManagerAccessor",
+        "LevelTicksAccessor",
+        "AttributeMapAccessor",
+        "MobEffectInstanceAccessor"
     ],
     "client": [
         "ConnectionMixin",
@@ -14,7 +20,6 @@
         "PlayerCommandMixin",
         "WorldPickInvoker",
         "WorldChunkRevisionMixin",
-        "LegacyEnvironmentRevisionMixin",
         "HudUiAccessor",
         "HudPresentationMixin",
         "HudCameraPresentationMixin",
@@ -77,14 +82,9 @@
         "BeaconConfirmUiMarker",
         "BeaconCancelUiMarker",
         "AbstractContainerScreenMixin",
-        "BaseContainerBlockEntityAccessor",
         "ClientPacketListenerMixin",
-        "DistanceManagerAccessor",
         "InputConstantsMixin",
         "KeyboardHandlerMixin",
-        "LevelTicksAccessor",
-        "AttributeMapAccessor",
-        "MobEffectInstanceAccessor",
         "MinecraftMixin",
         "LocalPlayerMixin",
         "GameRendererMixin",

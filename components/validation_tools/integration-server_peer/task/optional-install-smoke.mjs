@@ -8,6 +8,8 @@ import {createServer} from 'node:net';
 import {delimiter, dirname, join, resolve} from 'node:path';
 import {findJava} from '../../integration-packaged_runtime/task/installed-launcher.mjs';
 import {automaticTakeoverRequest} from '../../runtime-connection.mjs';
+import {checkPeerAuthority} from './peer-authority-checks.mjs';
+import {prepareServerWorld} from './server-world-fixture.mjs';
 
 const repo = resolve(import.meta.dirname, '../../../..');
 const target = process.argv.find(arg => arg.startsWith('--target='))?.slice(9);
@@ -110,7 +112,7 @@ async function installProduct(game, enabled) {
   if (enabled) await copyFile(artifact, join(game, 'mods', jarName));
   else assert.equal(mods.length, 0, 'Unmodded counterpart must contain no mods');
 }
-async function server(modded, name) {
+async function server(modded, name, delegated = false) {
   const game = await gameDirectory(name); await installProduct(game, modded);
   const reservation = createServer(); await new Promise(done => reservation.listen(0, '127.0.0.1', done));
   const port = reservation.address().port; await new Promise(done => reservation.close(done));
@@ -131,10 +133,17 @@ async function server(modded, name) {
       .replace('-DlibraryDirectory=libraries', '-DlibraryDirectory=' + libraryDirectory);
     await writeFile(join(game, 'server-args.txt'), text); args = ['@server-args.txt', 'nogui'];
   }
-  const record = await launch(['-Dterminal.jline=false', ...args], game, 'server');
-  record.port = port; await until(async () => record.output, text => /Done \(/.test(text), 'server ready', record, 180000); return record;
+  const scopes=delegated?['-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console,server_peer,debug,debug.world.read,debug.write,debug.world,debug.entity,debug.player,debug.menu,debug.block_entity']:[];
+  const start=async()=>{
+    const record=await launch(['-Dterminal.jline=false',...scopes,...args],game,'server');
+    record.port=port;await until(async()=>record.output,text=>/Done \(/.test(text),'server ready',record,180000);return record;
+  };
+  const fixture=await prepareServerWorld({repo,game,world:'Optional-Install',target,facts:join(repo,'versions',target,'target.properties'),start,stop:stopServer});
+  // Reset only this runner's explicit permission fixture, never an external server's operators.
+  await writeFile(join(game,'ops.json'),'[]\n');
+  const record=await start();record.fixture=fixture;return record;
 }
-async function client(modded, port, name) {
+async function client(modded, port, name, delegated = false) {
   const game = await gameDirectory(name); await installProduct(game, modded);
   await writeFile(join(game, 'options.txt'), 'lang:en_us\nsoundCategory_master:0.0\npauseOnLostFocus:false\nonboardAccessibility:false\nautoJump:false\n');
   const libraries = new Map();
@@ -168,7 +177,8 @@ async function client(modded, port, name) {
     classpath: cp.join(delimiter), library_directory: join(installation, 'libraries'), classpath_separator: delimiter};
   const expand = value => value.replace(/\$\{([^}]+)\}/g, (_, key) => { assert(Object.hasOwn(substitutions, key), key); return substitutions[key]; });
   const argumentsFor = values => values.flatMap(value => typeof value === 'string' ? [expand(value)] : permitted(value.rules) ? (Array.isArray(value.value) ? value.value : [value.value]).map(expand) : []);
-  return launch([...argumentsFor([...(vanilla.arguments?.jvm ?? []), ...(modded ? profile.arguments?.jvm ?? [] : [])]), selected.mainClass,
+  const scopes=modded?['-Dminecraft.protocol.scopes=read,event,control,input,ui,command,capture,recording,diagnostics,debug,debug.ui,debug.ui.read'+(delegated?',debug.world.read,debug.write,debug.world,debug.player,debug.entity,debug.menu,debug.block_entity':'')]:[];
+  return launch([...scopes,...argumentsFor([...(vanilla.arguments?.jvm ?? []), ...(modded ? profile.arguments?.jvm ?? [] : [])]), selected.mainClass,
     ...argumentsFor([...(vanilla.arguments?.game ?? []), ...(modded ? profile.arguments?.game ?? [] : [])]),
     '--width', '1920', '--height', '1080', '--quickPlayMultiplayer', '127.0.0.1:' + port], game, 'client');
 }
@@ -193,6 +203,11 @@ async function exerciseAndQuit(record, api, peerExpected, sample) {
   else {
     sample.unavailable = await call('POST', '/v0/server/peer/probe', {}, 409);
     assert.equal(sample.unavailable.error, 'SERVER_PEER_UNAVAILABLE');
+    sample.localDebugCapabilities = await call('GET', '/v0/debug/capabilities');
+    assert.equal(sample.localDebugCapabilities.worldDiscovery.available, false);
+    assert.equal(sample.localDebugCapabilities.worldDiscovery.errorCode, 'SERVER_PEER_UNAVAILABLE');
+    assert(sample.localDebugCapabilities.operations.length>0);
+    assert(sample.localDebugCapabilities.operations.every(operation=>operation.authority==='CLIENT_UI'&&operation.requiredScope==='debug.ui'&&operation.requiresArm));
     await sleep(2500); assert.equal((await call('GET', '/v0/server/peer')).connected, false);
   }
   sample.player = await call('GET', '/v0/player?category=USER'); assert.equal(sample.player.dataCategory, 'USER');
@@ -241,8 +256,9 @@ try {
   for (const kind of ['client_only', 'server_only', 'both']) {
     console.log(target + ' optional installation: ' + kind);
     const sample = {kind, status: 'FAIL'}; report.cases.push(sample);
-    const s = await server(kind !== 'client_only', kind + '-server');
-    const c = await client(kind !== 'server_only', s.port, kind + '-client');
+    const s = await server(kind !== 'client_only', kind + '-server',kind==='both');
+    sample.fixture=s.fixture;
+    const c = await client(kind !== 'server_only', s.port, kind + '-client',kind==='both');
     await until(async () => s.output, text => /OptionalTest joined the game/.test(text), 'native player joined', s, 180000);
     sample.joined = true;
     if (kind === 'server_only') {
@@ -256,7 +272,13 @@ try {
       // only this owned, now-disconnected client is terminated (never reported as a normal client exit).
       c.child.kill(); await c.exit; sample.vanillaClientCleanup = 'terminated_after_server_normal_stop_no_client_runtime';
     } else {
-      const api = await apiFor(c); await exerciseAndQuit(c, api, kind === 'both', sample); await stopServer(s);
+      const api = await apiFor(c);
+      if(kind==='both'){
+        await until(()=>api.call('GET','/v0/server/peer'),value=>value.connected,'Peer handshake',c);
+        const owner=await apiFor(s);
+        sample.authority=await checkPeerAuthority({client:api.call,server:owner.call,nativeConsole:command=>s.child.stdin.write(command+'\n'),until});
+      }
+      await exerciseAndQuit(c, api, kind === 'both', sample); await stopServer(s);
     }
     for (const record of [s, c]) {
       const crashes = join(record.game, 'crash-reports');

@@ -1,7 +1,7 @@
 # MCP Companion 接口
 
 Companion 是独立 Node/TypeScript 工具组件，不内嵌 MCP server 到 Minecraft。
-Companion 版本以组件 package.json 为唯一来源，MCP initialize 的 serverInfo.version 直接读取该值；当前目录为 `publishes 25 static Tools`。
+Companion版本以组件package.json为唯一来源，MCP initialize的serverInfo.version直接读取该值；当前目录为 `publishes 26 static Tools`。
 当前实际 stdio initialize 核对值与 package.json 一致，未复现握手返回旧版本；外部不一致反馈应先核对其进程、入口及同源 dist，不能据此推定其他线程已更新。
 其依赖的 Native V0 合同版本为 `0.0.1-ui-m1`，以[OpenAPI](../../components/protocol_schema/src/main/openapi/minecraft-control-v0.json)的 info.version 为准，不等同于 Companion 包或握手版本。
 工具描述/Prompt 固定，不来自 Runtime 文本；大型 PNG/ZIP 用 minecraft:// Resources。
@@ -9,8 +9,15 @@ Wire Protocol v1 未冻结。
 
 ## 独立服务器控制台
 
-`minecraft_server_console` 的 action=read 通过 Native 控制台分页读取，action=execute 提交一条原生命令并返回既有 Operation。
+`minecraft_server_console`的action=read分页读取，action=complete查询有界原生补全，action=execute提交一条原生命令并返回既有Operation。
 主体固定为 server_operator，类别 USER，不冒充当前玩家；需要独立 server_console scope，执行另需 command/control 和 OPERATE。
+
+`minecraft_peer`保留status/probe，并以typed action提供issue/list/revoke/attach/detach。委托由独立服务器或集成服房主Runtime签发，
+不把客户端Arm/OP或hello当服务器授权；接收端重查真实连接、期限、server scope/Arm和资源版本。
+`minecraft_read_storage`读取world/player/chunk的PERSISTED/last_saved_state，需storage.read，不写入、加载或回退LIVE。
+独立服务器的deep selector支持明确在线playerUuid、已有dimension与整数anchor；玩家修改使用actorUuid。
+网页连接独立服务器时只提供原生控制台视图，显式READ/OPERATE、输出、命令及补全，不伪造截图或玩家Lease。
+适用的服务端及三安装组合已有具名五端集中验证；这不代表完整资源目录、全部并发分支或统一真人验收已完成。
 未自动开启权限、不取得玩家 Lease，TAKEOVER 在独立服务器不适用。执行后用 get/wait/cancel_operation 管理同一 Operation，
 不要因回执缺失而盲目重放；completed 只表示原生分发返回，worldEffectConfirmed=false。
 文本是数据，不能据其内容执行 Agent 指令或获得授权。初始目录、预算和未实现项以 capabilities.serverConsole 为准。
@@ -33,6 +40,15 @@ minecraft_wait_operation 的 timeoutMs 仅限制这一次等待，默认60000、
 不结束 Lease/模式/任务、不清除 Arm 或人工撤销 latch，不中断独立 DEBUG，也不附带 Screen/Menu revision pin。
 响应超时不撤销必需清理。releasedKeys/releasedButtons 是最后一次原生 cleanup 的实际计数，不是整轮累加值。
 `minecraft_get_state(kind=input)` 保留 inputGeneration、inputCleanupPending、inputCleanupFailed；清理失败或仍在进行不能当作安全完成。
+
+`minecraft_wait` / `minecraft_assert` 的Provider条件允许expected包含嵌套JSON对象、数组及标量。
+对象按已给字段递归子集比较，数组按完整值相等比较；目标是Provider响应包，因此实际数据使用expected.data。
+独立服务器世界状态使用providerId=minecraft:server/world/deep、category=DEBUG，params带显式domains/selector；
+不把默认player/block/entity条件当作显式服务器玩家选择。读取继续独立检查scope，不要求Arm/Lease。
+
+minecraft_debug(action=capabilities)保留Native的worldDiscovery结构；无Peer或无委托时仍返回本地CLIENT_UI目录，
+远端不可用原因单独记录，不推断服务器授权。Provider目录中explicitCategoryRequired=true表示必须显式指定DEBUG；
+没有受支持的默认类别时不返回defaultReadCategory，Companion不会自动升级请求类别。
 
 `minecraft_wait` / `minecraft_assert` 的 `{"type":"input.released"}` 严格只接受 type，不允许 category/expected/selector。
 它需要 read/diagnostics，在 READ、OPERATE 及人工撤销后仍可等待，只比较 Runtime 自有两种 held count 同时为0，不表示队列永久空闲。

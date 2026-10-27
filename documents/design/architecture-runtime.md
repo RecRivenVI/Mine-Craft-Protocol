@@ -25,6 +25,11 @@ Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的�
 render resource 在 Render Thread，server state 在 Server Thread，存储 IO 在有界 worker。
 Pipeline / Operation 支持取消、deadline、终态与输入清理；任务离开 owner thread 不意味着队列可以无界。
 
+独立服务器使用Headless服务入口、原生控制台和同Target世界引擎，不加载客户端暂停/绘制类型，不创建假玩家或截图。
+PeerDelegations由实际服务器所有者签发有期限的真实连接授权，ServerPeerReceiver只定位本机原生服务器的owner，自己不创造权限。
+集成服复用房主Runtime；独立服务器有自己的入口。接收、原生执行与异步发布分别重验，取消只沿原连接传递。
+控制台Provider、结构化Recording及网页非图形表面保留操作员主体，不混成玩家UI；原生资源继续有维度/生命周期与版本边界。
+
 Interaction Tree 递归读取原生 Screen/container/list children，结合 Menu slots 与具名创造标签/配方书
 适配形成结构化语义目标；资源包图标、特殊菜单和书本/告示牌用 Target-specific 原生适配。
 没有鼠标文本框的编辑器用 keyboard-only 路由，不虚构几何；页码/选项身份进入 stale guard。
@@ -71,10 +76,9 @@ Operator UI/Pointer 在 framebuffer evidence 之后渲染，不能污染截图�
 统一见[部署场景设计](concept-deployment_scenarios.md)。当前 mod_client_side=optional、mod_server_side=optional，
 客户端与独立服务器各有自己的认证 Runtime；安装兼容不等于完整三场景能力已全部交付。
 
-现有 Server Peer 基于游戏玩家连接提供有限服务器读取，mutation 另按服务端开关/operator 检查，
-客户端 HTTP 入口保留自己的授权；这不等于服务端已完整验证 scope/Arm/资源版本委托。
-独立服务器已有零玩家控制台及首批主世界DEBUG；完整 Peer 委托仍待实施，不能由客户端构建成功推断 server safety，
-也不宣称完整 ResourceVersion parity。
+Server Peer基于实际游戏连接传递服务器所有者的限时委托，客户端HTTP和服务器接收端分别验证scope、Arm与原生权限。
+世界资源复用同Target原生引擎，玩家/菜单选择实际在线主体；无玩家资源不依赖客户端输入或虚构菜单。
+当前具名安装、读取、修改/恢复、版本/撤权和清理组已逐端运行；不将有限组外推为完整ResourceVersion parity、全目录穷尽验证或人工接受。
 
 Persistent Read 五端有安全 context、world/player/chunk adapter、有界读取、
 deadline/cancel/worker/生命周期、文件变化检测与明确 error classification。

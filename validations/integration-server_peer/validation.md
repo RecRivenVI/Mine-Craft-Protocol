@@ -80,7 +80,36 @@ node components/validation_tools/integration-server_peer/task/server-console-smo
 工具只通过自有实例的原生stdin建立forceload夹具并在最后移除；这是准备条件，不是产品自动加载或玩家验收证据。
 独立世界DEBUG不借server_console权限的HTTP回归、排队中显式取消/disarm/关闭零late mutation及生命周期版本拒绝由runtime_core测试补充。
 仅切回READ或客户端交回输入不等于撤销已经授权的独立DEBUG，沿用现有合同。
-范围仅主世界world/blocks及world.block.set，不能据此宣称完整服务器DEBUG、Peer委托、客户端互通或人工体验通过。
+当前候选增加原生环境规则、实体创建/移除、维度与区块、显式玩家拒绝、结构化Provider、Persistent Read及无图像Recording。
+同一server-debug场景经真实Companion完成typed方块修改、嵌套Provider等待/断言及错误预期拒绝；控制台目录与USER Provider条件也须一致。
+BUSY/LOCKED等存档状态必须如实报告；安全拒绝不冒充已读取全部存档。该命令不证明真人体验或所有目录分支。
+
+双端组合额外执行真实连接委托：未授权拒绝、非OP拒绝、服务器所有者issue/客户端attach、真实玩家DEBUG读取、
+错误连接拒绝、撤销拒绝、双方独立Arm和mode、版本保护修改/恢复、旧版本拒绝与deop拒绝；不获取玩家输入Lease。
+服务器世界先经正常启动/stop生成不可变基线，随后每轮校验Target事实和完整文件哈希并恢复相同副本；
+复制范围仅世界，不复制Runtime凭据。旧工作副本移入回收站，存在活动进程时不替换。
+仅客户端/原版服务器及双端尚无委托时，GET /v0/debug/capabilities必须返回本地CLIENT_UI目录和结构化worldDiscovery原因；
+已授权双端目录同时包含真实世界与本地UI。测试scope仅显式授予当前夹具，不修改生产默认权限。
+
+可重复的服务器与联动展示只连接调用者明确指定的本仓库验证实例，不启动新游戏：
+
+```powershell
+pwsh -File components/validation_tools/feature-control_ui_showcase/task/Invoke-DeploymentShowcase.ps1 -Target 26.3-neoforge -Case server-console -ServerInstance <验证实例目录>
+pwsh -File components/validation_tools/feature-control_ui_showcase/task/Invoke-DeploymentShowcase.ps1 -Target 26.3-neoforge -Case peer-authority -ServerInstance <服务器验证实例目录> -ClientInstance <客户端验证实例目录>
+```
+
+目录占位符必须替换为已运行、持有适当scope的验证实例；Peer案例还要求实际玩家服务器权限。
+服务器展示不伪造屏幕或输入，联动展示只签发有期限的只读委托并在finally撤销；它们不是完整人工验收。
+
+集成服房主入口另用固定世界的具名场景验证：
+
+```powershell
+pwsh -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario integrated-peer
+```
+
+该场景显式启用既有Peer序列化诊断开关，复用房主原Runtime；通过真实游戏负载验证issue/attach、玩家读取、typed修改/恢复、旧版本与撤销拒绝。
+它是同进程、自有固定世界的Host路径证明，不是两个独立principal的证明；独立principal由上面的双方单JAR组合验证。
+不创建第二个endpoint、不伪造OP、玩家或真人Esc。正常结束后恢复READ、disarm、撤销并detach，再保存退出。
 
 执行前阅读以下既有前提；静态工具检查从仓库根目录运行。
 

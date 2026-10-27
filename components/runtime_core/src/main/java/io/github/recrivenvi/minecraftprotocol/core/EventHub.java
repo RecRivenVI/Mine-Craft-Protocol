@@ -178,9 +178,13 @@ final class EventHub implements AutoCloseable {
     }
 
     boolean wantsPlayerState() {
+        return wantsWorldEvent(PlayerStateStream.EVENT_TYPE);
+    }
+
+    boolean wantsWorldEvent(String type) {
         if (this.closed) return false;
         JsonObject pose = new JsonObject();
-        pose.addProperty("type", PlayerStateStream.EVENT_TYPE);
+        pose.addProperty("type", type);
         pose.addProperty("category", PlayerStateStream.EVENT_CATEGORY);
         for (ClientSubscription subscription : this.subscriptions.values())
             if (!subscription.closed
@@ -234,11 +238,11 @@ final class EventHub implements AutoCloseable {
         JsonElement evidence = result == null ? null : result.get("evidence");
         if (evidence == null || !evidence.isJsonObject()) return;
         JsonObject event = evidence.getAsJsonObject();
-        if (PlayerStateStream.isStateEvent(event) && !this.current.test(event))
+        if (!this.current.test(event))
             throw new ProtocolState.ProtocolException(
                     "EVENT_CONTEXT_CHANGED",
                     409,
-                    "Player state event context changed before condition evidence publication");
+                    "Event context or read authority changed before condition evidence publication");
     }
 
     @Override
@@ -558,8 +562,8 @@ final class EventHub implements AutoCloseable {
         boolean matches(JsonObject event) {
             String type = string(event, "type", "");
             String namespace = type.contains(".") ? type.substring(0, type.indexOf('.')) : type;
-            if (PlayerStateStream.isStateEvent(event)
-                    && !this.types.contains(PlayerStateStream.EVENT_TYPE)
+            if ((PlayerStateStream.isStateEvent(event) || type.equals("world.target.block"))
+                    && !this.types.contains(type)
                     && !this.namespaces.contains("world")) return false;
             return accepts(this.types, type)
                     && accepts(this.namespaces, namespace)

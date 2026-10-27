@@ -74,6 +74,50 @@ test('MCP basic world category forwarding preserves intent, unavailable errors a
   } finally { await client.close().catch(()=>undefined); await runtime.close(); }
 });
 
+test('MCP nested Provider conditions preserve JSON through wait, assert and pipeline validation', async () => {
+  const runtime=await startRuntime();
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'nested-provider-condition',version:'0.0.1'});
+  try {
+    await client.connect(transport);
+    const condition={type:'provider',category:'DEBUG',providerId:'minecraft:server/world/deep',params:{perspective:'server_authoritative',domains:['blocks'],selector:{blocks:[{x:8,y:100,z:8}]}},expected:{data:{server:{blocks:[{blockId:'minecraft:stone',properties:{axis:'x'}}]},flags:{enabled:true,optional:null},count:1}}};
+    for(const name of ['minecraft_wait','minecraft_assert']) {
+      const reply=await client.callTool({name,arguments:{condition}});
+      assert.notEqual(reply.isError,true,JSON.stringify(reply));
+      assert.deepEqual((reply.structuredContent as {data:{condition:unknown}}).data.condition,condition);
+    }
+    const tools=await client.listTools();
+    const description=tools.tools.find(tool=>tool.name==='minecraft_deep_observe')!.description!;
+    assert(!description.includes('zero online players required'));
+    assert(description.includes('selector.playerUuid')&&description.includes('block_entities'));
+    await client.callTool({name:'minecraft_control',arguments:{action:'acquire'}});
+    const pipeline=await client.callTool({name:'minecraft_run_input_pipeline',arguments:{steps:[{type:'assert.that',condition}],waitForCompletion:false}});
+    assert.notEqual(pipeline.isError,true,JSON.stringify(pipeline));
+    assert.deepEqual((runtime.inputRequests.at(-1)!.payload as {steps:{condition:unknown}[]}).steps[0]!.condition,condition);
+  } finally { await client.close().catch(()=>undefined); await runtime.close(); }
+});
+
+test('server completion, explicit delegation and persisted reads forward typed data without player input', async () => {
+  const runtime=await startRuntime();
+  const transport=new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
+  const client=new Client({name:'server-consumer-contract',version:'0.0.1'});
+  try{
+    await client.connect(transport);
+    const cases=[
+      {name:'minecraft_server_console',arguments:{action:'complete',input:'ti',cursor:2},path:'/v0/server/console/suggestions',body:{input:'ti',cursor:2}},
+      {name:'minecraft_read_storage',arguments:{domain:'player',playerUuid:'11111111-1111-4111-8111-111111111111'},path:'/v0/diagnostics/phase9a/storage/read',body:{domain:'player',playerUuid:'11111111-1111-4111-8111-111111111111'}},
+      {name:'minecraft_peer',arguments:{action:'attach',delegationId:'11111111-1111-4111-8111-111111111111',connectionId:'22222222-2222-4222-8222-222222222222'},path:'/v0/server/peer/delegation',body:{delegationId:'11111111-1111-4111-8111-111111111111',connectionId:'22222222-2222-4222-8222-222222222222'}},
+      {name:'minecraft_peer',arguments:{action:'detach',delegationId:'11111111-1111-4111-8111-111111111111'},path:'/v0/server/peer/delegation',body:{action:'detach',delegationId:'11111111-1111-4111-8111-111111111111'}}
+    ];
+    for(const entry of cases){
+      const result=await client.callTool({name:entry.name,arguments:entry.arguments});assert.notEqual(result.isError,true,JSON.stringify(result));
+      const data=(result.structuredContent as {data:{request:unknown;path:string;lease:unknown}}).data;
+      assert.equal(data.path,entry.path);assert.deepEqual(data.request,entry.body);assert.equal(data.lease,null);
+    }
+    assert.equal(runtime.leases.length,0);assert.equal(runtime.inputRequests.length,0);assert.equal(runtime.debugMutations.length,0);
+  }finally{await client.close().catch(()=>undefined);await runtime.close();}
+});
+
 test('MCP typed USER region pages forward fixed queries, continuations and cancellation without takeover', async () => {
   const runtime = await startRuntime();
   const transport = new StdioClientTransport({command:process.execPath,args:[resolve('dist/index.js')],env:{...process.env,MCP_MINECRAFT_BASE_URL:runtime.baseUrl,MCP_MINECRAFT_TOKEN:token}});
@@ -309,6 +353,8 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
     const payload = await body(request);
     if(['/v0/ui/action','/v0/pipelines','/v0/input/release-all'].includes(path))inputRequests.push({path,lease:request.headers['x-mcp-control-lease'],screen:request.headers['x-mcp-expected-screen-revision'],menu:request.headers['x-mcp-expected-menu-revision'],payload});
     const base = { target: 'mock-26.3-fabric', clientTick: 42, requestId: 'mock-request', protocolVersion: 'v0' };
+    if(['/v0/server/console/suggestions','/v0/server/peer/delegations','/v0/server/peer/delegation','/v0/diagnostics/phase9a/storage/read'].includes(path))
+      return json(response,200,{...base,request:payload,method:request.method,path,lease:request.headers['x-mcp-control-lease']??null});
 
     if (path === '/v0/session') return json(response, 200, { ...base, ...control(), type: 'session', inWorld: false, screenClass: 'TitleScreen', screenTitle: maliciousText, screenRevision: 3, menuRevision: 1 });
     if (path === '/v0/capabilities') return json(response, 200, { ...base, ...control(), type: 'capabilities', capabilities: { 'ui.interaction_tree': 'runtime_verified', 'capture.composite': 'runtime_verified', 'input.host_cursor_capture': 'blocked_during_takeover' } });
@@ -689,7 +735,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(client.getServerVersion()?.version, companionPackage.version, 'Actual MCP initialize serverInfo.version must come from package.json');
 
     const listed = await client.listTools();
-    assert.equal(listed.tools.length, 25);
+    assert.equal(listed.tools.length, 26);
     const diagnosticsTool = listed.tools.find(tool => tool.name === 'minecraft_diagnostics')!;
     assert.ok(diagnosticsTool.inputSchema.required?.includes('kind'));
     assert.match(diagnosticsTool.description ?? '', /kind is required/);

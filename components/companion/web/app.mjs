@@ -15,6 +15,14 @@ async function api(path, body, binary=false) {
   return binary?response:response.json();
 }
 function render(value) {
+  if(value.headless) {
+    snapshot=value;$('console').hidden=false;stage.hidden=true;$('screenshots').hidden=true;
+    for(const id of ['acquire','release','escape','inventory'])$(id).hidden=true;
+    $('status').textContent=(value.session.target||'Minecraft')+' · '+value.control.mode+' · 独立服务器';
+    $('console-output').textContent=value.console.records?.map(record=>`[${record.level}] ${record.text}`).join('\n')||value.console.message||'等待服务端日志';
+    $('console-input').disabled=value.control.mode!=='OPERATE';
+    return;
+  }
   if(snapshot&&snapshot.inputFrameKey!==value.inputFrameKey)queue=pendingAfterFrameChange(queue,heldKeys,heldButtons);
   snapshot=value;
   if(!sending&&!queue.length)sequence=value.inputSequence??0;
@@ -42,6 +50,7 @@ async function refresh() {
   try{render(await api('snapshot'));}catch(e){queue=[];notice(e.message);}finally{polling=false;}
 }
 async function capture() {
+  if(snapshot?.headless)return;
   if(captureBusy)return;captureBusy=true;
   try{
     const response=await api('capture',{},true),frame=decodeURIComponent(response.headers.get('x-web-ui-frame')||'');
@@ -187,6 +196,19 @@ $('clear-capture').addEventListener('click',()=>{
 });
 $('save-capture').addEventListener('click',()=>{
   if(!captureUrl)return;const a=document.createElement('a');a.href=captureUrl;a.download='minecraft-'+Date.now()+'.png';a.click();
+});
+for(const [id,mode] of [['console-read','READ'],['console-operate','OPERATE']])$(id).addEventListener('click',async()=>{
+  try{await api('console',{action:'set_mode',mode});await refresh();notice('');}catch(error){notice(error.message);}
+});
+$('console-form').addEventListener('submit',async event=>{
+  event.preventDefault();try{const result=await api('console',{action:'execute',command:$('console-input').value});
+    $('console-result').textContent=JSON.stringify(result,null,2);await refresh();}catch(error){notice(error.message);}
+});
+$('console-complete').addEventListener('click',async()=>{
+  try{const input=$('console-input'),result=await api('console',{action:'complete',input:input.value,cursor:input.selectionStart??input.value.length});
+    $('console-suggestions').replaceChildren();for(const item of result.suggestions??[]){const button=document.createElement('button');button.type='button';button.textContent=item.text;
+      button.addEventListener('click',()=>{input.value=input.value.slice(0,item.start)+item.text+input.value.slice(item.end);input.focus();});$('console-suggestions').append(button);}
+  }catch(error){notice(error.message);}
 });
 try{
   const bootstrap=await(await fetch('/api/bootstrap')).json();browserToken=bootstrap.browserToken;

@@ -11,6 +11,11 @@ Fabric原版CommandSourceStack.source为private，反馈委托给DedicatedServer
 Fabric的access widener由全局元数据声明，文件放在src/main/resources中，使原生开发客户端和独立服务端都能解析；声明内容及发行JAR中的路径一致，不改变客户端访问规则。
 所有命令仍经服务器自身任务队列和原生分发器，普通终端输入不被替换；未持客户端Lease不影响独立操作员命令。
 
+世界原生引擎由同Target的集成服、独立服务器和Peer复用；Fabric引擎、存档适配器和服务器访问器位于main，客户端暂停状态通过客户端安装的读取函数提供。
+独立服务器不加载IntegratedServer等客户端类型。属性、容器、调度、加载摘要和环境修改版本所需Mixin在公共配置注册；绘制与鼠标Hook仍仅客户端注册。
+26.x的ChunkPos为仅接收两个整数的record，区块中心由BlockPos坐标右移4位推导；1.x保持原生API。
+显式服务器选择器有自己的维度/采样中心，真实玩家只在玩家/菜单资源中必需；无玩家容器修改仍标记dirty并使用Vanilla正常同步，不访问虚构菜单。
+
 生命HUD采样：26.3在Hud/Renderpearl的extract方法观察GuiGraphicsExtractor.blitSprite；
 26.1.2使用Gui/Blaze3d RenderPipeline，1.21.1使用GuiGraphics.blitSprite及renderAirLevel。
 Forge1.20.1分别观察Gui.renderHeart和原生ForgeGui四种绘制，以icons.png原生UV解码图标身份，帧边界来自GameRenderer。

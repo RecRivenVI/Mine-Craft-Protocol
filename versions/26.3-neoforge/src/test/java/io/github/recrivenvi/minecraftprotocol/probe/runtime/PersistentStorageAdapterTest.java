@@ -208,8 +208,18 @@ final class PersistentStorageAdapterTest {
             cancelledAdapter.observeWorldLifecycle(new Object());
             try {
                 var cancelled = cancelledAdapter.read(request(root, "world", false));
+                long enteredBy = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                while (cancelledAdapter.inFlightCount() == 0 && System.nanoTime() < enteredBy)
+                    Thread.sleep(5L);
+                assertEquals(
+                        1,
+                        cancelledAdapter.inFlightCount(),
+                        "Exercise cancellation after native worker entry");
                 cancelled.cancel(true);
-                Thread.sleep(250L);
+                assertTrue(cancelled.isCancelled());
+                long drainedBy = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                while (cancelledAdapter.inFlightCount() != 0 && System.nanoTime() < drainedBy)
+                    Thread.sleep(5L);
                 assertEquals(0, cancelledAdapter.inFlightCount());
             } finally {
                 cancelledAdapter.close();

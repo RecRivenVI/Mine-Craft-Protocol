@@ -21,7 +21,7 @@ foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
     $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
     $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
-    $engine=Get-Content (Join-Path $base 'runtime\Phase9ASpikeEngine.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
     $api=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw
     $bounded=Get-Content (Join-Path $runtimeCore 'BoundedTaskExecutor.java') -Raw
     $verifier=Get-Content (Join-Path $runtimeCore 'ResourceVersionVerifier.java') -Raw

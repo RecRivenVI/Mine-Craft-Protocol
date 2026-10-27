@@ -41,6 +41,15 @@
     "description": "Existing lifecycle/input/screen events plus explicitly requested USER world.player.state client-tick pose. The pose stream requires read/event, types=[world.player.state] or namespaces=[world], at most once per actual client tick and only a connected local player; default all-events does not include the high-frequency stream. Each pose carries streamContext generation/opaqueId, sourceTick/sample time, xyz/yaw/pitch/onGround/velocityXYZ, no server/NBT fields. Paused gameplay may repeat the same pose; wall-clock rate depends on native tick scheduling and load. Bearer authentication and per-category read authorization are required at publication, replay and send. Old-context frames cannot replay and require gap/resync. Block-change streaming is not implemented. HTTP paths below do not model WebSocket frames."
   },
   "paths": {
+    "/v0/server/console/suggestions": {
+      "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "post": {
+        "operationId":"completeServerConsole", "x-agent-mode":"READ_COMPATIBLE",
+        "description":"Explicit SERVER_CONSOLE actor; read+server_console, no input Lease or mutation. Native dispatcher completion only, never command execution. At most 64 suggestions, 1500ms deadline; current authority rechecked before publication.",
+        "requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["input"],"additionalProperties":false,"properties":{"input":{"type":"string","maxLength":2048},"cursor":{"type":"integer","minimum":0,"maximum":2048}}}}}},
+        "responses":{"200":{"description":"Bounded native suggestions with replacement ranges and explicit truncation","content":{"application/json":{"schema":{"type":"object"}}}},"403":{"description":"Console authority denied"},"409":{"description":"Native console unavailable"}}
+      }
+    },
     "/v0/server/console": {
       "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
       "get": {
@@ -1410,6 +1419,19 @@
         },
         "description": "All commands are USER. action=discover requires read/command scopes in any mode and defaults to bounded CLIENT_LOCAL native roots/completions without packets. Explicit SERVER uses separate transaction IDs and future, human pending completion priority, one request, 250ms minimum interval and 1500ms TTL; server budget remains shared, submitted queries cannot be recalled and cancellation discards results. Neither source proves authorization or execution; it never owns human chat requests. action=batch requires OPERATE/TAKEOVER and command scope, submits 1..32 NATIVE commands sequentially and stops at the first failure; receipts are indexed, not correlated server feedback, atomic or retryable. Default execute: AUTO selects NATIVE in OPERATE, CHAT otherwise; never changes intent. NATIVE uses the actual connected player command API in OPERATE or TAKEOVER with command scope, no input Lease, keyboard, Screen, draft or focus changes. CHAT uses native Chat input under TAKEOVER, command/control/input scopes and existing Lease. Submission is not execution proof; cancellation may leave an already submitted effect. Never grants OP, Debug Arm or missing scopes."
       }
+    },
+    "/v0/server/peer/delegations": {
+      "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "get":{"operationId":"listServerPeerDelegations","x-agent-mode":"READ_COMPATIBLE","description":"Independent server owner only; requires server_peer. Never lists host credentials.","responses":{"200":{"description":"Connection-bound server delegations","content":{"application/json":{"schema":{"type":"object"}}}}}},
+      "post":{"operationId":"issueServerPeerDelegation","x-agent-mode":"MODE_INDEPENDENT","description":"Explicit independent server authorization; does not establish a mode, input Lease or player permission. Scopes must be a subset of server owner scopes. Writes additionally require the server owner's Arm and OPERATE at actual dispatch. Requires actual player OP on every request; bound to server lifetime and exact game connection.","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PeerDelegationRequest"}}}},"responses":{"200":{"description":"Bounded 1..60 second delegation","content":{"application/json":{"schema":{"type":"object"}}}}}}
+    },
+    "/v0/server/peer/delegations/{delegationId}": {
+      "parameters":[{"$ref":"#/components/parameters/RuntimeInstance"},{"name":"delegationId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],
+      "delete":{"operationId":"revokeServerPeerDelegation","x-agent-mode":"MODE_INDEPENDENT","description":"Independent server owner server_peer scope; cancels pending delegated work and blocks late dispatch.","responses":{"200":{"description":"Revoked delegation","content":{"application/json":{"schema":{"type":"object"}}}}}}
+    },
+    "/v0/server/peer/delegation": {
+      "parameters":[{"$ref":"#/components/parameters/RuntimeInstance"}],
+      "post":{"operationId":"attachServerPeerDelegation","x-agent-mode":"MODE_INDEPENDENT","description":"Client explicitly binds a server-issued delegation to its current real game connection. Requires read+debug; does not grant remote authority. Attachment is cleared on disconnect.","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PeerAttachmentRequest"}}}},"responses":{"200":{"description":"Current local Peer attachment","content":{"application/json":{"schema":{"type":"object"}}}}}}
     },
     "/v0/server/peer": {
       "parameters": [
@@ -3875,10 +3897,23 @@
           "providers"
         ]
       },
+      "PeerAttachmentRequest": {
+        "oneOf":[
+          {"type":"object","additionalProperties":false,"required":["delegationId","connectionId"],"properties":{"delegationId":{"type":"string","format":"uuid"},"connectionId":{"type":"string","format":"uuid"}}},
+          {"type":"object","additionalProperties":false,"required":["action","delegationId"],"properties":{"action":{"type":"string","enum":["detach"]},"delegationId":{"type":"string","format":"uuid"}}}
+        ]
+      },
+      "PeerDelegationRequest": {
+        "type":"object","additionalProperties":false,"required":["playerUuid","connectionId","scopes"],
+        "properties":{"playerUuid":{"type":"string","format":"uuid"},"connectionId":{"type":"string","format":"uuid"},"scopes":{"type":"array","minItems":3,"maxItems":32,"uniqueItems":true,"items":{"type":"string"}},"debugArmId":{"type":"string"},"ttlMs":{"type":"integer","minimum":1000,"maximum":60000,"default":15000}}
+      },
       "DeepObservationSelector": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "playerUuid":{"type":"string","format":"uuid","description":"Dedicated only: select an actual connected player for player/menu resources; never creates a fake player."},
+          "dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","description":"Dedicated only: existing live dimension, no load request."},
+          "anchor":{"$ref":"#/components/schemas/BlockPosition","description":"Dedicated zero-player neighborhood anchor; defaults to selected actor or origin."},
           "entityTargets":{"type":"array","minItems":1,"maxItems":128,"uniqueItems":true,"items":{"type":"object","additionalProperties":false,"required":["dimension","entityUuid"],"properties":{"dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","maxLength":256},"entityUuid":{"type":"string","format":"uuid"}}},"description":"Exact existing LIVE loaded identities. Requires entities domain, explicit server_authoritative and sufficient maxEntities; missing identity is unavailable, never a load request."},
           "entityChunk":{"type":"object","additionalProperties":false,"required":["x","z"],"properties":{"x":{"type":"integer","minimum":-1875000,"maximum":1874999},"z":{"type":"integer","minimum":-1875000,"maximum":1874999}},"description":"Explicit loaded chunk membership for entity.spawn, entities domain and server_authoritative or both; no loading. At most 4096 members; overflow fails with no partial mutation token."},
           "blockEntityCursor": {
@@ -4019,6 +4054,8 @@
         ],
         "additionalProperties": false,
         "properties": {
+          "playerUuid":{"type":"string","format":"uuid","description":"Dedicated server persisted player selection, not a path or live-player proxy."},
+          "dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","description":"Dedicated server existing dimension context, no automatic loading."},
           "domain": {
             "type": "string",
             "enum": [
@@ -11063,7 +11100,8 @@
           },
           "expected": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Recursive object subset comparison against the response envelope; JSON arrays compare exactly. Provider payload expectations belong under data. Does not grant category or read scopes."
           },
           "eventCategory": {
             "type": "string",
@@ -11172,6 +11210,7 @@
         ],
         "description": "Versioned V0 macro step. Fields depend on type; unknown types fail before execution. All steps require input, TAKEOVER and the existing Lease. ui.action/ui.drag additionally require ui; wait.until/assert.that additionally require read and the condition domain/category permissions (UI requires ui, event requires event). The entire plan is authorized before input and steps recheck at execution; modes never grant scopes. world.action requires targetRef and action=aim|attack|use|mine|use_hold|place. It serializes with other input, aims through Vanilla relative deltas and freshly picks before routed press. Effects are not guaranteed; confirm with observation. No Debug fallback. mine/use_hold accept holdMs 50..10000 (defaults 5000/1000). place requires face, optional hit u/v 0.05..0.95 and expectedDestinationBlockId. Block use optionally accepts face/hit to select a native sub-surface; these UV values project onto the actual outline, never screen coordinates. Every native held interaction is target/context guarded. Cancel releases input, not rollback: bow release can fire. Mining completion is client prediction only. use_hold hand=main_hand|off_hand (default main_hand); off_hand requires empty main hand, and actual native use hand is verified. Mining tracks bounded synchronous native destruction, including pre-break fluid replacement and neighbor changes; not server confirmation.",
         "properties": {
+          "read":{"$ref":"#/components/schemas/ProviderReadRequest","description":"state.read only: USER provider readback; DEBUG remains a separately authorized State Frame. Runs at this step, not atomically with preceding input."},
           "fromOffset": {
             "$ref": "#/components/schemas/UiOffset"
           },
@@ -11208,6 +11247,7 @@
               "ui.drag",
               "wait.until",
               "assert.that",
+              "state.read",
               "world.action"
             ]
           },
@@ -11492,6 +11532,9 @@
           "thirdParty"
         ],
         "properties": {
+          "readCategories": {"type":"array","minItems":1,"items":{"type":"string","enum":["USER","DEBUG"]},"description":"Supported data categories, independent of currently granted scopes. Server console supports USER; server world internals remain DEBUG."},
+          "defaultReadCategory": {"type":"string","enum":["USER"],"description":"Supported implicit request category. Omitted from descriptors requiring explicit DEBUG. Omitting category in a request never automatically selects DEBUG."},
+          "explicitCategoryRequired": {"type":"boolean","description":"True for internal-only Providers. Submit explicit DEBUG and its independent read scopes; no automatic privilege upgrade."},
           "id": {
             "type": "string"
           },
@@ -12020,6 +12063,7 @@
           "batch"
         ],
         "properties": {
+          "worldDiscovery": {"type":"object","required":["available"],"properties":{"available":{"type":"boolean"},"errorCode":{"type":"string"},"httpStatus":{"type":"integer"}},"description":"Client-side world catalogue discovery status. A known remote availability/permission failure returns only local CLIENT_UI operations plus this reason; it does not grant world authority. Cancellation, shutdown and unexpected failures still fail the request."},
           "resourceInspection": {"type": "object", "additionalProperties": true, "description": "Operation-to-formal-deep-selector/resourceVersion mapping. No Arm required to inspect, but write requires its independent scope, Arm and current resource/value preconditions."},
           "type": {
             "type": "string",
@@ -12152,6 +12196,8 @@
           "expectedResourceVersion"
         ],
         "properties": {
+          "actorUuid":{"type":"string","format":"uuid","description":"Dedicated only: explicit connected actor for player/menu resources."},
+          "dimension":{"type":"string","pattern":"^[a-z0-9_.-]+:[a-z0-9_./-]+$","description":"Dedicated only: existing live dimension."},
           "operation": {
             "type": "string"
           },
