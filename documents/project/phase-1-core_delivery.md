@@ -2733,3 +2733,5 @@ EP-4/5阶段检查点a17f51b9已SSH签名推送：19个有匹配上游包的业�
 最终源码指纹673684d2完成当前候选冻结：发布侧重新读取105份具名证明，验证实际生产源码、执行工具、包内容身份和发行JAR；19个可用业务组合与五端仅Loader/单JAR入世界均通过。原版范围为五端世界full、input-context及45秒continuous-correctness，参考端UI all、其余四端pointer/special-menus/ui-navigation；不称为五端UI全量重测。双包故障/分别恢复、独服入口、同本体1.0.3→1.0.4替包及正常退出重新绑定当前候选。
 
 完整check、Java/Companion、协议/文档/严格合规0失败0警告及五端verifyRelease通过；作者资料分发保留相对目录并包含所引用的SDK示例源码，发布前拒绝缺失链接。固定快照交付SDK、七包、Companion和五端本体，不含第三方原包。CC26.3 NeoForge上游阻断、LittleTiles运动关闭及Forge AE2首次读超预算限制保留，真实IME/宿主输入/体验仍待集中人工验收。未运行整合包、性能基准、Persistent Write或E1～E3。
+
+固定分发首次在独立CLI复核中因ESM顶层await环而被拒绝，未创建快照或修改latest。发布入口改为先完成模块求值再异步派发，默认失败退出且只有完整复核成功才置成功码；没有跳过任何证据。真实CLI缺证负控及当前105份证据的正控通过，游戏源码与JAR未改变，已有运行结果保持有效。

@@ -826,11 +826,15 @@ export function coreShowcaseProof(result,target) {
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- try{
+ const verifyCli=async()=>{
   assert.equal(process.argv[2],'--verify-continuous-publication');assert.equal(process.argv[4],'--repository-root');assert.equal(process.argv.length,6);
   const repo=resolve(process.argv[5]),manifest=resolve(process.argv[3]);assert.equal(relative(repo,manifest).replaceAll('\\','/'),'build/alpha-manifest.json');
   const report=JSON.parse(await readFile(manifest,'utf8'));
   const proof=report.publicationProfile==='extension_platform_trial_v1'?await (await import('./extension-proof.mjs')).verifyExtensionPublication(report,repo):report.publicationProfile===E_WORLD_PROFILE?await verifyEWorldPublication(report,repo):report.publicationProfile===E_UI_PROFILE?await verifyEUiPublication(report,repo):report.publicationProfile===DEPENDENCY_PROFILE?await verifyDependencyPublication(report,repo):await verifyContinuousPublication(report,repo);
   console.log('Trial publication gate: PASS; profile '+report.publicationProfile+'; performance '+proof.performanceAcceptance.status+'; full Goal acceptance not claimed');
- }catch(error){console.error('Continuous-gameplay alpha refused: '+error.message);process.exitCode=1;}
+ };
+ // Profile validators reuse this module. Complete its evaluation before importing them.
+ // An abandoned async verification must fail closed rather than exit successfully.
+ process.exitCode=1;
+ verifyCli().then(()=>{process.exitCode=0;},error=>{console.error('Continuous-gameplay alpha refused: '+error.message);});
 }
