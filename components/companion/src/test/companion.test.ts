@@ -1041,7 +1041,8 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     const resources = await client.listResources();
     assert.equal(resources.resources.length, 9);
     const templates = await client.listResourceTemplates();
-    assert.equal(templates.resourceTemplates.length, 5);
+    assert.equal(templates.resourceTemplates.length, 6);
+    assert(templates.resourceTemplates.some(template=>template.uriTemplate==='minecraft://extensions/{packageId}/tests/{documentId}'));
     assert.equal(templates.resourceTemplates.filter(template=>template.uriTemplate.includes('/debug/')).length,2);
 
     const samples: number[] = [];

@@ -15,6 +15,20 @@ import net.minecraft.server.MinecraftServer;
  */
 public final class DedicatedWorldDebug implements ServerWorldDebug.Host {
     private final MinecraftServer server;
+    private final String extensionWorldIdentity = java.util.UUID.randomUUID().toString();
+
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+            extensionLifetimeContexts() {
+        return new io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts(
+                closed.get()
+                        ? java.util.Map.of()
+                        : java.util.Map.of(
+                                io.github.recrivenvi.minecraftprotocol.probe.extension
+                                        .ExtensionResources.Lifetime.WORLD,
+                                extensionWorldIdentity));
+    }
+
     private final Phase9ASpikeEngine engine;
     private final String fingerprint;
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -92,7 +106,28 @@ public final class DedicatedWorldDebug implements ServerWorldDebug.Host {
                                         "Server closed");
                             server.execute(action);
                         },
-                        server::isSameThread));
+                        server::isSameThread,
+                        () ->
+                                new io.github.recrivenvi.minecraftprotocol.probe.extension
+                                        .ExtensionResources.ThreadOwner(
+                                        "server_thread",
+                                        action -> {
+                                            if (server.isSameThread()) action.run();
+                                            else {
+                                                if (!server.isRunning())
+                                                    throw new java.util.concurrent
+                                                            .RejectedExecutionException(
+                                                            "Original server stopped");
+                                                server.execute(action);
+                                            }
+                                        },
+                                        server::isSameThread)));
+    }
+
+    @Override
+    public java.util.Map<String, java.util.function.Supplier<Object>> extensionNativeContexts() {
+        return java.util.Map.of(
+                "server_thread", () -> closed.get() || !server.isRunning() ? null : server);
     }
 
     @Override

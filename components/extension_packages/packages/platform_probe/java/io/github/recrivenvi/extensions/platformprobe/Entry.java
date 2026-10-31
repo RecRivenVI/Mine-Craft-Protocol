@@ -57,6 +57,37 @@ public final class Entry implements PackageExtension {
         }
     }
 
+    private static final class NativeWorld
+            implements io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter {
+        public Descriptor descriptor() {
+            return new Descriptor("platform_probe:native_world", 1, 250);
+        }
+
+        public boolean matches(Frame frame) {
+            return frame.parentKind().equals("block");
+        }
+
+        public Projection capture(Context context) {
+            var snapshot = context.nativeSnapshot();
+            if (!snapshot.has("block")
+                    || !snapshot.get("block").getAsString().equals("minecraft:chest"))
+                return new Projection(context.frame(), System.nanoTime(), List.of());
+            double x = snapshot.get("x").getAsDouble(),
+                    y = snapshot.get("y").getAsDouble(),
+                    z = snapshot.get("z").getAsDouble();
+            var part =
+                    new Part(
+                            "chest_body",
+                            "1",
+                            "Chest body",
+                            new Bounds(x, y, z, x + 1, y + 1, z + 1),
+                            new Point(x + .5, y + .5, z + .5),
+                            0,
+                            java.util.Map.of("nativeParent", "minecraft:chest"));
+            return new Projection(context.frame(), System.nanoTime(), List.of(part));
+        }
+    }
+
     private static final String ROOT = "minecraft-extension://platform_probe/schemas/";
     private long revision;
     private long samples;
@@ -65,6 +96,7 @@ public final class Entry implements PackageExtension {
     private String observedThread = "";
     private Sampling activeSampling;
     private ScheduledThreadPoolExecutor scheduler;
+    private PackageContext packageContext;
 
     private static final class Sampling {
         final ExtensionResources.Scope grant;
@@ -84,7 +116,11 @@ public final class Entry implements PackageExtension {
 
     @Override
     public void initialize(PackageContext context) {
-        if (context.side() == PackageContext.Side.CLIENT) context.uiAdapter(new NativeUi());
+        packageContext = context;
+        if (context.side() == PackageContext.Side.CLIENT) {
+            context.uiAdapter(new NativeUi());
+            context.worldAdapter(new NativeWorld());
+        }
         var process = context.processResources();
         scheduler =
                 new ScheduledThreadPoolExecutor(
@@ -100,6 +136,8 @@ public final class Entry implements PackageExtension {
                 new ExtensionResources.ThreadOwner("detached_cleanup", Runnable::run, () -> true),
                 scheduler::shutdownNow);
         scheduler.prestartCoreThread();
+        // Prepare detached queue machinery at startup; no sampling or native work before a grant.
+        scheduler.execute(() -> {});
         String runtime = process.owner().runtimeId();
         NativeCounter.enable(runtime);
         process.own(
@@ -365,6 +403,9 @@ public final class Entry implements PackageExtension {
 
     private JsonObject snapshot() {
         JsonObject value = revisionState();
+        value.addProperty(
+                "nativeOwnerType",
+                packageContext.nativeContext("server_thread").getClass().getName());
         value.addProperty("samples", samples);
         value.addProperty("adapterRevision", "managed_async_preparation_v3");
         value.addProperty("sampledAtNanos", sampledAt);

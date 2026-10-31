@@ -53,7 +53,15 @@ public final class ExtensionResources implements AutoCloseable {
         }
     }
 
-    public record ThreadOwner(String name, Executor executor, BooleanSupplier isCurrent) {
+    public record ThreadOwner(
+            String name,
+            Executor executor,
+            BooleanSupplier isCurrent,
+            Supplier<ThreadOwner> cleanupBinding) {
+        public ThreadOwner(String name, Executor executor, BooleanSupplier isCurrent) {
+            this(name, executor, isCurrent, null);
+        }
+
         public ThreadOwner {
             if (name == null || name.isBlank())
                 throw new IllegalArgumentException("Owner name required");
@@ -77,21 +85,28 @@ public final class ExtensionResources implements AutoCloseable {
         this.cleanupTimeout = cleanupTimeout;
     }
 
-    public synchronized Scope open(Owner owner, BooleanSupplier grantValid) {
-        if (closed) throw new IllegalStateException("extension_runtime_closed");
+    public Scope open(Owner owner, BooleanSupplier grantValid) {
         if (!runtimeId.equals(owner.runtimeId()))
             throw new IllegalArgumentException("Wrong Runtime owner");
-        if (retired.containsKey(owner)) throw new IllegalStateException("extension_owner_retired");
-        Scope existing = scopes.get(owner);
-        if (existing != null) {
-            existing.requireActive();
-            return existing;
+        Scope proposed = new Scope(owner, Objects.requireNonNull(grantValid));
+        proposed.requireActive();
+        Scope scope;
+        synchronized (this) {
+            if (closed) throw new IllegalStateException("extension_runtime_closed");
+            if (retired.containsKey(owner))
+                throw new IllegalStateException("extension_owner_retired");
+            scope = scopes.get(owner);
+            if (scope == null) {
+                if (scopes.size()
+                                + retired.values().stream().filter(value -> !value.isDone()).count()
+                        >= MAX_SCOPES)
+                    throw new IllegalStateException("extension_owner_budget_exhausted");
+                scope = proposed;
+                scopes.put(owner, scope);
+            }
         }
-        if (scopes.size() + retired.values().stream().filter(value -> !value.isDone()).count()
-                >= MAX_SCOPES) throw new IllegalStateException("extension_owner_budget_exhausted");
-        Scope scope = new Scope(owner, Objects.requireNonNull(grantValid));
+        // No author validity callback or scope publication barrier under the registry lock.
         scope.requireActive();
-        scopes.put(owner, scope);
         return scope;
     }
 
@@ -104,9 +119,9 @@ public final class ExtensionResources implements AutoCloseable {
             if (scope == null)
                 return CompletableFuture.completedFuture(new Report(owner, reason, List.of()));
             // Publish the terminal future before dispatch: a direct executor may reenter here.
-            scope.invalidate(reason);
             retired.put(owner, scope.cleanup);
         }
+        scope.invalidate(reason);
         scope.dispatchCleanup();
         scope.cleanup.whenComplete((report, error) -> trimHistory());
         return scope.cleanup.copy();
@@ -216,6 +231,32 @@ public final class ExtensionResources implements AutoCloseable {
         }
 
         public void own(String id, ThreadOwner thread, AutoCloseable resource) {
+            Objects.requireNonNull(id);
+            Objects.requireNonNull(thread);
+            Objects.requireNonNull(resource);
+            if (thread.cleanupBinding() != null) {
+                try {
+                    thread = Objects.requireNonNull(thread.cleanupBinding().get());
+                } catch (RuntimeException failure) {
+                    var report =
+                            CompletableFuture.completedFuture(
+                                    new Report(
+                                            owner,
+                                            "owner_binding_failed",
+                                            List.of(
+                                                    new Cleanup(
+                                                            id,
+                                                            thread.name(),
+                                                            "unconfirmed",
+                                                            failure.getClass().getSimpleName()))));
+                    synchronized (ExtensionResources.this) {
+                        lateCleanups.add(report);
+                    }
+                    trimHistory();
+                    throw new IllegalStateException(
+                            "extension_cleanup_owner_binding_failed", failure);
+                }
+            }
             Entry entry =
                     new Entry(Objects.requireNonNull(id), thread, Objects.requireNonNull(resource));
             synchronized (this) {

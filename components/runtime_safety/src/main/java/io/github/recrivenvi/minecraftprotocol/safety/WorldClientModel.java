@@ -179,7 +179,9 @@ public final class WorldClientModel {
                                             "block",
                                             "state",
                                             "targetRef",
-                                            "targetTtlMs"))
+                                            "targetTtlMs",
+                                            "extensionParts",
+                                            "extensionLimitations"))
                             .entrySet()
                             .forEach(e -> result.add(e.getKey(), e.getValue()));
                 }
@@ -219,7 +221,9 @@ public final class WorldClientModel {
                                                         "block",
                                                         "state",
                                                         "targetRef",
-                                                        "targetTtlMs"));
+                                                        "targetTtlMs",
+                                                        "extensionParts",
+                                                        "extensionLimitations"));
                                 node.addProperty("x", cx + x);
                                 node.addProperty("y", cy + y);
                                 node.addProperty("z", cz + z);
@@ -299,7 +303,9 @@ public final class WorldClientModel {
                                     "displayedRotation",
                                     "partName",
                                     "targetRef",
-                                    "targetTtlMs")));
+                                    "targetTtlMs",
+                                    "extensionParts",
+                                    "extensionLimitations")));
         }
         result.add("entities", values);
         result.addProperty("radius", radius);
@@ -314,8 +320,15 @@ public final class WorldClientModel {
 
     private static JsonObject select(JsonObject source, Set<String> fields) {
         JsonObject result = new JsonObject();
-        for (String key : fields)
-            if (source.has(key) && source.get(key).isJsonPrimitive()) {
+        for (String key : fields) {
+            if (Set.of("extensionParts", "extensionLimitations").contains(key)
+                    && source.has(key)
+                    && source.get(key).isJsonArray()) {
+                var projected = source.getAsJsonArray(key);
+                if (projected.size() <= 256
+                        && projected.toString().getBytes(StandardCharsets.UTF_8).length <= 131072)
+                    result.add(key, projected.deepCopy());
+            } else if (source.has(key) && source.get(key).isJsonPrimitive()) {
                 var value = source.getAsJsonPrimitive(key);
                 if (value.isString()) {
                     result.addProperty(
@@ -328,6 +341,7 @@ public final class WorldClientModel {
                         || (value.isNumber() && Double.isFinite(value.getAsDouble())))
                     result.add(key, value.deepCopy());
             }
+        }
         return result;
     }
 

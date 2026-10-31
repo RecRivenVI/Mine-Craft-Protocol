@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
     [switch]$EnterWorld,[switch]$ExtensionPlatform,
-    [ValidateSet('platform_probe','computercraft','modern_ui','emi')][string]$ExtensionAdapter='platform_probe')
+    [ValidateSet('platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles')][string]$ExtensionAdapter='platform_probe')
 $ErrorActionPreference='Stop'
 if($ExtensionAdapter-ne'platform_probe'-and-not$ExtensionPlatform){throw 'Adapter requires explicit ExtensionPlatform scenario'}
 $resultName=$Target+$(if($ExtensionAdapter-ne'platform_probe'){'-'+$ExtensionAdapter})+'.json'

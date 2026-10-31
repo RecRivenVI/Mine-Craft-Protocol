@@ -10,6 +10,8 @@
 - 获得本机所有者对具体内容身份与声明 scope 的批准；更新代码、清单或依赖后重新批准并重启。
 - 将用户输入与调试分开；模式不授予 scope、Lease、Debug Arm 或服务器权限。
 
+公共SDK JAR只包含probe.api与probe.extension接口，不包含Runtime实现或Gson/Mixin。编译依赖使用SDK、与目标游戏兼容的Gson，以及确实使用hook时的Mixin；不得把它们复制进作者代码JAR。已有七包与平台探针由独立source-set、仅公开SDK类路径编译，作为[可运行参考](../../components/extension_packages/packages/platform_probe/java/io/github/recrivenvi/extensions/platformprobe/Entry.java)，不要求修改本体源码或另声明Loader模组。
+
 ## 步骤
 
 1. 编写实现 PackageExtension 的入口，只在 initialize 中注册，不在静态初始化访问游戏对象。
@@ -20,6 +22,16 @@
 6. 为 early hook 声明独立 Mixin 命名空间与 exports；共享状态 helper 不放在 Mixin 类包内。旧 Forge 用相应 Target 的真实映射生成 refmap，不将开发环境的命中作为成品证明。
 7. 通过离线安装流程把包与审批记录放入实例的 minecraft-protocol/extensions，重启后查询实际目录；不要在运行中替换或远程上传代码。
 8. 编写标准接口场景，分别记录 Arrange、正常 Act、独立 Assert、证据和 Cleanup；调试准备不作为 PLAYTEST 验收。
+
+精确清单与审批格式见[接口](../reference/api-extension_platform.md#清单格式1)。普通包不需要派生加载库；使用早期hook时按[停机暂存与主机工具](build-extension_packages.md)处理。测试索引引用文档内已索引的固定文件，可与说明共用文件；通过minecraft://extensions/包ID/tests/测试ID查阅只返回数据，不运行代码。回滚同样先停机，恢复已批准的整个旧包/审批并重新暂存，不能只换一个JAR或在运行中删除Mixin。
+
+## 资源与错误处理
+
+通过 contextResources 取得当前 WORLD、CONNECTION、SCREEN 或 INPUT_LEASE 资源组；processResources 只管理进程资源，DebugContext.resources 只管理已经授权的任务。保存脱离游戏对象的上下文身份用于比较，不在后台保存原生世界或客户端对象。Scope.publish 是发布屏障，失效后不得重新发布；ThreadOwner.cleanupBinding 在登记时捕获实际owner，不能把旧世界清理安排到新服务器。
+
+只依赖公共SDK即可捕获 ExtensionException 并读取稳定 code；不要导入 core.extension 的实现类或解析异常文字。EXTENSION_CONTEXT_UNAVAILABLE 表示当前运行端或生命周期没有该上下文，不创建替代上下文。清理必须尝试全部资源并保留逐项异常，不能吞掉错误后声明已释放。
+
+框架输入清理失败时，READ/OPERATE 仍可在独立权限下诊断。普通屏障允许修复后显式 emergency-release；inputQueuePoisoned=true 则要求重启Runtime，不能循环重放玩家操作。恢复授权与恢复已经退休的任务是两回事，新的任务必须显式启动。
 
 ## 验收
 

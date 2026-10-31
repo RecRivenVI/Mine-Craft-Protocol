@@ -70,6 +70,7 @@ val verifyAlphaConfiguration by
             "components/validation_tools/regression-v1_release/task/alpha-configuration.test.mjs",
             "components/validation_tools/regression-v1_release/task/alpha-consumer.test.mjs",
             "components/validation_tools/regression-v1_release/task/dp-freeze-proof.test.mjs",
+            "components/validation_tools/regression-v1_release/task/extension-proof.test.mjs",
         )
     }
 
@@ -148,6 +149,18 @@ val verifyServerWorldDebugTools by
         )
     }
 
+val verifyServerFixtures by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "node",
+            "--test",
+            "components/validation_tools/integration-server_peer/task/server-world-fixture.test.mjs",
+        )
+    }
+
+tasks.check { dependsOn(verifyServerFixtures) }
+
 val verifyOptionalInstallationTools by
     tasks.registering(Exec::class) {
         workingDir(rootDir.parentFile.parentFile)
@@ -158,9 +171,21 @@ val verifyOptionalInstallationTools by
         )
     }
 
+val verifyExtensionHost by
+    tasks.registering(Exec::class) {
+        workingDir(rootDir.parentFile.parentFile)
+        commandLine(
+            "pwsh",
+            "-NoProfile",
+            "-File",
+            "components/validation_tools/integration-extension_platform/task/Test-ExtensionHost.ps1",
+        )
+    }
+
 tasks.check {
     dependsOn(
         verifyInstanceProfiles,
+        verifyExtensionHost,
         verifyServerConsoleTools,
         verifyServerWorldDebugTools,
         verifyOptionalInstallationTools,

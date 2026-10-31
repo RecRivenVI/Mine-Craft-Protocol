@@ -266,6 +266,18 @@ final class NativeInputContextBoundaryTest {
         assertEquals(
                 3L,
                 java.util.Arrays.stream(refresh.instructions.toArray())
+                        .dropWhile(
+                                instruction ->
+                                        !(instruction
+                                                        instanceof
+                                                        org.objectweb.asm.tree.FieldInsnNode field
+                                                && field.name.equals("inputContext")))
+                        .takeWhile(
+                                instruction ->
+                                        !(instruction instanceof MethodInsnNode call
+                                                && call.owner.equals(
+                                                        ROOT + "safety/InputContextEpoch")
+                                                && call.name.equals("observe")))
                         .filter(instruction -> instruction.getOpcode() == Opcodes.ACONST_NULL)
                         .count(),
                 "Disconnected native identities must be replaced with null, not stale objects");

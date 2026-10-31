@@ -64,6 +64,10 @@ function Bundle-Files($Report){
     }
     if($Report.agentGuide.sha256-cnotmatch'^[0-9a-f]{64}$'){throw 'Alpha guide hash is missing'}
     $files['AGENT_GUIDE.md']=$Report.agentGuide.sha256
+    foreach($file in @($Report.additionalArtifacts|Where-Object {$_})){
+        if($Report.publicationProfile-cne'extension_platform_trial_v1'-or$file.fileName-cnotmatch'^(extensions|companion)/[A-Za-z0-9_./-]+$'-or@($file.fileName.Split('/')|Where-Object {$_-in@('','..','.')}).Count-or$files.Contains($file.fileName)-or$file.sha256-cnotmatch'^[0-9a-f]{64}$'){throw 'Invalid extension distribution entry'}
+        $files[$file.fileName]=$file.sha256
+    }
     return $files
 }
 function Assert-Snapshot([string]$Directory,[switch]$AllowWithdrawn){
@@ -76,12 +80,14 @@ function Assert-Snapshot([string]$Directory,[switch]$AllowWithdrawn){
     $report=Get-Content -LiteralPath $manifest -Raw|ConvertFrom-Json
     if((Snapshot-Name $report)-cne[IO.Path]::GetFileName($directory)-or$report.distribution.layout-ne'flat_immutable_snapshot'-or[IO.Path]::GetFullPath($report.distribution.directory)-ine$directory){throw 'Snapshot identity/layout mismatch'}
     $files=Bundle-Files $report
-    if(@(Get-ChildItem -LiteralPath $directory -Force).Count-ne7){throw 'Snapshot must contain exactly five JARs, one manifest and one guide'}
+    $children=@(Get-ChildItem -LiteralPath $directory -Force -Recurse)
+    if(@($children|Where-Object {$_.Attributes-band[IO.FileAttributes]::ReparsePoint}).Count){throw 'Snapshot children cannot be links'}
+    if(@($children|Where-Object {-not$_.PSIsContainer}).Count-ne($files.Count+1)){throw 'Snapshot file set differs from its manifest'}
     foreach($name in $files.Keys){$path=Join-Path $directory $name;if((Assert-Regular $path).PSIsContainer-or(Hash $path)-cne$files[$name]){throw "Snapshot hash mismatch: $name"}}
     return $report
 }
 function Assert-Source($Report,[string]$Manifest){
-    if($Report.publicationProfile-cnotin@('continuous_gameplay_trial_v1','dependency_update_trial_v1','e_ui_trial_v1','e_world_trial_v1')){throw 'New alpha publications require an explicit trial profile; historical snapshots are not rewritten'}
+    if($Report.publicationProfile-cnotin@('continuous_gameplay_trial_v1','dependency_update_trial_v1','e_ui_trial_v1','e_world_trial_v1','extension_platform_trial_v1')){throw 'New alpha publications require an explicit trial profile; historical snapshots are not rewritten'}
     if(-not$Report.sourceHashes-or-not$Report.agentGuide.sourceSha256){throw 'Source/guide provenance is missing'}
     $canonical=$Report.sourceHashes|ConvertTo-Json -Depth 3 -Compress
     $fingerprint=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($canonical))).ToLowerInvariant()
@@ -112,6 +118,11 @@ function Assert-Source($Report,[string]$Manifest){
         $path=Assert-Within (Join-Path $repo $artifact.path) (Join-Path $repo 'build/release')
         Assert-Regular $path|Out-Null
         if((Hash $path)-cne$artifact.sha256){throw "Alpha artifact changed: $($artifact.target)"}
+    }
+    foreach($artifact in @($Report.additionalArtifacts|Where-Object {$_})){
+        $path=Assert-Within (Join-Path $repo $artifact.path) $repo
+        Assert-Regular $path|Out-Null
+        if((Hash $path)-cne$artifact.sha256){throw "Extension distribution source changed: $($artifact.fileName)"}
     }
     $guide=Assert-Within (Join-Path $repo $Report.agentGuide.path) (Join-Path $repo 'build')
     if((Hash $guide)-cne$Report.agentGuide.sha256){throw 'Generated alpha guide changed'}
@@ -229,6 +240,11 @@ try{
         $stage=Join-Path $root ('.publish-'+[Guid]::NewGuid().ToString('N'))
         [IO.Directory]::CreateDirectory($stage)|Out-Null
         foreach($artifact in $report.artifacts){Copy-Item -LiteralPath (Join-Path $repo $artifact.path) -Destination (Join-Path $stage $artifact.fileName)}
+        foreach($artifact in @($report.additionalArtifacts|Where-Object {$_})){
+            $destination=Assert-Within (Join-Path $stage $artifact.fileName) $stage
+            [IO.Directory]::CreateDirectory((Split-Path $destination))|Out-Null
+            Copy-Item -LiteralPath (Join-Path $repo $artifact.path) -Destination $destination
+        }
         Copy-Item -LiteralPath (Join-Path $repo $report.agentGuide.path) -Destination (Join-Path $stage 'AGENT_GUIDE.md')
         Copy-Item -LiteralPath $manifest -Destination (Join-Path $stage 'alpha-manifest.json')
         foreach($file in $files.Keys){if((Hash (Join-Path $stage $file))-cne$files[$file]){throw "Alpha copy changed: $file"}}

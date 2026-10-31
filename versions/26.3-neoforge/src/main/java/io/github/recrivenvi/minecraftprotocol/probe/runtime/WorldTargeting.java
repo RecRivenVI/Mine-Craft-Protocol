@@ -51,7 +51,11 @@ public final class WorldTargeting {
             WeakReference<Entity> entity,
             BlockPos block,
             BlockState state,
-            long revision) {}
+            long revision,
+            io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine.Binding
+                    partBinding,
+            io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter.Part
+                    resolvedPart) {}
 
     private record Placement(BlockPos destination, Object chunk, BlockState before, String block) {}
 
@@ -121,8 +125,112 @@ public final class WorldTargeting {
                                 new WeakReference<>(null),
                                 pos.immutable(),
                                 state,
-                                BLOCK_CHANGES.snapshot())));
+                                BLOCK_CHANGES.snapshot(),
+                                null,
+                                null)));
         value.addProperty("targetTtlMs", 15000);
+        projectParts(value, targets.get(value.get("targetRef").getAsString()));
+    }
+
+    private io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine extensions;
+    private java.util.function.ToLongFunction<Object> identity;
+
+    void extensions(
+            io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine engine,
+            java.util.function.ToLongFunction<Object> identity) {
+        this.extensions = engine;
+        this.identity = identity;
+    }
+
+    io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine.ReadScope
+            readScope() {
+        return extensions == null ? null : extensions.readScope();
+    }
+
+    private Object nativeParent(Target target) {
+        if (target.block == null) return target.entity.get();
+        var blockEntity =
+                ((net.minecraft.world.level.chunk.LevelChunk) target.chunk.get())
+                        .getBlockEntities()
+                        .get(target.block);
+        return blockEntity == null ? target.state : blockEntity;
+    }
+
+    private io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter.Frame partFrame(
+            Target target, String parentRef) {
+        Minecraft client = Minecraft.getInstance();
+        return new io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter.Frame(
+                extensions.runtimeId(),
+                identity.applyAsLong(client.level),
+                client.level.dimension().toString(),
+                target.block == null ? "entity" : "block",
+                target.block == null
+                        ? target.entity.get().getUUID().toString()
+                        : target.block.toShortString(),
+                identity.applyAsLong(nativeParent(target)),
+                parentRef);
+    }
+
+    private JsonObject parentSnapshot(Target target) {
+        var result = new JsonObject();
+        if (target.block != null) {
+            result.addProperty("x", target.block.getX());
+            result.addProperty("y", target.block.getY());
+            result.addProperty("z", target.block.getZ());
+            result.addProperty(
+                    "block",
+                    net.minecraft.core.registries.BuiltInRegistries.BLOCK
+                            .getKey(target.state.getBlock())
+                            .toString());
+        } else {
+            var entity = target.entity.get();
+            result.addProperty("x", entity.getX());
+            result.addProperty("y", entity.getY());
+            result.addProperty("z", entity.getZ());
+            result.addProperty(
+                    "type",
+                    net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                            .getKey(entity.getType())
+                            .toString());
+        }
+        return result;
+    }
+
+    private void projectParts(JsonObject value, Target target) {
+        if (extensions == null) return;
+        var frame = partFrame(target, value.get("targetRef").getAsString());
+        var projected =
+                extensions.discover(
+                        frame,
+                        nativeParent(target),
+                        parentSnapshot(target),
+                        identity,
+                        Minecraft.getInstance()::isSameThread);
+        var parts = new com.google.gson.JsonArray();
+        for (var binding : projected.parts()) {
+            var part =
+                    io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine
+                            .describe(binding);
+            part.addProperty(
+                    "targetRef",
+                    targets.add(
+                            new Target(
+                                    target.world,
+                                    target.player,
+                                    target.camera,
+                                    target.chunk,
+                                    target.entity,
+                                    target.block,
+                                    target.state,
+                                    target.revision,
+                                    binding,
+                                    binding.part())));
+            part.addProperty("targetTtlMs", 15000);
+            parts.add(part);
+        }
+        if (!parts.isEmpty()) value.add("extensionParts", parts);
+        if (!projected.limitations().isEmpty())
+            value.add("extensionLimitations", projected.limitations());
     }
 
     private static boolean currentEntity(Minecraft client, Entity entity) {
@@ -151,8 +259,11 @@ public final class WorldTargeting {
                                 new WeakReference<>(entity),
                                 null,
                                 null,
-                                0)));
+                                0,
+                                null,
+                                null)));
         value.addProperty("targetTtlMs", 15000);
+        projectParts(value, targets.get(value.get("targetRef").getAsString()));
     }
 
     private Target valid(String ref) {
@@ -202,6 +313,37 @@ public final class WorldTargeting {
                     || !currentEntity(client, entity))
                 throw error("WORLD_TARGET_STALE", "Entity lifecycle ended");
         }
+        if (target.partBinding != null) {
+            if (extensions == null
+                    || !partFrame(target, target.partBinding.frame().parentTargetRef())
+                            .equals(target.partBinding.frame()))
+                throw error("WORLD_PART_STALE", "Native parent identity changed");
+            try {
+                var part =
+                        extensions.resolve(
+                                target.partBinding,
+                                nativeParent(target),
+                                parentSnapshot(target),
+                                identity,
+                                client::isSameThread);
+                target =
+                        new Target(
+                                target.world,
+                                target.player,
+                                target.camera,
+                                target.chunk,
+                                target.entity,
+                                target.block,
+                                target.state,
+                                target.revision,
+                                target.partBinding,
+                                part);
+            } catch (
+                    io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionFailure
+                            failure) {
+                throw error(failure.code(), failure.getMessage());
+            }
+        }
         return target;
     }
 
@@ -232,6 +374,10 @@ public final class WorldTargeting {
         validate(ref, guard);
         Minecraft client = Minecraft.getInstance();
         Target target = valid(ref);
+        if (target.partBinding != null && (options.has("entityHit") || options.has("face")))
+            throw error(
+                    "WORLD_PART_OPTIONS_UNSUPPORTED",
+                    "Part owns its aim geometry; rediscover a native parent for explicit face/body options");
         if (options.has("entityHit") && target.block != null)
             throw error(
                     "WORLD_ENTITY_TARGET_REQUIRED",
@@ -366,6 +512,10 @@ public final class WorldTargeting {
     }
 
     private static Vec3 aimPoint(Target target, JsonObject options) {
+        if (target.resolvedPart != null) {
+            var point = target.resolvedPart.aimPoint();
+            return new Vec3(point.x(), point.y(), point.z());
+        }
         if (target.block == null) {
             Entity entity = target.entity.get();
             if (!options.has("entityHit")) return entity.getBoundingBox().getCenter();
@@ -544,6 +694,15 @@ public final class WorldTargeting {
 
     private static boolean matches(
             Target target, String action, JsonObject options, HitResult hit) {
+        if (target.resolvedPart != null) {
+            var point = hit.getLocation();
+            if (!target.resolvedPart
+                    .bounds()
+                    .contains(
+                            new io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter
+                                    .Point(point.x, point.y, point.z),
+                            .025)) return false;
+        }
         if (target.block != null) {
             if (!(hit instanceof BlockHitResult block)
                     || block.getType() != HitResult.Type.BLOCK

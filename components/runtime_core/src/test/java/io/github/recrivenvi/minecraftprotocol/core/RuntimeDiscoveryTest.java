@@ -32,11 +32,15 @@ final class RuntimeDiscoveryTest {
                         new Class<?>[] {ProbeService.class},
                         (proxy, method, args) -> {
                             if (method.getReturnType() == void.class) return null;
+                            if (method.getName().equals("extensionLifetimeContexts"))
+                                return io.github.recrivenvi.minecraftprotocol.probe.extension
+                                        .LifetimeContexts.empty();
                             if (method.getName().equals("extensionEarlyHooks"))
                                 return (io.github.recrivenvi.minecraftprotocol.core.extension
                                                 .ExtensionPlatform.EarlyHooks)
                                         (manifest, env) -> false;
-                            if (method.getName().equals("extensionThreadOwners"))
+                            if (method.getName().equals("extensionThreadOwners")
+                                    || method.getName().equals("extensionNativeContexts"))
                                 return java.util.Map.of();
                             if (method.getName().equals("extensionEnvironment")) return null;
                             if (method.getName().equals("artifactRoot"))
@@ -180,6 +184,68 @@ final class RuntimeDiscoveryTest {
             try (var next = RuntimeEndpoint.acquire(directory, "test-target")) {
                 assertNotNull(next.instanceId());
             }
+        }
+    }
+
+    @Test
+    void closeWithdrawsDiscoveryWithoutWaitingForTheNettyEventLoop() throws Exception {
+        var transport =
+                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target");
+        var release = new java.util.concurrent.CountDownLatch(1);
+        try {
+            transport.startAsync();
+            transport.boundPort().get(5, TimeUnit.SECONDS);
+            var field = ProbeTransport.class.getDeclaredField("serverChannel");
+            field.setAccessible(true);
+            var channel = (io.netty.channel.Channel) field.get(transport);
+            var entered = new java.util.concurrent.CountDownLatch(1);
+            channel.eventLoop()
+                    .execute(
+                            () -> {
+                                entered.countDown();
+                                try {
+                                    release.await(5, TimeUnit.SECONDS);
+                                } catch (InterruptedException interrupted) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            });
+            assertTrue(entered.await(2, TimeUnit.SECONDS));
+            transport.close();
+            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+            try (var next = RuntimeEndpoint.acquire(root, "test-target")) {
+                next.publish(43123);
+                release.countDown();
+                channel.closeFuture().await(2, TimeUnit.SECONDS);
+                assertEquals(
+                        next.instanceId(), record(root).get("runtimeInstanceId").getAsString());
+            }
+        } finally {
+            release.countDown();
+            transport.close();
+        }
+    }
+
+    @Test
+    void actualInputStateRouteExplainsSequenceQueueRecoveryPolicy() throws Exception {
+        try (var transport =
+                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+            transport.startAsync();
+            int port = transport.boundPort().get(5, TimeUnit.SECONDS);
+            String token = Files.readString(root.resolve("minecraft-protocol/token")).trim();
+            var reply =
+                    request(
+                            port,
+                            token,
+                            record(root).get("runtimeInstanceId").getAsString(),
+                            "/v0/input/state",
+                            "GET");
+            assertEquals(200, reply.statusCode());
+            var value = JsonParser.parseString(reply.body()).getAsJsonObject();
+            assertEquals(0, value.get("inputQueueDepth").getAsInt());
+            assertTrue(value.get("inputQueueCapacity").getAsInt() > 0);
+            assertFalse(value.get("inputSequenceActive").getAsBoolean());
+            assertFalse(value.get("inputQueuePoisoned").getAsBoolean());
+            assertEquals("not_required", value.get("inputQueueRecovery").getAsString());
         }
     }
 

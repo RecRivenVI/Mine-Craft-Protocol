@@ -28,6 +28,112 @@ import org.junit.jupiter.api.io.TempDir;
 class ExtensionPlatformTest {
     @TempDir Path temporary;
 
+    @Test
+    void nativeContextIsOwnerOnlyDoesNotFallbackAndExpiresWithThePackage() throws Exception {
+        Path root = temporary.resolve("native_owner");
+        Path directory =
+                bundle(
+                        root,
+                        "native_owner",
+                        "extensiontest.nativeowner",
+                        1,
+                        false,
+                        null,
+                        """
+                context.provider(new AgentDataProviderV2() {
+                    public Descriptor descriptor() {
+                        return new Descriptor("native_owner:native", "1", List.of("snapshot"),
+                            "minecraft-extension://native_owner/schemas/value", "minecraft-extension://native_owner/schemas/value/query",
+                            "client_thread", List.of("client_known"), "none", "complete", true, false, false, false, false,
+                            "snapshot_change_sequence", "query_view", null, false, "snapshot_diff_delta",
+                            new DebugDeclaration(false,null,null,null,false,false,"none","none"), List.of("debug.world.read"));
+                    }
+                    public CompletableFuture<JsonObject> capture(ReadContext read) {
+                        Object nativeObject=context.nativeContext(read.query().get("owner").getAsString());
+                        JsonObject data=new JsonObject();data.addProperty("value",1);
+                        data.addProperty("nativeType",nativeObject.getClass().getName());
+                        JsonObject envelope=new JsonObject();envelope.addProperty("schemaVersion","1");envelope.add("data",data);
+                        return CompletableFuture.completedFuture(envelope);
+                    }
+                });
+                """);
+        Path manifest = directory.resolve("extension.json");
+        JsonObject declaration = json(Files.readString(manifest));
+        declaration.getAsJsonArray("capabilities").add("native_owner:native");
+        Files.writeString(manifest, declaration.toString());
+        approve(root, directory, true);
+        var ownerActive = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var available = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var reads = new java.util.concurrent.atomic.AtomicInteger();
+        var owner =
+                new io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                        .ThreadOwner("client_thread", Runnable::run, ownerActive::get);
+        var platform =
+                new ExtensionPlatform(
+                        new ExtensionStore(root),
+                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        (m, e) -> true,
+                        "native-owner-runtime",
+                        Map.of("client_thread", owner),
+                        null,
+                        Map.of(
+                                "client_thread",
+                                () -> {
+                                    reads.incrementAndGet();
+                                    return available.get() ? new StringBuilder() : null;
+                                }));
+        var provider =
+                platform.snapshot().stream()
+                        .filter(
+                                value ->
+                                        value.descriptor()
+                                                .providerId()
+                                                .equals("native_owner:native"))
+                        .findFirst()
+                        .orElseThrow();
+        java.util.function.Function<String, JsonObject> capture =
+                id ->
+                        provider.capture(
+                                        new AgentDataProviderV2.ReadContext(
+                                                json("{\"owner\":\"" + id + "\"}"),
+                                                "client_known",
+                                                false,
+                                                Long.MAX_VALUE,
+                                                4096))
+                                .join();
+        try {
+            assertEquals(
+                    "java.lang.StringBuilder",
+                    capture.apply("client_thread")
+                            .getAsJsonObject("data")
+                            .get("nativeType")
+                            .getAsString());
+            assertEquals(
+                    "EXTENSION_NATIVE_CONTEXT_UNAVAILABLE",
+                    assertThrows(ExtensionFailure.class, () -> capture.apply("server_thread"))
+                            .code());
+            ownerActive.set(false);
+            assertEquals(
+                    "EXTENSION_WRONG_THREAD_OWNER",
+                    assertThrows(ExtensionFailure.class, () -> capture.apply("client_thread"))
+                            .code());
+            assertEquals(1, reads.get());
+            ownerActive.set(true);
+            available.set(false);
+            assertEquals(
+                    "EXTENSION_NATIVE_CONTEXT_UNAVAILABLE",
+                    assertThrows(ExtensionFailure.class, () -> capture.apply("client_thread"))
+                            .code());
+        } finally {
+            platform.close();
+        }
+        assertEquals(
+                "extension_runtime_closed",
+                assertThrows(IllegalStateException.class, () -> capture.apply("client_thread"))
+                        .getMessage());
+        assertEquals(2, reads.get());
+    }
+
     private static ExtensionPlatform.Environment environment(
             String target, PackageContext.Side side) {
         return new ExtensionPlatform.Environment(
@@ -44,6 +150,65 @@ class ExtensionPlatformTest {
     }
 
     @Test
+    void twoIndependentPackagesFailAndRecoverWithNamedCleanupReports() throws Exception {
+        var root = temporary.resolve("two_faults");
+        String input =
+                """
+            context.inputAdapter(new LogicalInputAdapter() {
+                public String id() { return context.packageId()+":input"; }
+                public CompletableFuture<Void> reset(String reason) {
+                    return reason.equals("fail:"+context.packageId())
+                        ? CompletableFuture.failedFuture(new IllegalStateException("injected"))
+                        : CompletableFuture.completedFuture(null);
+                }
+            });
+            """;
+        for (String id : List.of("left", "right")) {
+            var directory = bundle(root, id, "independent." + id, 1, false, null, input);
+            approve(root, directory, true);
+        }
+        try (var platform =
+                new ExtensionPlatform(
+                        new ExtensionStore(root),
+                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        (m, e) -> false)) {
+            assertEquals(2, platform.snapshot().size());
+            for (String id : List.of("left", "right")) {
+                assertThrows(
+                        java.util.concurrent.CompletionException.class,
+                        () -> platform.resetInput("fail:" + id).join());
+                var reports = platform.resourceDiagnostics().getAsJsonArray("inputCleanup");
+                var last = reports.asList().subList(reports.size() - 2, reports.size());
+                assertTrue(
+                        last.stream()
+                                .anyMatch(
+                                        value ->
+                                                value.getAsJsonObject()
+                                                                .get("adapterId")
+                                                                .getAsString()
+                                                                .equals(id + ":input")
+                                                        && value.getAsJsonObject()
+                                                                .get("status")
+                                                                .getAsString()
+                                                                .equals("failed")));
+                assertEquals(
+                        1,
+                        last.stream()
+                                .filter(
+                                        value ->
+                                                value.getAsJsonObject()
+                                                        .get("status")
+                                                        .getAsString()
+                                                        .equals("released"))
+                                .count());
+                platform.resetInput("recovered:" + id).join();
+                assertEquals(2, platform.snapshot().size());
+            }
+            assertEquals(8, platform.resourceDiagnostics().getAsJsonArray("inputCleanup").size());
+        }
+    }
+
+    @Test
     void uiAndInputContributionsAreTypedTransactionalAndRequireDeclaredScopes() throws Exception {
         String registration =
                 """
@@ -55,6 +220,11 @@ class ExtensionPlatformTest {
             context.inputAdapter(new LogicalInputAdapter() {
                 public String id() { return context.packageId()+":input"; }
                 public CompletableFuture<Void> reset(String reason) { return CompletableFuture.completedFuture(null); }
+            });
+            context.worldAdapter(new WorldAdapter() {
+                public Descriptor descriptor() { return new Descriptor(context.packageId()+":world", 1, 250); }
+                public boolean matches(Frame frame) { return true; }
+                public Projection capture(Context value) { return new Projection(value.frame(), System.nanoTime(), List.of()); }
             });
             """;
         for (boolean fail : List.of(false, true)) {
@@ -78,6 +248,7 @@ class ExtensionPlatformTest {
                 assertEquals(fail ? 0 : 1, platform.snapshot().size());
                 assertEquals(!fail, catalog.toString().contains("ui_projection"));
                 assertEquals(!fail, catalog.toString().contains("logical_input"));
+                assertEquals(!fail, catalog.toString().contains("world_parts"));
                 platform.resetInput("test").join();
             }
         }
@@ -128,6 +299,64 @@ class ExtensionPlatformTest {
             }
         }
         assertNull(System.getProperty("extension_test.deterministic"));
+    }
+
+    @Test
+    void stoppedStagingLibraryWorksInAnotherDirectoryWithTheSameApprovedContent() throws Exception {
+        Path staging = temporary.resolve("offline-stage");
+        Path source = staging.resolve("minecraft-protocol/extensions");
+        Path directory = hookBundle(source, "portable", "extensiontest.portable");
+        approve(source, directory, true);
+        Path library = staging.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        ExtensionEarlyStage.write(
+                new ExtensionStore(source),
+                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                library);
+        Path game = temporary.resolve("ordinary-install");
+        Path destination = game.resolve("minecraft-protocol/extensions");
+        try (var paths = Files.walk(source)) {
+            for (Path path : paths.toList()) {
+                Path target = destination.resolve(source.relativize(path));
+                if (Files.isDirectory(path)) Files.createDirectories(target);
+                else Files.copy(path, target);
+            }
+        }
+        Path installed = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        Files.createDirectories(installed.getParent());
+        Files.copy(library, installed);
+        assertArrayEquals(Files.readAllBytes(library), Files.readAllBytes(installed));
+        try (var loader =
+                new java.net.URLClassLoader(
+                        new java.net.URL[] {installed.toUri().toURL()},
+                        PackageContext.class.getClassLoader())) {
+            var env =
+                    new ExtensionPlatform.Environment(
+                            "product",
+                            "26.3-neoforge",
+                            PackageContext.Side.CLIENT,
+                            Runtime.version().feature(),
+                            Map.of("upstream", "2.0.0"),
+                            loader);
+            var boot =
+                    ExtensionEarlyBootstrap.boot(
+                            game,
+                            env,
+                            new ExtensionEarlyBootstrap.Loader() {
+                                public void prepare(Path path) {
+                                    assertEquals(installed, path);
+                                }
+
+                                public boolean isClassLoaded(String name) {
+                                    return false;
+                                }
+                            });
+            assertEquals(
+                    "validated",
+                    boot.diagnostics().get("state").getAsString(),
+                    boot.diagnostics().toString());
+            assertEquals(1, boot.configurationPaths().size());
+            assertNull(System.getProperty("extension_test.portable"));
+        }
     }
 
     @Test
@@ -431,10 +660,14 @@ class ExtensionPlatformTest {
                                         return environment(
                                                 "26.3-neoforge", PackageContext.Side.CLIENT);
                                     if (method.getReturnType() == void.class) return null;
+                                    if (method.getName().equals("extensionLifetimeContexts"))
+                                        return io.github.recrivenvi.minecraftprotocol.probe
+                                                .extension.LifetimeContexts.empty();
                                     if (method.getName().equals("extensionEarlyHooks"))
                                         return (ExtensionPlatform.EarlyHooks)
                                                 (manifest, env) -> false;
-                                    if (method.getName().equals("extensionThreadOwners"))
+                                    if (method.getName().equals("extensionThreadOwners")
+                                            || method.getName().equals("extensionNativeContexts"))
                                         return java.util.Map.of();
                                     if (method.getName().equals("artifactRoot"))
                                         return game.resolve("artifacts");
@@ -828,7 +1061,7 @@ class ExtensionPlatformTest {
                 "capabilities",
                 additionalRegistration.isEmpty()
                         ? array(id + ":state")
-                        : array(id + ":state", id + ":ui", id + ":input"));
+                        : array(id + ":state", id + ":ui", id + ":input", id + ":world"));
         manifest.add(
                 "requestedScopes",
                 additionalRegistration.isEmpty()

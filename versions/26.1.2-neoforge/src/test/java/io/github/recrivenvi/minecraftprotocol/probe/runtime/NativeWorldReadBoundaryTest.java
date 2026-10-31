@@ -260,7 +260,7 @@ class NativeWorldReadBoundaryTest {
                 calls(method(compiled(RUNTIME + "WorldClientSnapshot$1"), "entities")).stream()
                         .anyMatch(call -> call.name.equals("entitiesForRendering")));
         assertTrue(
-                calls(method(snapshot, "capture")).stream()
+                calls(method(snapshot, "captureScoped")).stream()
                         .anyMatch(
                                 call ->
                                         call.owner.equals(

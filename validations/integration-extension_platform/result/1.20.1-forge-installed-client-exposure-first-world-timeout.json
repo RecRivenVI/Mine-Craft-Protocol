@@ -1,0 +1,224 @@
+{
+  "target": "1.20.1-forge",
+  "role": "client",
+  "adapter": "exposure",
+  "runtimeInstanceId": "3ead2b6d-fff2-4948-9a2d-65fd2562580e",
+  "developmentClasspath": false,
+  "finalJarInstall": true,
+  "toolFiles": {
+    "components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1": "4ae84ac08b0dfdb3457f7d10b9f9f89925b324413494628a9f1f0b9bcde64ff6",
+    "components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs": "f6b543c9fd993f7865d85bcbe66847475ed9c9108d8a288779b7c70c5e904dad",
+    "components/validation_tools/integration-extension_platform/task/install-platform-probe.mjs": "9fd825035afc20d2ac149d9e81cad680a0ec868486b849dc5ecf7f83e7267000",
+    "components/validation_tools/integration-extension_platform/task/adapter-ui-actions.mjs": "e5a5239a0c0c510b79fb7d005149cbdef4175f090f1be1aa0a243b7496e7ef36",
+    "components/validation_tools/integration-extension_platform/task/adapter-world-actions.mjs": "164576f0ccdebac471490a42225c5dcb17cdca9946703d1edaaa1ef6b9c173cd",
+    "components/validation_tools/integration-extension_platform/task/lifecycle-fault-actions.mjs": "39a589469e65604ab285df5c59924e03841ec3c049c9a28afbaed01af8baadb1",
+    "components/validation_tools/integration-extension_platform/task/install-adapter.py": "84004e6f9f86ae7dd990821146256d7e7ff33ccf70b20732bb87f68b9fa8d760"
+  },
+  "packageSourceFiles": {
+    "components/extension_packages/authoring/NativeAccess.java.template": "fb3f10a2e5e934d6c06a701edc111ece79096d23d94b9ea250c4d6670b3104d3",
+    "components/extension_packages/authoring/OwnerTasks.java.template": "fc9e078c128c6a75146a6fe9120e8758f3d0b6366e1bf80419e8aea405ec802f",
+    "components/extension_packages/authoring/ReadProvider.java.template": "6f92d657c2d7ea2a043091738c166ce986d446f539355ec9c5af6d8272326b90",
+    "components/extension_packages/authoring/legacy-bindings.json": "c1883edda67afae4549fdee82e8d5e8a754694b1d6120f7e62580a4b2eb880a3",
+    "components/extension_packages/build.gradle.kts": "8d7e1860b24c0ae221c45e0359c800a8120913bc2fe007faff615b011ee825ea",
+    "components/extension_packages/fixtures/lifetime_probe/Entry.java.template": "cf004f0301421b8929a1524ee87fd8795f0b1a8835f01cf9dab7ba72ed68e91a",
+    "components/extension_packages/native-classpaths.gradle": "1953ab5edc32294667fea3faff46586775e89cfd909364e024b607724035e37e",
+    "components/extension_packages/packages/exposure/java/io/github/recrivenvi/extensions/exposure/Entry.java": "2f7d2aa703d114532e103b9a5bd1da815ccad756c70fc72830839fe3f332a98a",
+    "components/extension_packages/packages/exposure/overview.md": "89afe8790b1e916cfc4466f5686cd65f5e5050f50e2e3d36d72d77188d8d5248",
+    "components/extension_packages/packages/exposure/package.json": "6f19cf365f5b8a49f73b6cb1af33f9546e0687f171ebdb4c012618225efcee4a",
+    "components/extension_packages/packages/index.json": "a8ed1ef70d655384ea2f8e0549eab06c359f2be665b8f59fd53301b7763f6e25",
+    "components/extension_packages/packages/platform_probe/java/io/github/recrivenvi/extensions/platformprobe/Entry.java": "ee77de05c19cf860cb0ce5b376a6a74bf86c9b7cca78ef266eb684ab04436fac",
+    "components/extension_packages/packages/platform_probe/java/io/github/recrivenvi/extensions/platformprobe/hooks/mixin/ServerTickHookMixin.java": "549fc4732bbb6d222cf123c4847eee61f9ebc42927c4efefac5c7300762ba493",
+    "components/extension_packages/packages/platform_probe/java/io/github/recrivenvi/extensions/platformprobe/hooks/state/NativeCounter.java": "57c16dc7a903dbbbc69601032aca3854249de01d9c4c7018d53ea64d13a0d35c",
+    "components/extension_packages/scripts/package-adapters.mjs": "4f4cfec2107c1f7e0ad81685a820df98949bb0b62f02f7ff23dbd5006bac64c6",
+    "components/extension_packages/scripts/package-lifecycle-fixtures.mjs": "2b2010b0b6ba8712c344af388fe2606fc77f8e1bca30d9e3d282dc56bfee8594",
+    "components/extension_packages/scripts/package-probe.mjs": "cd90a6272ac57dbe766b50cb3455eced5b865b1d4d1efebf23fe56e45e0158ce",
+    "components/extension_packages/scripts/prepare-authoring.mjs": "6a4c61d071d25309970ed567ce6fde8634682be87976d0704056f89c303a3c0e",
+    "components/extension_packages/scripts/prepare-lifecycle-fixtures.mjs": "b6a269b48fb6bcc02cb5262ecdc813a1c2f65c645a345dbd0488514ba503e17c",
+    "components/extension_packages/settings.gradle.kts": "5b7fe72dfc448b3eaca5ec29f7ef22a37740eb8fbaf08fc7510cbdd9af78a898",
+    "components/extension_packages/src/main/java/io/github/recrivenvi/minecraftprotocol/packaging/ExtensionPackageCli.java": "9255424c0d1c018b984c76ee5e1ea19da283f2fd97a049f74e212b4997308bda"
+  },
+  "upstreamArtifacts": {
+    "extension-input-exposure-1-20-1-forge.jar": "aa2138af2ff4c123b86319278e7ffc56193bb3822096228ca263e99138e2e91e"
+  },
+  "checks": [
+    {
+      "name": "approved independent SDK package loads and static catalog/documents work at title",
+      "status": "PASS"
+    },
+    {
+      "name": "SDK UI enrichment retains native identity and supports normal menu navigation",
+      "status": "PASS"
+    }
+  ],
+  "observations": [
+    {
+      "catalog": {
+        "type": "extensions.catalog",
+        "sdkApi": 1,
+        "formatVersion": 1,
+        "target": "1.20.1-forge",
+        "side": "CLIENT",
+        "trustedLocalCode": true,
+        "jvmSandbox": false,
+        "codeUpdateRequiresRestart": true,
+        "closed": false,
+        "earlyHooks": {
+          "state": "validated",
+          "failure": "",
+          "target": "1.20.1-forge",
+          "side": "CLIENT",
+          "libraryAbi": 1,
+          "globalFallbackReplaced": false,
+          "configs": [
+            {
+              "packageId": "platform_probe",
+              "mixinPackage": "io.github.recrivenvi.extensions.platformprobe.hooks.mixin",
+              "registered": true,
+              "appliedTargets": [
+                "io.github.recrivenvi.extensions.platformprobe.hooks.mixin.ServerTickHookMixin -> net.minecraft.server.MinecraftServer"
+              ]
+            }
+          ]
+        },
+        "packages": [
+          {
+            "candidate": "exposure",
+            "status": "active",
+            "reason": "",
+            "packageId": "exposure",
+            "version": "1.0.0",
+            "contentIdentity": "7189c88078fe08a6001a711fc93bf6513e0daad9c130afe8d2e1e6936521c641",
+            "declaredCapabilities": [
+              "exposure:camera"
+            ],
+            "registeredCapabilities": [
+              "exposure:camera"
+            ],
+            "capabilityDetails": [
+              {
+                "id": "exposure:camera",
+                "kind": "provider",
+                "grantsAuthority": false
+              }
+            ],
+            "documents": {
+              "overview": "89afe8790b1e916cfc4466f5686cd65f5e5050f50e2e3d36d72d77188d8d5248"
+            },
+            "tests": {}
+          },
+          {
+            "candidate": "platform_probe",
+            "status": "active",
+            "reason": "",
+            "packageId": "platform_probe",
+            "version": "1.0.4",
+            "contentIdentity": "dffcbb39f98dc38ae7d7468f7e2df8515436253c5c2c8868aab1bf328cf85551",
+            "declaredCapabilities": [
+              "platform_probe:native_ui",
+              "platform_probe:native_world",
+              "platform_probe:sampling"
+            ],
+            "registeredCapabilities": [
+              "platform_probe:native_ui",
+              "platform_probe:native_world",
+              "platform_probe:sampling"
+            ],
+            "capabilityDetails": [
+              {
+                "id": "platform_probe:native_ui",
+                "kind": "ui_projection",
+                "grantsAuthority": false,
+                "views": [
+                  "DEBUG",
+                  "USER"
+                ],
+                "actionRoute": "existing_game_routed_input"
+              },
+              {
+                "id": "platform_probe:native_world",
+                "kind": "world_parts",
+                "grantsAuthority": false,
+                "views": [
+                  "USER"
+                ],
+                "actionRoute": "existing_game_routed_native_parent_pick"
+              },
+              {
+                "id": "platform_probe:sampling",
+                "kind": "provider",
+                "grantsAuthority": false
+              }
+            ],
+            "documents": {
+              "overview": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec"
+            },
+            "tests": {}
+          }
+        ],
+        "requestId": "df468c56-168d-43be-968a-90811e7f87d3",
+        "protocolVersion": "v0"
+      },
+      "document": {
+        "type": "extension.document",
+        "packageId": "platform_probe",
+        "documentId": "overview",
+        "contentIdentity": "dffcbb39f98dc38ae7d7468f7e2df8515436253c5c2c8868aab1bf328cf85551",
+        "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
+        "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
+        "contentIsData": true,
+        "requestId": "c896e251-39f0-4f35-a171-a8ad068344f0",
+        "protocolVersion": "v0"
+      }
+    },
+    {
+      "nativeUiEnrichment": {
+        "label": "Singleplayer",
+        "visible": true,
+        "nodeRevision": 1,
+        "interactionX": 240,
+        "interactionY": 125,
+        "nodeId": "ui:1:3",
+        "active": true,
+        "class": "net.minecraft.client.gui.components.Button",
+        "height": 20,
+        "width": 200,
+        "capabilitySource": "platform_probe:native_ui",
+        "role": "button",
+        "actions": [
+          "hover",
+          "click",
+          "double_click",
+          "mouse_down",
+          "mouse_up"
+        ],
+        "x": 140,
+        "y": 115,
+        "hovered": false,
+        "translationKey": "menu.singleplayer",
+        "focused": false,
+        "boundsAvailable": true,
+        "coverage": "native_with_extension_semantics",
+        "elementIdentity": 3,
+        "acquisition": "installed_extension"
+      }
+    }
+  ],
+  "admissionRetries": [],
+  "persistentWriteCalls": 0,
+  "artifactSha256": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398",
+  "packageIdentity": "dffcbb39f98dc38ae7d7468f7e2df8515436253c5c2c8868aab1bf328cf85551",
+  "status": "FAIL",
+  "error": "TimeoutError: The operation was aborted due to timeout",
+  "expectedCleanupFailures": [],
+  "debugCleanupBeforeShutdown": {
+    "type": "extensions.resources",
+    "runtimeInstanceId": "3ead2b6d-fff2-4948-9a2d-65fd2562580e",
+    "activeScopes": 2,
+    "cleanup": [],
+    "inputCleanup": [],
+    "requestId": "3e10095c-f334-4c51-a655-7cda0293e10a",
+    "protocolVersion": "v0"
+  },
+  "shutdownError": "TimeoutError: The operation was aborted due to timeout",
+  "completedAt": "2026-10-31T18:50:38.220Z"
+}

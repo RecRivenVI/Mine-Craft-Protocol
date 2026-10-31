@@ -1,0 +1,58 @@
+package @NAMESPACE@.support;
+
+import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources;
+import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
+import java.util.Set;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
+
+/** A bounded asynchronous entry, with actual native work dispatched back to its owner. */
+public final class OwnerTasks {
+    private final PackageContext context;
+    private final ThreadPoolExecutor queue;
+    private final Set<CompletableFuture<?>> pending = ConcurrentHashMap.newKeySet();
+    private final Semaphore capacity = new Semaphore(16);
+
+    public OwnerTasks(PackageContext context, String id) {
+        this.context = context;
+        queue = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(16), task -> {
+            Thread thread = new Thread(task, context.packageId() + "-" + id); thread.setDaemon(true); return thread;
+        }, new ThreadPoolExecutor.AbortPolicy());
+        queue.prestartCoreThread();
+        context.processResources().own(id, new ExtensionResources.ThreadOwner("detached_cleanup", Runnable::run, () -> true), () -> {
+            queue.shutdownNow(); pending.forEach(value -> value.cancel(false));
+        });
+    }
+
+    public <T> CompletableFuture<T> submit(String owner, long deadline, Supplier<T> action) {
+        var lifetime = context.lifetimeContexts();
+        if (!capacity.tryAcquire()) return CompletableFuture.failedFuture(new RejectedExecutionException("Owner task capacity"));
+        var future = new CompletableFuture<T>(); pending.add(future);
+        future.whenComplete((value, error) -> {pending.remove(future);capacity.release();});
+        try {
+            queue.execute(() -> {
+                if (future.isDone()) return;
+                try {
+                    context.threadOwners().get(owner).executor().execute(() -> {
+                        if (future.isDone()) return;
+                        try {
+                            context.processResources().requireActive();
+                            var current = context.lifetimeContexts();
+                            for (var kind : new ExtensionResources.Lifetime[]{ExtensionResources.Lifetime.WORLD, ExtensionResources.Lifetime.CONNECTION})
+                                if (!java.util.Objects.equals(lifetime.identity(kind), current.identity(kind))) throw new CancellationException("Native context changed");
+                            if (System.currentTimeMillis() >= deadline) throw new CancellationException("Owner task deadline");
+                            if (!context.threadOwners().get(owner).isCurrent().getAsBoolean()) throw new IllegalStateException("Wrong native owner");
+                            T result = action.get();
+                            context.processResources().publish(() -> {
+                                if (System.currentTimeMillis() < deadline) future.complete(result);
+                                else future.cancel(false);
+                                return null;
+                            });
+                        } catch (Throwable error) { future.completeExceptionally(error); }
+                    });
+                } catch (Throwable error) { future.completeExceptionally(error); }
+            });
+        } catch (RuntimeException error) { future.completeExceptionally(error); }
+        return future;
+    }
+}

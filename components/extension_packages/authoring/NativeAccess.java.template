@@ -1,0 +1,108 @@
+package @NAMESPACE@.support;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
+import java.lang.reflect.*;
+import java.util.*;
+
+/** Package-private author support; never a remotely callable reflection surface. */
+public final class NativeAccess {
+    private NativeAccess() {}
+    private static final Map<String, String> LEGACY = legacyBindings();
+    private static Map<String, String> legacyBindings() {
+        var values = new HashMap<String, String>();
+        @LEGACY_METHODS@
+        return Map.copyOf(values);
+    }
+    private static final Map<Class<?>, Class<?>> BOXES = Map.of(int.class, Integer.class, long.class, Long.class,
+            double.class, Double.class, float.class, Float.class, boolean.class, Boolean.class,
+            byte.class, Byte.class, short.class, Short.class, char.class, Character.class);
+
+    public static Object call(Object receiver, String name, Object... args) {
+        Objects.requireNonNull(receiver);
+        Class<?> type = receiver instanceof Class<?> c ? c : receiver.getClass();
+        Method chosen = null;
+        for (Class<?> owner = type; owner != null && chosen == null; owner = owner.getSuperclass()) {
+            String mapped = LEGACY.getOrDefault("M:" + owner.getName() + ":" + name, name);
+            for (Method method : owner.getDeclaredMethods()) {
+                if (!(method.getName().equals(name) || Arrays.asList(mapped.split(",")).contains(method.getName()))
+                        || method.getParameterCount() != args.length || method.isBridge()
+                        || (receiver instanceof Class<?>) != Modifier.isStatic(method.getModifiers())) continue;
+                boolean matches = true;
+                for (int i = 0; i < args.length; i++) {
+                    Class<?> expected = BOXES.getOrDefault(method.getParameterTypes()[i], method.getParameterTypes()[i]);
+                    if (args[i] != null && !expected.isInstance(args[i])) { matches = false; break; }
+                }
+                if (!matches) continue;
+                if (chosen != null) throw new IllegalStateException("Ambiguous native API: " + type.getName() + ":" + name);
+                chosen = method;
+            }
+        }
+        if (chosen == null) {
+            // Some public mod APIs are implemented by an interface default method.
+            for (Method method : type.getMethods())
+                if (method.isDefault() && method.getName().equals(name) && method.getParameterCount() == args.length) {
+                    if (chosen != null) throw new IllegalStateException("Ambiguous default API: " + name);
+                    chosen = method;
+                }
+        }
+        if (chosen == null) throw new IllegalStateException("Native API unavailable: " + type.getName() + ":" + name);
+        try {
+            if (!chosen.trySetAccessible()) throw new IllegalStateException("Native API inaccessible: " + name);
+            return chosen.invoke(receiver instanceof Class<?> ? null : receiver, args);
+        } catch (InvocationTargetException failure) {
+            if (failure.getCause() instanceof RuntimeException runtime) throw runtime;
+            if (failure.getCause() instanceof Error error) throw error;
+            throw new IllegalStateException("Native API failed: " + name, failure.getCause());
+        } catch (ReflectiveOperationException failure) { throw new IllegalStateException("Native API failed: " + name, failure); }
+    }
+
+    public static Object field(Object receiver, String name) {
+        for (Class<?> owner = receiver instanceof Class<?> c ? c : receiver.getClass(); owner != null; owner = owner.getSuperclass())
+            try {
+                Field field;
+                try { field = owner.getDeclaredField(name); }
+                catch (NoSuchFieldException absent) { field = owner.getDeclaredField(LEGACY.getOrDefault("F:" + owner.getName() + ":" + name, name)); }
+                if (!field.trySetAccessible()) throw new IllegalStateException("Native field inaccessible: " + name);
+                return field.get(receiver instanceof Class<?> ? null : receiver);
+            } catch (NoSuchFieldException missing) {
+            } catch (ReflectiveOperationException failure) { throw new IllegalStateException("Native field failed: " + name, failure); }
+        throw new IllegalStateException("Native field unavailable: " + name);
+    }
+
+    public static Class<?> type(Object context, String name) {
+        try { return Class.forName(name, false, context.getClass().getClassLoader()); }
+        catch (ClassNotFoundException failure) { throw new IllegalStateException("Native type unavailable: " + name, failure); }
+    }
+
+    /** Existing loaded chunk map only; no getBlockEntity call that could instantiate a new BE. */
+    public static Object loadedBlockEntity(PackageContext context, JsonObject query) {
+        Object server = context.nativeContext("server_thread");
+        Object level = call(server, "overworld");
+        try {
+            Object pos = type(level, "net.minecraft.core.BlockPos").getConstructor(int.class, int.class, int.class)
+                    .newInstance(query.get("x").getAsInt(), query.get("y").getAsInt(), query.get("z").getAsInt());
+            Class<?> status;
+            try { status = type(level, "net.minecraft.world.level.chunk.status.ChunkStatus"); }
+            catch (IllegalStateException missing) {
+                if (!(missing.getCause() instanceof ClassNotFoundException)) throw missing;
+                status = type(level, "net.minecraft.world.level.chunk.ChunkStatus");
+            }
+            Object chunk = call(call(level, "getChunkSource"), "getChunk", query.get("x").getAsInt() >> 4,
+                    query.get("z").getAsInt() >> 4, field(status, "FULL"), false);
+            return chunk == null ? null : ((Map<?, ?>) call(chunk, "getBlockEntities")).get(pos);
+        } catch (ReflectiveOperationException failure) { throw new IllegalStateException("Native block query unavailable", failure); }
+    }
+
+    public static boolean blockQuery(JsonObject query) {
+        if (!query.keySet().equals(Set.of("x", "y", "z"))) return false;
+        try {
+            for (String key : query.keySet()) {
+                if (!query.get(key).isJsonPrimitive() || !query.getAsJsonPrimitive(key).isNumber()) return false;
+                double value = query.get(key).getAsDouble();
+                if (!Double.isFinite(value) || value != Math.rint(value) || Math.abs(value) > 30000000) return false;
+            }
+            return true;
+        } catch (RuntimeException invalid) { return false; }
+    }
+}

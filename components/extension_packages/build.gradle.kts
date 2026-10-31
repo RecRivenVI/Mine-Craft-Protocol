@@ -51,16 +51,70 @@ tasks.assemble { dependsOn(packagePlatformProbe) }
 
 tasks.check { dependsOn(packagePlatformProbe) }
 
-val adapterSets =
-    listOf("computercraft", "modern_ui", "emi").associateWith { id ->
-        sourceSets.create(id.replace("_", "") + "Adapter") {
-            java.srcDir("packages/$id/java")
-            compileClasspath = proofSdk
-        }
+val prepareReplacementProbe by
+    tasks.registering(Exec::class) {
+        workingDir(projectDir)
+        inputs.dir("packages/platform_probe/java")
+        inputs.file("scripts/prepare-replacement.mjs")
+        outputs.dir(layout.buildDirectory.dir("replacement-sources"))
+        commandLine("node", "scripts/prepare-replacement.mjs")
     }
+val replacementProbe =
+    sourceSets.create("replacementProbe") {
+        java.srcDir(layout.buildDirectory.dir("replacement-sources"))
+        compileClasspath = proofSdk
+    }
+
+tasks.named<JavaCompile>(replacementProbe.compileJavaTaskName) {
+    dependsOn(prepareReplacementProbe)
+    javaCompiler.set(javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(17)) })
+    options.release.set(17)
+    options.compilerArgs.add("-proc:none")
+}
+
+val replacementProbeJar by
+    tasks.registering(Jar::class) {
+        from(replacementProbe.output)
+        archiveFileName.set("platform-probe-before.jar")
+        destinationDirectory.set(layout.buildDirectory.dir("probe-code"))
+    }
+val packageReplacementProbe by
+    tasks.registering(Exec::class) {
+        dependsOn(replacementProbeJar)
+        workingDir(projectDir)
+        commandLine(
+            "node",
+            "scripts/package-probe.mjs",
+            replacementProbeJar.get().archiveFile.get().asFile.absolutePath,
+            "--replacement-before",
+        )
+    }
+
+tasks.check { dependsOn(packageReplacementProbe) }
+
+val adapterIds =
+    (groovy.json.JsonSlurper().parse(file("packages/index.json")) as List<*>).map { it.toString() }
+val prepareAuthoring by
+    tasks.registering(Exec::class) {
+        workingDir(projectDir)
+        inputs.dir("authoring")
+        inputs.file("packages/index.json")
+        inputs.files(adapterIds.map { file("packages/$it/package.json") })
+        outputs.dir(layout.buildDirectory.dir("authoring"))
+        commandLine("node", "scripts/prepare-authoring.mjs")
+    }
+val adapterSets = adapterIds.associateWith { id ->
+    sourceSets.create(id.replace("_", "") + "Adapter") {
+        java.srcDir("packages/$id/java")
+        if (id in listOf("ae2", "create", "exposure", "littletiles"))
+            java.srcDir(layout.buildDirectory.dir("authoring/$id"))
+        compileClasspath = proofSdk
+    }
+}
 
 val adapterJars = adapterSets.map { (id, sources) ->
     tasks.named<JavaCompile>(sources.compileJavaTaskName) {
+        if (id in listOf("ae2", "create", "exposure", "littletiles")) dependsOn(prepareAuthoring)
         javaCompiler.set(
             javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(17)) },
         )
@@ -79,6 +133,7 @@ dependencies {
     testImplementation(libs.mcp.junit)
     testRuntimeOnly(libs.mcp.junit.launcher)
     testImplementation(adapterSets.getValue("modern_ui").output)
+    testImplementation(adapterSets.getValue("create").output)
 }
 
 tasks.test { useJUnitPlatform() }
@@ -93,6 +148,47 @@ val packageAdapters by
 tasks.assemble { dependsOn(packageAdapters) }
 
 tasks.check { dependsOn(packageAdapters) }
+
+val prepareLifecycleFixtures by
+    tasks.registering(Exec::class) {
+        workingDir(projectDir)
+        inputs.dir("fixtures/lifetime_probe")
+        outputs.dir(layout.buildDirectory.dir("lifecycle-sources"))
+        commandLine("node", "scripts/prepare-lifecycle-fixtures.mjs")
+    }
+val lifecycleFixtures =
+    sourceSets.create("lifecycleFixtures") {
+        java.srcDir(layout.buildDirectory.dir("lifecycle-sources"))
+        compileClasspath = proofSdk
+    }
+
+tasks.named<JavaCompile>(lifecycleFixtures.compileJavaTaskName) {
+    dependsOn(prepareLifecycleFixtures)
+    javaCompiler.set(javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(17)) })
+    options.release.set(17)
+    options.compilerArgs.add("-proc:none")
+}
+
+val lifecycleJars =
+    listOf("left", "right").map { side ->
+        tasks.register<Jar>("lifetime" + side.replaceFirstChar(Char::uppercaseChar) + "Jar") {
+            from(lifecycleFixtures.output) {
+                include("io/github/recrivenvi/extensions/lifetime$side/**")
+            }
+            archiveFileName.set("lifetime_$side.jar")
+            destinationDirectory.set(layout.buildDirectory.dir("lifecycle-code"))
+        }
+    }
+val packageLifecycleFixtures by
+    tasks.registering(Exec::class) {
+        dependsOn(lifecycleJars)
+        workingDir(projectDir)
+        commandLine("node", "scripts/package-lifecycle-fixtures.mjs")
+    }
+
+tasks.assemble { dependsOn(packageLifecycleFixtures) }
+
+tasks.check { dependsOn(packageLifecycleFixtures) }
 
 configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     java { target("src/*/java/**/*.java", "packages/*/java/**/*.java") }

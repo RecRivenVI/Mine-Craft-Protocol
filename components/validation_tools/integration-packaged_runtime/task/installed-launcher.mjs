@@ -15,6 +15,16 @@ export function installedRuntimeScopes({enterWorld=false,extensionPlatform=false
   return extensionPlatform?'read,ui,input,event,diagnostics,control,command,debug,debug.world.read,debug.write,debug.provider':enterWorld?'read,ui,input,control,diagnostics':'read,ui,input,control';
 }
 
+// Native stdout/stderr are piped by this process. Blocking it with execFileSync
+// fills the OS pipe on verbose mod startup and can freeze both game threads.
+export function runNodeScenario(script,args,{cwd,timeout=240000}={}) {
+  const child=spawn(process.execPath,[script,...args],{cwd,stdio:'inherit',windowsHide:true,timeout});
+  return new Promise((done,fail)=>{
+    child.once('error',fail);
+    child.once('exit',(code,signal)=>code===0?done():fail(Error('Scenario exited '+code+' '+(signal??'')+': '+script)));
+  });
+}
+
 export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
   assert.match(String(version),/^[1-9]\d*$/,'An explicit Java major version is required');
   for(const entry of await readdir(jdks,{withFileTypes:true})){
@@ -128,7 +138,7 @@ const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
 const enterWorld=process.argv.includes('--enter-world');
 const extensionPlatform=process.argv.includes('--extension-platform');
 const extensionAdapter=process.argv.find(value=>value.startsWith('--extension-adapter='))?.slice('--extension-adapter='.length)??'platform_probe';
-assert(['platform_probe','computercraft','modern_ui','emi'].includes(extensionAdapter));
+assert(['platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
 assert(extensionPlatform||extensionAdapter==='platform_probe');
 const resultName=target+(extensionAdapter==='platform_probe'?'':'-'+extensionAdapter)+'.json';
 assert(!(extensionPlatform&&enterWorld),'Separate installed acceptance scenarios');
@@ -214,8 +224,7 @@ if(loader==='fabric'){
   const coordinate=loader==='forge'?`${minecraft}-${facts.loader_version}`:facts.loader_version;
   const url=loader==='forge'?`https://maven.minecraftforge.net/net/minecraftforge/forge/${coordinate}/forge-${coordinate}-installer.jar`:`https://maven.neoforged.net/releases/net/neoforged/neoforge/${coordinate}/neoforge-${coordinate}-installer.jar`;
   const installer=join(cache,loader+'-'+coordinate+'-installer.jar');
-  const checksumResponse=await fetch(url+'.sha1',{signal:AbortSignal.timeout(60000)});assert(checksumResponse.ok);
-  const checksum=(await checksumResponse.text()).trim().split(/\s/)[0];assert.match(checksum,/^[a-f0-9]{40}$/i);
+  const checksum=(await download(url+'.sha1',join(cache,loader+'-'+coordinate+'-installer.jar.sha1'))).toString('utf8').trim().split(/\s/)[0];assert.match(checksum,/^[a-f0-9]{40}$/i);
   await download(url,installer,checksum);
   if(extensionPlatform){
     const cached=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target,'installation/libraries');
@@ -339,7 +348,7 @@ try{
     const returned=await connection.fetch('/v0/ui/tree');assert(returned.ok);title=await returned.json();assert(title.screenClass.endsWith('TitleScreen')&&!title.overlayIdentity);
   }
   if(extensionPlatform){
-    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--host-shutdown=true','--adapter='+extensionAdapter],{cwd:repo,stdio:'inherit',timeout:240000});
+    await runNodeScenario(resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),['--target='+target,'--installed=true','--host-shutdown=true','--adapter='+extensionAdapter],{cwd:repo,timeout:240000});
     report.extensionStage=extensionStage;report.extensionPlatform=true;
     const current=await connection.fetch('/v0/ui/tree');assert(current.ok);title=await current.json();assert(title.screenClass.endsWith('TitleScreen'));
   }
@@ -362,9 +371,11 @@ try{
   report.cleanShutdown=true;report.exitCode=code;assert(!await exists(join(game,'minecraft-protocol/endpoint.json')),'Endpoint removed');
   const log=await readFile(join(game,'logs/latest.log'),'utf8');assert(/Stopping!/.test(log),'Vanilla normal stopping log');
   const modFiles=await readdir(join(game,'mods'));
-  const expectedMods=[name,...(extensionPlatform?['minecraft-protocol-extension-libraries.jar']:[]),...(extensionAdapter!=='platform_probe'?['extension-input-'+(extensionAdapter==='modern_ui'?'modernui':extensionAdapter)+'-'+target.replaceAll('.','-')+'.jar']:[])].sort();
+  const spec=extensionAdapter==='platform_probe'?null:JSON.parse(await readFile(resolve(repo,'components/extension_packages/packages',extensionAdapter,'package.json'),'utf8'));
+  const prefixes=spec?[spec.inputPrefix??(extensionAdapter==='modern_ui'?'modernui':extensionAdapter),...(spec.dependencyPrefixes??[])]:[];
+  const expectedMods=[name,...(extensionPlatform?['minecraft-protocol-extension-libraries.jar']:[]),...prefixes.map(prefix=>'extension-input-'+prefix+'-'+target.replaceAll('.','-')+'.jar')].sort();
   assert.deepEqual(modFiles.sort(),expectedMods,'Only explicitly installed product/library/pinned adapter inputs');
-  report.externalModCount=1+(extensionAdapter==='platform_probe'?0:1);report.modArtifacts={};for(const file of modFiles)report.modArtifacts[file]=sha256(await readFile(join(game,'mods',file)));
+  report.externalModCount=1+prefixes.length;report.modArtifacts={};for(const file of modFiles)report.modArtifacts[file]=sha256(await readFile(join(game,'mods',file)));
   report.singleProductJarOnly=extensionAdapter==='platform_probe';
   assert(!await exists(join(game,'crash-reports'))||!(await readdir(join(game,'crash-reports'))).length,'No crash reports');
   report.noCrashReports=true;

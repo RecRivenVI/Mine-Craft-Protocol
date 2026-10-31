@@ -11,6 +11,40 @@ import org.junit.jupiter.api.Test;
 
 class WorldClientModelTest {
     @Test
+    void explicitClientPartsSurviveProjectionWithoutOpeningArbitraryNestedData() {
+        var view =
+                new View() {
+                    public JsonObject block(int x, int y, int z) {
+                        return json(
+                                "{\"available\":true,\"block\":\"minecraft:chest\",\"extensionParts\":[{\"key\":\"body\",\"targetRef\":\"world:part\",\"bounds\":{\"minX\":0.25}}],\"extensionLimitations\":[{\"reason\":\"snapshot_pending\"}],\"serverInventory\":{\"secret\":true}}");
+                    }
+                };
+        var value = WorldClientModel.capture("block", json("{\"x\":0,\"y\":64,\"z\":0}"), view);
+        assertEquals(
+                .25,
+                value.getAsJsonArray("extensionParts")
+                        .get(0)
+                        .getAsJsonObject()
+                        .getAsJsonObject("bounds")
+                        .get("minX")
+                        .getAsDouble());
+        assertEquals(1, value.getAsJsonArray("extensionLimitations").size());
+        assertFalse(value.has("serverInventory"));
+        value.getAsJsonArray("extensionParts")
+                .get(0)
+                .getAsJsonObject()
+                .addProperty("key", "changed");
+        assertEquals(
+                "body",
+                WorldClientModel.capture("block", json("{\"x\":0,\"y\":64,\"z\":0}"), view)
+                        .getAsJsonArray("extensionParts")
+                        .get(0)
+                        .getAsJsonObject()
+                        .get("key")
+                        .getAsString());
+    }
+
+    @Test
     void ownVehicleFeedbackDoesNotExposeServerRelationshipIdentityOrInventAbsentFields() {
         View view =
                 new View() {

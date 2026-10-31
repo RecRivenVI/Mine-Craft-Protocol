@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {checkServerWorldDebug} from './server-world-debug-checks.mjs';
 import {prepareServerWorld} from './server-world-fixture.mjs';
-import {spawn,execFileSync} from 'node:child_process';
+import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createWriteStream} from 'node:fs';
 import {readFile,writeFile,mkdir,readdir,cp,copyFile,access} from 'node:fs/promises';
@@ -10,21 +10,26 @@ import {join,resolve} from 'node:path';
 import {homedir} from 'node:os';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
-import {findJava} from '../../integration-packaged_runtime/task/installed-launcher.mjs';
+import {findJava,runNodeScenario} from '../../integration-packaged_runtime/task/installed-launcher.mjs';
+import {extensionInputArtifacts,candidateSource} from '../../regression-v1_release/task/alpha-candidate.mjs';
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(arg=>arg.startsWith('--target='))?.slice(9);
 const worldDebug=process.argv.includes('--world-debug');
 const extensionPlatform=process.argv.includes('--extension-platform');
+const extensionAdapter=process.argv.find(arg=>arg.startsWith('--extension-adapter='))?.slice(20)??'platform_probe';
+assert(['platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
+assert(extensionPlatform||extensionAdapter==='platform_probe');
 assert(!(worldDebug&&extensionPlatform),'Separate explicit server acceptance groups');
 assert(['26.3-neoforge','26.1.2-neoforge','1.21.1-neoforge','1.20.1-forge','26.3-fabric'].includes(target),'Explicit registered Target required');
 const properties=async path=>Object.fromEntries((await readFile(path,'utf8')).split(/\r?\n/).filter(line=>line.includes('=')&&!line.startsWith('#')).map(line=>{const i=line.indexOf('=');return[line.slice(0,i),line.slice(i+1)];}));
 const facts=await properties(join(repo,'versions',target,'target.properties')), product=await properties(join(repo,'gradle.properties'));
 const base=join(repo,extensionPlatform?'validations/integration-extension_platform':'validations/integration-server_peer'), game=extensionPlatform?join(base,'instance/installed',target,'server'):join(base,'instance',target,'console-server');
+const fixtureWorld=extensionPlatform&&extensionAdapter!=='platform_probe'?'Extension-Server-'+extensionAdapter:'Console-Smoke';
 const exists=path=>access(path).then(()=>true,()=>false), sleep=ms=>new Promise(done=>setTimeout(done,ms).unref());
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 await mkdir(game,{recursive:true});await mkdir(join(base,'result'),{recursive:true});
-const resultPath=join(base,'result',target+(extensionPlatform?'-installed-server-lifecycle':worldDebug?'-server-debug':'-console')+'.json');
+const resultPath=join(base,'result',target+(extensionPlatform?'-installed-server-lifecycle'+(extensionAdapter==='platform_probe'?'':'-'+extensionAdapter):worldDebug?'-server-debug':'-console')+'.json');
 await writeFile(resultPath,JSON.stringify({target,status:'IN_PROGRESS',stage:'installation',startedAt:new Date().toISOString()})+'\n');
 const ownerFile=join(game,'console-owner.json');
 function alive(pid){if(!pid)return false;assert(Number.isSafeInteger(pid)&&pid>0,'Invalid owned process identity');try{process.kill(pid,0);return true;}catch(error){if(error.code==='ESRCH')return false;throw error;}}
@@ -62,17 +67,27 @@ if(loader==='fabric'){
   launchArgs=['@'+argsFile,'nogui'];
 }
 const jarName=`${product.mod_id}-${target}-${product.mod_version}.jar`,jar=join(repo,'versions',target,'build/libs',jarName);
-await mkdir(join(game,'mods'),{recursive:true});assert((await readdir(join(game,'mods'))).every(name=>name===jarName||(extensionPlatform&&name==='minecraft-protocol-extension-libraries.jar')),'Only product and explicit approved extension library');
+await mkdir(join(game,'mods'),{recursive:true});
+const extensionInputs=extensionPlatform?new Set([...await readFile(join(repo,'inputs.toml'),'utf8') .then(text=>text.matchAll(/^\[([^\]]+)\]/gm))].map(match=>'extension-input-'+match[1]+'.jar')):new Set();
+assert((await readdir(join(game,'mods'))).every(name=>name===jarName||(extensionPlatform&&(name==='minecraft-protocol-extension-libraries.jar'||extensionInputs.has(name)))),'Only product and explicit declared extension inputs/library');
 await copyFile(jar,join(game,'mods',jarName));
-const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'server'}):undefined;
+const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'server',adapter:extensionAdapter}):undefined;
 await writeFile(join(game,'eula.txt'),'eula=true\n');
 let gamePort=0;
 if(!extensionPlatform){const reservation=createServer();await new Promise(done=>reservation.listen(0,'127.0.0.1',done));gamePort=reservation.address().port;await new Promise(done=>reservation.close(done));}
 // Zero-player extension validation has no external game client: let Vanilla bind port 0 atomically.
 // Releasing a host reservation before starting Java races other local test processes.
-await writeFile(join(game,'server.properties'),`server-ip=127.0.0.1\nserver-port=${gamePort}\nlevel-name=Console-Smoke\nonline-mode=false\nwhite-list=false\nmax-players=1\nview-distance=2\nsimulation-distance=2\npause-when-empty-seconds=-1\n`);
+await writeFile(join(game,'server.properties'),`server-ip=127.0.0.1\nserver-port=${gamePort}\nlevel-name=${fixtureWorld}\nonline-mode=false\nwhite-list=false\nmax-players=1\nview-distance=2\nsimulation-distance=2\npause-when-empty-seconds=-1\n`);
 const report={target,jarSha256:digest(await readFile(jar)),startedAt:new Date().toISOString(),scope:worldDebug?'single_final_jar_dedicated_world_debug_and_console_zero_players_no_client':'single_final_jar_dedicated_console_zero_players_no_client',checks:{},persistentWriteCalls:0,persistentWriteBasis:'This runner invokes no Persistent Storage write API; ordinary native server saving is separate.'};
-report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),
+// An empty LittleTiles parent removes itself. A fixed half-size stone tile uses
+// the upstream extended collection format; it is only a host fixture input.
+const fixtureBlock=extensionPlatform?({ae2:'ae2:drive',create:'create:mechanical_bearing',littletiles:'littletiles:tiles{grid:16,content:{tiles:{"minecraft:stone":[[I;-1],[I;0,0,0,8,8,8]]}}}'}[extensionAdapter]):undefined;
+if(fixtureBlock)report.fixtureArrangement={authority:'HOST_NATIVE_CONSOLE_FIXTURE',world:fixtureWorld,commands:['forceload add 0 0','setblock 0 80 0 '+fixtureBlock],gameplayEvidence:false,runtimeCommandSupportNotClaimed:true};
+if(extensionPlatform){
+  report.sourceHashes=await candidateSource(repo,[target]);report.toolHashes={};
+  for(const path of ['components/validation_tools/integration-server_peer/task/server-console-smoke.mjs','components/validation_tools/integration-server_peer/task/server-world-fixture.mjs','components/validation_tools/integration-extension_platform/task/installed-package.mjs','components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs'])report.toolHashes[path]=digest(await readFile(join(repo,path)));
+}
+report.fixture=await prepareServerWorld({repo,game,world:fixtureWorld,target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),...(extensionPlatform?{baselineId:'fixture-baseline-'+extensionAdapter+(fixtureBlock?extensionAdapter==='littletiles'?'-machine-v3':'-machine-v1':''),fixtureIdentity:{adapter:extensionAdapter,upstream:await extensionInputArtifacts(game)}}:{}),
   start:async()=>{
     const output=createWriteStream(join(game,'fixture-preparation.log'));
     const native=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false',...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -86,6 +101,25 @@ report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,
     let timer;
     try{await Promise.race([ready,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Fixture preparation deadline')),180000);})]);}
     catch(error){native.kill();await exit;output.end();throw error;}finally{clearTimeout(timer);}
+    if(fixtureBlock){
+      const marker=async(command,label,repeat=false)=>new Promise((done,fail)=>{
+        let text='',interval;
+        const cleanup=()=>{clearTimeout(deadline);clearInterval(interval);native.stdout.off('data',inspect);native.off('exit',failed);};
+        const inspect=bytes=>{text=(text+bytes).slice(-65536);if(text.includes(label)){cleanup();done();}};
+        const failed=code=>{cleanup();fail(Error('Fixture exited before native condition: '+code));};
+        const deadline=setTimeout(()=>{cleanup();fail(Error('Native fixture condition deadline: '+label));},30000);
+        native.stdout.on('data',inspect);native.once('exit',failed);native.stdin.write(command+'\n');
+        if(repeat)interval=setInterval(()=>native.stdin.write(command+'\n'),200);
+      });
+      try{
+        native.stdin.write('forceload add 0 0\n');
+        // Only the readiness query repeats. Never replay a world mutation after an uncertain result.
+        const loaded='EXTENSION_CHUNK_LOADED_'+extensionAdapter;
+        await marker('execute if loaded 0 80 0 run say '+loaded,loaded,true);
+        const ready='EXTENSION_FIXTURE_READY_'+extensionAdapter;
+        await marker('setblock 0 80 0 '+fixtureBlock+'\nexecute if block 0 80 0 '+fixtureBlock.split('{')[0]+' run say '+ready,ready);
+      }catch(error){native.stdin.write('stop\n');await Promise.race([exit,sleep(30000)]);if(native.exitCode===null){native.kill();await exit;}output.end();throw error;}
+    }
     return {native,exit,output};
   },stop:async({native,exit,output})=>{
     native.stdin.write('stop\n');let timer;
@@ -151,13 +185,15 @@ try{
   assert.equal(recorded.writtenFrames,0);assert.equal(recorded.deploymentRole,'DEDICATED_SERVER');
   await call('DELETE','/v0/recordings/'+recording.recordingId);report.recording=recorded;
   if(extensionPlatform){
-    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--server=true'],{cwd:repo,stdio:'inherit',timeout:60000});
+    await runNodeScenario(resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),['--target='+target,'--adapter='+extensionAdapter,'--installed=true','--server=true'],{cwd:repo,timeout:90000});
     report.extensionStage=extensionStage;report.extensionPlatform=true;
   }
   if(worldDebug)report.worldDebug=await checkServerWorldDebug({call,mcp,child,until});
   await mcp.close();mcp=undefined;await mcpTransport.close();
   child.stdin.write('stop\n');assert.equal(await Promise.race([exit,sleep(30000).then(()=>{throw Error('normal stop deadline');})]),0);
-  assert(!await exists(join(game,'minecraft-protocol/endpoint.json')));report.checks.normalShutdownRemovesEndpoint=true;report.status='PASS';
+  assert(!await exists(join(game,'minecraft-protocol/endpoint.json')));report.checks.normalShutdownRemovesEndpoint=true;
+  if(extensionPlatform){assert.deepEqual(await candidateSource(repo,[target]),report.sourceHashes);for(const [path,hash]of Object.entries(report.toolHashes))assert.equal(digest(await readFile(join(repo,path))),hash,'Server test source changed: '+path);}
+  report.status='PASS';
   console.log(target+(worldDebug?' dedicated world DEBUG + console PASS':' dedicated console PASS'));
 }catch(error){report.status='FAIL';report.error=String(error.stack??error);console.error(error);process.exitCode=1;}
 finally{

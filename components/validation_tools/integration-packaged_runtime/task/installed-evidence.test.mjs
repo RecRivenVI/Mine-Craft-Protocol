@@ -4,7 +4,19 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {installedProof,collectInstalledProof} from './installed-evidence.mjs';
-import {installedRuntimeScopes,findJava,copyInstalledWorldFixture,readInstalledWorldBaseline,installedWorldSmoke} from './installed-launcher.mjs';
+import {installedRuntimeScopes,findJava,copyInstalledWorldFixture,readInstalledWorldBaseline,installedWorldSmoke,runNodeScenario} from './installed-launcher.mjs';
+import {spawn} from 'node:child_process';
+
+test('actual scenario orchestration keeps draining native output while awaiting its child',async()=>{
+  const root=resolve(import.meta.dirname,'../../build/test/installed-log-drain',randomUUID());await mkdir(root,{recursive:true});
+  const marker=join(root,'drained'),script=join(root,'scenario.mjs');
+  await writeFile(script,"import{existsSync}from'node:fs';while(!existsSync(process.argv[2]))await new Promise(r=>setTimeout(r,10));\n");
+  const producer=spawn(process.execPath,['-e',"process.stdout.write(Buffer.alloc(2*1024*1024,120));"],{stdio:['ignore','pipe','inherit'],windowsHide:true});
+  let bytes=0;producer.stdout.on('data',chunk=>{bytes+=chunk.length;});
+  const drained=new Promise((done,fail)=>{producer.once('error',fail);producer.once('exit',code=>code===0?writeFile(marker,'drained\n').then(done,fail):fail(Error('Log producer exited '+code)));});
+  try{await runNodeScenario(script,[marker],{cwd:root,timeout:5000});await drained;assert.equal(bytes,2*1024*1024);}
+  finally{if(producer.exitCode===null)producer.kill();}
+});
 
 const artifact={target:'1.21.1-neoforge',sha256:'a'.repeat(64)},fingerprint='b'.repeat(64);
 function valid(){return{target:artifact.target,status:'PASS',runtime:'installed_loader_release_jar',artifactSha256:artifact.sha256,sourceFingerprint:fingerprint,sourceChangedDuringRun:false,freshGameDirectory:true,endpointVerified:true,handshake:true,readPassed:true,titleReady:true,cleanShutdown:true,noCrashReports:true,developmentClasspath:false,externalModCount:1,exitCode:0,maximumHeapBytes:4294967296,instanceProfile:'automatic',windowWidth:1920,windowHeight:1080,persistentWriteCalls:0,quitHttpStatus:200,nettyHttpOrigin:'io.netty.handler.codec.http.HttpMessage source: file:/installation/netty-codec-http.jar',transportOrigin:'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source: file:/client/mods/product.jar',readSample:{dataCategory:'USER',available:false},providerRegistryResolved:true,providerCatalog:['safe','client-thread','render-thread','server-thread'].map(id=>({providerId:'product:'+id,threadAffinity:id==='client-thread'?'client_thread':id==='render-thread'?'render_thread':'server_thread',snapshotSchema:'fixture://snapshot',querySchema:'fixture://query'})),providerSpiOrigins:['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>'io.github.fixture.probe.api.'+name+' source: file:/client/mods/product.jar')};}

@@ -13,10 +13,7 @@ export async function preparePlatformPackage({repo,target,game,role,adapter='pla
   if(await access(owner).then(()=>true,()=>false)){const value=JSON.parse(await readFile(owner,'utf8'));assert.equal(value.owner,'extension-platform');assert.equal(value.target,target);}
   else await writeFile(owner,JSON.stringify({owner:'extension-platform',target})+'\n',{flag:'wx'});
   execFileSync(process.execPath,[resolve(import.meta.dirname,'install-platform-probe.mjs'),'--target='+target,'--role='+role,'--installed=true'],{cwd:repo,stdio:'inherit'});
-  if(adapter!=='platform_probe'){
-    assert.equal(role,'client','UI adapter acceptance requires a client');
-    execFileSync('python',['-B',resolve(import.meta.dirname,'install-adapter.py'),'--target',target,'--adapter',adapter,'--installed'],{cwd:repo,stdio:'inherit',windowsHide:true});
-  }
+  execFileSync('python',['-B',resolve(import.meta.dirname,'install-adapter.py'),'--target',target,'--adapter',adapter,'--role',role,'--installed'],{cwd:repo,stdio:'inherit',windowsHide:true});
   const output=execFileSync('pwsh',['-NoProfile','-Command',"& './gradlew.bat' ':extension_packages:stageValidationLibrary' '-PextensionLayout=installed' '-PextensionTarget="+target+"' '-PextensionRole="+role+"' '--offline' '--console=plain'; exit $LASTEXITCODE"],{cwd:repo,encoding:'utf8'});
   await writeFile(join(game,'extension-staging.log'),output);
   const library=join(game,'mods/minecraft-protocol-extension-libraries.jar');

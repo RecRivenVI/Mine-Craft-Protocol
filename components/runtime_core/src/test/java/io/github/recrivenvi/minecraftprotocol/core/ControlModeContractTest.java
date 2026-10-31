@@ -257,6 +257,56 @@ final class ControlModeContractTest {
     }
 
     @Test
+    void independentOperateCanRepairFailedInputWithoutOpeningTakeoverOrClearingHumanOverride()
+            throws Exception {
+        var failure = new java.util.concurrent.atomic.AtomicBoolean();
+        try (var state =
+                new ProtocolState(
+                        Set.of("read", "input", "control"),
+                        "repair-test",
+                        reason ->
+                                failure.get()
+                                        ? CompletableFuture.failedFuture(
+                                                new IllegalStateException("adapter failure"))
+                                        : CompletableFuture.completedFuture(new JsonObject()),
+                        ignored -> {})) {
+            String lease = state.acquireLease(60000).get("leaseId").getAsString();
+            failure.set(true);
+            state.revokeHumanControl();
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
+            assertEquals(
+                    "OPERATE",
+                    state.selectMode(
+                                    AgentControlSession.Mode.OPERATE,
+                                    version(state),
+                                    null,
+                                    "repair",
+                                    "test")
+                            .join()
+                            .get("mode")
+                            .getAsString());
+            try (var work = state.beginOperate()) {
+                assertEquals(42, work.call(() -> 42));
+            }
+            assertEquals(
+                    "CONTROL_INPUT_CLEANUP_FAILED",
+                    assertThrows(
+                                    ProtocolState.ProtocolException.class,
+                                    () -> state.acquireLease(60000))
+                            .code());
+            assertThrows(ProtocolState.ProtocolException.class, () -> state.requireTakeover(lease));
+            failure.set(false);
+            state.emergencyReleaseAndWait("explicit_cleanup_retry").get(1, TimeUnit.SECONDS);
+            assertTrue(state.modeStatus().get("reconsentRequired").getAsBoolean());
+            assertEquals("OPERATE", mode(state));
+            assertFalse(
+                    state.inputStateMetadata(new JsonObject())
+                            .get("inputCleanupFailed")
+                            .getAsBoolean());
+        }
+    }
+
+    @Test
     void compareAndSetRejectsOldSessionAndConcurrentStaleTransition() throws Exception {
         try (ProtocolState state = state();
                 ProtocolState other = state()) {

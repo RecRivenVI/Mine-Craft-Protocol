@@ -3748,7 +3748,7 @@
                   "enum": [
                     "provider",
                     "ui_projection",
-                    "logical_input"
+                    "logical_input", "world_parts"
                   ]
                 },
                 "views": {
@@ -10524,6 +10524,8 @@
               },
               "inputCleanupPending": { "type": "boolean", "description": "Runtime-owned input cleanup has not finished; not a new permission or control mode." },
               "inputCleanupFailed": { "type": "boolean", "description": "The most recent required cleanup failed; inspect and do not assume held input is safe." },
+              "inputQueuePoisoned": { "type": "boolean", "description": "A sequence owner failed to drain. Release-only cleanup and independent authorized work remain available, but new input sequences require a Runtime restart." },
+              "inputQueueRecovery": { "type": "string", "enum": ["restart_runtime", "not_required"] },
               "inputContextGeneration": { "type": "integer", "format": "int64", "minimum": 0, "description": "Native world/player/connection epoch; ordinary Screen changes do not advance it." },
               "inputContextId": { "type": "string", "description": "Opaque native context identity, not a permission or resource write token; empty until initialized." },
               "inputContextAvailable": { "type": "boolean", "description": "A connected native client world and player were present when this epoch was observed." },

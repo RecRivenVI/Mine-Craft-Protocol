@@ -8,6 +8,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Dedicated authorization/lifecycle boundary; the Target owns all Minecraft resource semantics. */
 public final class ServerWorldDebug implements AutoCloseable {
     public interface Host extends AutoCloseable {
+        default io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+                extensionLifetimeContexts() {
+            return io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty();
+        }
+
+        default java.util.Map<String, java.util.function.Supplier<Object>>
+                extensionNativeContexts() {
+            return java.util.Map.of();
+        }
+
         default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
                 extensionEnvironment(String target) {
             return null;
@@ -60,6 +70,13 @@ public final class ServerWorldDebug implements AutoCloseable {
         this.host = java.util.Objects.requireNonNull(host);
     }
 
+    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+            extensionLifetimeContexts() {
+        return closed.get()
+                ? io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty()
+                : host.extensionLifetimeContexts();
+    }
+
     public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
             extensionEnvironment(String target) {
         requireOpen();
@@ -79,6 +96,11 @@ public final class ServerWorldDebug implements AutoCloseable {
             extensionEarlyHooks() {
         requireOpen();
         return host.extensionEarlyHooks();
+    }
+
+    public java.util.Map<String, java.util.function.Supplier<Object>> extensionNativeContexts() {
+        requireOpen();
+        return host.extensionNativeContexts();
     }
 
     public void attachExtensionProviders(

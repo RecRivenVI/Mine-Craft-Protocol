@@ -15,6 +15,65 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class ExtensionResourcesTest {
+    @Test
+    void publicationCanOpenAnotherScopeWhileItsOwnerIsBeingRetired() throws Exception {
+        var resources = new ExtensionResources("runtime-a", Duration.ofSeconds(1));
+        var original = owner("original", Lifetime.WORLD);
+        var scope = resources.open(original, () -> true);
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var proceed = new java.util.concurrent.CountDownLatch(1);
+        var publication = new java.util.concurrent.CompletableFuture<Void>();
+        var retired = new java.util.concurrent.CompletableFuture<Void>();
+        var publisher =
+                new Thread(
+                        () -> {
+                            try {
+                                scope.publish(
+                                        () -> {
+                                            entered.countDown();
+                                            try {
+                                                if (!proceed.await(2, TimeUnit.SECONDS))
+                                                    throw new IllegalStateException("Test barrier");
+                                            } catch (InterruptedException stopped) {
+                                                throw new IllegalStateException(stopped);
+                                            }
+                                            resources.open(
+                                                    owner("other", Lifetime.PROCESS), () -> true);
+                                            return null;
+                                        });
+                                publication.complete(null);
+                            } catch (Throwable failure) {
+                                publication.completeExceptionally(failure);
+                            }
+                        },
+                        "scope-publication-test");
+        publisher.setDaemon(true);
+        var retiring =
+                new Thread(
+                        () -> {
+                            try {
+                                resources.invalidate(original, "test").join();
+                                retired.complete(null);
+                            } catch (Throwable failure) {
+                                retired.completeExceptionally(failure);
+                            }
+                        },
+                        "scope-retirement-test");
+        retiring.setDaemon(true);
+        publisher.start();
+        assertTrue(entered.await(2, TimeUnit.SECONDS));
+        retiring.start();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (retiring.getState() != Thread.State.BLOCKED && System.nanoTime() < deadline)
+            Thread.onSpinWait();
+        assertEquals(Thread.State.BLOCKED, retiring.getState());
+        proceed.countDown();
+        publication.get(2, TimeUnit.SECONDS);
+        retired.get(2, TimeUnit.SECONDS);
+        assertThrows(IllegalStateException.class, () -> scope.publish(() -> "late"));
+        resources.close();
+    }
+
     private final ThreadOwner inline =
             new ThreadOwner("detached_provider_worker", Runnable::run, () -> true);
 

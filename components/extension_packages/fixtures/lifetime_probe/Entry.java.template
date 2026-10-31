@@ -1,0 +1,86 @@
+package @NAMESPACE@;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.probe.api.*;
+import io.github.recrivenvi.minecraftprotocol.probe.extension.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+
+/** Installed only by the extension negative gate: independent packages, real owner cleanup. */
+public final class Entry implements PackageExtension, AgentDataProviderV2 {
+    private PackageContext context;
+    private ScheduledThreadPoolExecutor scheduler;
+    private String root;
+    private long revision;
+    private boolean running;
+    private volatile boolean failInput;
+    private boolean failCleanup;
+    private long samples;
+    private final Map<String, ExtensionResources.Scope> observed = new LinkedHashMap<>();
+    private final AtomicInteger contextCleanups = new AtomicInteger();
+    private final AtomicInteger grantCleanups = new AtomicInteger();
+    private ScheduledFuture<?> sampling;
+    private Object activeSession;
+    private boolean watching;
+
+    public void initialize(PackageContext context) {
+        this.context = context; root = "minecraft-extension://" + context.packageId() + "/schemas/";
+        scheduler = new ScheduledThreadPoolExecutor(1, task -> {var thread = new Thread(task, context.packageId()+"-fixture");thread.setDaemon(true);return thread;});
+        scheduler.setRemoveOnCancelPolicy(true);scheduler.prestartCoreThread();
+        context.processResources().own("scheduler", new ExtensionResources.ThreadOwner("detached_cleanup",Runnable::run,()->true), scheduler::shutdownNow);
+        context.schema(root+"query", q -> q.size()==0 ? pass() : fail());
+        context.schema(root+"state", q -> q.has("running") && q.has("samples") ? pass() : fail());
+        context.schema(root+"revision", q -> q.size()==3 && q.has("running") && q.has("failInput") && q.has("failCleanup") ? pass() : fail());
+        context.schema(root+"mutation", q -> q.size()==1 && q.has("action") && Set.of("start","stop","fail_input","fail_cleanup","recover","watch_contexts").contains(q.get("action").getAsString()) ? pass() : fail());
+        context.schema(root+"result", q -> q.has("providerRevisionBefore") && q.has("providerRevisionAfter") ? pass() : fail());
+        context.provider(this);
+        if(context.side()==PackageContext.Side.CLIENT)context.inputAdapter(new LogicalInputAdapter() {
+            public String id(){return context.packageId()+":input";}
+            public CompletableFuture<Void> reset(String reason) {return failInput ? CompletableFuture.failedFuture(new IllegalStateException("fixture_cleanup_failure")) : CompletableFuture.completedFuture(null);}
+        });
+    }
+    private static ProviderSchemaRegistry.ValidationResult pass(){return ProviderSchemaRegistry.ValidationResult.pass();}
+    private static ProviderSchemaRegistry.ValidationResult fail(){return ProviderSchemaRegistry.ValidationResult.fail("Fixed lifecycle fixture schema");}
+    public Descriptor descriptor(){return new Descriptor(context.packageId()+":state","1",List.of("snapshot"),root+"state",root+"query","server_thread",List.of("server_authoritative"),"none","fixture_counters",true,false,false,false,false,"provider_revision","resource",root+"revision",true,"none",new DebugDeclaration(true,root+"mutation",root+"result","debug.provider",true,true,"must_advance","owner_thread"),List.of("debug.world.read"));}
+    private JsonObject revisionState(){var value=new JsonObject();value.addProperty("running",running);value.addProperty("failInput",failInput);value.addProperty("failCleanup",failCleanup);return value;}
+    private JsonObject snapshot(){var value=revisionState();value.addProperty("samples",samples);value.addProperty("contextCleanups",contextCleanups.get());value.addProperty("grantCleanups",grantCleanups.get());
+        var contexts=new JsonObject();context.lifetimeContexts().identities().forEach((kind,id)->contexts.addProperty(kind.name(),id));value.add("contexts",contexts);
+        var old=new JsonObject();observed.forEach((id,scope)->{boolean valid;try{valid=scope.publish(()->true);}catch(IllegalStateException retired){valid=false;}old.addProperty(id,valid);});value.add("watchedContexts",old);return value;}
+    public CompletableFuture<JsonObject> capture(ReadContext request){var result=new JsonObject();result.addProperty("schemaVersion","1");result.addProperty("providerRevision",revision);result.add("revisionState",revisionState());result.add("data",snapshot());return CompletableFuture.completedFuture(result);}
+    public CompletableFuture<JsonObject> mutate(DebugContext request){
+        try{
+            request.resources().requireActive();if(request.expectedResourceVersion().get("revision").getAsLong()!=revision)throw new IllegalStateException("provider_stale_resource_revision");
+            if(request.cancellationRequested().getAsBoolean()||System.currentTimeMillis()>=request.deadlineMillis())throw new CancellationException();
+            long before=revision;var old=revisionState();var prior=snapshot();String action=request.mutation().get("action").getAsString();
+            switch(action){
+                case "start" -> {
+                    if(running)throw new IllegalStateException("Fixture already running");
+                    var grant=request.resources();var owner=context.threadOwners().get("server_thread");var queued=new AtomicBoolean();var session=new Object();var owned=new AtomicReference<ScheduledFuture<?>>();activeSession=session;running=true;
+                    grant.own("sampler-"+revision,owner,()->{if(activeSession==session){activeSession=null;running=false;revision++;}grantCleanups.incrementAndGet();var active=owned.get();if(active!=null)active.cancel(false);if(failCleanup)throw new IllegalStateException("fixture_cleanup_failure");});
+                    sampling=scheduler.scheduleAtFixedRate(()->{if(!queued.compareAndSet(false,true))return;try{owner.executor().execute(()->{try{grant.publish(()->{if(activeSession==session&&running){if(watching)watchContexts();samples++;}return null;});}catch(IllegalStateException retired){}finally{queued.set(false);}});}catch(RuntimeException retired){queued.set(false);}},0,50,TimeUnit.MILLISECONDS);
+                    owned.set(sampling);
+                    var started=sampling;grant.own("task-"+revision,new ExtensionResources.ThreadOwner("detached_cleanup",Runnable::run,()->true),()->started.cancel(false));
+                }
+                case "stop" -> {activeSession=null;running=false;if(sampling!=null)sampling.cancel(false);}
+                case "fail_input" -> failInput=true;
+                case "fail_cleanup" -> failCleanup=true;
+                case "recover" -> {failInput=false;failCleanup=false;}
+                case "watch_contexts" -> {
+                    watching=true;watchContexts();
+                }
+                default -> throw new IllegalArgumentException("Unknown fixed action");
+            }
+            revision++;var result=new JsonObject();result.addProperty("providerRevisionBefore",before);result.addProperty("providerRevisionAfter",revision);result.add("revisionStateBefore",old);result.add("revisionStateAfter",revisionState());result.add("before",prior);result.add("after",snapshot());return CompletableFuture.completedFuture(result);
+        }catch(Throwable error){return CompletableFuture.failedFuture(error);}
+    }
+    private void watchContexts(){
+        var ids=context.lifetimeContexts();
+        for(var kind:List.of(ExtensionResources.Lifetime.WORLD,ExtensionResources.Lifetime.CONNECTION,ExtensionResources.Lifetime.SCREEN,ExtensionResources.Lifetime.INPUT_LEASE)){
+            String id=ids.identity(kind);if(id==null||observed.containsKey(id))continue;
+            var scope=context.contextResources(kind);observed.put(id,scope);
+            // This is a detached diagnostic counter, not a native game resource.
+            scope.own("context-counter",new ExtensionResources.ThreadOwner("detached_cleanup",Runnable::run,()->true),contextCleanups::incrementAndGet);
+        }
+    }
+}

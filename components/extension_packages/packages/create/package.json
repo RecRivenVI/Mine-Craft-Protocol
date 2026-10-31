@@ -1,0 +1,73 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.extensions.create",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge"
+  ],
+  "mods": {},
+  "inputPrefix": "create",
+  "support": true,
+  "entrySides": [
+    "common"
+  ],
+  "capabilities": [
+    "create:machine",
+    "create:parts"
+  ],
+  "requestedScopes": [
+    "read",
+    "debug.world.read"
+  ],
+  "targetMods": {
+    "1.20.1-forge": {
+      "create": "6.0.8"
+    },
+    "1.21.1-neoforge": {
+      "create": "6.0.10"
+    }
+  },
+  "exports": [
+    "io.github.recrivenvi.extensions.create.nativebridge"
+  ],
+  "resources": {
+    "mixins/create-1.20.1-forge.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.extensions.create.nativebridge.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "BearingUseLegacyMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/create-1.21.1-neoforge.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.extensions.create.nativebridge.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "BearingUseMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    }
+  },
+  "targetMixins": {
+    "1.20.1-forge": [
+      {
+        "config": "mixins/create-1.20.1-forge.json",
+        "side": "common"
+      }
+    ],
+    "1.21.1-neoforge": [
+      {
+        "config": "mixins/create-1.21.1-neoforge.json",
+        "side": "common"
+      }
+    ]
+  }
+}

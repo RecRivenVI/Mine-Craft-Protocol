@@ -18,7 +18,8 @@ export async function extensionPackageSource(repo,packages){
   if(ids.some(id=>!/^[a-z][a-z0-9_]*$/.test(id)))throw new Error('Registered package source ID required');
   const base='components/extension_packages';
   const files=[`${base}/build.gradle.kts`,`${base}/settings.gradle.kts`,`${base}/native-classpaths.gradle`];
-  for(const directory of ['src/main','scripts',...ids.map(id=>'packages/'+id)]){
+  files.push(`${base}/packages/index.json`);
+  for(const directory of ['src/main','scripts','authoring','fixtures',...ids.filter(id=>!['lifetime_left','lifetime_right'].includes(id)).map(id=>'packages/'+id)]){
     for(const entry of await readdir(resolve(repo,base,directory),{recursive:true,withFileTypes:true})){
       if(entry.isSymbolicLink())throw new Error('Package sources cannot be symbolic links');
       if(entry.isFile())files.push(relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/'));

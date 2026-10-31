@@ -6,6 +6,11 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProbeService {
+    default io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+            extensionLifetimeContexts() {
+        return io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty();
+    }
+
     default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
             extensionEnvironment(String target) {
         return null;
@@ -24,10 +29,17 @@ public interface ProbeService {
         return (manifest, environment) -> false;
     }
 
+    default java.util.Map<String, java.util.function.Supplier<Object>> extensionNativeContexts() {
+        return java.util.Map.of();
+    }
+
     default void attachExtensionProviders(
             io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
         throw new UnsupportedOperationException("Runtime has no extension Provider dispatcher");
     }
+
+    default void attachExtensionWorld(
+            io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine engine) {}
 
     default void attachExtensionUi(
             io.github.recrivenvi.minecraftprotocol.core.extension.UiExtensionEngine engine) {}

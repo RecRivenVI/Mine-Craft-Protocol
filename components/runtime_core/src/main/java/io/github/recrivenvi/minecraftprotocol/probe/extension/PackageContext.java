@@ -27,7 +27,20 @@ public interface PackageContext {
 
     ExtensionResources.Scope processResources();
 
+    /** Unavailable contexts are absent; acquiring a resource scope grants no game authority. */
+    LifetimeContexts lifetimeContexts();
+
+    ExtensionResources.Scope contextResources(ExtensionResources.Lifetime lifetime);
+
     java.util.Map<String, ExtensionResources.ThreadOwner> threadOwners();
+
+    /**
+     * Installed native code only: access the current native client/server on its verified owner.
+     * Never serialized or exposed as a remote object API; callers must not retain this context.
+     */
+    default Object nativeContext(String ownerId) {
+        throw new UnsupportedOperationException("No native owner context");
+    }
 
     Registration schema(String id, ProviderSchemaRegistry.Validator validator);
 
@@ -36,6 +49,8 @@ public interface PackageContext {
     Registration uiAdapter(UiAdapter adapter);
 
     Registration inputAdapter(LogicalInputAdapter adapter);
+
+    Registration worldAdapter(WorldAdapter adapter);
 
     enum Side {
         CLIENT,

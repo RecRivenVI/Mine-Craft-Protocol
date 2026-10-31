@@ -89,6 +89,10 @@ public final class InputSequenceQueue implements AutoCloseable {
         return active != null;
     }
 
+    public synchronized boolean poisoned() {
+        return poisoned;
+    }
+
     @Override
     public void close() {
         synchronized (this) {

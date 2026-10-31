@@ -6,6 +6,16 @@ import org.junit.jupiter.api.Test;
 
 class UiInteractionIdentitiesTest {
     @Test
+    void retiringAnOwnerReleasesEntriesAndNeverReusesItsIdentifiers() {
+        var registry = new UiInteractionIdentities();
+        var nativeObject = new Object();
+        long old = registry.id(nativeObject);
+        registry.clear();
+        assertEquals(0, registry.size());
+        assertTrue(registry.id(nativeObject) > old);
+    }
+
+    @Test
     void currentNodeSurvivesTheOld2048BoundaryAndRepeatedNavigation() {
         var registry = new UiInteractionIdentities();
         var current = new Object();

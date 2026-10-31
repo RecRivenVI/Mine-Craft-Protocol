@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 const repo=resolve('../..');
 const targets=[...(await readFile(resolve(repo,'settings.gradle.kts'),'utf8')).matchAll(/register\("([0-9.]+-(?:forge|neoforge|fabric))"\)/g)].map(match=>match[1]);
-for(const id of ['computercraft','modern_ui','emi']) {
+for(const id of JSON.parse(await readFile('packages/index.json','utf8'))) {
     const spec=JSON.parse(await readFile(resolve(`packages/${id}/package.json`),'utf8'));
     const output=resolve(`build/packages/${id}`);await mkdir(resolve(output,'code'),{recursive:true});await mkdir(resolve(output,'docs'),{recursive:true});
     const candidates=(await readdir('build/adapter-code')).filter(name=>name===id+'.jar');
@@ -19,10 +19,10 @@ for(const id of ['computercraft','modern_ui','emi']) {
         if(!targets.includes(target))throw new Error('Unregistered Target '+target);
         const facts=await readFile(resolve(repo,`versions/${target}/target.properties`),'utf8');
         const javaVersion=Number(facts.match(/^java_version=(\d+)$/m)?.[1]);
-        variants[target]={javaVersion,code:['code/adapter.jar'],entrypoints:{client:[spec.javaNamespace+'.Entry']},mixins:spec.targetMixins?.[target]??spec.mixins??[],...(spec.targetMods?.[target]?{mods:spec.targetMods[target]}:{})};
+        variants[target]={javaVersion,code:['code/adapter.jar'],entrypoints:Object.fromEntries((spec.entrySides??['client']).map(side=>[side,[spec.javaNamespace+'.Entry']])),mixins:spec.targetMixins?.[target]??spec.mixins??[],...(spec.targetMods?.[target]?{mods:spec.targetMods[target]}:{})};
     }
     const manifest={formatVersion:1,sdkApi:1,id,version:spec.version,javaNamespace:spec.javaNamespace,files,variants,
-        dependencies:{mods:spec.mods,packages:{}},capabilities:spec.capabilities,requestedScopes:spec.requestedScopes??['ui'],exports:spec.exports??[],documents:{overview:'docs/overview.md'},tests:{}};
+        dependencies:{mods:spec.mods,packages:{}},capabilities:spec.capabilities,requestedScopes:spec.requestedScopes??['ui'],exports:spec.exports??[],documents:{overview:'docs/overview.md'},tests:{smoke:'docs/overview.md'}};
     await writeFile(resolve(output,'extension.json'),JSON.stringify(manifest,null,2)+'\n');
     console.log(`Packaged ${id} ${spec.version}: ${Object.keys(variants).join(', ')}`);
 }

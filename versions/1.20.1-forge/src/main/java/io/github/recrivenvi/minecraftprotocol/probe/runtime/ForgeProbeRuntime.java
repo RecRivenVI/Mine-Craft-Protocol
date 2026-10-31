@@ -402,10 +402,29 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
         beforeClientInput(Minecraft.getInstance());
     }
 
+    private final io.github.recrivenvi.minecraftprotocol.safety.UiInteractionIdentities
+            worldPartIdentities =
+                    new io.github.recrivenvi.minecraftprotocol.safety.UiInteractionIdentities();
+    private Object worldPartIdentityOwner;
+
+    private long worldPartIdentity(Object object) {
+        return worldPartIdentities.id(object);
+    }
+
+    private void refreshExtensionLifetimes(Minecraft client, Object world, Object connection) {
+        if (worldPartIdentityOwner != world) {
+            worldPartIdentityOwner = world;
+            worldPartIdentities.clear();
+        }
+        extensionLifetimes.observe(world, connection, client.screen, extensionInputFrame);
+    }
+
     private void refreshInputContext(Minecraft client) {
         this.checkPendingGameMode(client);
         var connection = client.getConnection();
         boolean connected = connection != null && connection.getConnection().isConnected();
+        refreshExtensionLifetimes(
+                client, connected ? client.level : null, connected ? connection : null);
         var context =
                 this.inputContext.observe(
                         connected ? client.level : null,
@@ -569,9 +588,47 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
                         () ->
                                 this.minecraft != null
                                         && this.minecraft.getSingleplayerServer() != null
-                                        && this.minecraft.getSingleplayerServer().isSameThread());
+                                        && this.minecraft.getSingleplayerServer().isSameThread(),
+                        () -> {
+                            var bound =
+                                    this.minecraft == null
+                                            ? null
+                                            : this.minecraft.getSingleplayerServer();
+                            if (bound == null || !bound.isSameThread())
+                                throw new IllegalStateException(
+                                        "Cleanup owner must be captured on server thread");
+                            return new io.github.recrivenvi.minecraftprotocol.probe.extension
+                                    .ExtensionResources.ThreadOwner(
+                                    "server_thread",
+                                    action -> {
+                                        if (bound.isSameThread()) action.run();
+                                        else {
+                                            if (!bound.isRunning())
+                                                throw new java.util.concurrent
+                                                        .RejectedExecutionException(
+                                                        "Original server stopped");
+                                            bound.execute(action);
+                                        }
+                                    },
+                                    bound::isSameThread);
+                        });
         return java.util.Map.of(
                 "client_thread", client, "render_thread", client, "server_thread", server);
+    }
+
+    @Override
+    public java.util.Map<String, java.util.function.Supplier<Object>> extensionNativeContexts() {
+        return java.util.Map.of(
+                "client_thread", () -> windowClosing.get() ? null : this.minecraft,
+                "render_thread", () -> windowClosing.get() ? null : this.minecraft,
+                "server_thread",
+                        () -> {
+                            var current =
+                                    this.minecraft == null
+                                            ? null
+                                            : this.minecraft.getSingleplayerServer();
+                            return current == null || !current.isRunning() ? null : current;
+                        });
     }
 
     @Override
@@ -1229,6 +1286,8 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
     }
 
     private void shutdown() {
+        this.worldPartIdentityOwner = null;
+        this.worldPartIdentities.clear();
         if (!this.shutdownStarted.compareAndSet(false, true)) return;
         NativeCommandSuggestions.close(this.minecraft);
         this.evidenceCaptures.close();
@@ -2710,6 +2769,12 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
                                         client.keyboardHandler)
                                 .minecraftProtocolProbe$character(window, codePoint, 0));
         return inputEvidence("GAME_ROUTED_RAW", true, false);
+    }
+
+    @Override
+    public void attachExtensionWorld(
+            io.github.recrivenvi.minecraftprotocol.core.extension.WorldExtensionEngine engine) {
+        worldTargeting.extensions(engine, this::worldPartIdentity);
     }
 
     private final WorldTargeting worldTargeting = new WorldTargeting();
@@ -4402,6 +4467,16 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
                     new io.github.recrivenvi.minecraftprotocol.core.extension.LogicalInputRouter();
 
     private volatile String extensionInputFrame = "";
+    private final io.github.recrivenvi.minecraftprotocol.core.extension.NativeLifetimeContexts
+            extensionLifetimes =
+                    new io.github.recrivenvi.minecraftprotocol.core.extension
+                            .NativeLifetimeContexts();
+
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+            extensionLifetimeContexts() {
+        return extensionLifetimes.snapshot();
+    }
 
     private void dispatchExtensionInput(AgentInputContext.Event event, Runnable callback) {
         Minecraft client = requireClient();
@@ -4858,6 +4933,13 @@ public final class ForgeProbeRuntime implements Phase9AExperimentalService {
                         + (client.getOverlay() == null
                                 ? 0
                                 : this.interactionIdentity(client.getOverlay()));
+        var lifetimeConnection = client.getConnection();
+        boolean lifetimeConnected =
+                lifetimeConnection != null && lifetimeConnection.getConnection().isConnected();
+        refreshExtensionLifetimes(
+                client,
+                lifetimeConnected ? client.level : null,
+                lifetimeConnected ? lifetimeConnection : null);
         return screen;
     }
 

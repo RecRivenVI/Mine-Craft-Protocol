@@ -34,7 +34,9 @@ for(const target of targets){
   rows.push({target,status:'PASS',artifactSha256,clientRuntime:client.runtimeInstanceId,serverRuntime:server.runtimeInstanceId,packageIdentity:client.packageIdentity,serverPackageIdentity:server.packageIdentity});
 }
 const replacement=await read('26.3-neoforge-replacement.json');assert.equal(replacement.status,'PASS');assert.equal(replacement.hostJarUnchanged,true);
+assert.equal(replacement.nativeRestart,true);
+assert.equal(replacement.artifactSha256,rows.find(row=>row.target==='26.3-neoforge').artifactSha256,'Replacement must use the current final host');
 await writeFile(resolve(root,'bridge-matrix.json'),JSON.stringify({status:'PASS',scope:'EP2_current_final_jars_client_and_dedicated_server_not_seven_mod_acceptance',rows,sourceFingerprint:digest(JSON.stringify(allSource)),sourceHashes:allSource,
-  replacement:{proof:'26.3-neoforge-replacement.json',artifactSha256:replacement.artifactSha256,currentMatrixArtifact:rows.find(row=>row.target==='26.3-neoforge').artifactSha256,basis:'independent_earlier_ep2_host_binary_not_current_frozen_alpha_proof'},
+  replacement:{proof:'26.3-neoforge-replacement.json',artifactSha256:replacement.artifactSha256,basis:'same_current_final_host_two_independently_compiled_package_versions'},
   completedAt:new Date().toISOString(),humanAcceptance:'PENDING',persistentWriteCalls:0},null,2)+'\n');
 console.log('PASS: five current final JARs, real early hooks, client/server, MCP/grant/cleanup; no Alpha published');

@@ -29,6 +29,11 @@ public final class UiInteractionIdentities {
         return identities.size();
     }
 
+    /** Retire a native ownership context without reusing identifiers issued for the old one. */
+    public void clear() {
+        identities.clear();
+    }
+
     private record Key(Object value) {
         @Override
         public int hashCode() {

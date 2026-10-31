@@ -811,13 +811,13 @@ export function buildServer(config: CompanionConfig): McpServer {
   }
   jsonResource('Minecraft Extension Resource Diagnostics', 'minecraft://extensions/resources', '/v0/extensions/resources');
   jsonResource('Installed Minecraft Extensions', 'minecraft://extensions/installed', '/v0/extensions');
-  server.registerResource('Installed Extension Document',
-    new ResourceTemplate('minecraft://extensions/{packageId}/documents/{documentId}', {list: undefined}),
-    {title: 'Approved extension document', mimeType: 'application/json'}, async (uri, variables) => {
+  for (const kind of ['documents', 'tests'] as const) server.registerResource(`Installed Extension ${kind}`,
+    new ResourceTemplate(`minecraft://extensions/{packageId}/${kind}/{documentId}`, {list: undefined}),
+    {title: `Approved extension ${kind}`, mimeType: 'application/json'}, async (uri, variables) => {
       const packageId = String(variables.packageId), documentId = String(variables.documentId);
       if (![packageId, documentId].every(id => /^[a-zA-Z0-9_.-]{1,128}$/.test(id)))
         throw new Error('Invalid extension/document identity');
-      const data = await client.json('GET', `/v0/extensions/document?packageId=${encodeURIComponent(packageId)}&documentId=${encodeURIComponent(documentId)}`);
+      const data = await client.json('GET', `/v0/extensions/document?packageId=${encodeURIComponent(packageId)}&documentId=${encodeURIComponent(documentId)}${kind === 'tests' ? '&kind=test' : ''}`);
       return {contents: [{uri: uri.href, mimeType: 'application/json', text: JSON.stringify(envelope(data))}]};
     });
   jsonResource('Minecraft Session', 'minecraft://session', '/v0/session');

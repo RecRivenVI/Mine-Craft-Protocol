@@ -149,10 +149,13 @@ public final class ProbeTransport implements AutoCloseable {
                         service.extensionEarlyHooks(),
                         this.runtimeInstanceId,
                         service.extensionThreadOwners(),
-                        protocolState::controlPresence);
+                        protocolState::controlPresence,
+                        service.extensionNativeContexts(),
+                        service::extensionLifetimeContexts);
         this.extensions = platform;
         service.attachExtensionProviders(platform);
         service.attachExtensionUi(platform.uiEngine());
+        service.attachExtensionWorld(platform.worldEngine());
         service.attachExtensionInputReset(platform::resetInput);
     }
 
@@ -631,14 +634,10 @@ public final class ProbeTransport implements AutoCloseable {
             if (this.extensions != null) this.extensions.close();
             this.peerDelegations.close();
             this.recording.close();
-            if (this.serverChannel != null)
-                this.serverChannel
-                        .close()
-                        .addListener(
-                                ignored -> {
-                                    if (this.endpoint != null) this.endpoint.close();
-                                });
-            else if (this.endpoint != null) this.endpoint.close();
+            if (this.serverChannel != null) this.serverChannel.close();
+            // Vanilla may terminate the JVM before Netty's asynchronous close listener runs.
+            // Withdraw discovery synchronously after the Runtime rejects new work.
+            if (this.endpoint != null) this.endpoint.close();
             if (this.workerGroup != null) this.workerGroup.shutdownGracefully();
             if (this.bossGroup != null) this.bossGroup.shutdownGracefully();
         }
@@ -2183,7 +2182,12 @@ public final class ProbeTransport implements AutoCloseable {
                         "diagnostics",
                         () ->
                                 CancellableWork.map(
-                                        service.inputState(), protocolState::inputStateMetadata));
+                                        service.inputState(),
+                                        snapshot -> {
+                                            var result = protocolState.inputStateMetadata(snapshot);
+                                            automation.addQueueState(result);
+                                            return result;
+                                        }));
             } else if (request.method() == HttpMethod.POST && path.equals("/v0/control/acquire")) {
                 protocolState.requireScope("control");
                 JsonObject body = jsonBody(request);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir,readdir} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {resolve,relative} from 'node:path';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -8,26 +8,39 @@ import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.
 import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
 import {candidateSource,extensionPackageSource,extensionInputArtifacts} from '../../regression-v1_release/task/alpha-candidate.mjs';
 import {adapterUiActions} from './adapter-ui-actions.mjs';
+import {adapterWorldActions} from './adapter-world-actions.mjs';
+import {lifecycleFaultActions,restoreLifecycleFaults} from './lifecycle-fault-actions.mjs';
+import {serverAdapterActions} from './server-adapter-actions.mjs';
 const repo=resolve(import.meta.dirname,'../../../..');
 const args=Object.fromEntries(process.argv.slice(2).map(arg=>arg.replace(/^--/,'').split('=')));
 const target=args.target,server=args.server==='true',installed=args.installed==='true',role=server?'server':'client';
+const worldName='Extension-Platform-'+(args.adapter??'platform_probe');
 const instance=resolve(repo,`validations/integration-extension_platform/instance/${installed?'installed/':''}${target}/${role}`);
 const connection=await connectRuntime(instance,target);
 let lease,arm,writeCalls=0;
-const checks=[],observations=[];
+const checks=[],observations=[],admissionRetries=[];
 const pause=ms=>new Promise(done=>setTimeout(done,ms));
 async function api(method,path,body,error){
   assert(!/storage[./]write|persistent.*write/i.test(path),'Persistent Write forbidden');
+  for(let attempt=0;attempt<9;attempt++){
   const response=await connection.fetch(path,{method,headers:{...(lease?{'x-mcp-control-lease':lease}:{}),...(arm?{'x-mcp-debug-arm':arm}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)});
   const value=await response.json();
+  if(!error&&response.status===429&&value.error==='EXPENSIVE_OPERATION_RATE_LIMITED'&&attempt<8){
+    const waitMs=Math.max(500,Math.min(2000,value.retryAfterMillis??500));
+    admissionRetries.push({path,attempt:attempt+1,waitMs,reason:value.error});
+    await pause(waitMs);continue; // Admission rejection only; never retry a dispatched mutation or stale precondition.
+  }
+  if(response.ok&&path==='/v0/debug/arm'&&value.debugArmId)arm=value.debugArmId;
+  if(response.ok&&path==='/v0/debug/disarm')arm=undefined;
   if(error){assert.equal(value.error,error,JSON.stringify(value));assert(!response.ok);return value;}
   if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error,status:response.status,runtimeError:value});return value;
+  }
 }
 const nodes=tree=>(tree.children??[]).flatMap(node=>[node,...nodes(node)]);
 async function until(test,description,timeout=120000){const end=Date.now()+timeout;do{const value=await test();if(value)return value;await pause(150);}while(Date.now()<end);throw new Error(description);}
 const tree=()=>api('GET','/v0/ui/tree');
 const screen=async(predicate,timeout=120000)=>{let last;try{return await until(async()=>{last=await tree();return !last.overlayIdentity&&predicate(last)?last:false;},'Screen transition timeout',timeout);}catch(error){observations.push({screenTimeout:last});throw error;}};
-async function acquire(){if(lease&&(await api('GET','/v0/control/status')).leaseId===lease)return;lease=(await api('POST','/v0/control/acquire',automaticTakeoverRequest(await api('GET','/v0/control/mode'),{ttlMs:60000}))).leaseId;}
+async function acquire(){if(lease&&(await api('GET','/v0/control/status')).leaseId===lease&&(await api('GET','/v0/control/mode')).mode==='TAKEOVER')return;lease=(await api('POST','/v0/control/acquire',automaticTakeoverRequest(await api('GET','/v0/control/mode'),{ttlMs:60000}))).leaseId;}
 async function mode(value){const state=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:value,expectedModeVersion:state.modeVersion});lease=undefined;}
 async function clickNode(node){
   assert(node?.nodeId,'Semantic target required');
@@ -50,22 +63,28 @@ async function shutdown(stopAtTitle=false){
     }
     const exit=nodes(value).find(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey)&&node.active!==false);
     if(exit){observations.push({worldExit:await finishBaselineWorldExit({api,clickNode,wait:screen,quit:exit})});if((await api('GET','/v0/control/mode')).mode!=='TAKEOVER')lease=undefined;}
-    else await key(256);
+    else {const cancel=nodes(value).find(node=>node.translationKey==='gui.cancel'&&node.active!==false);if(cancel)await clickNode(cancel);else await key(256);}
   }
   throw new Error('Could not navigate normal shutdown');
 }
 if(args['shutdown-only']==='true'){await shutdown();process.exit(0);}
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const before=await candidateSource(repo,[target]);
-const packageIds=['platform_probe',...(args.adapter&&args.adapter!=='platform_probe'?[args.adapter]:[])];
+const packageIds=['platform_probe',...(args.adapter&&args.adapter!=='platform_probe'?[args.adapter]:[]),...(args['lifetime-faults']==='true'?['lifetime_left','lifetime_right']:[])];
 const packageSourceFiles=await extensionPackageSource(repo,packageIds);
 const upstreamArtifacts=await extensionInputArtifacts(instance);
 const toolFiles={};
-for(const file of ['Invoke-ExtensionPlatformSmoke.ps1','extension-platform-smoke.mjs','install-platform-probe.mjs','adapter-ui-actions.mjs','install-adapter.py']) {
+for(const file of ['Invoke-ExtensionPlatformSmoke.ps1','extension-platform-smoke.mjs','install-platform-probe.mjs','adapter-ui-actions.mjs','adapter-world-actions.mjs','lifecycle-fault-actions.mjs','install-adapter.py']) {
   const path='components/validation_tools/integration-extension_platform/task/'+file;
   toolFiles[path]=hash(await readFile(resolve(repo,path)));
 }
-const record={target,role,adapter:args.adapter??'platform_probe',runtimeInstanceId:connection.instanceId,developmentClasspath:!installed,finalJarInstall:installed,toolFiles,packageSourceFiles,upstreamArtifacts,checks,observations,persistentWriteCalls:0};
+if(server)toolFiles['components/validation_tools/integration-extension_platform/task/server-adapter-actions.mjs']=hash(await readFile(resolve(import.meta.dirname,'server-adapter-actions.mjs')));
+for(const path of ['components/companion/package.json','components/companion/package-lock.json'])toolFiles[path]=hash(await readFile(resolve(repo,path)));
+for(const entry of await readdir(resolve(repo,'components/companion/dist'),{recursive:true,withFileTypes:true}))if(entry.isFile()){
+  const path=relative(repo,resolve(entry.parentPath,entry.name)).replaceAll('\\','/');
+  if(!path.startsWith('components/companion/dist/test/'))toolFiles[path]=hash(await readFile(resolve(repo,path)));
+}
+const record={target,role,adapter:args.adapter??'platform_probe',runtimeInstanceId:connection.instanceId,developmentClasspath:!installed,finalJarInstall:installed,toolFiles,packageSourceFiles,upstreamArtifacts,checks,observations,admissionRetries,persistentWriteCalls:0};
 if(installed){const product=Object.fromEntries((await readFile(resolve(repo,'gradle.properties'),'utf8')).split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const at=line.indexOf('=');return[line.slice(0,at),line.slice(at+1)];}));const name=`${product.mod_id}-${target}-${product.mod_version}.jar`;record.artifactSha256=hash(await readFile(resolve(instance,'mods',name)));assert.equal(record.artifactSha256,hash(await readFile(resolve(repo,'build/release',product.mod_version,name))));}
 const check=async(name,run)=>{try{await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}catch(error){if(!server)try{observations.push({failedCheck:name,failureUiTree:await tree()});}catch(readError){observations.push({failedCheck:name,diagnosticReadError:String(readError)});}throw error;}};
 const request={category:'DEBUG',perspective:'server_authoritative',domains:['providers'],includeProviderData:true,providerIds:['platform_probe:sampling'],providerQuery:{},budgets:{maxProviders:1,providerTimeoutMs:1000}};
@@ -99,13 +118,13 @@ try {
   await acquire();await click('menu.singleplayer','Singleplayer');
   let value=await screen(t=>/SelectWorldScreen$|CreateWorldScreen$/.test(t.screenClass));
   if(value.screenClass.endsWith('SelectWorldScreen')){
-    const world=nodes(value).find(node=>node.worldName==='Extension-Platform');
+    const world=nodes(value).find(node=>node.worldName===worldName);
     if(world){await clickNode(world);await click('selectWorld.select','Play Selected World');}
     else await click('selectWorld.create','Create New World');
   }
   value=await screen(t=>!t.screenClass||t.screenClass.endsWith('CreateWorldScreen'));
   if(value.screenClass){
-    await api('POST','/v0/ui/action',{selector:{role:'text_field',nth:0},action:'type_text',text:'Extension-Platform'});
+    await api('POST','/v0/ui/action',{selector:{role:'text_field',nth:0},action:'type_text',text:worldName});
     for(let i=0;i<4;i++){value=await tree();const button=nodes(value).find(node=>node.label?.startsWith('Game Mode:'));assert(button);if(button.label.includes('Creative'))break;await clickNode(button);}
     const worldTab=nodes(await tree()).find(node=>node.role==='tab'&&node.label==='World');if(worldTab)await clickNode(worldTab);
     for(let i=0;i<12;i++){value=await tree();const type=nodes(value).find(node=>node.label?.startsWith('World Type:'));if(!type||/Superflat|Flat/.test(type.label))break;await clickNode(type);}
@@ -128,7 +147,7 @@ try {
     });
   }
   await check('registered Provider uses real server owner and DEBUG writes still require Arm and mode',async()=>{
-    const observed=await read();assert.equal(data(observed).running,false);assert.equal(data(observed).samples,0);
+    const observed=await read();assert.equal(data(observed).running,false);assert.equal(data(observed).samples,0);assert.match(data(observed).nativeOwnerType,server?/^net\.minecraft\.server\.dedicated\.DedicatedServer$/:/^net\.minecraft\.client\.server\.IntegratedServer$/);
     const early=(await api('GET','/v0/extensions')).earlyHooks;assert(early.configs.some(config=>config.appliedTargets.some(target=>target.includes('MinecraftServer'))),JSON.stringify(early));observations.push({earlyHooks:early});
     assert(data(observed).passiveNativeHookCalls>0,JSON.stringify(data(observed)));
     assert(!data(observed).nativeHelperClassLoader.includes('ExtensionClassSpace'),JSON.stringify(data(observed)));
@@ -150,6 +169,8 @@ try {
     const transport=new StdioClientTransport({command:process.execPath,args:[resolve(repo,'components/companion/dist/index.js')],env,stderr:'pipe'}),client=new Client({name:'extension-platform-consumer',version:'1'});
     try {
       await client.connect(transport);const installed=await client.readResource({uri:'minecraft://extensions/installed'});assert(JSON.stringify(installed).includes(record.packageIdentity));
+      const scenario=await client.readResource({uri:'minecraft://extensions/platform_probe/tests/smoke'});
+      assert(JSON.stringify(scenario).includes('extension.test'));assert(JSON.stringify(scenario).includes(record.packageIdentity));
       const call=async(name,args)=>{const result=await client.callTool({name,arguments:args});assert(!result.isError,JSON.stringify(result));return result.structuredContent.data;};
       await call('minecraft_debug_arm',{action:'arm',worldFingerprint:fingerprint,namespaces:['provider'],ttlMs:1000});await pause(650);
       const observed=await call('minecraft_deep_observe',request);const started=await call('minecraft_debug',{action:'mutate',mutation:mutation(observed,'start')});assert.equal(started.after.running,true);
@@ -160,7 +181,44 @@ try {
     } finally {await client.close();await transport.close();}
   });
   await api('POST','/v0/debug/disarm');arm=undefined;await mode('READ');
-  if(args.adapter&&args.adapter!=='platform_probe')await adapterUiActions({adapter:args.adapter,api,tree,screen,nodes,mode,acquire,key,check,observations,until});
+  if(!server)await check('world PartRef uses native parent pick and real player use, then rejects parent replacement',async()=>{
+    await mode('OPERATE');
+    for(const command of ['gamemode creative @s','clear @s','fill -2 80 0 2 84 4 minecraft:air','fill -2 79 0 2 79 4 minecraft:stone','tp @s .5 80 .5 0 0','setblock 0 80 2 minecraft:chest[facing=north]']){
+      await api('POST','/v0/command/player',{command,route:'NATIVE'});await pause(550);
+    }
+    await acquire();
+    let lastPartRead;
+    const block=await until(async()=>{const value=lastPartRead=await api('GET','/v0/world/block?x=0&y=80&z=2&category=USER');return value.extensionParts?.some(part=>part.capabilitySource==='platform_probe:native_world')?value:false;},'No current native world part',10000).catch(error=>{observations.push({missingPartRead:lastPartRead});throw new Error(error.message+': '+JSON.stringify(lastPartRead));});
+    const part=block.extensionParts.find(part=>part.capabilitySource==='platform_probe:native_world');
+    assert.notEqual(part.targetRef,block.targetRef);assert.equal(part.category,'USER');assert.equal(part.perspective,'CLIENT_KNOWN');
+    const started=await api('POST','/v0/pipelines',{steps:[{type:'world.action',targetRef:part.targetRef,action:'use'}],timeoutMs:12000});
+    const result=await api('POST',`/v0/operations/${started.operationId}/wait`,{timeoutMs:15000});assert.equal(result.state,'completed',JSON.stringify(result));
+    const opened=await screen(value=>value.screenClass.endsWith('ContainerScreen'));assert(nodes(opened).some(node=>node.role==='slot'));
+    observations.push({worldPart:part,result,actualNativeScreen:opened.screenClass,act:'GAME_ROUTED',directBusinessCall:false});
+    await key(256);await screen(value=>!value.screenClass);
+    const stale=(await api('GET','/v0/world/block?x=0&y=80&z=2&category=USER')).extensionParts[0];
+    await mode('OPERATE');await api('POST','/v0/command/player',{command:'setblock 0 80 2 minecraft:stone',route:'NATIVE'});
+    await until(async()=>(await api('GET','/v0/world/block?x=0&y=80&z=2&category=USER')).block==='minecraft:stone','Replacement did not synchronize',10000);
+    await acquire();const before=await api('GET','/v0/input/state');
+    const rejected=await api('POST','/v0/pipelines',{steps:[{type:'world.action',targetRef:stale.targetRef,action:'use'}],timeoutMs:12000});
+    const stopped=await api('POST',`/v0/operations/${rejected.operationId}/wait`,{timeoutMs:15000});assert.equal(stopped.state,'failed',JSON.stringify(stopped));
+    assert.match(JSON.stringify(stopped),/WORLD_TARGET_STALE|WORLD_PART_STALE/);
+    const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,before.inputDispatchSequence+1,'Only the mandatory release-all bookkeeping counter may advance after rejected input');assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);
+    observations.push({stalePartRejected:stopped,cleanupCounterAdvanced:1,noHeldInput:true});await api('POST','/v0/control/release');lease=undefined;
+  });
+  if(args['lifetime-faults']==='true'){
+    assert(!server);
+    await lifecycleFaultActions({api,mode,acquire,key,screen,until,check,observations});
+    await shutdown(true);
+    await check('leaving the actual world retires package WORLD and CONNECTION scopes without a client disconnect',async()=>{
+      const value=await until(async()=>{const item=await api('GET','/v0/extensions/resources');const rows=item.cleanup.filter(row=>['lifetime_left','lifetime_right'].includes(row.packageId)&&['WORLD','CONNECTION'].includes(row.lifetime));return rows.length>=4&&rows.every(row=>row.complete)?item:false;},'World contexts did not retire',6000);
+      assert(value.cleanup.filter(row=>['lifetime_left','lifetime_right'].includes(row.packageId)&&['WORLD','CONNECTION'].includes(row.lifetime)).every(row=>row.released),JSON.stringify(value));observations.push({nativeWorldExitResources:value});
+    });
+  }
+  if(args.adapter&&args.adapter!=='platform_probe'){
+    if(server)await serverAdapterActions({adapter:args.adapter,api,observations,check,until:async(read,valid,label)=>until(async()=>{const value=await read();return valid(value)?value:false;},label)});
+    else await (['ae2','create','exposure','littletiles'].includes(args.adapter)?adapterWorldActions:adapterUiActions)({adapter:args.adapter,api,tree,screen,nodes,mode,acquire,key,check,observations,until});
+  }
   if(!server){const input=await api('GET','/v0/input/state');assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);}
   assert.deepEqual(await candidateSource(repo,[target]),before,'Source changed while running');
   assert.deepEqual(await extensionPackageSource(repo,packageIds),packageSourceFiles,'Adapter sources changed while running');
@@ -168,13 +226,25 @@ try {
   record.sourceFiles=before;record.status='PASS';record.debugWriteRequests=writeCalls;
 } catch(error) {record.status='FAIL';record.error=String(error);throw error;}
 finally {
+  let cleanupFailure;
+  try {
+    if(args['lifetime-faults']==='true'&&!(await tree()).screenClass.endsWith('TitleScreen')){
+      await restoreLifecycleFaults({api,mode});record.faultFixturesRestored=true;
+    }
+    await api('POST','/v0/debug/disarm');arm=undefined;
+    const expected=observations.filter(item=>item.case==='independent_grant_failure').flatMap(item=>item.reports.filter(row=>row.packageId===item.failed));
+    record.expectedCleanupFailures=expected;
+    const cleanup=await until(async()=>{const value=await api('GET','/v0/extensions/resources');return value.cleanup.filter(item=>item.lifetime==='DEBUG_GRANT').every(item=>item.complete&&(item.released||expected.some(known=>known.packageId===item.packageId&&known.contextId===item.contextId&&JSON.stringify(known.resources)===JSON.stringify(item.resources))))?value:false;},'Debug grant cleanup did not finish before shutdown',6000);
+    record.debugCleanupBeforeShutdown=cleanup;
+  } catch(error){record.status='FAIL';record.cleanupError=String(error);cleanupFailure=error;}
   try {
     if(args['host-shutdown']==='true'&&!server){
       await shutdown(true);
     }else await shutdown();
-  } catch(error){record.status='FAIL';record.cleanupError=String(error);throw error;}
+  } catch(error){record.status='FAIL';record.shutdownError=String(error);cleanupFailure??=error;}
   finally {
     const result=resolve(repo,'validations/integration-extension_platform/result');await mkdir(result,{recursive:true});
-    record.completedAt=new Date().toISOString();await writeFile(resolve(result,`${target}-${installed?'installed-':''}${role}${args.adapter&&args.adapter!=='platform_probe'?'-'+args.adapter:''}.json`),JSON.stringify(record,null,2)+'\n');
+    record.completedAt=new Date().toISOString();await writeFile(resolve(result,`${target}-${installed?'installed-':''}${role}${args.adapter&&args.adapter!=='platform_probe'?'-'+args.adapter:''}${args['lifetime-faults']==='true'?'-lifetimes':''}.json`),JSON.stringify(record,null,2)+'\n');
   }
+  if(cleanupFailure)throw cleanupFailure;
 }

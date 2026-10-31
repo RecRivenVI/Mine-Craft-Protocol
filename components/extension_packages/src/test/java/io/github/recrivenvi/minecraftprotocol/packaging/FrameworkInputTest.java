@@ -73,6 +73,7 @@ class FrameworkInputTest {
         try {
             assertTrue(ModernBridge.rejectUnownedInput());
             assertEquals(0, ModernBridge.mouseButton(1, 0));
+            assertEquals(0L, ModernBridge.hostCursorHandle(987L));
             try (var binding =
                     new LogicalInput.Binding(
                             state,
@@ -93,6 +94,7 @@ class FrameworkInputTest {
                                     .PackageContext.ControlState("READ", "session", 4, false));
         }
         assertFalse(ModernBridge.rejectUnownedInput());
+        assertEquals(987L, ModernBridge.hostCursorHandle(987L));
     }
 
     public static final class ReleasedEvent {

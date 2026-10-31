@@ -13,6 +13,13 @@ final class WorldClientSnapshot {
     private WorldClientSnapshot() {}
 
     static JsonObject capture(String kind, JsonObject query, WorldTargeting targeting) {
+        try (var scope = targeting.readScope()) {
+            return captureScoped(kind, query, targeting);
+        }
+    }
+
+    private static JsonObject captureScoped(
+            String kind, JsonObject query, WorldTargeting targeting) {
         Minecraft client = Minecraft.getInstance();
         JsonObject result =
                 WorldClientModel.capture(
@@ -122,13 +129,17 @@ final class WorldClientSnapshot {
                                     return value;
                                 }
                                 var state = chunk.getBlockState(new BlockPos(x, y, z));
-                                targeting.block(value, chunk, new BlockPos(x, y, z), state);
+
                                 value.addProperty(
                                         "block",
                                         BuiltInRegistries.BLOCK
                                                 .getKey(state.getBlock())
                                                 .toString());
                                 value.addProperty("state", state.toString());
+                                value.addProperty("x", x);
+                                value.addProperty("y", y);
+                                value.addProperty("z", z);
+                                targeting.block(value, chunk, new BlockPos(x, y, z), state);
                                 return value;
                             }
 

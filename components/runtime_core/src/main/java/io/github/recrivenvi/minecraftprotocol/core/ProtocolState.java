@@ -656,6 +656,10 @@ public final class ProtocolState implements AutoCloseable {
     }
 
     private void requireModeChangeReady() {
+        this.requireModeChangeReady(true);
+    }
+
+    private void requireModeChangeReady(boolean requiresCleanInput) {
         if (this.closed)
             throw new ProtocolException(
                     "CONTROL_SESSION_CLOSED", 409, "Runtime control session is closed");
@@ -664,7 +668,7 @@ public final class ProtocolState implements AutoCloseable {
                     "CONTROL_INPUT_CLEANUP_PENDING",
                     409,
                     "Input cleanup must complete before changing intent");
-        if (this.inputCleanupBarrier.isCompletedExceptionally())
+        if (requiresCleanInput && this.inputCleanupBarrier.isCompletedExceptionally())
             throw new ProtocolException(
                     "CONTROL_INPUT_CLEANUP_FAILED",
                     409,
@@ -844,7 +848,9 @@ public final class ProtocolState implements AutoCloseable {
             String leaseId,
             String requestId,
             String connectionId) {
-        this.requireModeChangeReady();
+        // Failed player-input cleanup must not disable independent OPERATE repair authority.
+        // TAKEOVER acquisition and every player dispatch keep the successful-cleanup gate.
+        this.requireModeChangeReady(false);
         this.requireModeVersion(expectedVersion);
         if (requested == AgentControlSession.Mode.TAKEOVER)
             throw new ProtocolException(

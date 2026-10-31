@@ -4,3 +4,7 @@
 不直接调用电脑服务或执行 Lua。点击、拖拽、滚动和字符继续由正式 UI/input 接口产生。
 终端不是可整体替换的文本框；type_text 必须使用 replace=false，提交使用正常 Enter。
 五个 Target 的包声明不等于五端第三方业务已经实测；以平台验证结果为准。
+
+## 验证与限制
+
+具名场景正常打开计算机，输入并运行print(6*7)，从真实可见终端独立读回42，不通过Java调用Lua。客户端专用入口在独服不执行。固定CC 1.120.3的NeoForge26.3发行包引用已移除的ModConfig.Type.SERVER，启动在Runtime端点前失败；这是上游阻塞，不写成该Target的CC业务PASS，不用Fabric结果替代。

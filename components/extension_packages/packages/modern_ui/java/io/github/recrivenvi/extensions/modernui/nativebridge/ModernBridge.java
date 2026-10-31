@@ -32,6 +32,11 @@ public final class ModernBridge {
         return current != null && current.get().takeoverActive();
     }
 
+    /** Pointer images never change the physical host pointer during TAKEOVER. */
+    public static long hostCursorHandle(long nativeHandle) {
+        return takeover() ? 0L : nativeHandle;
+    }
+
     public static boolean rejectUnownedInput() {
         return takeover() && LogicalInput.current() == null;
     }

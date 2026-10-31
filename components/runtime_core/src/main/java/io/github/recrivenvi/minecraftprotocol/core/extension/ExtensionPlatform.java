@@ -14,6 +14,7 @@ import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
 import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageExtension;
 import io.github.recrivenvi.minecraftprotocol.probe.extension.Registration;
 import io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter;
+import io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -68,6 +69,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
     private final Map<String, Candidate> candidates = new LinkedHashMap<>();
     private final List<Transaction> active = new ArrayList<>();
     private final Map<String, AgentDataProviderV2> registeredProviders = new LinkedHashMap<>();
+    private final Map<String, WorldAdapter> registeredWorld = new LinkedHashMap<>();
     private final Map<String, UiAdapter> registeredUi = new LinkedHashMap<>();
     private final Map<String, LogicalInputAdapter> registeredInputs = new LinkedHashMap<>();
     private final Map<String, ProviderSchemaRegistry.Validator> registeredSchemas =
@@ -77,10 +79,39 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
     private final ExtensionResources resources;
     private final java.util.concurrent.ScheduledExecutorService resourceExpiry;
     private final Map<String, ExtensionResources.ThreadOwner> threadOwners;
+    private final Map<String, java.util.function.Supplier<Object>> nativeContexts;
+    private final java.util.function.Supplier<
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts>
+            lifetimeContexts;
     private final java.util.function.Supplier<
                     io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession.Snapshot>
             controlState;
     private volatile boolean closed;
+    private final java.util.concurrent.ConcurrentLinkedDeque<JsonObject> inputCleanup =
+            new java.util.concurrent.ConcurrentLinkedDeque<>();
+
+    private CompletableFuture<Void> trackInputCleanup(LogicalInputAdapter adapter, String reason) {
+        var report = new JsonObject();
+        report.addProperty("adapterId", adapter.id());
+        report.addProperty("reason", reason);
+        report.addProperty("startedAtMillis", System.currentTimeMillis());
+        CompletableFuture<Void> pending;
+        try {
+            pending =
+                    java.util.Objects.requireNonNull(adapter.reset(reason))
+                            .orTimeout(2, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Throwable failure) {
+            pending = CompletableFuture.failedFuture(failure);
+        }
+        return pending.whenComplete(
+                (ignored, error) -> {
+                    report.addProperty("status", error == null ? "released" : "failed");
+                    report.addProperty(
+                            "failure", error == null ? "" : error.getClass().getSimpleName());
+                    inputCleanup.addLast(report);
+                    while (inputCleanup.size() > 128) inputCleanup.pollFirst();
+                });
+    }
 
     public ExtensionPlatform(ExtensionStore store, Environment environment, EarlyHooks hooks) {
         this(store, environment, hooks, java.util.UUID.randomUUID().toString());
@@ -110,10 +141,51 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                             io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession
                                     .Snapshot>
                     controlState) {
+        this(store, environment, hooks, runtimeId, threadOwners, controlState, Map.of());
+    }
+
+    public ExtensionPlatform(
+            ExtensionStore store,
+            Environment environment,
+            EarlyHooks hooks,
+            String runtimeId,
+            Map<String, ExtensionResources.ThreadOwner> threadOwners,
+            java.util.function.Supplier<
+                            io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession
+                                    .Snapshot>
+                    controlState,
+            Map<String, java.util.function.Supplier<Object>> nativeContexts) {
+        this(
+                store,
+                environment,
+                hooks,
+                runtimeId,
+                threadOwners,
+                controlState,
+                nativeContexts,
+                io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts::empty);
+    }
+
+    public ExtensionPlatform(
+            ExtensionStore store,
+            Environment environment,
+            EarlyHooks hooks,
+            String runtimeId,
+            Map<String, ExtensionResources.ThreadOwner> threadOwners,
+            java.util.function.Supplier<
+                            io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession
+                                    .Snapshot>
+                    controlState,
+            Map<String, java.util.function.Supplier<Object>> nativeContexts,
+            java.util.function.Supplier<
+                            io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts>
+                    lifetimeContexts) {
         this.environment = environment;
         this.controlState = controlState;
         this.earlyHooks = hooks;
         this.threadOwners = Map.copyOf(threadOwners);
+        this.nativeContexts = Map.copyOf(nativeContexts);
+        this.lifetimeContexts = java.util.Objects.requireNonNull(lifetimeContexts);
         this.runtimeId = runtimeId;
         this.resources = new ExtensionResources(runtimeId, java.time.Duration.ofSeconds(2));
         this.resourceExpiry =
@@ -186,6 +258,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
             var registered = new ArrayList<>(transaction.providers.keySet());
             registered.addAll(transaction.ui.keySet());
             registered.addAll(transaction.inputs.keySet());
+            registered.addAll(transaction.world.keySet());
             candidate.status.registered = List.copyOf(registered);
         } catch (Throwable failure) {
             transaction.close();
@@ -206,6 +279,16 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         return List.copyOf(registeredProviders.values());
     }
 
+    public WorldExtensionEngine worldEngine() {
+        return new WorldExtensionEngine(
+                runtimeId,
+                () -> {
+                    synchronized (this) {
+                        return List.copyOf(registeredWorld.values());
+                    }
+                });
+    }
+
     public UiExtensionEngine uiEngine() {
         return new UiExtensionEngine(
                 runtimeId,
@@ -223,14 +306,19 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         }
         List<CompletableFuture<Void>> pending = new ArrayList<>();
         for (var adapter : snapshot) {
-            try {
-                pending.add(
-                        adapter.reset(reason).orTimeout(2, java.util.concurrent.TimeUnit.SECONDS));
-            } catch (Throwable failure) {
-                pending.add(CompletableFuture.failedFuture(failure));
-            }
+            pending.add(trackInputCleanup(adapter, reason));
         }
-        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new));
+        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new))
+                .handle(
+                        (ignored, error) -> {
+                            if (error != null)
+                                throw new io.github.recrivenvi.minecraftprotocol.core.ProtocolState
+                                        .ProtocolException(
+                                        "CONTROL_INPUT_CLEANUP_FAILED",
+                                        409,
+                                        "Extension input cleanup failed; inspect /v0/extensions/resources for the adapter identity");
+                            return null;
+                        });
     }
 
     @Override
@@ -285,7 +373,8 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                                 id ->
                                         registeredProviders.containsKey(id)
                                                 || registeredUi.containsKey(id)
-                                                || registeredInputs.containsKey(id))
+                                                || registeredInputs.containsKey(id)
+                                                || registeredWorld.containsKey(id))
                         .sorted()
                         .forEach(registered::add);
                 item.add("registeredCapabilities", registered);
@@ -296,9 +385,11 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                                     ? "provider"
                                     : registeredUi.containsKey(id)
                                             ? "ui_projection"
-                                            : registeredInputs.containsKey(id)
-                                                    ? "logical_input"
-                                                    : null;
+                                            : registeredWorld.containsKey(id)
+                                                    ? "world_parts"
+                                                    : registeredInputs.containsKey(id)
+                                                            ? "logical_input"
+                                                            : null;
                     if (kind == null) continue;
                     JsonObject detail = new JsonObject();
                     detail.addProperty("id", id);
@@ -312,6 +403,11 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                                 .forEach(views::add);
                         detail.add("views", views);
                         detail.addProperty("actionRoute", "existing_game_routed_input");
+                    }
+                    if (registeredWorld.containsKey(id)) {
+                        detail.add("views", new com.google.gson.Gson().toJsonTree(List.of("USER")));
+                        detail.addProperty(
+                                "actionRoute", "existing_game_routed_native_parent_pick");
                     }
                     details.add(detail);
                 }
@@ -416,6 +512,9 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
             reports.add(report);
         }
         value.add("cleanup", reports);
+        var inputs = new JsonArray();
+        inputCleanup.forEach(report -> inputs.add(report.deepCopy()));
+        value.add("inputCleanup", inputs);
         return value;
     }
 
@@ -441,10 +540,12 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         private final Candidate candidate;
         private final Map<String, ProviderSchemaRegistry.Validator> schemas = new LinkedHashMap<>();
         private final Map<String, AgentDataProviderV2> providers = new LinkedHashMap<>();
+        private final Map<String, WorldAdapter> world = new LinkedHashMap<>();
         private final Map<String, UiAdapter> ui = new LinkedHashMap<>();
         private final Map<String, LogicalInputAdapter> inputs = new LinkedHashMap<>();
         private final List<Handle> handles = new ArrayList<>();
         private boolean sealed;
+        private volatile boolean disposed;
 
         Transaction(Candidate candidate) {
             this.candidate = candidate;
@@ -488,6 +589,29 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         }
 
         @Override
+        public Object nativeContext(String ownerId) {
+            if (closed || disposed || !candidate.status.state.equals("active"))
+                throw new ExtensionFailure(
+                        "EXTENSION_CAPABILITY_UNAVAILABLE", "Package context is not active");
+            var owner = threadOwners.get(ownerId);
+            var context = nativeContexts.get(ownerId);
+            if (owner == null || context == null)
+                throw new ExtensionFailure(
+                        "EXTENSION_NATIVE_CONTEXT_UNAVAILABLE",
+                        "No native context for this runtime/side owner");
+            if (!owner.isCurrent().getAsBoolean())
+                throw new ExtensionFailure(
+                        "EXTENSION_WRONG_THREAD_OWNER",
+                        "Native context requires its current owner thread");
+            Object value = context.get();
+            if (value == null)
+                throw new ExtensionFailure(
+                        "EXTENSION_NATIVE_CONTEXT_UNAVAILABLE",
+                        "Native context is unavailable or closing");
+            return value;
+        }
+
+        @Override
         public ExtensionResources.Scope processResources() {
             return resources.open(
                     new ExtensionResources.Owner(
@@ -495,7 +619,52 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                             packageId(),
                             ExtensionResources.Lifetime.PROCESS,
                             contentIdentity()),
-                    () -> !closed);
+                    () -> !closed && !disposed);
+        }
+
+        @Override
+        public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+                lifetimeContexts() {
+            var values =
+                    new java.util.EnumMap<ExtensionResources.Lifetime, String>(
+                            ExtensionResources.Lifetime.class);
+            if (!closed && !disposed) {
+                values.putAll(ExtensionPlatform.this.lifetimeContexts.get().identities());
+                var control = controlState();
+                if (control.takeoverActive())
+                    values.put(
+                            ExtensionResources.Lifetime.INPUT_LEASE,
+                            control.controlSessionId()
+                                    + ":"
+                                    + control.generation()
+                                    + ":"
+                                    + values.getOrDefault(ExtensionResources.Lifetime.WORLD, "")
+                                    + ":"
+                                    + values.getOrDefault(
+                                            ExtensionResources.Lifetime.CONNECTION, ""));
+            }
+            return new io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts(
+                    values);
+        }
+
+        @Override
+        public ExtensionResources.Scope contextResources(ExtensionResources.Lifetime lifetime) {
+            if (!Set.of(
+                            ExtensionResources.Lifetime.WORLD,
+                            ExtensionResources.Lifetime.CONNECTION,
+                            ExtensionResources.Lifetime.SCREEN,
+                            ExtensionResources.Lifetime.INPUT_LEASE)
+                    .contains(lifetime))
+                throw new IllegalArgumentException(
+                        "Use processResources or the authorized DebugContext for this lifetime");
+            String id = lifetimeContexts().identity(lifetime);
+            if (id == null)
+                throw new ExtensionFailure(
+                        "EXTENSION_CONTEXT_UNAVAILABLE",
+                        "Native context is unavailable: " + lifetime);
+            return resources.open(
+                    new ExtensionResources.Owner(runtimeId, packageId(), lifetime, id),
+                    () -> id.equals(lifetimeContexts().identity(lifetime)));
         }
 
         @Override
@@ -634,6 +803,50 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         }
 
         @Override
+        public synchronized Registration worldAdapter(WorldAdapter adapter) {
+            requireStaging();
+            var descriptor = java.util.Objects.requireNonNull(adapter.descriptor());
+            String id = descriptor.id();
+            if (environment.side() != Side.CLIENT
+                    || !candidate.source.manifest().requestedScopes().contains("read")
+                    || !candidate.source.manifest().capabilities().contains(id)
+                    || !id.startsWith(packageId() + ":"))
+                throw new ExtensionFailure(
+                        "EXTENSION_WORLD_UNDECLARED",
+                        "Client world adapter must be declared and package-owned");
+            Handle handle = new Handle(this, () -> world.remove(id), () -> {});
+            WorldAdapter guarded =
+                    new WorldAdapter() {
+                        public Descriptor descriptor() {
+                            return descriptor;
+                        }
+
+                        public boolean matches(Frame frame) {
+                            checkLive(handle);
+                            return adapter.matches(frame);
+                        }
+
+                        public Projection capture(Context context) {
+                            checkLive(handle);
+                            var result = adapter.capture(context);
+                            checkLive(handle);
+                            return result;
+                        }
+                    };
+            if (world.putIfAbsent(id, guarded) != null)
+                throw new ExtensionFailure(
+                        "EXTENSION_CAPABILITY_DUPLICATE", "Duplicate world adapter");
+            handle.remove =
+                    () -> {
+                        synchronized (ExtensionPlatform.this) {
+                            if (registeredWorld.get(id) == guarded) registeredWorld.remove(id);
+                        }
+                    };
+            handles.add(handle);
+            return handle;
+        }
+
+        @Override
         public synchronized Registration inputAdapter(LogicalInputAdapter adapter) {
             requireStaging();
             String id = java.util.Objects.requireNonNull(adapter.id());
@@ -689,34 +902,34 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                     .forEach(provider -> nativeIds.add(provider.descriptor().providerId()));
             synchronized (ExtensionPlatform.this) {
                 if (registeredUi.size() + ui.size() > 64
-                        || registeredInputs.size() + inputs.size() > 64)
+                        || registeredInputs.size() + inputs.size() > 64
+                        || registeredWorld.size() + world.size() > 64)
                     throw new ExtensionFailure(
                             "EXTENSION_REGISTRATION_BUDGET", "Client adapter registry is full");
                 if (registeredProviders.size() + providers.size() + nativeIds.size()
                         > MinecraftProtocolProvidersV2.MAX_REGISTERED_PROVIDERS)
                     throw new ExtensionFailure(
                             "EXTENSION_PROVIDER_BUDGET", "Runtime provider registry is full");
-                if (providers.keySet().stream()
-                                .anyMatch(
-                                        id ->
-                                                registeredProviders.containsKey(id)
-                                                        || nativeIds.contains(id)
-                                                        || registeredUi.containsKey(id)
-                                                        || ui.containsKey(id))
-                        || ui.keySet().stream()
-                                .anyMatch(
-                                        id ->
-                                                registeredUi.containsKey(id)
-                                                        || registeredProviders.containsKey(id)
-                                                        || nativeIds.contains(id))
-                        || schemas.keySet().stream()
-                                .anyMatch(
-                                        id ->
-                                                registeredSchemas.containsKey(id)
-                                                        || ProviderSchemaRegistry.contains(id)))
+                var occupied = new HashSet<String>(nativeIds);
+                occupied.addAll(registeredProviders.keySet());
+                occupied.addAll(registeredUi.keySet());
+                occupied.addAll(registeredInputs.keySet());
+                occupied.addAll(registeredWorld.keySet());
+                for (var contribution :
+                        List.of(providers.keySet(), ui.keySet(), inputs.keySet(), world.keySet()))
+                    for (String id : contribution)
+                        if (!occupied.add(id))
+                            throw new ExtensionFailure(
+                                    "EXTENSION_REGISTRATION_DUPLICATE",
+                                    "Capability collides with an existing contribution");
+                if (schemas.keySet().stream()
+                        .anyMatch(
+                                id ->
+                                        registeredSchemas.containsKey(id)
+                                                || ProviderSchemaRegistry.contains(id)))
                     throw new ExtensionFailure(
                             "EXTENSION_REGISTRATION_DUPLICATE",
-                            "Provider/schema collides with an existing contribution");
+                            "Schema collides with an existing contribution");
                 providers
                         .values()
                         .forEach(
@@ -728,24 +941,11 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                                                                 || registeredSchemas.containsKey(id)
                                                                 || ProviderSchemaRegistry.contains(
                                                                         id)));
-                if (inputs.keySet().stream()
-                                .anyMatch(
-                                        id ->
-                                                registeredInputs.containsKey(id)
-                                                        || registeredProviders.containsKey(id)
-                                                        || registeredUi.containsKey(id)
-                                                        || providers.containsKey(id)
-                                                        || ui.containsKey(id)
-                                                        || nativeIds.contains(id))
-                        || providers.keySet().stream().anyMatch(registeredInputs::containsKey)
-                        || ui.keySet().stream().anyMatch(registeredInputs::containsKey))
-                    throw new ExtensionFailure(
-                            "EXTENSION_REGISTRATION_DUPLICATE",
-                            "Polling adapter collides with another capability");
                 registeredSchemas.putAll(schemas);
                 registeredProviders.putAll(providers);
                 registeredUi.putAll(ui);
                 registeredInputs.putAll(inputs);
+                registeredWorld.putAll(world);
                 knownProviders.addAll(providers.keySet());
                 handles.forEach(handle -> handle.committed = true);
             }
@@ -754,6 +954,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         @Override
         public synchronized void close() {
             sealed = true;
+            disposed = true;
             resources.invalidate(
                     ExtensionResources.Lifetime.PROCESS, contentIdentity(), "package_closed");
             List<Handle> closing = new ArrayList<>(handles);

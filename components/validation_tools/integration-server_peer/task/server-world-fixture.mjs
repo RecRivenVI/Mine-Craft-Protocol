@@ -19,14 +19,15 @@ async function inventory(root,relative=''){
 }
 
 // Caller holds its owned instance lock and has stopped the native server before every copy.
-export async function prepareServerWorld({repo,game,world,target,facts,start,stop,validation='integration-server_peer'}){
+export async function prepareServerWorld({repo,game,world,target,facts,start,stop,validation='integration-server_peer',baselineId='fixture-baseline',fixtureIdentity}){
   assert(['integration-server_peer','integration-extension_platform'].includes(validation),'Registered fixture validation required');
   const root=resolve(repo,'validations',validation,'instance');
   game=resolve(game);
   assert(game.startsWith(root+sep)&&basename(world)===world&&world!=='.'&&world!=='..','Explicit owned world required');
   const actualGame=await realpath(game), actualRoot=await realpath(root);
   assert(actualGame.startsWith(actualRoot+sep)&&actualGame.toLowerCase()===game.toLowerCase(),'Fixture parent must not redirect outside the owned directory');
-  const baseline=join(game,'fixture-baseline'), manifest=join(baseline,'manifest.json'), source=join(game,world);
+  assert(/^[a-z0-9_-]+$/.test(baselineId),'Registered baseline ID required');
+  const baseline=join(game,baselineId), manifest=join(baseline,'manifest.json'), source=join(game,world);
   const factsHash=hash(await readFile(facts));
   if(!await exists(manifest)){
     assert(!await exists(baseline),'Incomplete baseline retained for inspection');
@@ -35,10 +36,11 @@ export async function prepareServerWorld({repo,game,world,target,facts,start,sto
     const before=await inventory(source);await mkdir(baseline);
     await cp(source,join(baseline,'world'),{recursive:true,errorOnExist:true,force:false});
     const files=await inventory(join(baseline,'world'));assert.deepEqual(files,before);
-    await writeFile(manifest,JSON.stringify({target,world,factsHash,files,hash:hash(JSON.stringify(files)),credentialsCopied:false},null,2)+'\n');
+    await writeFile(manifest,JSON.stringify({target,world,factsHash,files,hash:hash(JSON.stringify(files)),credentialsCopied:false,...(fixtureIdentity?{fixtureIdentity}:{})},null,2)+'\n');
   }
   const value=JSON.parse(await readFile(manifest,'utf8'));
   assert.equal(value.target,target);assert.equal(value.world,world);assert.equal(value.factsHash,factsHash,'Target facts changed: retain baseline, explicitly prepare a new fixture');
+  if(fixtureIdentity)assert.deepEqual(value.fixtureIdentity,fixtureIdentity,'Upstream adapter inputs changed: retain the old baseline');
   const files=await inventory(join(baseline,'world'));assert.deepEqual(files,value.files);assert.equal(hash(JSON.stringify(files)),value.hash);
   if(await exists(source)){
     assert(!(await lstat(source)).isSymbolicLink(),'World root must not be a link');

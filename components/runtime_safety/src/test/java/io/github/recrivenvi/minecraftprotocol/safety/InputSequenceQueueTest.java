@@ -38,6 +38,7 @@ class InputSequenceQueueTest {
             CompletableFuture<Void> stopped = queue.cancelAllAndWait();
             active.completeExceptionally(new IllegalStateException("cleanup failed"));
             assertTrue(stopped.isCompletedExceptionally());
+            assertTrue(queue.poisoned());
             assertThrows(
                     java.util.concurrent.RejectedExecutionException.class,
                     () -> queue.submit(() -> {}, () -> {}, new CompletableFuture<>()));

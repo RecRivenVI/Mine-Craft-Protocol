@@ -17,11 +17,11 @@ Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI
 | EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
 | EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.0→1.0.2替包另绑定EP-2前置二进制，不冒充最终Alpha冻结 |
 | EP-3 深层UI与逻辑输入 | 完成 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | SDK及五端生产接线、Java/Companion/严格合规/五端发行门禁通过；三版Modern UI完成导航/滑块/文本/滚动/真实拖拽与活动取消，EMI完成配方导航，CC完成终端回读。分项绑定各自源码/包，不替代EP-6同批冻结；真实IME/桌面待人工 |
-| EP-4 世界适配与七包 | 待办 | 普通目标复用、PartRef与pick/版本守卫；CC、Create、AE2、EMI、Exposure、Modern UI、LittleTiles逐项正常Act+独立Assert；Create/LittleTiles/AE2因果诊断，做不通明确缺口 | 研究闭环与未确定项分别保留，不作当前产品PASS |
-| EP-5 统一测试与作者交付 | 待办 | 完整上下文资源组、输入适配清理具名诊断；登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则/MCP查阅/独立安装；跨两个包故障/恢复 | 主机授权独立，CLI先行，不开放任意路径/shell |
+| EP-4 世界适配与七包 | 完成，有明确限制 | 普通目标复用、PartRef与pick/版本守卫；七包逐项正常Act+独立Assert及可用Target移植；做不通明确缺口 | 当前19个有匹配上游包的具名业务组合均已重跑：四版AE2存取/自动合成，两版Create装配/Exposure拍照/LittleTiles打开，三版Modern UI、两版EMI、四版CC。LittleTiles运动关闭未闭合，CC26.3 NeoForge上游启动受阻，不外推全部Mod功能 |
+| EP-5 统一测试与作者交付 | 完成 | 完整上下文资源组、输入适配清理具名诊断；登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则/MCP查阅/独立安装；跨两个包故障/恢复 | 当前双包实际故障/分别恢复及退出、六类上下文退休、34份独服详细/生命周期证明、本体不变的1.0.3→1.0.4真实换包已通过。停机38文件副本恢复及跨目录派生库校验通过；普通实例离线步骤已明确，不开放Runtime路径/shell |
 | EP-6 冻结与Alpha | 待办 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 全部通过前不刷新latest |
 
-下三步：推进世界部件及七包的独立业务闭环；补齐上下文资源、主机工具与跨包失败恢复；最后进行同批五端冻结。不无限追加第三方业务。
+下三步：完成五端最终成品和纯净安装；完成受影响原版UI/世界/输入及45秒连续正确性冻结回归；全部门禁通过后提交并分发同批Alpha及集中人工清单。不无限追加第三方业务。
 适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
 六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
 
@@ -114,7 +114,7 @@ P=仍有必需实现/覆盖，V=本包有限自动验收已具备、共同交付
 ## 当前可复制快照
 
 固定分发根目录为D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/，实际当前目录只从latest.txt选择一次。
-七文件身份及证明以快照alpha-manifest.json为权威，手册为AGENT_GUIDE.md；按固定分发工作流复制和保留。
+本体、扩展与Companion的文件身份及证明以快照alpha-manifest.json为权威，手册为AGENT_GUIDE.md；按固定分发工作流复制和保留。
 其他线程登记使用后复制固定目录，不直接引用build/，不以HEAD单独判断候选或混用手册/JAR。
 
 本轮Developer Preview自动冻结沿用profile=e_world_trial_v1，并以developerPreviewFreeze补充具名冻结证明；humanAcceptance=NOT_PERFORMED，fullMilestonesComplete=false。

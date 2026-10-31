@@ -80,6 +80,10 @@ public final class AutomationEngine implements AutoCloseable {
                 "inputQueueCapacity",
                 io.github.recrivenvi.minecraftprotocol.safety.InputSequenceQueue.CAPACITY);
         json.addProperty("inputSequenceActive", this.sequences.busy());
+        json.addProperty("inputQueuePoisoned", this.sequences.poisoned());
+        json.addProperty(
+                "inputQueueRecovery",
+                this.sequences.poisoned() ? "restart_runtime" : "not_required");
     }
 
     void setConditionEngine(ConditionEngine conditionEngine) {

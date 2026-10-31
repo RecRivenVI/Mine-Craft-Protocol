@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
-    [ValidateSet('platform_probe','computercraft','modern_ui','emi')][string]$Adapter='platform_probe')
+    [ValidateSet('platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles')][string]$Adapter='platform_probe',[switch]$LifetimeFaults)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
@@ -14,9 +14,9 @@ try {
     if(Test-Path $owner){$owned=Get-Content $owner -Raw|ConvertFrom-Json;if($owned.target-ne$Target-or$owned.owner-ne'extension-platform'){throw 'Unknown extension instance owner'}}
     elseif(@(Get-ChildItem $client -Force).Count){throw 'Refuse unowned instance'}
     else{[IO.File]::WriteAllText($owner,(@{owner='extension-platform';target=$Target}|ConvertTo-Json)+"`n")}
-    & (Join-Path $repo 'gradlew.bat') ':extension_packages:packagePlatformProbe' ':extension_packages:packageAdapters' '--offline' '--console=plain'
+    & (Join-Path $repo 'gradlew.bat') ':extension_packages:packagePlatformProbe' ':extension_packages:packageAdapters' ':extension_packages:packageLifecycleFixtures' '--offline' '--console=plain'
     if($LASTEXITCODE-ne0){throw 'Probe package build failed'}
-    & node (Join-Path $PSScriptRoot 'install-platform-probe.mjs') "--target=$Target"
+    & node (Join-Path $PSScriptRoot 'install-platform-probe.mjs') "--target=$Target" "--lifetimes=$($LifetimeFaults.ToString().ToLowerInvariant())"
     if($LASTEXITCODE-ne0){throw 'Package installation failed'}
     & {
         & python -B (Join-Path $PSScriptRoot 'install-adapter.py') "--target=$Target" "--adapter=$Adapter"
@@ -48,7 +48,7 @@ try {
     $connection=$null;$failure=$null
     try {
         $connection=Wait-RuntimeConnection $client $Target -NotBefore $process.StartTime.ToUniversalTime() -Launcher $process
-        & node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter"
+        & node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter" "--lifetime-faults=$($LifetimeFaults.ToString().ToLowerInvariant())"
         if($LASTEXITCODE-ne0){throw 'Extension platform assertions failed'}
     } catch {$failure=$_}
     finally {
@@ -56,7 +56,7 @@ try {
         $stopped=$process.WaitForExit(60000)
         $clean=$stopped-and$process.ExitCode-eq0-and-not(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json'))
         if($clean-and$connection-and(Get-NetTCPConnection -State Listen -LocalPort $connection.Port -ErrorAction SilentlyContinue)){$clean=$false}
-        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter}).json"
+        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter})$(if($LifetimeFaults){'-lifetimes'}).json"
         if(Test-Path $result){$report=Get-Content $result -Raw|ConvertFrom-Json;if($connection-and$report.runtimeInstanceId-eq$connection.RuntimeInstanceId){$report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue $clean -Force;if(-not$clean){$report.status='FAIL'};[IO.File]::WriteAllText($result,($report|ConvertTo-Json -Depth 40)+"`n",[Text.UTF8Encoding]::new($false))}}
         if(-not$connection){
             [IO.Directory]::CreateDirectory((Split-Path $result))|Out-Null

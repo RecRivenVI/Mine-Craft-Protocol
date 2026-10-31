@@ -6,6 +6,14 @@ import java.util.concurrent.CompletableFuture;
 
 /** Dedicated operator surfaces; graphical/player input capabilities remain explicitly absent. */
 public final class ServerConsoleService extends HeadlessProbeService implements AutoCloseable {
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+            extensionLifetimeContexts() {
+        return worldDebug == null
+                ? io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty()
+                : worldDebug.extensionLifetimeContexts();
+    }
+
     private final String target;
     private final ServerConsole console;
     private final ConsoleLogCapture capture;
@@ -40,6 +48,11 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
                             .ThreadOwner>
             extensionThreadOwners() {
         return worldDebug == null ? java.util.Map.of() : worldDebug.extensionThreadOwners();
+    }
+
+    @Override
+    public java.util.Map<String, java.util.function.Supplier<Object>> extensionNativeContexts() {
+        return worldDebug == null ? java.util.Map.of() : worldDebug.extensionNativeContexts();
     }
 
     @Override

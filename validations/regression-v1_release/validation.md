@@ -39,11 +39,19 @@ Get-Help ./components/validation_tools/regression-v1_release/task/Invoke-Phase8L
 ## 目标
 
 保留以下现有合同与验收边界，不以迁移后的构建替代历史或真人验收。
-alpha 刷新须验证当前源码、实际五端运行结果、发行 JAR 与生成手册一致，再发布固定的七文件快照。
+alpha 刷新须验证当前源码、实际五端运行结果、发行 JAR 与生成手册一致，再发布不可变快照。扩展平台批次还交付清单内的SDK、七包与Companion，所有附加文件同样核对哈希。
 分发目录及使用登记见[alpha Agent 工作流](../../documents/development/workflow-alpha_agent.md)。
 已发布目录不可覆盖；latest.txt 只指向完整快照，保留最近三份及显式登记在用的批次。
 
 ## 运行
+
+扩展平台当前候选使用extension_platform_trial_v1；完整收齐五端平台、成品客户端/独服、适配业务、双包故障/替包与受影响原版UI/世界/输入/45秒连续正确性，以及纯净单JAR入世界证明后执行：
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-extension-alpha.mjs
+```
+
+该命令先核对实际源码、包、工具与JAR哈希，再生成手册和清单、发布不可变快照并更新latest；不是只读检查。随批交付SDK、七个独立适配包、Companion和作者文档，不包含第三方模组JAR。保留所有已有快照，未通过不得发布；人工与性能保持NOT_PERFORMED，LittleTiles运动关闭及CC26.3上游失败保留明确限制。
 
 Developer Preview自动冻结沿用E世界试用profile，并增加五端连续正确性、集成服/协作消费者和当前单JAR服务端/三安装组合证明：
 

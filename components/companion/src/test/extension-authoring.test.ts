@@ -38,5 +38,6 @@ test('real stdio Companion serves hashed SDK documents with no running Runtime o
     assert.equal(denied.isError,true);
     assert(JSON.stringify(denied).includes('COMPANION_AUTHORING_ONLY'));
     await assert.rejects(client.readResource({uri:'minecraft://extensions/installed'}), /Authoring-only/);
+    await assert.rejects(client.readResource({uri:'minecraft://extensions/platform_probe/tests/smoke'}), /Authoring-only/);
   } finally { await client.close(); }
 });

@@ -9,7 +9,7 @@ build/AGENT_GUIDE.md 由 alpha 清单工具生成，包含对应候选、五端 
 其他线程从 `D:\Workspaces\Artifacts\MineCraftProtocol\Alpha\` 复制固定快照，**不要直接引用 build/**。
 刷新工具先验证五端全新正常Loader、单个发行JAR的安装结果，再核对同批源码、其他选定范围的运行结果、JAR和手册，
 全部通过才发布 `yyyyMMdd-HHmm-<源码指纹前8位>` 目录并更新根目录的latest.txt。任何一端失败、过期或哈希不符，不刷新清单或发布快照。
-目录时间为 Asia/Shanghai；已发布目录不覆盖或修改。每份快照只有五个 JAR、alpha-manifest.json 和 AGENT_GUIDE.md。
+目录时间为 Asia/Shanghai；已发布目录不覆盖或修改。每份快照包含五个本体 JAR、alpha-manifest.json 和 AGENT_GUIDE.md；扩展平台批次另按清单交付extensions/与companion/。
 清单的 artifacts[].fileName 相对快照目录解析；path 仅记录仓库构建来源，不是消费路径。
 开发文档链接指向生成时的工作区，只供参考，不是运行依赖；JAR 链接指向固定快照，不指向 build/。
 
@@ -50,13 +50,15 @@ foreach ($jar in $manifest.artifacts) {
 它们不进入纯净自动基线，不是产品依赖，也不能用来补齐发行包缺失依赖。
 
 每份快照只包含已绑定验证的候选；后续开发不会改写它。新快照必须重新通过同一候选五端独立发行安装门禁。
-清单的publicationProfile区分连续游玩试用、依赖更新与E的UI/世界试用。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
+清单的publicationProfile区分连续游玩试用、依赖更新、E的UI/世界试用与extension_platform_trial_v1。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
 并重新完成当前五端单发行JAR的安装、进入固定世界、USER读取与正常退出。
 E的UI试用绑定当前有限原版UI验收套件、独立Demo、受影响输入/选择器/命令协作与五端独立安装；按所复制清单中的具体范围使用。
 E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受影响UI/连续输入及五端单JAR独立安装入世界；单独这份证明不覆盖M-01/M-09或人工验收。
 清单若含developerPreviewFreeze，再按其中具名证明读取连续正确性、Core展示、服务端与三安装组合的当前范围；它仍不表示完整领域或人工验收完成，历史性能目标不因自动冻结而达成。
 旧版单人世界社交入口缺席或禁用只证明环境限制，不计社交页操作通过。游戏模式菜单的hover不提交，正常释放修饰键才提交；强停止取消Agent持有的菜单，不提交所选模式。
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
+
+扩展平台批次必须另有同候选五端原生/成品客户端和独服平台证明、双包故障恢复、包替换、有上游包的具名业务及原版UI/世界/输入上下文回归。extensions/sdk提供公共SDK，extensions/packages提供七个分别审批的包；它们不是额外Loader模组。companion中保留同批运行代码、作者资源和锁文件，先npm ci --omit=dev，再运行dist/index.js；不混用旧Companion。静态规则可离线查阅，游戏数据仍逐项授权，安装见[扩展作者规程](procedure-author_extension.md)。原生Loader早期hook与复杂UI/运动部件仍按预览面解释，未闭合业务见该批extensionPlatform.limitations。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 
 原版配方按钮会轮播多个物品。需要稳定悬停或右键展开时，可通过正常输入持有Control暂停轮播，确认held后重新读取语义目标；
