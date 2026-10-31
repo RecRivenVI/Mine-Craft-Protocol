@@ -148,9 +148,12 @@ public final class ProbeTransport implements AutoCloseable {
                         environment,
                         service.extensionEarlyHooks(),
                         this.runtimeInstanceId,
-                        service.extensionThreadOwners());
+                        service.extensionThreadOwners(),
+                        protocolState::controlPresence);
         this.extensions = platform;
         service.attachExtensionProviders(platform);
+        service.attachExtensionUi(platform.uiEngine());
+        service.attachExtensionInputReset(platform::resetInput);
     }
 
     private JsonObject extensionCatalog() {

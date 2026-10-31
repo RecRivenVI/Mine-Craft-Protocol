@@ -15,6 +15,48 @@ import java.util.concurrent.TimeUnit;
 
 /** A real owner-thread sample, independent of test fixtures and never an input path. */
 public final class Entry implements PackageExtension {
+    private static final class NativeUi
+            implements io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter {
+        public Descriptor descriptor() {
+            return new Descriptor(
+                    "platform_probe:native_ui", java.util.Set.of(View.USER, View.DEBUG), 1, 250);
+        }
+
+        public boolean matches(Frame frame) {
+            return frame.screenClass().startsWith("net.minecraft.");
+        }
+
+        public Projection capture(Context context) {
+            var nodes = new java.util.ArrayList<Node>();
+            var button = first(context.nativeTree().getAsJsonArray("children"));
+            if (button != null)
+                nodes.add(
+                        new Node(
+                                "first_native_button",
+                                button.get("elementIdentity").getAsLong(),
+                                "native-button",
+                                Space.GUI,
+                                new JsonObject()));
+            return new Projection(context.frame(), System.nanoTime(), nodes);
+        }
+
+        private JsonObject first(com.google.gson.JsonArray children) {
+            for (var item : children)
+                if (item.isJsonObject()) {
+                    var node = item.getAsJsonObject();
+                    if (node.has("elementIdentity")
+                            && node.get("elementIdentity").getAsLong() > 0
+                            && node.has("role")
+                            && node.get("role").getAsString().equals("button")) return node;
+                    if (node.has("children")) {
+                        var nested = first(node.getAsJsonArray("children"));
+                        if (nested != null) return nested;
+                    }
+                }
+            return null;
+        }
+    }
+
     private static final String ROOT = "minecraft-extension://platform_probe/schemas/";
     private long revision;
     private long samples;
@@ -42,6 +84,7 @@ public final class Entry implements PackageExtension {
 
     @Override
     public void initialize(PackageContext context) {
+        if (context.side() == PackageContext.Side.CLIENT) context.uiAdapter(new NativeUi());
         var process = context.processResources();
         scheduler =
                 new ScheduledThreadPoolExecutor(

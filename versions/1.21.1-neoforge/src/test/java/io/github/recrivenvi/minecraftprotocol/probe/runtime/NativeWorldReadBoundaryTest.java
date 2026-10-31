@@ -283,7 +283,9 @@ class NativeWorldReadBoundaryTest {
             assertEquals(sample[2], node.get("slotOwner").getAsString());
         }
         assertTrue(
-                calls(method(compiled(RUNTIME + "NeoForgeProbeRuntime"), "snapshotUiTree")).stream()
+                compiled(RUNTIME + "NeoForgeProbeRuntime").methods.stream()
+                        .filter(method -> method.name.equals("snapshotUiTree"))
+                        .flatMap(method -> calls(method).stream())
                         .anyMatch(call -> call.name.equals("addSlotOwner")));
     }
 

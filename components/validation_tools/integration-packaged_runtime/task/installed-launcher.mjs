@@ -127,6 +127,10 @@ const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
 const enterWorld=process.argv.includes('--enter-world');
 const extensionPlatform=process.argv.includes('--extension-platform');
+const extensionAdapter=process.argv.find(value=>value.startsWith('--extension-adapter='))?.slice('--extension-adapter='.length)??'platform_probe';
+assert(['platform_probe','computercraft','modern_ui','emi'].includes(extensionAdapter));
+assert(extensionPlatform||extensionAdapter==='platform_probe');
+const resultName=target+(extensionAdapter==='platform_probe'?'':'-'+extensionAdapter)+'.json';
 assert(!(extensionPlatform&&enterWorld),'Separate installed acceptance scenarios');
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation=extensionPlatform?'integration-extension_platform':'integration-packaged_runtime';
@@ -196,7 +200,7 @@ const version=launcherManifest.versions.find(v=>v.id===minecraft);assert(version
 const vanilla=await json(version.url,join(home,'versions',minecraft,minecraft+'.json'),version.sha1,[join(gradle,'neoformruntime/artifacts',`minecraft_${minecraft}_version_manifest.json`)]);
 await download(vanilla.downloads.client.url,join(home,'versions',minecraft,minecraft+'.jar'),vanilla.downloads.client.sha1,[join(gradle,'neoformruntime/artifacts',`minecraft_${minecraft}_client.jar`)]);
 console.log('Official Minecraft '+minecraft+' verified; installing '+loader+' '+facts.loader_version);
-let profile;
+let profile,officialInstallation={source:"fresh_official_installer",installerExecuted:true};
 // Seed official, checksum-verified libraries before the Java installer. A transient Java TLS
 // failure must not turn a reusable upstream artifact into a dependency on a dev classpath.
 if(loader!=='fabric')for(const library of vanilla.libraries) {
@@ -221,9 +225,24 @@ if(loader==='fabric'){
   }
   await writeFile(join(home,'launcher_profiles.json'),JSON.stringify({profiles:{},settings:{}}));
   console.log('Official installer Java '+installerJavaVersion+'; game Java '+facts.java_version);
-  await run(installerJava,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
-  const profiles=(await readdir(join(home,'versions'))).filter(name=>name!==minecraft);
-  assert.equal(profiles.length,1,'One official Loader profile');profile=JSON.parse(await readFile(join(home,'versions',profiles[0],profiles[0]+'.json'),'utf8'));
+  if(extensionAdapter!=='platform_probe'){
+    // Reuse only the official Loader installation, never an old product/extension test result.
+    const proof=JSON.parse(await readFile(resolve(repo,'validations/integration-packaged_runtime/result',target+'.json'),'utf8'));
+    assert.equal(proof.status,'PASS');assert.equal(proof.runtime,'installed_loader_release_jar');
+    assert.equal(proof.loaderVersion,facts.loader_version);assert.equal(proof.minecraft,minecraft);assert.equal(proof.javaVersion,facts.java_version);
+    const source=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target,'installation/versions');
+    const names=(await readdir(source)).filter(name=>name!==minecraft);assert.equal(names.length,1);
+    const path=join(source,names[0],names[0]+'.json'),bytes=await readFile(path);
+    profile=JSON.parse(bytes);assert.equal(profile.inheritsFrom,minecraft);
+    const expected=loader==='forge'?minecraft+'-forge-'+facts.loader_version:'neoforge-'+facts.loader_version;
+    assert.equal(profile.id,expected);
+    await mkdir(join(home,'versions',names[0]),{recursive:true});await writeFile(join(home,'versions',names[0],names[0]+'.json'),bytes);
+    officialInstallation={source:'verified_official_loader_cache',installerExecuted:false,profileSha256:sha256(bytes),productProofReused:false};
+  }else{
+    await run(installerJava,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
+    const profiles=(await readdir(join(home,'versions'))).filter(name=>name!==minecraft);
+    assert.equal(profiles.length,1,'One official Loader profile');profile=JSON.parse(await readFile(join(home,'versions',profiles[0],profiles[0]+'.json'),'utf8'));
+  }
 }
 const libraries=new Map();
 for(const library of [...vanilla.libraries,...profile.libraries])if(permitted(library.rules)){
@@ -257,7 +276,7 @@ for(const path of classpath)assert(path.startsWith(home+'\\')&&!path.includes('\
 const name=`${product.mod_id}-${target}-${product.mod_version}.jar`,artifact=join(repo,'build/release',product.mod_version,name);
 const artifactBytes=await readFile(artifact),artifactSha256=digest(artifactBytes);
 await mkdir(join(game,'mods'));await writeFile(join(game,'mods',name),artifactBytes);
-const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'client'}):undefined;
+const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'client',adapter:extensionAdapter}):undefined;
 await writeFile(join(game,'options.txt'),'lang:en_us\nsoundCategory_master:0.0\nonboardAccessibility:false\nautoJump:false\n'+(extensionPlatform?'pauseOnLostFocus:false\n':''));
 const substitutions={auth_player_name:'PackagedTest',version_name:profile.id,game_directory:game,assets_root:assets,assets_index_name:index.id,auth_uuid:'b726e6e91d5c43cf87909f8a57d435ee',auth_access_token:'0',clientid:'',auth_xuid:'0',user_type:'legacy',version_type:'release',natives_directory:natives,launcher_name:'Mine-Craft-Protocol-installed-smoke',launcher_version:'1',classpath:classpath.join(delimiter),library_directory:join(home,'libraries'),classpath_separator:delimiter};
 const expand=value=>value.replace(/\$\{([^}]+)\}/g,(_,key)=>{assert(Object.hasOwn(substitutions,key),'Unknown official argument '+key);return substitutions[key];});
@@ -276,7 +295,7 @@ async function acquire(ttlMs=15000){
   const response=await connection.fetch('/v0/control/acquire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(request)});
   assert(response.ok,JSON.stringify(await response.clone().json()));return response.json();
 }
-const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,...(loader==='fabric'?{}:{installerJavaVersion}),artifactSha256,sourceFingerprint,sourceHashes,toolHashes,freshGameDirectory:true,externalModCount:1,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0,enterWorldRequested:enterWorld,enteredWorld:false,...(worldInput?{worldInput}:{})};
+const report={target,status:'FAIL',testedAt:new Date().toISOString(),runtime:'installed_loader_release_jar',loaderVersion:facts.loader_version,minecraft,javaVersion:facts.java_version,...(loader==='fabric'?{}:{installerJavaVersion}),artifactSha256,sourceFingerprint,sourceHashes,toolHashes,officialInstallation,freshGameDirectory:true,externalModCount:1+(extensionAdapter==='platform_probe'?0:1),extensionAdapter,developmentClasspath:false,maximumHeapBytes:4294967296,persistentWriteCalls:0,enterWorldRequested:enterWorld,enteredWorld:false,...(worldInput?{worldInput}:{})};
 try{
   let title;
   while(Date.now()-started<240000){
@@ -320,7 +339,7 @@ try{
     const returned=await connection.fetch('/v0/ui/tree');assert(returned.ok);title=await returned.json();assert(title.screenClass.endsWith('TitleScreen')&&!title.overlayIdentity);
   }
   if(extensionPlatform){
-    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--host-shutdown=true'],{cwd:repo,stdio:'inherit',timeout:240000});
+    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--host-shutdown=true','--adapter='+extensionAdapter],{cwd:repo,stdio:'inherit',timeout:240000});
     report.extensionStage=extensionStage;report.extensionPlatform=true;
     const current=await connection.fetch('/v0/ui/tree');assert(current.ok);title=await current.json();assert(title.screenClass.endsWith('TitleScreen'));
   }
@@ -342,7 +361,11 @@ try{
   let exitTimer;const code=await Promise.race([exit,new Promise((_,no)=>{exitTimer=setTimeout(()=>no(Error('Installed clean exit timeout')),60000);})]).finally(()=>clearTimeout(exitTimer));assert.equal(code,0);
   report.cleanShutdown=true;report.exitCode=code;assert(!await exists(join(game,'minecraft-protocol/endpoint.json')),'Endpoint removed');
   const log=await readFile(join(game,'logs/latest.log'),'utf8');assert(/Stopping!/.test(log),'Vanilla normal stopping log');
-  assert.equal((await readdir(join(game,'mods'))).length,extensionPlatform?2:1,'Only product and explicit approved extension library');
+  const modFiles=await readdir(join(game,'mods'));
+  const expectedMods=[name,...(extensionPlatform?['minecraft-protocol-extension-libraries.jar']:[]),...(extensionAdapter!=='platform_probe'?['extension-input-'+(extensionAdapter==='modern_ui'?'modernui':extensionAdapter)+'-'+target.replaceAll('.','-')+'.jar']:[])].sort();
+  assert.deepEqual(modFiles.sort(),expectedMods,'Only explicitly installed product/library/pinned adapter inputs');
+  report.externalModCount=1+(extensionAdapter==='platform_probe'?0:1);report.modArtifacts={};for(const file of modFiles)report.modArtifacts[file]=sha256(await readFile(join(game,'mods',file)));
+  report.singleProductJarOnly=extensionAdapter==='platform_probe';
   assert(!await exists(join(game,'crash-reports'))||!(await readdir(join(game,'crash-reports'))).length,'No crash reports');
   report.noCrashReports=true;
   assert.equal(digest(await readFile(artifact)),artifactSha256,'Artifact unchanged during run');
@@ -353,9 +376,9 @@ try{
 finally{
   if(!exited){child.kill();report.cleanShutdown=false;await exit.catch(()=>{});}
   await mkdir(resolve(repo,'validations',validation,'result'),{recursive:true});
-  await writeFile(resolve(repo,'validations',validation,'result',target+'.json'),JSON.stringify(report,null,2)+'\n');
+  await writeFile(resolve(repo,'validations',validation,'result',resultName),JSON.stringify(report,null,2)+'\n');
 }
-console.log('PASS installed Loader / one final JAR / endpoint / USER READ / clean exit: '+target);
+console.log('PASS installed Loader / current final JAR'+(extensionAdapter==='platform_probe'?'':' + pinned '+extensionAdapter)+' / endpoint / USER READ / clean exit: '+target);
 }
 
 const invoked=process.argv[1]&&resolve(process.argv[1]),modulePath=fileURLToPath(import.meta.url);

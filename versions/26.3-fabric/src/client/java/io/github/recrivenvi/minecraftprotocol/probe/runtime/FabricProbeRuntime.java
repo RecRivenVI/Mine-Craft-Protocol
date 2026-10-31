@@ -603,6 +603,44 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         this.phase9a.installExtensionProviders(source);
     }
 
+    private volatile io.github.recrivenvi.minecraftprotocol.core.extension.UiExtensionEngine
+            extensionUi;
+
+    @Override
+    public void attachExtensionUi(
+            io.github.recrivenvi.minecraftprotocol.core.extension.UiExtensionEngine engine) {
+        this.extensionUi = engine;
+    }
+
+    private volatile CompletableFuture<Void> extensionInputTransition =
+            CompletableFuture.completedFuture(null);
+
+    private void resetExtensionInput(String reason) {
+        try {
+            this.extensionInputTransition = this.extensionInputReset.apply(reason);
+        } catch (Throwable failure) {
+            this.extensionInputTransition = CompletableFuture.failedFuture(failure);
+        }
+    }
+
+    private CompletableFuture<Void> awaitExtensionInputTransition() {
+        return this.onClient(
+                        () -> {
+                            this.refreshScreen(requireClient());
+                            return this.extensionInputTransition;
+                        })
+                .thenCompose(java.util.function.Function.identity());
+    }
+
+    private volatile java.util.function.Function<String, CompletableFuture<Void>>
+            extensionInputReset = reason -> CompletableFuture.completedFuture(null);
+
+    @Override
+    public void attachExtensionInputReset(
+            java.util.function.Function<String, CompletableFuture<Void>> reset) {
+        this.extensionInputReset = reset;
+    }
+
     @Override
     public void attachControlSession(AgentControlSession session) {
         this.controlSession = session;
@@ -627,6 +665,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
                                     != this.controlPresence.transitionSequence()) return;
                     boolean takeover = snapshot.agentControlled();
                     if (takeover != this.lastTakeover) {
+                        this.resetExtensionInput("control_transition");
                         resetNativeCameraFilters(current);
                         if (takeover) {
                             net.minecraft.client.KeyMapping.releaseAll();
@@ -2076,12 +2115,16 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         return this.onClient(
                 () ->
                         io.github.recrivenvi.minecraftprotocol.safety.UiDataView.tree(
-                                this.snapshotUiTree(),
+                                this.snapshotUiTree(true),
                                 io.github.recrivenvi.minecraftprotocol.safety.UiDataView.Category
                                         .DEBUG));
     }
 
     private JsonObject snapshotUiTree() {
+        return snapshotUiTree(false);
+    }
+
+    private JsonObject snapshotUiTree(boolean debug) {
         Minecraft client = requireClient();
         Screen screen = this.refreshScreen(client);
         this.refreshMenu(client);
@@ -2105,6 +2148,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
             root.add("presentation", UiPresentationSnapshot.capture(client));
             UiDebugEngine.describe(
                     root, this.phase9a, screen, this::interactionIdentity, this.itemDataGuard);
+            projectExtensionUi(root, client, screen, debug);
             return root;
         }
 
@@ -2180,7 +2224,28 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         root.add("presentation", UiPresentationSnapshot.capture(client));
         UiDebugEngine.describe(
                 root, this.phase9a, screen, this::interactionIdentity, this.itemDataGuard);
+        projectExtensionUi(root, client, screen, debug);
         return root;
+    }
+
+    private void projectExtensionUi(
+            JsonObject root, Minecraft client, Screen screen, boolean debug) {
+        var engine = this.extensionUi;
+        if (engine != null)
+            engine.project(
+                    root,
+                    Long.toString(
+                            client.level == null ? 0 : this.interactionIdentity(client.level)),
+                    screen,
+                    client.getWindow().getWidth(),
+                    client.getWindow().getHeight(),
+                    this::interactionIdentity,
+                    client::isSameThread,
+                    debug
+                            ? io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter.View
+                                    .DEBUG
+                            : io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter.View
+                                    .USER);
     }
 
     @Override
@@ -2222,7 +2287,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         }
         accessor.minecraftProtocolProbe$setIgnoreFirstMove(false);
         long gameCursorRevision = this.logicalPointer.gameCursorRevision();
-        AgentInputContext.dispatch(
+        this.dispatchExtensionInput(
                 AgentInputContext.Event.point(
                         AgentInputContext.Kind.MOVE, client.getWindow().handle(), rawX, rawY),
                 () -> {
@@ -2300,6 +2365,13 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
 
     private void checkPointerGuard(JsonObject guard) {
         if (guard != null) AutomationEngine.validatePointerGuard(guard, this.snapshotUiTree());
+        var window = requireClient().getWindow();
+        this.extensionInputs.guard(
+                guard,
+                window.getGuiScaledWidth(),
+                window.getGuiScaledHeight(),
+                window.getWidth(),
+                window.getHeight());
         // Encoding item data may take time; an effect cancelled meanwhile must not reach input.
         var dispatch = this.commandGate.dispatch();
         if (dispatch != null) dispatch.checkEffect();
@@ -2451,7 +2523,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
             this.trackNativeInput(
                     client,
                     () ->
-                            AgentInputContext.dispatch(
+                            this.dispatchExtensionInput(
                                     AgentInputContext.Event.button(
                                             client.getWindow().handle(),
                                             NativeInputMapping.button(button),
@@ -2503,7 +2575,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
                     this.checkPointerGuard(guard);
                     Minecraft client = requireClient();
                     this.restoreAgentPointer(client);
-                    AgentInputContext.dispatch(
+                    this.dispatchExtensionInput(
                             AgentInputContext.Event.point(
                                     AgentInputContext.Kind.SCROLL,
                                     client.getWindow().handle(),
@@ -2545,7 +2617,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         this.trackNativeInput(
                 client,
                 () ->
-                        AgentInputContext.dispatch(
+                        this.dispatchExtensionInput(
                                 AgentInputContext.Event.key(
                                         client.getWindow().handle(),
                                         nativeEvent.key(),
@@ -2595,7 +2667,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
                         "UI_FOCUS_CHANGED", 409, "Text target is no longer focused");
         }
         long window = client.getWindow().handle();
-        AgentInputContext.dispatch(
+        this.dispatchExtensionInput(
                 new AgentInputContext.Event(
                         AgentInputContext.Kind.CHARACTER, window, codePoint, 0, 0, 0),
                 () ->
@@ -4076,88 +4148,110 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
     @Override
     public CompletableFuture<JsonObject> releaseAllInput(String reason) {
         return this.onClientCleanup(
-                () -> {
-                    Minecraft client = requireClient();
-                    if (this.pressedKeys.containsKey(
-                                    NativeInputMapping.wireKey(
-                                            com.mojang.blaze3d.platform.InputConstants.KEY_F3))
-                            && client.gui.screen()
-                                    instanceof
-                                    net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen)
-                        client.gui.setScreen(null);
-                    if (reason.equals("native_input_context_changed"))
-                        return this.discardContextInput(client);
-                    this.worldTargeting.end();
-                    if (this.commandChatOpening != null) {
-                        // Drop only this gesture's queued native Chat key action, never all key
-                        // mappings.
-                        ((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor)
-                                        this.commandChatOpening)
-                                .minecraftProtocolProbe$release();
-                        this.commandChatOpening = null;
-                    }
-                    this.commandChat.clear();
-                    this.commandFeedback.clear();
-                    int releasedKeys = this.pressedKeys.size();
-                    int releasedButtons = this.pressedButtons.size();
-                    for (Map.Entry<Integer, KeyState> entry :
-                            new HashMap<>(this.pressedKeys).entrySet()) {
-                        KeyState state = entry.getValue();
-                        KeyEvent nativeEvent =
-                                NativeInputMapping.event(entry.getKey(), state.modifiers());
-                        AgentInputContext.dispatch(
-                                AgentInputContext.Event.key(
-                                        client.getWindow().handle(),
-                                        nativeEvent.key(),
-                                        nativeEvent.keycode(),
-                                        0,
-                                        nativeEvent.modifiers()),
-                                () ->
-                                        ((KeyboardHandlerInvoker) client.keyboardHandler)
-                                                .minecraftProtocolProbe$keyPress(
-                                                        client.getWindow().handle(),
-                                                        0,
-                                                        nativeEvent));
-                    }
-                    for (int button : new HashSet<>(this.pressedButtons)) {
-                        if (this.buttonScreens.containsKey(button)
-                                && (!java.util.Objects.equals(
-                                                this.buttonFrames.get(button),
-                                                this.pointerFrameStamp(client))
-                                        || this.buttonScreens.get(button) != client.gui.screen())) {
-                            this.clearMouseButtonState(client);
-                            continue;
-                        }
-                        AgentInputContext.dispatch(
-                                AgentInputContext.Event.button(
-                                        client.getWindow().handle(),
-                                        NativeInputMapping.button(button),
-                                        0,
-                                        0),
-                                () ->
-                                        ((MouseHandlerInvoker) client.mouseHandler)
-                                                .minecraftProtocolProbe$onButton(
-                                                        client.getWindow().handle(),
-                                                        new MouseButtonInfo(
+                        () ->
+                                this.extensionInputs.collectCleanup(
+                                        () -> {
+                                            this.extensionInputs.await(
+                                                    this.extensionInputReset.apply(reason));
+                                            Minecraft client = requireClient();
+                                            if (this.pressedKeys.containsKey(
+                                                            NativeInputMapping.wireKey(
+                                                                    com.mojang.blaze3d.platform
+                                                                            .InputConstants.KEY_F3))
+                                                    && client.gui.screen()
+                                                            instanceof
+                                                            net.minecraft.client.gui.screens.debug
+                                                                    .GameModeSwitcherScreen)
+                                                client.gui.setScreen(null);
+                                            if (reason.equals("native_input_context_changed"))
+                                                return this.discardContextInput(client);
+                                            this.worldTargeting.end();
+                                            if (this.commandChatOpening != null) {
+                                                // Drop only this gesture's queued native Chat key
+                                                // action, never all key
+                                                // mappings.
+                                                ((io.github.recrivenvi.minecraftprotocol.probe.mixin
+                                                                        .KeyBindingUiAccessor)
+                                                                this.commandChatOpening)
+                                                        .minecraftProtocolProbe$release();
+                                                this.commandChatOpening = null;
+                                            }
+                                            this.commandChat.clear();
+                                            this.commandFeedback.clear();
+                                            int releasedKeys = this.pressedKeys.size();
+                                            int releasedButtons = this.pressedButtons.size();
+                                            for (Map.Entry<Integer, KeyState> entry :
+                                                    new HashMap<>(this.pressedKeys).entrySet()) {
+                                                KeyState state = entry.getValue();
+                                                KeyEvent nativeEvent =
+                                                        NativeInputMapping.event(
+                                                                entry.getKey(), state.modifiers());
+                                                this.dispatchExtensionInput(
+                                                        AgentInputContext.Event.key(
+                                                                client.getWindow().handle(),
+                                                                nativeEvent.key(),
+                                                                nativeEvent.keycode(),
+                                                                0,
+                                                                nativeEvent.modifiers()),
+                                                        () ->
+                                                                ((KeyboardHandlerInvoker)
+                                                                                client.keyboardHandler)
+                                                                        .minecraftProtocolProbe$keyPress(
+                                                                                client.getWindow()
+                                                                                        .handle(),
+                                                                                0,
+                                                                                nativeEvent));
+                                            }
+                                            for (int button : new HashSet<>(this.pressedButtons)) {
+                                                if (this.buttonScreens.containsKey(button)
+                                                        && (!java.util.Objects.equals(
+                                                                        this.buttonFrames.get(
+                                                                                button),
+                                                                        this.pointerFrameStamp(
+                                                                                client))
+                                                                || this.buttonScreens.get(button)
+                                                                        != client.gui.screen())) {
+                                                    this.clearMouseButtonState(client);
+                                                    continue;
+                                                }
+                                                this.dispatchExtensionInput(
+                                                        AgentInputContext.Event.button(
+                                                                client.getWindow().handle(),
                                                                 NativeInputMapping.button(button),
+                                                                0,
                                                                 0),
-                                                        0));
-                    }
-                    this.finishNativeInputCleanup(client, reason);
-                    this.pressedKeys.clear();
-                    this.pressedButtons.clear();
-                    if (releasedButtons > 0) this.logicalPointer.releaseButtons();
-                    this.buttonScreens.clear();
-                    this.buttonFrames.clear();
-                    this.activeGestureId = "";
-                    long inputSequence = this.inputDispatchSequence.incrementAndGet();
-                    JsonObject json = base("input.release_all");
-                    json.addProperty("reason", reason);
-                    json.addProperty("releasedKeys", releasedKeys);
-                    json.addProperty("releasedButtons", releasedButtons);
-                    json.addProperty("inputDispatchSequence", inputSequence);
-                    return json;
-                });
+                                                        () ->
+                                                                ((MouseHandlerInvoker)
+                                                                                client.mouseHandler)
+                                                                        .minecraftProtocolProbe$onButton(
+                                                                                client.getWindow()
+                                                                                        .handle(),
+                                                                                new MouseButtonInfo(
+                                                                                        NativeInputMapping
+                                                                                                .button(
+                                                                                                        button),
+                                                                                        0),
+                                                                                0));
+                                            }
+                                            this.finishNativeInputCleanup(client, reason);
+                                            this.pressedKeys.clear();
+                                            this.pressedButtons.clear();
+                                            if (releasedButtons > 0)
+                                                this.logicalPointer.releaseButtons();
+                                            this.buttonScreens.clear();
+                                            this.buttonFrames.clear();
+                                            this.activeGestureId = "";
+                                            long inputSequence =
+                                                    this.inputDispatchSequence.incrementAndGet();
+                                            JsonObject json = base("input.release_all");
+                                            json.addProperty("reason", reason);
+                                            json.addProperty("releasedKeys", releasedKeys);
+                                            json.addProperty("releasedButtons", releasedButtons);
+                                            json.addProperty(
+                                                    "inputDispatchSequence", inputSequence);
+                                            return json;
+                                        }))
+                .thenCompose(java.util.function.Function.identity());
     }
 
     private CompletableFuture<ProviderExecutionEngine.Entry> dispatchProvider(
@@ -4252,6 +4346,71 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         return response;
     }
 
+    private final io.github.recrivenvi.minecraftprotocol.core.extension.LogicalInputRouter
+            extensionInputs =
+                    new io.github.recrivenvi.minecraftprotocol.core.extension.LogicalInputRouter();
+
+    private volatile String extensionInputFrame = "";
+
+    private void dispatchExtensionInput(AgentInputContext.Event event, Runnable callback) {
+        Minecraft client = requireClient();
+        this.refreshScreen(client);
+        String frame = this.extensionInputFrame;
+        var accepted = this.controlPresence;
+        var context = this.inputContext.snapshot();
+        boolean cleanup = this.extensionInputs.cleanupOnly();
+        var keys = new java.util.HashSet<Integer>();
+        var buttons = new java.util.HashSet<Integer>();
+        if (!cleanup) {
+            this.pressedKeys.keySet().forEach(key -> keys.add(NativeInputMapping.key(key)));
+            this.pressedButtons.forEach(button -> buttons.add(NativeInputMapping.button(button)));
+        }
+        var state =
+                new io.github.recrivenvi.minecraftprotocol.probe.extension.LogicalInput.Snapshot(
+                        accepted.controlSessionId(),
+                        accepted.transitionSequence(),
+                        client.gui.screen() == null
+                                ? 0
+                                : this.interactionIdentity(client.gui.screen()),
+                        event.window(),
+                        io.github.recrivenvi.minecraftprotocol.probe.extension.LogicalInput.Kind
+                                .valueOf(event.kind().name()),
+                        keys,
+                        buttons,
+                        event.kind() == AgentInputContext.Kind.MOVE
+                                ? Double.longBitsToDouble(event.a())
+                                : this.agentPointerX,
+                        event.kind() == AgentInputContext.Kind.MOVE
+                                ? Double.longBitsToDouble(event.b())
+                                : this.agentPointerY,
+                        cleanup,
+                        System.identityHashCode(client.gui.screen()),
+                        cleanup ? null : this.extensionInputs.target());
+        var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
+        this.extensionInputs.dispatch(
+                state,
+                () -> {
+                    if (this.windowClosing.get()
+                            || this.inputContext.snapshot() != context
+                            || !frame.equals(this.extensionInputFrame)) return false;
+                    if (cleanup) return true;
+                    var current = this.controlPresence;
+                    if (!current.agentControlled()
+                            || current.transitionSequence() != accepted.transitionSequence())
+                        return false;
+                    if (permit != null) {
+                        try {
+                            permit.check();
+                        } catch (RuntimeException stopped) {
+                            return false;
+                        }
+                    }
+                    return true;
+                },
+                event,
+                callback);
+    }
+
     private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier) {
         return this.onControlledClient(supplier, true);
     }
@@ -4259,35 +4418,71 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
     private <T> CompletableFuture<T> onControlledClient(Supplier<T> supplier, boolean input) {
         AgentControlSession.Snapshot accepted = this.controlPresence;
         var permit = io.github.recrivenvi.minecraftprotocol.core.InputDispatchContext.capture();
-        return this.onClient(
-                () -> {
-                    this.refreshInputContext(requireClient());
-                    AgentControlSession.Snapshot current = this.controlPresence;
-                    if (!current.agentControlled()
-                            || !accepted.agentControlled()
-                            || current.transitionSequence() != accepted.transitionSequence()) {
-                        throw new ProtocolState.ProtocolException(
-                                current.manuallyRevoked()
-                                        ? "USER_MANUALLY_ENDED_CONTROL"
-                                        : "CONTROL_LEASE_REQUIRED",
-                                409,
-                                current.manuallyRevoked()
-                                        ? "用户手动结束控制"
-                                        : "Control session ended before dispatch");
-                    }
-                    ensureExclusiveOwnerState();
-                    return this.controlSession.withTakeover(
-                            accepted,
-                            () -> {
-                                try (var dispatch = this.commandGate.enter(accepted, permit)) {
-                                    if (input && permit != null)
-                                        permit.beforeInput(this::checkInputPreconditions);
-                                    T result = supplier.get();
-                                    dispatch.check();
-                                    return result;
-                                }
-                            });
-                });
+        return this.awaitExtensionInputTransition()
+                .thenCompose(
+                        ignored ->
+                                this.onClient(
+                                                () ->
+                                                        this.extensionInputs.collect(
+                                                                () -> {
+                                                                    this.refreshInputContext(
+                                                                            requireClient());
+                                                                    AgentControlSession.Snapshot
+                                                                            current =
+                                                                                    this
+                                                                                            .controlPresence;
+                                                                    if (!current.agentControlled()
+                                                                            || !accepted
+                                                                                    .agentControlled()
+                                                                            || current
+                                                                                            .transitionSequence()
+                                                                                    != accepted
+                                                                                            .transitionSequence()) {
+                                                                        throw new ProtocolState
+                                                                                .ProtocolException(
+                                                                                current
+                                                                                                .manuallyRevoked()
+                                                                                        ? "USER_MANUALLY_ENDED_CONTROL"
+                                                                                        : "CONTROL_LEASE_REQUIRED",
+                                                                                409,
+                                                                                current
+                                                                                                .manuallyRevoked()
+                                                                                        ? "用户手动结束控制"
+                                                                                        : "Control session ended before dispatch");
+                                                                    }
+                                                                    ensureExclusiveOwnerState();
+                                                                    return this.controlSession
+                                                                            .withTakeover(
+                                                                                    accepted,
+                                                                                    () -> {
+                                                                                        try (var
+                                                                                                dispatch =
+                                                                                                        this
+                                                                                                                .commandGate
+                                                                                                                .enter(
+                                                                                                                        accepted,
+                                                                                                                        permit)) {
+                                                                                            if (input
+                                                                                                    && permit
+                                                                                                            != null)
+                                                                                                permit
+                                                                                                        .beforeInput(
+                                                                                                                this
+                                                                                                                        ::checkInputPreconditions);
+                                                                                            T
+                                                                                                    result =
+                                                                                                            supplier
+                                                                                                                    .get();
+                                                                                            dispatch
+                                                                                                    .check();
+                                                                                            return result;
+                                                                                        }
+                                                                                    });
+                                                                },
+                                                                permit == null
+                                                                        ? () -> {}
+                                                                        : permit::check))
+                                        .thenCompose(java.util.function.Function.identity()));
     }
 
     private <T> CompletableFuture<T> onClientCleanup(Supplier<T> supplier) {
@@ -4577,6 +4772,7 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
         if (screen != this.lastScreen) {
             this.lastScreen = screen;
             this.screenRevision++;
+            this.resetExtensionInput("screen_changed");
             synchronized (this.recentRenderFacts) {
                 this.recentRenderFacts.clear();
             }
@@ -4588,6 +4784,22 @@ public final class FabricProbeRuntime implements Phase9AExperimentalService {
                 currentTransport.broadcast(event);
             }
         }
+        this.extensionInputFrame =
+                this.screenRevision
+                        + ":"
+                        + client.getWindow().getGuiScaledWidth()
+                        + ":"
+                        + client.getWindow().getGuiScaledHeight()
+                        + ":"
+                        + client.getWindow().getScreenWidth()
+                        + ":"
+                        + client.getWindow().getScreenHeight()
+                        + ":"
+                        + client.getWindow().getGuiScale()
+                        + ":"
+                        + (client.gui.overlay() == null
+                                ? 0
+                                : this.interactionIdentity(client.gui.overlay()));
         return screen;
     }
 

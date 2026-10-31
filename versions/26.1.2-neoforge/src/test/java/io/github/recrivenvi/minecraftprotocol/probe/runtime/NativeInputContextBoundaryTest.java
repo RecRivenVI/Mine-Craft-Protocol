@@ -200,7 +200,7 @@ final class NativeInputContextBoundaryTest {
                         runtime,
                         "onControlledClient",
                         "(Ljava/util/function/Supplier;Z)Ljava/util/concurrent/CompletableFuture;");
-        var ownerCallbacks = linkedCallbacks(runtime, dispatch);
+        var ownerCallbacks = linkedCallbacksDeep(runtime, dispatch);
         var owner =
                 ownerCallbacks.stream()
                         .filter(
@@ -208,7 +208,10 @@ final class NativeInputContextBoundaryTest {
                                         callIndex(callback, RUNTIME, "refreshInputContext") >= 0)
                         .findFirst()
                         .orElseThrow();
-        assertTrue(callIndex(dispatch, RUNTIME, "onClient") >= 0);
+        assertTrue(callIndex(dispatch, RUNTIME, "awaitExtensionInputTransition") >= 0);
+        assertTrue(
+                ownerCallbacks.stream()
+                        .anyMatch(callback -> callIndex(callback, RUNTIME, "onClient") >= 0));
         int before = callIndex(owner, RUNTIME, "refreshInputContext");
         int takeover = callIndex(owner, ROOT + "safety/AgentControlSession", "withTakeover");
         assertTrue(before >= 0 && takeover > before);
@@ -662,6 +665,16 @@ final class NativeInputContextBoundaryTest {
         assertEquals(0, method.access & Opcodes.ACC_SYNCHRONIZED, method.name);
         for (var instruction : method.instructions)
             assertNotEquals(Opcodes.MONITORENTER, instruction.getOpcode(), method.name);
+    }
+
+    private static List<MethodNode> linkedCallbacksDeep(ClassNode owner, MethodNode method) {
+        var found = new java.util.LinkedHashSet<MethodNode>();
+        var queue = new java.util.ArrayDeque<MethodNode>();
+        queue.add(method);
+        while (!queue.isEmpty())
+            for (var next : linkedCallbacks(owner, queue.removeFirst()))
+                if (found.add(next)) queue.add(next);
+        return List.copyOf(found);
     }
 
     private static List<MethodNode> linkedCallbacks(ClassNode owner, MethodNode method) {

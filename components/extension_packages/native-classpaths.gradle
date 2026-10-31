@@ -1,0 +1,21 @@
+// Author builds consume the actual registered Target compiler inputs, not a parallel Loader model.
+gradle.projectsEvaluated {
+    tasks.register('prepareExtensionNativeClasspath') {
+        def selected = providers.gradleProperty('extensionTarget').getOrElse('')
+        def nativeProject = findProject(":version:${selected}")
+        if (nativeProject == null || !nativeProject.projectDir.toPath().startsWith(rootDir.toPath().resolve('versions'))) {
+            doLast { throw new GradleException('extensionTarget must name one registered Target') }
+            return
+        }
+        def compiler = nativeProject.tasks.named(selected.endsWith('-fabric') ? 'compileClientJava' : 'compileJava', JavaCompile)
+        dependsOn(compiler)
+        inputs.files(compiler.map { it.classpath })
+        def destination = layout.projectDirectory.file("components/extension_packages/build/native-classpaths/${selected}.txt")
+        outputs.file(destination)
+        doLast {
+            def entries = compiler.get().classpath.files.findAll { it.exists() }
+            destination.asFile.parentFile.mkdirs()
+            destination.asFile.setText(entries.collect { it.absolutePath }.join(System.lineSeparator()) + System.lineSeparator(), 'UTF-8')
+        }
+    }
+}

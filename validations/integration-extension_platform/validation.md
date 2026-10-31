@@ -11,7 +11,10 @@
 ```powershell
 ./gradlew.bat :extension_packages:assemble :companion:assemble
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge
+pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 1.21.1-neoforge -Adapter modern_ui
+pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 1.21.1-neoforge -Adapter emi
 pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1 -Target 26.3-neoforge -ExtensionPlatform
+pwsh -NoProfile -File components/validation_tools/integration-packaged_runtime/task/Invoke-InstalledRuntimeSmoke.ps1 -Target 1.20.1-forge -ExtensionPlatform -ExtensionAdapter modern_ui
 node components/validation_tools/integration-server_peer/task/server-console-smoke.mjs --target=26.3-neoforge --extension-platform
 ```
 
@@ -26,3 +29,7 @@ Runner 只使用本验证的隔离实例，1920×1080静音、最大4GiB，以�
 早期 hook 的通过要求实际 MinecraftServer tick 计数与 helper 类身份，不只检查配置注册。替包工具 package-replacement.mjs 先 capture 再 verify 同一 Target 的前后成品结果，要求本体 JAR 哈希不变、原生重启、包版本/身份和实际代码返回字段变化，前后结果保存在固定 replacement 路径。旧候选结果只按自身身份解释。
 
 没有运行的Target或最终发行装载不得写为PASS；七模组实际业务与人工验收不由平台探针代替。
+
+UI 适配场景使用 inputs.toml/local.toml 登记的原始上游 JAR，以及独立编译并按内容批准的适配包。按 Target-client-Adapter.json 分开记录，避免不同案例互相覆盖；新结果同时绑定本体源码、所用包源码和实际上游 JAR 哈希，结束时重新核对。CC 的正常键盘输入须在客户端可见终端产生计算结果；Modern UI 须完成导航、滑块修改、文本恢复、按实际轴滚动、真实拖拽和拖拽中退回READ，确认取消、held清零与无迟到派发；EMI 须完成搜索、收藏状态切换与恢复、配方页的可见内容及正常退出。所有 Act 进入既有真实输入路径，命令只用于明确的测试准备，未运行的上游/Target 组合不外推。
+
+Forge 原始第三方发行包使用独立成品安装场景，不用 named 开发运行冒充 SRG 兼容。适配场景可复用已验证的官方 Loader 安装缓存，只复制官方 profile/libraries，仍使用全新游戏目录和当前本体/适配包；结果明确记录 installerExecuted=false，不复用旧产品运行结论。纯净单JAR安装场景保持独立。第三方替换 HUD 后不伪造缺失文本；纯净 Forge 另断言实际绘制的经验等级。

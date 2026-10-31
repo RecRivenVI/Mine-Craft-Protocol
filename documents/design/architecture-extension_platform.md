@@ -16,11 +16,11 @@ PackageExtension.initialize 收到当前 Runtime 的 PackageContext，通过上�
 
 本地代码审批与远程调用权限分别生效。包声明不授予 scope、模式、Arm、Lease 或服务器委托；READ 不启动采样，USER 操作不能由业务 setter 认证为 GAME_ROUTED。协议执行器产生实际路由与证据，不能接受包自己声称“正常玩家操作成功”。
 
-UI 可见投影、逻辑输入适配和世界部件接口按后续阶段接入，不能以普通 Provider/Mixin 装载成功宣称这些能力已经完成。早期 Loader 桥、复杂框架输入与运动部件保持预览。
+UI 可见投影将原生 Widget 语义补充和第三方可见区域分开，不覆盖原生几何和路由。框架采样在实际 owner 完成，客户端消费带完整上下文的不可变结果；普通树和语义输入继续使用现有 API。LogicalInput 为已授权事件提供只读状态和一次性跨线程消费确认，原生重入、取消、Screen/控制世代与清理分别守卫，不获取宿主光标。世界部件接口仍在后续阶段；具体业务覆盖与当前证据以状态页为准。早期 Loader 桥、复杂框架输入与运动部件保持预览。
 
 ## 资源与异步执行
 
-资源按 Runtime、包、生命周期和具体上下文分区。PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT 与 INPUT_LEASE 分别失效；先拒绝新操作与迟到发布，再逐项调度 owner 清理。失败、拒绝、超时与未释放保留诊断，不伪造全部成功。
+资源服务按 Runtime、包、生命周期和具体上下文分区，支持 PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT 与 INPUT_LEASE 所有者。当前包上下文的生产接线为 PROCESS 和 DEBUG_GRANT；框架输入的 Screen/Lease 清理由原生输入屏障驱动，其他可供包取得的上下文资源组仍待 EP-5 接入，不能仅凭枚举存在视为完整交付。失效先拒绝新操作与迟到发布，再逐项调度 owner 清理；失败、拒绝、超时与未释放保留诊断。
 
 Debug 采样属于独立 grant。输入 Lease 结束或真人 Esc 不顺带结束合法 Debug；Arm 续期保留身份，撤销/过期与世界变化则使相应任务失效。实际游戏状态只在其 owner 线程读写，工作线程只接收不可变数据。
 

@@ -1,0 +1,94 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.extensions.modernui",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge",
+    "26.1.2-neoforge"
+  ],
+  "mods": {},
+  "requestedScopes": [
+    "ui",
+    "input"
+  ],
+  "capabilities": [
+    "modern_ui:visible_views",
+    "modern_ui:logical_input"
+  ],
+  "exports": [
+    "io.github.recrivenvi.extensions.modernui.nativebridge"
+  ],
+  "mixins": [
+    {
+      "config": "mixins/modern_ui.json",
+      "side": "client"
+    }
+  ],
+  "resources": {
+    "mixins/modern_ui.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.extensions.modernui.nativebridge.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "LegacyFrameMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/modern_ui-forge.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.extensions.modernui.nativebridge.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "CompilerMixin",
+        "LegacyFrameMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/modern_ui-26_1.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.extensions.modernui.nativebridge.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "RenderFrameMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    }
+  },
+  "targetMixins": {
+    "1.20.1-forge": [
+      {
+        "config": "mixins/modern_ui-forge.json",
+        "side": "client"
+      }
+    ],
+    "26.1.2-neoforge": [
+      {
+        "config": "mixins/modern_ui-26_1.json",
+        "side": "client"
+      }
+    ]
+  },
+  "targetMods": {
+    "1.20.1-forge": {
+      "modernui": "3.12.0.1"
+    },
+    "1.21.1-neoforge": {
+      "modernui": "3.13.0.1"
+    },
+    "26.1.2-neoforge": {
+      "modernui": "3.13.0.5"
+    }
+  }
+}

@@ -37,8 +37,8 @@ for(const [,target] of (await readFile(resolve(repo,'settings.gradle.kts'),'utf8
 }
 const files={};
 for(const name of ['code/adapter.jar','docs/overview.md','mixins/probe.json',...extraFiles])files[name]=createHash('sha256').update(await readFile(resolve(output,name))).digest('hex');
-const manifest={formatVersion:1,sdkApi:1,id:'platform_probe',version:'1.0.2',javaNamespace:'io.github.recrivenvi.extensions.platformprobe',
- files,variants,dependencies:{mods:{},packages:{}},capabilities:['platform_probe:sampling'],
- requestedScopes:['debug.world.read','debug.provider'],exports:['io.github.recrivenvi.extensions.platformprobe.hooks.state'],documents:{overview:'docs/overview.md'},tests:{}};
+const manifest={formatVersion:1,sdkApi:1,id:'platform_probe',version:'1.0.3',javaNamespace:'io.github.recrivenvi.extensions.platformprobe',
+ files,variants,dependencies:{mods:{},packages:{}},capabilities:['platform_probe:sampling','platform_probe:native_ui'],
+ requestedScopes:['debug.world.read','debug.provider','ui'],exports:['io.github.recrivenvi.extensions.platformprobe.hooks.state'],documents:{overview:'docs/overview.md'},tests:{}};
 await writeFile(resolve(output,'extension.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({packageId:manifest.id,contentIdentity:createHash('sha256').update(await readFile(resolve(output,'extension.json'))).digest('hex'),output}));

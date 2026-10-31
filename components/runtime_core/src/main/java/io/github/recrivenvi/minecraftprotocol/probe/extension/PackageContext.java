@@ -15,6 +15,16 @@ public interface PackageContext {
 
     Side side();
 
+    record ControlState(
+            String mode, String controlSessionId, long generation, boolean reconsentRequired) {
+        public boolean takeoverActive() {
+            return mode.equals("TAKEOVER");
+        }
+    }
+
+    /** Presence only; neither permission nor an input dispatch permit. */
+    ControlState controlState();
+
     ExtensionResources.Scope processResources();
 
     java.util.Map<String, ExtensionResources.ThreadOwner> threadOwners();
@@ -22,6 +32,10 @@ public interface PackageContext {
     Registration schema(String id, ProviderSchemaRegistry.Validator validator);
 
     Registration provider(AgentDataProviderV2 provider);
+
+    Registration uiAdapter(UiAdapter adapter);
+
+    Registration inputAdapter(LogicalInputAdapter adapter);
 
     enum Side {
         CLIENT,

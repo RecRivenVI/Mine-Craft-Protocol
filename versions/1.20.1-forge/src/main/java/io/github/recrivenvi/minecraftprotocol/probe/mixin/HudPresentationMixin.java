@@ -16,7 +16,10 @@ public abstract class HudPresentationMixin implements UiPresentationSnapshot.Hud
     private final UiPresentationSnapshot.RenderedHud minecraftProtocolProbe$presentation =
             new UiPresentationSnapshot.RenderedHud();
 
+    // Third-party renderers may replace this draw; missing observation must not prevent boot.
     @Redirect(
+            require = 0,
+            allow = 2,
             method = "renderSelectedItemName(Lnet/minecraft/client/gui/GuiGraphics;I)V",
             at =
                     @At(
@@ -31,7 +34,10 @@ public abstract class HudPresentationMixin implements UiPresentationSnapshot.Hud
         return result;
     }
 
+    // Third-party renderers may replace this draw; missing observation must not prevent boot.
     @Redirect(
+            require = 0,
+            allow = 1,
             method = "renderExperienceBar",
             at =
                     @At(

@@ -214,6 +214,44 @@ class HudPresentationTest {
     }
 
     @Test
+    void thirdPartyDrawReplacementCannotMakePassiveHudObservationFatal() throws Exception {
+        try (InputStream input =
+                getClass()
+                        .getResourceAsStream(
+                                "/io/github/recrivenvi/minecraftprotocol/probe/mixin/HudPresentationMixin.class")) {
+            assertNotNull(input);
+            var type = new ClassNode();
+            new ClassReader(input)
+                    .accept(
+                            type,
+                            ClassReader.SKIP_CODE
+                                    | ClassReader.SKIP_DEBUG
+                                    | ClassReader.SKIP_FRAMES);
+            int observations = 0;
+            for (var method : type.methods)
+                for (var annotations :
+                        java.util.stream.Stream.of(
+                                        method.visibleAnnotations, method.invisibleAnnotations)
+                                .filter(java.util.Objects::nonNull)
+                                .toList())
+                    for (var annotation : annotations)
+                        if (annotation.desc.equals(
+                                "Lorg/spongepowered/asm/mixin/injection/Redirect;")) {
+                            observations++;
+                            int at = annotation.values.indexOf("require");
+                            assertTrue(at >= 0);
+                            assertEquals(0, annotation.values.get(at + 1));
+                            int maximum = annotation.values.indexOf("allow");
+                            assertTrue(maximum >= 0);
+                            assertEquals(
+                                    method.name.endsWith("$selectedName") ? 2 : 1,
+                                    annotation.values.get(maximum + 1));
+                        }
+            assertEquals(2, observations);
+        }
+    }
+
+    @Test
     void nativeDelegatesDrawExactlyOnceWithOriginalArgumentsBeforeObserving() throws Exception {
         int delegates = 0;
         for (String name :

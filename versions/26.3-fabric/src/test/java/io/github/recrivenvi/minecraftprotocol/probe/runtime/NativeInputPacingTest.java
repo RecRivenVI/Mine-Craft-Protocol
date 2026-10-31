@@ -189,9 +189,18 @@ class NativeInputPacingTest {
                         .flatMap(method -> calls(method).stream())
                         .toList();
         for (String nativeCall :
-                List.of("dispatch", "minecraftProtocolProbe$onMove", "handleAccumulatedMovement"))
+                List.of(
+                        "dispatchExtensionInput",
+                        "minecraftProtocolProbe$onMove",
+                        "handleAccumulatedMovement"))
             assertTrue(
                     movement.stream().anyMatch(call -> call.name.equals(nativeCall)), nativeCall);
+        assertTrue(
+                calls(method(runtime, "dispatchExtensionInput")).stream()
+                        .anyMatch(
+                                call ->
+                                        call.owner.endsWith("/LogicalInputRouter")
+                                                && call.name.equals("dispatch")));
         assertFalse(
                 movement.stream()
                         .anyMatch(

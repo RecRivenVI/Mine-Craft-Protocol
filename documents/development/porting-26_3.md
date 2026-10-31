@@ -343,3 +343,17 @@ Forge 1.20.1 与 NeoForge 1.21.1 从静态 FMLLoader 读取目录、物理 Dist 
 Fabric 26.3 使用固定 Loader 的 FabricLauncher.addToClassPath 与 PreLaunchEntrypoint，先验证原生资源路由，再在配置遍历之外提交。该 impl 桥保持预览，Loader 升级时必须实际复测；已加载的目标不尝试补变换。
 
 平台探针使用 MinecraftServer.tickServer，不以开发运行父加载器中的共享核心作为变换目标。旧 Forge 成品需要 SRG refmap；从该 Target 的 namedToIntermediate 产物生成，禁止用改输入或直接调用业务方法补偿未命中的 Mixin。
+
+扩展逻辑输入快照沿用各版本已获准的原生回调：1.x/26.1.2 的按键和按钮已经是 GLFW 编号，26.3 使用现有 SDL 映射转换为公共编号，不重复转换。GUI 投影使用各自原生 framebuffer/window/GUI 尺寸并保留小数；异步框架确认加入原 Operation future，Mode/Screen 清理不等待持有 TAKEOVER monitor 的线程。字节码门禁沿实际委托链检查 owner、原生 camera 和输入清理，不要求它们必须处于同一个 lambda。
+
+## 第三方 UI 原生差异
+
+Forge 1.20.1 的第三方发行 JAR 使用 SRG 成员名，不能直接放进 named 开发运行来证明兼容性。第三方发行包在独立官方 Loader 安装中验证，原生 source-set 的平台基线另测。EMI 适配的 Minecraft 控件 getter/字段只按该 Target 的 namedToIntermediate 映射选择名称，已经执行的 getter 抛错不会通过换名称重试。
+
+Modern UI 3.12 重写 Forge 经验值绘制，原版 HUD 的两个只读捕获点允许未命中；没有取得实际绘制时不生成相应 USER 文本。没有第三方重写时，仍须观察真实经验等级绘制。该限制不影响原生输入与第三方界面绘制。
+
+Modern UI 3.12 的 Arc3D 异步编译任务需要其原生 Supplier 类加载器作为线程上下文。Forge 适配包仅在这一次原生编译回调中临时设置并恢复上下文；不替换 Loader fallback，不修改公共线程池的永久状态，也不更改编译内容。较新 Modern UI 变体不注册这个 Forge 专用 hook。
+
+Modern UI 的 View 在框架 UI 线程采样和消费事件。布局展开动画期间仍会改变目标几何，调用者须重新观察稳定目标；不能放宽守卫让旧位置点击成功。异步文本消费还重查实际焦点，框架排队确认前 Operation 不报告完成。
+
+Modern UI 3.12/1.21.1 的持续采样点为 onRenderTick(boolean)，26.1.2 为 onRenderFrame(long,int)，由各自包变体选择；关键输入与每帧 hook 要求实际命中，不能只依据类级 postApply 声称可用。普通管线清理在 UI owner 发布取消后的快照再确认完成，释放输入不造成短暂失去同一页面的观察。

@@ -33,7 +33,7 @@ function Get-PassiveDrawContracts {
     }
     if ($Target -eq '1.20.1-forge') {
         $contracts['ForgeVitalIconsMixin.java'] = @{ Descriptors = @($sprite) * 4; Test = 'HudDrawDelegationTest.java' }
-        $contracts['HudPresentationMixin.java'] = @{ Descriptors = @(($graphics + 'drawString(' + $font + $component + 'III)I'), ($graphics + 'drawString(' + $font + 'Ljava/lang/String;IIIZ)I')); Test = 'HudPresentationTest.java' }
+        $contracts['HudPresentationMixin.java'] = @{ Descriptors = @(($graphics + 'drawString(' + $font + $component + 'III)I'), ($graphics + 'drawString(' + $font + 'Ljava/lang/String;IIIZ)I')); Test = 'HudPresentationTest.java'; OptionalObservation = $true }
         $contracts['ContextualBarPresentationMixin.java'] = @{ Descriptors = @($sprite); Test = 'HudPresentationTest.java' }
     } elseif (-not $modern) {
         $contracts['HudPresentationMixin.java'] = @{ Descriptors = @(($graphics + 'drawStringWithBackdrop(' + $font + $component + 'IIII)I'), ($graphics + 'drawString(' + $font + 'Ljava/lang/String;IIIZ)I')); Test = 'HudPresentationTest.java' }
@@ -105,7 +105,12 @@ function Assert-PassiveDrawSource {
     foreach ($handler in $handlers) {
         $annotation = $handler.Groups['annotation'].Value
         $targets = [regex]::Matches($annotation, 'target\s*=\s*"([^"]+)"')
-        Assert-True ($targets.Count -eq 1 -and $annotation -match 'value\s*=\s*"INVOKE"' -and $annotation -notmatch 'require\s*=\s*0|expect\s*=|slice\s*=') "$Label draw delegate must target one required native invocation"
+        $optional = $Contract.OptionalObservation -and $Label -ceq '1.20.1-forge/HudPresentationMixin.java'
+        $siteLimit = if($annotation -match 'method\s*=\s*"renderSelectedItemName\(Lnet/minecraft/client/gui/GuiGraphics;I\)V"'){2}elseif($annotation -match 'method\s*=\s*"renderExperienceBar"'){1}else{0}
+        $limitMatch = [regex]::Match($annotation,'allow\s*=\s*(\d+)')
+        $required = if($optional){$siteLimit-gt0 -and $annotation -match 'require\s*=\s*0' -and $limitMatch.Success -and [int]$limitMatch.Groups[1].Value-eq$siteLimit}else{$annotation -notmatch 'require\s*=\s*0'}
+        Assert-True ($targets.Count -eq 1 -and $annotation -match 'value\s*=\s*"INVOKE"' -and $required -and $annotation -notmatch 'expect\s*=|slice\s*=') "$Label draw delegate must target one required native invocation or the exact reviewed passive draw site bound"
+        if($optional){Assert-True ($Text -match 'Third-party renderers may replace this draw') "$Label optional observation must explain the replacement boundary"}
         if ($Contract.ForgeSleep) {
             $compactAnnotation = [regex]::Replace($annotation, '\s+', '')
             Assert-True ($compactAnnotation.StartsWith('method="renderSleepFade",remap=false,at=@At(') -and $compactAnnotation.EndsWith('remap=true)')) "$Label must retain the exact Forge sleep method and native invocation remapping"

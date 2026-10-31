@@ -15,7 +15,7 @@
 1. 编写实现 PackageExtension 的入口，只在 initialize 中注册，不在静态初始化访问游戏对象。
 2. 生成 extension.json，索引包内每个文件的 SHA-256，写明 Target 变体、物理运行端入口、模组/包依赖、命名空间、能力和 scope。
 3. 为 Provider 定义 snapshot/query/revision/Debug schema，声明实际 owner thread、来源、预算、副作用和完整性。Provider V2 仍是 DEBUG；client_known 不自动变成 USER。
-4. 让 USER UI 操作进入 Runtime 的真实输入队列，不能调用业务 setter 或 performClick 冒充玩家。USER 世界操作保留原生 pick、距离、碰撞与服务器校验。
+4. 用 UiAdapter 发布已绑定上下文、坐标空间和时效的投影；原生控件只补充语义，异步框架在自己的线程准备不可变快照。让 USER UI 操作进入 Runtime 的真实输入队列，不能调用业务 setter 或 performClick 冒充玩家。USER 世界操作保留原生 pick、距离、碰撞与服务器校验。
 5. 为持续资源登记运行实例、包、生命周期、owner executor 与授权失效条件。撤权先禁止发布，再在 owner 上清理；逐项记录失败。关闭注册不代表卸载 Mixin。
 6. 为 early hook 声明独立 Mixin 命名空间与 exports；共享状态 helper 不放在 Mixin 类包内。旧 Forge 用相应 Target 的真实映射生成 refmap，不将开发环境的命中作为成品证明。
 7. 通过离线安装流程把包与审批记录放入实例的 minecraft-protocol/extensions，重启后查询实际目录；不要在运行中替换或远程上传代码。
@@ -27,3 +27,4 @@
 - 读取不启动隐藏采样或修改；无 scope/Arm/Lease、旧版本、取消和超时的负向场景明确失败。
 - 两个包分别故障与恢复、离开世界、撤权、运行关闭后无迟到发布，清理异常不阻断其他资源。
 - 仅通过标准 Native/MCP 接口验证结果；单元、实际装载、正常业务闭环与真人体验分别报告。
+- 框架轮询只在 LogicalInput 的获准作用域读取；跨线程使用一次性 defer 并确认真实消费。reset 清理按住、未消费事件和输入法缓冲，不能获取 Lease、移动宿主光标或在撤销后重新派发。

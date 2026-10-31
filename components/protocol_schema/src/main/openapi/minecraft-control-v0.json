@@ -3730,6 +3730,49 @@
               "type": "string"
             }
           },
+          "capabilityDetails": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "kind",
+                "grantsAuthority"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "provider",
+                    "ui_projection",
+                    "logical_input"
+                  ]
+                },
+                "views": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "DEBUG"
+                    ]
+                  }
+                },
+                "actionRoute": {
+                  "type": "string"
+                },
+                "grantsAuthority": {
+                  "type": "boolean",
+                  "enum": [
+                    false
+                  ]
+                }
+              }
+            }
+          },
           "documents": {
             "type": "object",
             "additionalProperties": {

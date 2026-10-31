@@ -51,6 +51,49 @@ tasks.assemble { dependsOn(packagePlatformProbe) }
 
 tasks.check { dependsOn(packagePlatformProbe) }
 
+val adapterSets =
+    listOf("computercraft", "modern_ui", "emi").associateWith { id ->
+        sourceSets.create(id.replace("_", "") + "Adapter") {
+            java.srcDir("packages/$id/java")
+            compileClasspath = proofSdk
+        }
+    }
+
+val adapterJars = adapterSets.map { (id, sources) ->
+    tasks.named<JavaCompile>(sources.compileJavaTaskName) {
+        javaCompiler.set(
+            javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(17)) },
+        )
+        options.release.set(17)
+        options.compilerArgs.add("-proc:none")
+    }
+    tasks.register<Jar>(sources.name + "Jar") {
+        from(sources.output)
+        archiveBaseName.set(id)
+        archiveFileName.set("$id.jar")
+        destinationDirectory.set(layout.buildDirectory.dir("adapter-code"))
+    }
+}
+
+dependencies {
+    testImplementation(libs.mcp.junit)
+    testRuntimeOnly(libs.mcp.junit.launcher)
+    testImplementation(adapterSets.getValue("modern_ui").output)
+}
+
+tasks.test { useJUnitPlatform() }
+
+val packageAdapters by
+    tasks.registering(Exec::class) {
+        dependsOn(adapterJars)
+        workingDir(projectDir)
+        commandLine("node", "scripts/package-adapters.mjs")
+    }
+
+tasks.assemble { dependsOn(packageAdapters) }
+
+tasks.check { dependsOn(packageAdapters) }
+
 configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     java { target("src/*/java/**/*.java", "packages/*/java/**/*.java") }
 }

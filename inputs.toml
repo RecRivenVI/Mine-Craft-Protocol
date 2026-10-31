@@ -9,3 +9,207 @@ version = "1.2.2"
 description = "用户验收实例的 Zume；当前仅有匹配的 1.20.1 Forge 与 1.21.1 NeoForge 发布"
 source = "https://modrinth.com/mod/zume/version/Rh2ImJ86"
 sha256 = ["c33b99e8976dfeb0aeb1afcc2ad8e65c7310532ae5ccc38c75317d672dc95e6f"]
+
+[computercraft-26-3-neoforge]
+mod-id = "computercraft"
+version = "1.120.3"
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/cc-tweaked/version/f9jfjeJH"
+sha256 = ["d7160130c467e1936ee5c0a9814b7a6cce1ba4ac7b7949f915895d0252032cda"]
+
+[modernui-1-21-1-neoforge]
+mod-id = "modernui"
+version = "3.13.0.1"
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/modern-ui/version/eMf1VSQd"
+sha256 = ["258623778012daad6fdd8793add3324b970df62a07c477697c43fe85deef1db6"]
+
+[emi-1-21-1-neoforge]
+mod-id = "emi"
+version = "1.1.24+1.21.1+neoforge"
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/emi/version/5sIPA1To"
+sha256 = ["b68691f94f0727fc517cac2ab55bd6658d1179cc8cc715fe610b60c37469bc4c"]
+
+[computercraft-1-21-1-neoforge]
+mod-id = "computercraft"
+version = "1.120.2"
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/cc-tweaked/version/1ewzHZYg"
+sha256 = ["e8651fe24b384e925e563c9ad077644744474e2e7c0adb8e6d5b4757598dce9f"]
+
+[computercraft-1-20-1-forge]
+mod-id = "computercraft"
+version = "1.120.2"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/cc-tweaked/version/gRtcHJd8"
+sha256 = ["3eff8465261958c834b386152b6a76f4910be6bfa9e7dee9a7adc42120127a56"]
+
+[computercraft-26-1-2-neoforge]
+mod-id = "computercraft"
+version = "1.120.0"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/cc-tweaked/version/AX1iOJxi"
+sha256 = ["298265ac55a43aa3ea05f00af0b2e31805f2afb4757273cd1091ebc8c35f534d"]
+
+[computercraft-26-3-fabric]
+mod-id = "computercraft"
+version = "1.120.3"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/cc-tweaked/version/tKLY4fAR"
+sha256 = ["d42459a47f17e9ea1c1478be73749bbd8ba35ae068e16351cc0695a034534149"]
+
+[emi-1-20-1-forge]
+mod-id = "emi"
+version = "1.1.24+1.20.1+forge"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/emi/version/Axuu9I9R"
+sha256 = ["92784dcf5222d72983a420c90f2e9240468ee0fece96f757c82d7884b6cbdb72"]
+
+[modernui-1-20-1-forge]
+mod-id = "modernui"
+version = "3.12.0.1"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/modern-ui/version/6ksT8CWg"
+sha256 = ["49fea599522316ef7abd8897e8bcad3ed742d935f0a53726eba1f00c9ca8fe4c"]
+
+[modernui-26-1-2-neoforge]
+mod-id = "modernui"
+version = "3.13.0.5"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/modern-ui/version/pDpDBt4H"
+sha256 = ["56dfbc33a7e1492b0e8f20598ffd4db6c417801d59fe5ce1503c8749034e2354"]
+
+[create-1-20-1-forge]
+mod-id = "create"
+version = "6.0.8"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/create/version/8amzvn9x"
+sha256 = ["6fbb910c367dbce8e4fc7e5bf64b6edd4de980906ed00af8e47e4af843c0d9b0"]
+
+[create-1-21-1-neoforge]
+mod-id = "create"
+version = "6.0.10"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/create/version/UjX6dr61"
+sha256 = ["ef87fe5709f1ba1f5b8bb20a2925b5afb4669e178fd6d8bf10c167759eefe37a"]
+
+[ae2-1-20-1-forge]
+mod-id = "ae2"
+version = "15.4.12"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/ae2/version/QRpVsqDI"
+sha256 = ["b9c5928893a20d3feb0b4393e2c23d756a16d9abee24d9c14c98e6096d53844d"]
+
+[ae2-1-21-1-neoforge]
+mod-id = "ae2"
+version = "19.2.18"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/ae2/version/KDnFUmMm"
+sha256 = ["df15a07f86ca1ca93aa66373f9d5d84dd3d4586631fceb38f4fbc85dad591e39"]
+
+[ae2-26-1-2-neoforge]
+mod-id = "ae2"
+version = "26.1.13-beta"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/ae2/version/nVSxZcom"
+sha256 = ["6474119c645a21f509da518845ab42bff84d496f80a86ce5e551d7a4745b4893"]
+
+[ae2-26-3-neoforge]
+mod-id = "ae2"
+version = "26.3.1-alpha"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/ae2/version/PDPQ4WfW"
+sha256 = ["85da904d110e811f77fa5227f8d9fbc212028311badbceaead32bd4d275bc970"]
+
+[exposure-1-20-1-forge]
+mod-id = "exposure"
+version = "1.9.22"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/exposure/version/P0Y8dFLl"
+sha256 = ["aa2138af2ff4c123b86319278e7ffc56193bb3822096228ca263e99138e2e91e"]
+
+[exposure-1-21-1-neoforge]
+mod-id = "exposure"
+version = "1.9.19"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/exposure/version/iBvaR6AK"
+sha256 = ["c3579a314f77a9368c8312a1ace1dc8d510590869f7589b8ab3df24c42adca2f"]
+
+[littletiles-1-20-1-forge]
+mod-id = "littletiles"
+version = "1.6.0-pre161"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/littletiles/version/sBbUjEhq"
+sha256 = ["365cfb137e0f3a95f605b45fea82040afb0ac4fa1a0fc0deaeaf59cb35e8bae4"]
+
+[littletiles-1-21-1-neoforge]
+mod-id = "littletiles"
+version = "1.6.0-pre235"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/littletiles/version/EUSPvucg"
+sha256 = ["4c4d73be03e67e396bd46af1d51be0ff1814bae5f71274bcdb325832272f346e"]
+
+[guideme-1-20-1-forge]
+mod-id = "guideme"
+version = "20.1.15"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/guideme/version/i7Tp1AHw"
+sha256 = ["cf8052ab3da121012efc59a20e731c24bfe7488dfa556c9b88809f42dea3b24a"]
+
+[guideme-1-21-1-neoforge]
+mod-id = "guideme"
+version = "21.1.22"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/guideme/version/QeYKsstN"
+sha256 = ["108337ff98c706b18ed2fbec077b3337ba72c08f8b46a273534886280e89ef0d"]
+
+[guideme-26-1-2-neoforge]
+mod-id = "guideme"
+version = "26.1.17-beta"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/guideme/version/OTeLaTlN"
+sha256 = ["613a11017cb843e424d5021161d21adff955de26dde508c126933c7a5d53ced0"]
+
+[guideme-26-3-neoforge]
+mod-id = "guideme"
+version = "26.3.6-alpha"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/guideme/version/KCZu3q1I"
+sha256 = ["92e2d80f115d29d3cdcae6003c1c586b83f4f6cb736865380c33bfd38e0bd117"]
+
+[creativecore-1-20-1-forge]
+mod-id = "creativecore"
+version = "2.12.40"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/creativecore/version/ChKayKur"
+sha256 = ["936de62489c0d6fbe74202486cbe2b191b8629b02bab1d480acfdb03690f33f4"]
+
+[creativecore-1-21-1-neoforge]
+mod-id = "creativecore"
+version = "2.13.52"
+
+description = "扩展平台隔离验证输入，不进入本体发行JAR"
+source = "https://modrinth.com/mod/creativecore/version/JS0K93bG"
+sha256 = ["c24e1f6602315ab34f8f01c87760d3a4a682e6d77a6b4880b73cd7e6c80338b9"]

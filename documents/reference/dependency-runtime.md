@@ -84,6 +84,10 @@ Netty上游许可和归属说明随产品附带，Fabric API保留其原JAR及�
 使用原始官方JAR，不修改或重新发布第三方二进制；主模组权限、输入和证据合同不因此改变。
 下载、元数据/哈希核对、实际加载、用户体验分别判断。附加Mod冲突不得以移入自动基线或修改产品权限来掩盖。
 
+## 扩展验证输入
+
+扩展平台的第三方隔离输入包含 CC: Tweaked、Modern UI、EMI、Create、AE2、Exposure、LittleTiles，以及所需 GuideME/CreativeCore 的精确 Target 发布；身份、版本、下载来源与允许哈希仍只在 inputs.toml 定义，本机路径只在 local.toml。它们不是本体运行依赖，不嵌入产品 JAR，也不进入纯净平台基线。版本被上游标为适用不等于实际启动或业务通过；CC 26.3 NeoForge 与当前 Loader 的启动不兼容按具名结果记录，不通过替换 Loader 掩盖。
+
 ## 格式工具与验证
 
 Spotless、ktfmt、Java 格式器和 rumdl 由版本目录固定。Java 格式器必须兼容 Spotless 使用的接口；

@@ -55,6 +55,10 @@ public final class AgentInputContext {
         return ROUTED_DEPTH.get() > 0 && !NATIVE.get();
     }
 
+    public static boolean isNativeTask() {
+        return NATIVE.get();
+    }
+
     public static boolean consume(Event event) {
         Admission admission = ADMISSION.get();
         if (NATIVE.get()

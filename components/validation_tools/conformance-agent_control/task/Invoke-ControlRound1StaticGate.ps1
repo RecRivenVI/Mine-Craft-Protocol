@@ -39,7 +39,8 @@ foreach($target in $targets){
     Require ($state-match'inputCleanupBarrier'-and$state-match'STALE_MODE_REVISION'-and$state-match'TAKEOVER_ONLY') "$target transition/latch contract missing"
     $minecraftMixin=Get-Content (Join-Path $directory '../mixin/MinecraftMixin.java') -Raw
     Require ($minecraftMixin-match'method = "close"'-and$minecraftMixin-match'beforeClientClose'-and$adapter-match'runtime_pre_loader_shutdown'-and$adapter-match'shutdownStarted.compareAndSet') "$target must drain before Loader teardown with an idempotent JVM fallback"
-    Require ($adapter-match'controlSession.withTakeover\(\s*accepted,'-and$adapter-match'commandGate.enter\(accepted, permit\)'-and$adapter-match'dispatch.check\(\)'-and$adapter-match'onOperatingServer\(') "$target owner-thread enforcement and guarded native callback missing"
+    $compact=$adapter-replace'\s',''
+    Require ($compact.Contains('controlSession.withTakeover(accepted,')-and$compact.Contains('commandGate.enter(accepted,permit)')-and$compact.Contains('dispatch.check()')-and$adapter-match'onOperatingServer\('-and$compact.Contains('extensionInputs.collect(')-and$compact.Contains('permit::check')) "$target owner-thread enforcement and guarded framework/native callback missing"
     Require ($transport-notmatch'storage/write|/v0/storage.write') "$target must not implement Persistent Write"
 }
 $server=Get-Content (Join-Path $root 'components/companion/src/server.ts') -Raw

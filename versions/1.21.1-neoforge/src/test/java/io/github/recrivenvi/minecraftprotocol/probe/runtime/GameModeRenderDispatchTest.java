@@ -295,10 +295,8 @@ class GameModeRenderDispatchTest {
                                                 && calls(candidate).stream()
                                                         .anyMatch(
                                                                 call ->
-                                                                        call.owner.endsWith(
-                                                                                        "/AgentInputContext")
-                                                                                && call.name.equals(
-                                                                                        "dispatch")))
+                                                                        call.name.equals(
+                                                                                "dispatchExtensionInput")))
                         .findFirst()
                         .orElseThrow();
         var cleanupCalls = calls(cleanup);
@@ -311,8 +309,7 @@ class GameModeRenderDispatchTest {
         // keyPress is in a dispatch lambda, so the owning cleanup must cancel before any dispatch.
         if (key < 0)
             for (int i = 0; i < cleanupCalls.size(); i++)
-                if (cleanupCalls.get(i).owner.endsWith("/AgentInputContext")
-                        && cleanupCalls.get(i).name.equals("dispatch")) {
+                if (cleanupCalls.get(i).name.equals("dispatchExtensionInput")) {
                     key = i;
                     break;
                 }

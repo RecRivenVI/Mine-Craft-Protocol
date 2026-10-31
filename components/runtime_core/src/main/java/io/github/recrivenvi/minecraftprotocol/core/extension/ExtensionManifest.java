@@ -51,11 +51,13 @@ public final class ExtensionManifest {
             int javaVersion,
             List<String> code,
             Map<String, List<String>> entries,
-            List<Hook> mixins) {
+            List<Hook> mixins,
+            Map<String, String> mods) {
         public Variant {
             code = List.copyOf(code);
             entries = Map.copyOf(entries);
             mixins = List.copyOf(mixins);
+            mods = Map.copyOf(mods);
         }
 
         public List<String> entrypoints(PackageContext.Side side) {
@@ -176,7 +178,7 @@ public final class ExtensionManifest {
             if (!TARGET.matcher(item.getKey()).matches())
                 throw invalid("Malformed Target: " + item.getKey());
             JsonObject value = item.getValue().getAsJsonObject();
-            keys(value, Set.of("javaVersion", "code", "entrypoints", "mixins"));
+            keys(value, Set.of("javaVersion", "code", "entrypoints", "mixins", "mods"));
             int javaVersion = integer(value, "javaVersion");
             if (javaVersion < 17 || javaVersion > 99)
                 throw invalid("Invalid Target Java feature version");
@@ -209,7 +211,10 @@ public final class ExtensionManifest {
                         throw invalid("Invalid Mixin declaration");
                     hooks.add(new Hook(config, side));
                 }
-            parsed.put(item.getKey(), new Variant(javaVersion, code, entries, hooks));
+            Map<String, String> targetMods =
+                    value.has("mods") ? stringMap(value.getAsJsonObject("mods")) : Map.of();
+            targetMods.forEach(ExtensionManifest::dependency);
+            parsed.put(item.getKey(), new Variant(javaVersion, code, entries, hooks, targetMods));
         }
         variants = Map.copyOf(parsed);
         contentIdentity = digest(bytes);
@@ -241,6 +246,13 @@ public final class ExtensionManifest {
 
     public Map<String, String> modDependencies() {
         return modDependencies;
+    }
+
+    public Map<String, String> modDependencies(String target) {
+        Map<String, String> selected = new LinkedHashMap<>(modDependencies);
+        var variant = variants.get(target);
+        if (variant != null) selected.putAll(variant.mods());
+        return Map.copyOf(selected);
     }
 
     public Map<String, String> packageDependencies() {

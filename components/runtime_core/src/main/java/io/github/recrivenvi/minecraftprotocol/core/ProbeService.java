@@ -29,6 +29,12 @@ public interface ProbeService {
         throw new UnsupportedOperationException("Runtime has no extension Provider dispatcher");
     }
 
+    default void attachExtensionUi(
+            io.github.recrivenvi.minecraftprotocol.core.extension.UiExtensionEngine engine) {}
+
+    default void attachExtensionInputReset(
+            java.util.function.Function<String, CompletableFuture<Void>> reset) {}
+
     default void attachControlSession(AgentControlSession session) {}
 
     default void attachPlayerCommandGate(PlayerCommandGate gate) {}

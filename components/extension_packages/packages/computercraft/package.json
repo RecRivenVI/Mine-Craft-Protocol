@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.extensions.computercraft",
+  "targets": ["1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric"],
+  "mods": {"computercraft": "[1.120.0,1.121.0)"},
+  "capabilities": ["computercraft:terminal"]
+}

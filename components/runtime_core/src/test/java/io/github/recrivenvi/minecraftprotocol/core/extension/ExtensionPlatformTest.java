@@ -44,6 +44,63 @@ class ExtensionPlatformTest {
     }
 
     @Test
+    void uiAndInputContributionsAreTypedTransactionalAndRequireDeclaredScopes() throws Exception {
+        String registration =
+                """
+            context.uiAdapter(new UiAdapter() {
+                public Descriptor descriptor() { return new Descriptor(context.packageId()+":ui", java.util.Set.of(View.USER), 1, 250); }
+                public boolean matches(Frame frame) { return false; }
+                public Projection capture(Context value) { return null; }
+            });
+            context.inputAdapter(new LogicalInputAdapter() {
+                public String id() { return context.packageId()+":input"; }
+                public CompletableFuture<Void> reset(String reason) { return CompletableFuture.completedFuture(null); }
+            });
+            """;
+        for (boolean fail : List.of(false, true)) {
+            Path root = temporary.resolve("ui_" + fail);
+            Path directory =
+                    bundle(
+                            root,
+                            "ui_package",
+                            "extensiontest.uipackage",
+                            1,
+                            fail,
+                            null,
+                            registration);
+            approve(root, directory, true);
+            try (var platform =
+                    new ExtensionPlatform(
+                            new ExtensionStore(root),
+                            environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                            (m, e) -> false)) {
+                var catalog = platform.catalog();
+                assertEquals(fail ? 0 : 1, platform.snapshot().size());
+                assertEquals(!fail, catalog.toString().contains("ui_projection"));
+                assertEquals(!fail, catalog.toString().contains("logical_input"));
+                platform.resetInput("test").join();
+            }
+        }
+        Path root = temporary.resolve("missing_ui_scope");
+        Path directory =
+                bundle(root, "ui_package", "extensiontest.uipackage", 1, false, null, registration);
+        Path file = directory.resolve("extension.json");
+        JsonObject manifest = json(Files.readString(file));
+        manifest.add("requestedScopes", array("read", "debug.world.read"));
+        Files.writeString(file, manifest.toString());
+        approve(root, directory, true);
+        try (var platform =
+                new ExtensionPlatform(
+                        new ExtensionStore(root),
+                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        (m, e) -> false)) {
+            assertTrue(platform.catalog().toString().contains("EXTENSION_UI_UNDECLARED"));
+            assertTrue(platform.snapshot().isEmpty());
+        }
+        System.clearProperty("extension_test.ui_package");
+    }
+
+    @Test
     void derivedLibraryIsReproducibleAndLoaderOnlySeesInertCoreGatedConfigurations()
             throws Exception {
         Path game = temporary.resolve("deterministic"),
@@ -650,6 +707,18 @@ class ExtensionPlatformTest {
     private Path bundle(
             Path root, String id, String namespace, int value, boolean fail, String dependency)
             throws Exception {
+        return bundle(root, id, namespace, value, fail, dependency, "");
+    }
+
+    private Path bundle(
+            Path root,
+            String id,
+            String namespace,
+            int value,
+            boolean fail,
+            String dependency,
+            String additionalRegistration)
+            throws Exception {
         Path compile = Files.createTempDirectory(temporary, "compile-");
         String schema = "minecraft-extension://" + id + "/schemas/value";
         String source =
@@ -687,6 +756,10 @@ class ExtensionPlatformTest {
                         .formatted(
                                 namespace, id, schema, value, schema, id, schema, schema, value,
                                 fail);
+        source =
+                source.replace(
+                        "if (" + fail + ") throw",
+                        additionalRegistration + "\nif (" + fail + ") throw");
         Path javaSource = compile.resolve("Entry.java");
         Files.writeString(javaSource, source);
         String classpath =
@@ -751,8 +824,16 @@ class ExtensionPlatformTest {
                                 + namespace
                                 + ".Entry\"]}}}");
         manifest.add("variants", variants);
-        manifest.add("capabilities", array(id + ":state"));
-        manifest.add("requestedScopes", array("read", "debug.world.read"));
+        manifest.add(
+                "capabilities",
+                additionalRegistration.isEmpty()
+                        ? array(id + ":state")
+                        : array(id + ":state", id + ":ui", id + ":input"));
+        manifest.add(
+                "requestedScopes",
+                additionalRegistration.isEmpty()
+                        ? array("read", "debug.world.read")
+                        : array("read", "debug.world.read", "ui", "input"));
         JsonObject documents = new JsonObject();
         documents.addProperty("overview", "docs/overview.md");
         manifest.add("documents", documents);
@@ -781,7 +862,10 @@ class ExtensionPlatformTest {
         var manifest = ExtensionStore.inspect(directory).manifest();
         JsonObject approval = new JsonObject();
         approval.addProperty("contentIdentity", manifest.contentIdentity());
-        approval.add("scopes", scopes ? array("read", "debug.world.read") : array("read"));
+        JsonArray approved = new JsonArray();
+        if (scopes) manifest.requestedScopes().stream().sorted().forEach(approved::add);
+        else approved.add("read");
+        approval.add("scopes", approved);
         approvals.getAsJsonObject("packages").add(manifest.id(), approval);
         Files.writeString(file, approvals + "\n");
     }

@@ -10,9 +10,19 @@ approvals.json 格式为 formatVersion=1，packages 对象按包 ID 记录 conte
 
 ## 注册与执行
 
-PackageExtension.initialize(PackageContext) 暂存 schema 和 Provider，入口全部成功后原子发布；失败回收整包注册。ProviderSource 按 Runtime 隔离，既有全局 SPI 保持原合同。公开数据和 schema 回调不在注册表锁内执行。
+PackageExtension.initialize(PackageContext) 暂存 schema、Provider、UI 投影和逻辑输入适配，入口全部成功后原子发布；失败回收整包注册。ProviderSource 按 Runtime 隔离，既有全局 SPI 保持原合同。公开数据和 schema 回调不在注册表锁内执行。
 
 读取复用 Provider V2 的线程、预算、schema、类别和版本校验；typed Debug 复用 scope、Arm、资源前置条件和证据。包声明不能自行认证 GAME_ROUTED。原生命令仍是 USER，实际主体权限单独验证。
+
+## UI 投影与框架输入（预览）
+
+UiAdapter 声明 USER/DEBUG 视图及有界节点预算。capture 仅在客户端 owner 上同步返回已准备的不可变 Projection，不等待第三方线程。异步框架自行在实际 owner 采样，结果必须绑定 Runtime、世界、Screen identity/revision、GUI/window/framebuffer 尺寸与 scale；过期、错上下文、超预算或非法节点只使该适配结果不可用，不污染其他包。
+
+已有原生 Widget 以 element identity 补充语义，不能覆盖其身份、路由、槽位或几何。新可见区域以稳定 key/revision 和 GUI、WINDOW 或 FRAMEBUFFER 坐标投影；Runtime 保留小数、转换并裁剪到视口。USER 不包含隐藏区域。输入仍经既有 Interaction Tree、Virtual Pointer、目标守卫和真实回调，不调用业务 setter 或 performClick。
+
+LogicalInput 提供作用域内只读快照，不授予权限、不派发输入。defer 将已获准事件延续到框架 owner，完成确认后原生 Operation 才能完成；一次消费、两秒确认期限、原 Operation 取消、控制世代与 Screen/layout 失效均保留。Target 保留小数几何、来源、稳定目标版本及文本焦点要求，适配器在实际消费线程重新核对。原生回调重入不继承 Agent 来源。reset 是独立的 release-only 清理；模式/Screen/Lease 变化后的下一次输入等待框架清理完成，不能留下旧按住或迟到事件。
+
+UI 注册需清单声明 ui，轮询适配需 input，审批不代替每次请求的 scope、模式与 Lease。catalog 的 capabilityDetails 区分 provider、ui_projection 和 logical_input；registeredCapabilities 保留实际 ID 列表。变体 mods 与包级模组依赖合并，变体同名键覆盖包级键，用于绑定带版本限定后缀的真实上游版本。
 
 ## 查阅
 
@@ -26,7 +36,7 @@ MCP_COMPANION_AUTHORING_ONLY=true 显式启用离线作者模式，不解析端�
 
 ## 生命周期
 
-PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT、INPUT_LEASE 分别表达资源所有权。Lease 或真人 Esc 只终止输入所有者，不顺带撤销独立 Debug。Arm renew 不更换持续任务身份；撤销、过期或换世界先使相应资源失效。清理失败、拒绝派发、错误线程和超时均保留诊断。
+PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT、INPUT_LEASE 分别表达资源所有权。当前 PackageContext 公开 processResources，DebugContext 公开有效 grant 的 resources；其余包上下文资源组仍在实装，不因枚举存在而宣称已接线。Lease 或真人 Esc 不顺带撤销独立 Debug。Arm renew 不更换持续任务身份；撤销、过期或换世界使该 grant 失效。清理失败、拒绝派发、错误线程和超时均保留诊断。
 
 ## 早期 hook（预览）
 

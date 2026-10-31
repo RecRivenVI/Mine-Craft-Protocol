@@ -16,14 +16,16 @@ Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI
 | --- | --- | --- | --- |
 | EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
 | EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.0→1.0.2替包另绑定EP-2前置二进制，不冒充最终Alpha冻结 |
-| EP-3 深层UI与逻辑输入 | 进行中 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | 新门禁待实装 |
+| EP-3 深层UI与逻辑输入 | 完成 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | SDK及五端生产接线、Java/Companion/严格合规/五端发行门禁通过；三版Modern UI完成导航/滑块/文本/滚动/真实拖拽与活动取消，EMI完成配方导航，CC完成终端回读。分项绑定各自源码/包，不替代EP-6同批冻结；真实IME/桌面待人工 |
 | EP-4 世界适配与七包 | 待办 | 普通目标复用、PartRef与pick/版本守卫；CC、Create、AE2、EMI、Exposure、Modern UI、LittleTiles逐项正常Act+独立Assert；Create/LittleTiles/AE2因果诊断，做不通明确缺口 | 研究闭环与未确定项分别保留，不作当前产品PASS |
-| EP-5 统一测试与作者交付 | 待办 | 登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则、MCP文档/包目录/场景查阅、独立构建与安装；跨两个包故障/恢复 | 主机授权独立，CLI先行，不开放任意路径/shell |
+| EP-5 统一测试与作者交付 | 待办 | 完整上下文资源组、输入适配清理具名诊断；登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则/MCP查阅/独立安装；跨两个包故障/恢复 | 主机授权独立，CLI先行，不开放任意路径/shell |
 | EP-6 冻结与Alpha | 待办 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 全部通过前不刷新latest |
 
-下三步：在参考端落地可见UI投影和逻辑输入；深入Modern UI/EMI的实际输入与清理；随后推进世界部件和七包，并按实际可用的上游版本验证，不无限追加第三方业务。
+下三步：推进世界部件及七包的独立业务闭环；补齐上下文资源、主机工具与跨包失败恢复；最后进行同批五端冻结。不无限追加第三方业务。
 适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
 六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
+
+当前上游限制：CC 1.120.3的NeoForge 26.3发行包在本项目固定Loader上因ModConfig.Type.SERVER缺失而在Runtime生成端点前失败；不降级Loader、不修补第三方JAR、不计为平台通过。Fabric 26.3及其余有包版本分别实测，不能互相推定。Modern UI只有Forge1.20.1、NeoForge1.21.1/26.1.2具名输入，EMI只有前两个；其他Target没有匹配上游包时明确不声明业务验证。
 
 以下部署与双里程碑矩阵保留DP基线4346328d的既有结论；不表示新增平台或当前build产物已通过这些运行组。
 

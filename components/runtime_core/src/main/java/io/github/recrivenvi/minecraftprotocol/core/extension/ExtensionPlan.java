@@ -53,7 +53,7 @@ final class ExtensionPlan {
             }
             boolean dependencies =
                     !checkModDependencies
-                            || manifest.modDependencies().entrySet().stream()
+                            || manifest.modDependencies(environment.target()).entrySet().stream()
                                     .allMatch(
                                             entry ->
                                                     environment.mods().containsKey(entry.getKey())
