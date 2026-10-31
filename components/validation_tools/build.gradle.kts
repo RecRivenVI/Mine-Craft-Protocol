@@ -69,6 +69,7 @@ val verifyAlphaConfiguration by
             "--test",
             "components/validation_tools/regression-v1_release/task/alpha-configuration.test.mjs",
             "components/validation_tools/regression-v1_release/task/alpha-consumer.test.mjs",
+            "components/validation_tools/regression-v1_release/task/dp-freeze-proof.test.mjs",
         )
     }
 

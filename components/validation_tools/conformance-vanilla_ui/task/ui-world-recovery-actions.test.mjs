@@ -40,7 +40,7 @@ async function controlledNative(options = {}) {
   for (const [name, content] of Object.entries(original)) {const path = join(source, name); await mkdir(dirname(path), {recursive: true}); await writeFile(path, content);}
   const protectedFiles = [join(instanceRoot, 'baseline/saves/UI-Conformance/level.dat'), join(repo, 'instances', target, 'client/saves/Important/level.dat')];
   for (const path of protectedFiles) {await mkdir(dirname(path), {recursive: true}); await writeFile(path, 'protected-not-a-source');}
-  let screen = native + 'TitleScreen', identity = 1, revision = 1, sequence = 0, dispatch = 0, currentCase, closed = true;
+  let screen = native + 'TitleScreen', identity = 1, revision = 1, sequence = 0, dispatch = 0, currentCase, closed = true, optimizeTreeReads = 0;
   let proof = {probeOnly: true, arrangeAuthority: 'DIAGNOSTIC_owned_aux_world', target, fixtureId: 'owned-world-recovery-current-fixture', processId: 71,
     sequence: 0, sourceLevelId: 'UI-Conformance', sourceWorldName: 'UI-Conformance', integratedServerStopped: true,
     playerAbsent: true, connectionAbsent: true, sourceSaveCompleted: true, sourceWorldWritten: false, immutableBaselineTouched: false,
@@ -51,6 +51,8 @@ async function controlledNative(options = {}) {
   const change = name => {screen = name; identity++; revision++;};
   const button = (nodeId, label, translationKey, active = true) => ({nodeId, label, translationKey, role: 'button', visible: true, active, actions: ['click']});
   const tree = async () => {
+    if (screen === native + 'worldselection.OptimizeWorldScreen' && options.finishOnNextTree && ++optimizeTreeReads === 2)
+      complete('optimize', 'optimize_finished');
     let children = [];
     if (screen.endsWith('AutomationProbeScreen')) children = target === '26.3-neoforge'
       ? [button('navigation', 'UI Navigation Fixtures')] : [button('world-recovery', 'World Recovery (Fixture)')];
@@ -85,7 +87,8 @@ async function controlledNative(options = {}) {
     await rename(path, destination); recycled.push(destination);
   },
   ui: async selector => {
-    assert.deepEqual(Object.keys(selector), ['nodeId']); const node = (await tree()).children.find(value => value.nodeId === selector.nodeId); assert(node);
+    assert.deepEqual(Object.keys(selector), ['nodeId']); const node = (await tree()).children.find(value => value.nodeId === selector.nodeId);
+    if (!node) throw Object.assign(new Error('Native target no longer exists'), {code: 'UI_NODE_NOT_FOUND'});
     actions.push(selector.nodeId); dispatch++;
     if (!node.active) throw Object.assign(new Error('Disabled native Restore'), {code: 'UI_NODE_NOT_ACTIONABLE'});
     if (selector.nodeId === 'navigation') change(probe + 'UiNavigationFixtureScreen');
@@ -168,6 +171,20 @@ test('a native page that finishes before request target resolution reports NODE_
   assert.equal(sample.returned.nativeFinishedBeforeCancel, true);
   assert.equal(sample.outcome, 'finished_before_cancel_not_cancel_coverage');
   assert.equal(fixture.actions.filter(value => value === 'cancel').length, 1);
+  await fixture.assertSourceUnchanged();
+});
+
+test('completion after the observed Cancel tree uses native target invalidation without another lookup assertion or replay', async () => {
+  const fixture = await controlledNative({finishOnNextTree: true});
+  const result = await worldRecoveryUiActions(fixture.ctx);
+  const sample = fixture.samples.find(value => value.case === 'world_recovery_optimize');
+  assert.equal(result.optimizeCancelVerified, false);
+  assert.equal(sample.cancelInputError.code, 'UI_NODE_NOT_FOUND');
+  assert.equal(sample.returned.callbackAction, 'optimize_finished');
+  assert.equal(sample.outcome, 'finished_before_cancel_not_cancel_coverage');
+  assert.equal(fixture.actions.filter(value => value === 'cancel').length, 0);
+  assert.equal(fixture.nativeLaunches.filter(value => value === 'optimize').length, 1);
+  assert.equal(fixture.state().closed, true);
   await fixture.assertSourceUnchanged();
 });
 

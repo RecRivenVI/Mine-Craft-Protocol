@@ -21,6 +21,7 @@ $ErrorActionPreference='Stop'
 $script:leaseId=$null;$script:activeOperation=$null;$script:itemsOwned=$false
 $script:taskId=$null
 $script:worldFixture=$null
+$script:contextExitReceipts=[Collections.Generic.List[object]]::new()
 $script:reservedSlots=@(9,10,11,12)
 . (Join-Path $PSScriptRoot 'ControlUiShowcase.Helpers.ps1')
 . (Join-Path $PSScriptRoot 'ControlUiShowcase.Cases.ps1')
@@ -195,6 +196,7 @@ try {
         if($script:worldFixture){$report.fixtureRecoveryRequired=$script:worldFixture}
         $sourcesAfter=Get-ShowcaseSourceHashes $repo $Target
         $report.sourceHashes=$sourcesAfter
+        if($script:contextExitReceipts.Count){$report.worldExitReceipts=@($script:contextExitReceipts)}
         $report.sourceChangedDuringRun=($sourcesBefore|ConvertTo-Json -Compress)-ne($sourcesAfter|ConvertTo-Json -Compress)
         if($report.sourceChangedDuringRun){$report.result='FAIL';$report.failure='Sources changed during Showcase execution'}
         $resultDirectory=Join-Path $repo 'validations/feature-control_ui_showcase/result'

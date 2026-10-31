@@ -2632,3 +2632,38 @@ spotlessApply后check/verifyRelease及严格合规通过；当前日志为build/
 自有旧安装目录按owner/锁/路径检查移入回收站，可恢复，不触碰用户实例/存档。
 未执行新五端完整客户端矩阵、真人验收或全部部署组合，不宣称两领域READY。
 固定Alpha保持20261022-1722-0ea052cb，不更新旧清单配新JAR；未发布Alpha、未提交/推送/tag，Persistent Write调用0。
+
+## 2026-10-31开发者预览自动冻结
+
+用户解除客户端/服务器启动暂停，授权本轮自动回归、问题修复、SSH签名Update检查点及固定Alpha分发；真人协作、性能及新功能不在本轮。
+开工基线为develop/5fb9c88dd786d4d8ec566ffaf8a03adb6a664a2a，工作树干净。当前产品源码指纹为d6f3a89aceabf5cf8b79d1ad6ac4045ffadda8320f861654d488e88b66eaf520；实际交付提交和快照身份由Git及外置latest/manifest记录。
+
+本轮唯一生产代码修复为NeoForge 1.21.1既有玩家minecraft:max_health别名：解析到原生注册表的minecraft:generic.max_health，不改变实体属性目录、权限、Arm或资源版本合同。
+[原失败](../../validations/conformance-world_read/result/1.21.1-neoforge-resource-version-before-native-attribute.json)保留；修复后Native/MCP资源版本链、该端完整UI/世界组、服务端目录、三安装组合及最终单JAR安装均重新验证。
+其余四端只复用与当前各自JAR完全匹配的服务端/安装组合证明，不因共享产品定位推定跨端运行成功。
+
+spotlessApply后build、check、verifyRelease与verifyCompliance --strict通过，包含Java、Companion、Native/OpenAPI、控制、协议、文档和发行检查；严格合规0失败、0警告。
+五端既有完整UI/世界冻结组、HUD展示与Core展示通过，客户端正常保存退出、端口及发现记录清理。
+新增45秒连续正确性在每端实际执行持续W/S及相对转向，独立USER读取客户端位姿/场景；强停止后等待input.released，held keys/buttons=0、回READ，随后派发序号不再增长。
+这是有界功能持续性，不是吞吐、延迟或伤害性能测试；CLIENT_KNOWN不冒充服务器确认，诊断命令仅用于副本Arrange，命令分类仍为USER。
+
+只读发布预检通过160份既有世界/UI证明、60份Developer Preview补充证明和5份最终发行安装证明。补充范围含连续正确性、模式协作、资源版本、命令、区域流、Core展示、服务端及三安装组合；不按这些数量计算产品完成比例。
+五端全新安装仅加载官方Loader和一个最终JAR，无开发classpath/探针；实际进入固定世界、握手、USER读取和正常退出通过，不需要使用方补Netty。
+现有E世界profile增加developerPreviewFreeze具名补充，仍保留humanAcceptance=NOT_PERFORMED及fullMilestonesComplete=false。
+
+回归工具修正及原始失败分别保留：
+
+- 持续使用释放后等待实际usingItem清零，避免单次立即采样竞争；[原失败](../../validations/conformance-world_read/result/26.3-neoforge-combat-use-before-release-wait.json)。
+- 资源目录预期同步既有27项，并在最终disarm遵守现有预算；[旧目录预期](../../validations/conformance-world_read/result/26.3-neoforge-resource-version-before-catalogue-update.json)。
+- DEBUG加载组仅对明确429/预算提示有界等待，不重放未知结果；[原清理失败](../../validations/conformance-world_read/result/1.20.1-forge-world-debug-loading-before-cleanup-rate-wait.json)。
+- Save & Quit的not_confirmed回执保持原样，以新输入上下文、实际标题及held=0独立确认退出，不重放点击；Core展示已五端复测。
+- 优化器原生自然完成与Cancel分开，使用已观察语义目标，失效后只接受实际完成与worker/存储/锁清理证明；单元竞争测试及五端UI整组通过，不据此解释所有历史未知异常。
+- [26.1.2命令配置原失败](../../validations/conformance-world_read/result/26.1.2-neoforge-command-configuration-before-fifo-barrier.json)的命令实际已到服务器；失败发生在probe JSON被Windows文件映射占用时。五端探针改为完整临时记录、原子替换及有界等待；映射占用实验与五端当前command-configuration生产者均通过。产品JAR不包含该探针。
+
+验证器对上述回执发布变更只接受五个探针文件的精确反向哈希，并明确记录旧/新摘要及同端当前生产者证明；回调、计数、payload和产品变化不能复用，command-configuration本身必须重跑。未改动原结果的源码哈希或失败内容。
+官方Maven曾有一次TLS连接重置，未放宽证书/哈希校验，原样有界重试后安装通过；未将环境暂态称为产品修复。
+
+集中真人动作、预期与时长统一放在[合作验收清单](../development/testing-cooperative_acceptance.md)，约30～40分钟；本轮仅准备环境，不替用户执行Esc、焦点或权限决定。
+NeoForge 1.21.1验收客户端已启动到标题页，Runtime实际窗口为2560×1440；核对启动器实际引用的参数文件为RecRivenVI，主音量50%、音乐0、Custom Skin Loader 15.1及Zume 1.2.2已加载。通过语义Quit退出，原生Stopping、启动器BUILD SUCCESSFUL、进程消失和endpoint删除相互核对；未因临时脚本的间接参数/进程结果采样断言而重放退出或修改产品。现有隔离普通/产品服务器已由当前JAR安装组合验证，留待用户集中协作。
+固定分发采用同批五JAR、清单和手册，显式保留所有旧快照。只有新快照发布成功后才经指定外部脚本代发一次已批准的可行性研究提示，不通知使用方，不实施扩展平台。
+历史三攻击性能目标继续NOT_MET；根因未定的历史异常不删，当前通过不构成其修复证明。Persistent Write调用0，没有新功能或UI美术变更，不宣称两个完整里程碑READY。

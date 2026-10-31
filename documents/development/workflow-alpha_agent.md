@@ -17,6 +17,7 @@ latest.txt 只用于选择一次快照，测试中不要反复解析它来切换
 每个并行使用方采用独立名称，不与其他活跃线程共用登记，避免一方释放另一方仍在使用的快照。
 使用记录保存在快照之外，不修改快照。没有自动过期或按进程猜测回收：线程停止也不会擅自解除登记。
 最近三份和所有登记在用的快照保留；不认识的记录/损坏目录或无法送入回收站的目录保守保留并报告。
+用户要求保留全部旧快照的Developer Preview冻结发布通过KeepExistingSnapshots显式跳过淘汰，不解除使用登记。
 使用结束后显式释放；发布和解除登记时回收不再受保护的旧快照。复制到本线程自有目录，不共享实例或 mods/。
 
 从 Mine-Craft-Protocol 仓库根执行分发工具，不执行这里的构建。consumer 是本线程稳定名称，例如 voxy、comic 或 mcp_feasibility；
@@ -52,7 +53,8 @@ foreach ($jar in $manifest.artifacts) {
 清单的publicationProfile区分连续游玩试用、依赖更新与E的UI/世界试用。依赖更新须逐文件确认产品实现未改变，引用已封存试用基线，
 并重新完成当前五端单发行JAR的安装、进入固定世界、USER读取与正常退出。
 E的UI试用绑定当前有限原版UI验收套件、独立Demo、受影响输入/选择器/命令协作与五端独立安装；按所复制清单中的具体范围使用。
-E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受影响UI/连续输入及五端单JAR独立安装入世界；不代表M-01/M-09、完整领域里程碑或人工验收完成，历史性能目标仍未达成。
+E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受影响UI/连续输入及五端单JAR独立安装入世界；单独这份证明不覆盖M-01/M-09或人工验收。
+清单若含developerPreviewFreeze，再按其中具名证明读取连续正确性、Core展示、服务端与三安装组合的当前范围；它仍不表示完整领域或人工验收完成，历史性能目标不因自动冻结而达成。
 旧版单人世界社交入口缺席或禁用只证明环境限制，不计社交页操作通过。游戏模式菜单的hover不提交，正常释放修饰键才提交；强停止取消Agent持有的菜单，不提交所选模式。
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
@@ -76,7 +78,7 @@ dirty=true 表示包含未提交源码，不能仅凭 HEAD 判断构建相同；
 目标版本、加载器和 Java 事实以生成快照及[项目规范](../AGENTS.md)为准。
 两端均为可选安装；仅客户端保留本地玩家与界面功能，服务端权威读取需要实际可用且独立授权的服务器。
 独立服务器没有玩家屏幕、截图或输入Lease；使用实际控制台、显式真实玩家选择器和服务器资源目录。
-当前工作树补齐中的控制台补全、结构化录制与Peer委托尚未完成集中验证，不由旧alpha、玩家OP或可达Peer推定通过。
+控制台补全、结构化录制与Peer委托已完成五端具名自动验证；实际可用范围以所复制快照清单为准，不由玩家OP或可达Peer推定授权。
 准确部署范围见[部署设计](../design/concept-deployment_scenarios.md)及所复制快照的清单。
 
 开发运行用 Loader 原生 source-set，不把发行 JAR 再复制进同一开发实例；独立发行安装才使用发行 JAR。
@@ -551,8 +553,8 @@ Deep需要显式DEBUG；domains=["blocks"]才请求指定方块，domains=["worl
 通过POST /v0/observe/deep发送；显式blocks最多64项。selector.chunkRadius缺省0，只接受JSON整数0..2，非法值返回400 INVALID_DEEP_SELECTOR，不静默截断。
 chunk域给区块元信息而非全部方块；USER附近场景使用GET /v0/world/scene及明确radius/blockLimit/entityLimit，不能向该路径POST。
 对应MCP为minecraft_deep_observe与minecraft_query_world；minecraft_diagnostics必须提供kind，使用readiness/trace/hooks/audit/thread/peer之一。
-supportedAttribute是setter接受的语义名，不保证等于原生读取名：旧版最大生命属性可能读为minecraft:generic.max_health，
-写入仍只接受minecraft:max_health。按实际返回值匹配，保留原token，不能修改token身份或用猜测计数补偿。
+正式typed属性操作应选择该主体快照中typedBaseWritable标明的真实minecraft注册ID；玩家最大生命值另保留minecraft:max_health兼容别名，
+旧版读取名可能为minecraft:generic.max_health。保留原token，不能修改token身份或用猜测计数补偿。
 DEBUG玩家属性列表包含原生supplier提供的最大生命base与有效值，即使该属性尚未实例化；只读不会创建实例。
 以DEBUG/server_authoritative执行inspect，选择同一资源、scope=resource且mutationPreconditionEligible=true的token，
 连同当前worldFingerprint和显式值条件提交；读取不授予写scope/Arm，不自动加载区块。
@@ -971,13 +973,12 @@ Agent Routed Esc 仅为正常游戏按键，不视为人类撤销。
 其他范围的开发Runtime结果单独列出，不能与独立安装或完整领域验收混为一谈。
 26.1.2曾一次未等到原生红石灯熄灭；唯一复测及独立客户端/服务器读回正常，根因未定。此项不是已修复保证，交互后仍应等待实际状态，不以输入完成代替效果确认。
 1.21.1优化器取消曾一次丢失原始错误代码；唯一定位复测及随后完整UI通过，但根因仍未定位，不宣称修复。遇到错误保留原回执，不盲重放。
-UI与世界批准的有限自动目录已完成本批回归，但两个完整里程碑仍未READY；分类/权限、完整部署/Peer、最终人工体验等仍有缺口。
+UI与世界批准的有限自动目录按所复制快照的具名证明使用；两个完整里程碑仍未READY，真人协作、真实撤权与最终体验尚待接受。
 不要从有界客户端模型或已有输入接口推定“所有原版 UI/世界操作已覆盖”。
 E1/E2/E3、Persistent Write 和其他未授权阶段不在本手册试用授权内。
 
-集中真人验收尚未执行，本手册不授权自动代验：在同批26.3-neoforge自有人工实例中，核验OPERATE原生命令与真人移动/转向/聊天草稿并行；
-在自有普通服务器核验deop/op及原角色恢复；最后核验active及两项queued中的物理Esc、held清零、8秒无迟到和重新同意后reacquire。
-详细前置和通过条件见[集中真人步骤](../project/plan-execution.md#集中真人步骤)；缺前置的项目保持待验，不以单人probe或Agent Esc替代。
+集中真人验收尚未执行，本手册不授权自动代验。实例、用户动作、预期结果与时长统一见[集中合作验收清单](testing-cooperative_acceptance.md)。
+缺前置的项目保持待验，不以单人probe或Agent Esc替代；不因Alpha发布而宣称这些步骤已经通过。
 
 - [Native 协议](../reference/protocol-native_v0.md)
 - [MCP Companion 接口](../reference/api-companion.md)

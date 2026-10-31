@@ -6,6 +6,15 @@ $ErrorActionPreference='Stop'
 $checks=[Collections.Generic.List[string]]::new()
 function Check([bool]$Condition,[string]$Name){if(-not$Condition){throw "Core Showcase test: $Name"};$checks.Add($Name)}
 function MustReject([scriptblock]$Action,[string]$Name){$failed=$false;try{& $Action|Out-Null}catch{$failed=$true};Check $failed $Name}
+$exitBefore=@{inputGeneration=2;inputContextGeneration=3;inputContextAvailable=$true;inputContextId='world-a'}
+$exitAfter=@{inputGeneration=3;inputContextGeneration=4;inputContextAvailable=$false;inputContextId='title-b';pressedKeyCount=0;pressedButtonCount=0;inputCleanupPending=$false;inputCleanupFailed=$false}
+$exitTree=@{screenClass='net.minecraft.client.gui.screens.TitleScreen';overlayIdentity=0}
+$exitFailure=@{status=409;body=@{error='REQUEST_CANCELLED';executionOutcome='not_confirmed';retrySafe=$false}}
+$exitProof=Confirm-ShowcaseWorldExit $exitBefore $exitAfter $exitTree $exitFailure
+Check ($exitProof.requestOutcome-eq'not_confirmed'-and$exitProof.requestReplayed-eq$false) 'normal world exit never promotes an unconfirmed click into confirmed execution'
+$exitAfter.pressedKeyCount=1;MustReject {Confirm-ShowcaseWorldExit $exitBefore $exitAfter $exitTree $exitFailure} 'unconfirmed exit rejects held input';$exitAfter.pressedKeyCount=0
+$exitAfter.inputContextGeneration=3;MustReject {Confirm-ShowcaseWorldExit $exitBefore $exitAfter $exitTree $exitFailure} 'unconfirmed exit rejects unchanged native context';$exitAfter.inputContextGeneration=4
+$exitFailure.body.error='USER_MANUALLY_ENDED_CONTROL';MustReject {Confirm-ShowcaseWorldExit $exitBefore $exitAfter $exitTree $exitFailure} 'manual revoke is never swallowed as ordinary exit'
 function Reset-TestState {
     $script:calls=[Collections.Generic.List[object]]::new()
     $script:caseEvidence=[Collections.Generic.List[object]]::new()

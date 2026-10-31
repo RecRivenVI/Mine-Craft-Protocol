@@ -2180,7 +2180,10 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         verifyExpected(request, beforeRef);
         if (!playerResource) verifyDebugEntityType(request, target);
         String attributeId = requiredDebugString(request, "attributeId");
-        ResourceLocation id = ResourceLocation.tryParse(attributeId);
+        ResourceLocation id =
+                playerResource && attributeId.equals("minecraft:max_health")
+                        ? BuiltInRegistries.ATTRIBUTE.getKey(Attributes.MAX_HEALTH.value())
+                        : ResourceLocation.tryParse(attributeId);
         if (id == null
                 || !id.getNamespace().equals("minecraft")
                 || !BuiltInRegistries.ATTRIBUTE.containsKey(id))

@@ -35,6 +35,7 @@ import { commandDiscoveryBatchActions } from './command-discovery-batch-actions.
 import { serverCompletionActions } from './server-completion-actions.mjs';
 import { interactionBaselineActions } from './interaction-baseline-actions.mjs';
 import { continuousInputActions } from './continuous-input-actions.mjs';
+import { continuousCorrectnessActions } from './continuous-correctness-actions.mjs';
 import { continuousPerformanceActions } from './continuous-performance-actions.mjs';
 import { contextExitEvidence } from './context-exit-evidence.mjs';
 import { inputContextActions } from './input-context-actions.mjs';
@@ -74,7 +75,7 @@ function validateModel(value, kind) {
 }
 const args = Object.fromEntries(process.argv.slice(2).map(arg => arg.replace(/^--/, '').split('=')));
 const target = args.target;
-const scenario=args.scenario??'full';assert(['full','movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration','integrated-peer'].includes(scenario));
+const scenario=args.scenario??'full';assert(['full','movement','movement-branches','special-movement','modern-mounts','world-seats','item-utility','placement-branches','block-bridge','surface-use','station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle','block-state','consumer','rate-limit','command-feedback','mode-collaboration','resource-version','command-discovery-batch','server-completion','interaction-baseline','continuous-input','continuous-correctness','continuous-performance','input-context','region-stream','world-placement-receipts','first-camera','block-entity-selector','block-entity-pages','world-debug-items','world-debug-state','world-debug-entities','world-debug-environment','world-debug-relations','world-debug-loading','world-debug-boundary','world-debug-transfer','world-debug-providers','world-region-functional','world-user-catalog','command-collaboration','integrated-peer'].includes(scenario));
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const validation = args.validation ?? 'conformance-world_read';
 assert(['conformance-world_read','migration-runtime_core'].includes(validation));
@@ -167,6 +168,7 @@ async function shutdown() {
 if(args['shutdown-only']==='true'){await shutdown();process.exit(0);}
 async function sources() {
   const hashes={};
+  if(scenario==='continuous-correctness'){const path='components/validation_tools/conformance-world_read/task/continuous-correctness-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
   if(['station-use','combat-use','entity-branches','entity-parts','entity-tail','entity-social','range-branches','range-tail','lifecycle'].includes(scenario)){const path='components/validation_tools/conformance-world_read/task/world-'+(scenario==='entity-tail'?'entity-branches':scenario==='range-tail'?'range-branches':scenario)+'-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
   if(['block-bridge','surface-use'].includes(scenario)){const path='components/validation_tools/conformance-world_read/task/world-block-bridge-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
   if(scenario==='placement-branches'){const path='components/validation_tools/conformance-world_read/task/world-placement-branches-actions.mjs';hashes[path]=createHash('sha256').update(await readFile(resolve(repo,path))).digest('hex');}
@@ -278,6 +280,8 @@ try {
     await mcpWorldBaseline({api,repo,instance,target,check,actionSamples});
   } else if(scenario==='input-context') {
     await inputContextActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
+  } else if(scenario==='continuous-correctness') {
+    await continuousCorrectnessActions({api,target,fixtureInput,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples});
   } else if(scenario==='continuous-performance') {
     await continuousPerformanceActions({api,target,fixtureInput,connection,mode,acquire,release,click,clickNode,wait,nodes,check,actionSamples,forgetExpiredLease:()=>{clearInterval(renew);lease=undefined;}});
   } else if(scenario==='continuous-input') {

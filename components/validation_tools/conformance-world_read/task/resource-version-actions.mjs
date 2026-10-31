@@ -48,8 +48,8 @@ export async function resourceVersionActions({api,mode,acquire,release,click,cli
       assert(contract,JSON.stringify(capability));assert.equal(contract.path,'/v0/observe/deep');assert.equal(contract.resourceVersionsField,'resourceRevisionRefs');
       assert.equal(contract.mutationPreconditionField,'expectedResourceVersion');assert.equal(contract.inspectionRequiresArm,false);
       assert.equal(contract.grantsMutationPermission,false);assert.equal(contract.readWriteAtomic,false);assert.equal(contract.automaticRetry,false);
-      assert.equal(contract.operations.length,24);
-      assert.deepEqual(contract.operations.map(o=>o.operation).sort(),['player.vehicle.set','entity.vehicle.set','entity.leash.set','entity.owner.set','world.time.set','world.weather.set','world.rule.set','entity.spawn','entity.remove','player.health.set','player.state.set','entity.state.set','player.attribute.set','entity.attribute.set','entity.equipment.set','player.effect.set','entity.effect.set','entity.no_gravity.set','world.block.set','block_entity.custom_name.set','menu.slot.set','player.inventory.slot.set','player.equipment.set','block_entity.slot.set'].sort());
+      assert.equal(contract.operations.length,27);
+      assert.deepEqual(contract.operations.map(o=>o.operation).sort(),['provider.mutate','player.transform.set','entity.transform.set','player.vehicle.set','entity.vehicle.set','entity.leash.set','entity.owner.set','world.time.set','world.weather.set','world.rule.set','entity.spawn','entity.remove','player.health.set','player.state.set','entity.state.set','player.attribute.set','entity.attribute.set','entity.equipment.set','player.effect.set','entity.effect.set','entity.no_gravity.set','world.block.set','block_entity.custom_name.set','menu.slot.set','player.inventory.slot.set','player.equipment.set','block_entity.slot.set'].sort());
       const entry=contract.operations.find(o=>o.operation==='world.block.set');assert.equal(entry.resourceType,original.ref.resourceType);assert.deepEqual(entry.targetFields,['x','y','z']);
       actionSamples.push({case:'resource_inspection_contract',contract,inspected:original});
     });
@@ -288,7 +288,7 @@ async function extendedResourceVersionActions({api,mode,acquire,release,wait,che
     });
   }catch(error){primary=error;throw error;}
   finally {
-    try {await api('POST','/v0/debug/disarm');setArm(undefined);}catch(error){cleanupErrors.push(`disarm: ${error}`);}
+    try {await paced();await api('POST','/v0/debug/disarm');setArm(undefined);}catch(error){cleanupErrors.push(`disarm: ${error}`);}
     if(pauseOpened){
       try {
         await acquire();const operation=await api('POST','/v0/pipelines',{steps:[{type:'key.tap',key:256,holdMs:40}],timeoutMs:12000});

@@ -4,17 +4,26 @@
   "scenario": "world-seats",
   "fullSmoke": false,
   "runtimeConnection": {
-    "runtimeInstanceId": "82a64d00-a7c0-4e32-880f-5b5417ea6816",
-    "port": 3370,
-    "pid": 67112,
+    "runtimeInstanceId": "6a33c64d-d1aa-4618-98c3-1e3533e8a576",
+    "port": 5825,
+    "pid": 77688,
     "discovery": "instance_directory"
   },
-  "testedAt": "2026-10-21T08:13:56.059Z",
-  "testedCommit": "82f0b0599cee874773c87e46feea0a8b58ff0d24",
+  "testedAt": "2026-10-30T20:24:46.277Z",
+  "testedCommit": "5fb9c88dd786d4d8ec566ffaf8a03adb6a664a2a",
   "dirty": true,
   "evidence": "development_runtime_native",
   "fixturePolicy": "immutable_baseline_restored",
   "fixtureInput": {
+    "compatibilityBasis": "same_target_and_minecraft_loader_update_only",
+    "role": "client",
+    "originTestedCommit": "f22f332c012779d592e03e9905a0b45f797d0b4e",
+    "targetFactsSha256": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2",
+    "baselineSha256": "3e62a42bd4760c6eb6d3a8afb1e8a73ae67255c70db77334aa0ab095e3a27aa1",
+    "fileCount": 44,
+    "credentialsCopied": false,
+    "restoredAt": "2026-10-30T20:22:40.9682269Z",
+    "restoredSha256": "3e62a42bd4760c6eb6d3a8afb1e8a73ae67255c70db77334aa0ab095e3a27aa1",
     "targetFactsChanges": [
       {
         "key": "loader_version",
@@ -22,19 +31,10 @@
         "after": "26.3.0.94"
       }
     ],
-    "baselineSha256": "3e62a42bd4760c6eb6d3a8afb1e8a73ae67255c70db77334aa0ab095e3a27aa1",
-    "compatibilityBasis": "same_target_and_minecraft_loader_update_only",
     "currentTargetFactsSha256": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2",
-    "originTestedCommit": "f22f332c012779d592e03e9905a0b45f797d0b4e",
-    "restoredAt": "2026-10-21T08:11:41.1574882Z",
-    "target": "26.3-neoforge",
-    "role": "client",
-    "targetFactsSha256": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2",
-    "fileCount": 44,
-    "restoredSha256": "3e62a42bd4760c6eb6d3a8afb1e8a73ae67255c70db77334aa0ab095e3a27aa1",
-    "credentialsCopied": false,
+    "policy": "immutable_baseline_restored",
     "baselineTargetFactsSha256": "817a3f97915028322d41afb7d1a4189f73b867fe4dbf10df47fee27bea91d724",
-    "policy": "immutable_baseline_restored"
+    "target": "26.3-neoforge"
   },
   "arrange": "native_gui_and_diagnostic_admin_commands_and_authorized_debug",
   "checks": [
@@ -79,7 +79,7 @@
         "host": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1055,
+          "clientTick": 987,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -91,27 +91,19 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570371342,
+          "sampledAtMillis": 1793391824693,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "creative",
           "onGround": true,
           "flying": false,
           "anchor": {
-            "y": 80,
             "x": 0.5,
             "dimension": "minecraft:overworld",
-            "z": 0.5
+            "z": 0.5,
+            "y": 80
           },
           "maxRadius": 32,
-          "maxAir": 300,
-          "sprinting": false,
-          "underWater": false,
-          "inWater": false,
-          "sleeping": false,
-          "food": 20,
-          "health": 20,
-          "cameraType": "first_person",
           "eyeHeight": 1.62,
           "crouching": false,
           "swimming": false,
@@ -137,16 +129,24 @@
           "riding": false,
           "usingItem": false,
           "absorption": 0,
-          "velocityX": 0,
+          "maxAir": 300,
+          "sprinting": false,
+          "underWater": false,
+          "inWater": false,
+          "sleeping": false,
+          "food": 20,
+          "health": 20,
+          "cameraType": "first_person",
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
-          "requestId": "57ebe965-bfd8-4831-a576-86824a581627",
+          "velocityX": 0,
+          "requestId": "b4937548-ef5e-4ec6-b734-0c0d580a026e",
           "protocolVersion": "v0"
         },
         "partner": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 550,
+          "clientTick": 491,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -158,19 +158,36 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570371348,
+          "sampledAtMillis": 1793391824700,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "creative",
           "onGround": true,
           "flying": false,
           "anchor": {
-            "dimension": "minecraft:overworld",
-            "z": 8.5,
+            "z": 2.5,
             "y": 80,
-            "x": -4.5
+            "x": 4.5,
+            "dimension": "minecraft:overworld"
           },
           "maxRadius": 32,
+          "z": 2.5,
+          "y": 80,
+          "x": 4.5,
+          "useTicks": 0,
+          "cameraIsPlayer": true,
+          "riding": false,
+          "usingItem": false,
+          "absorption": 0,
+          "maxAir": 300,
+          "sprinting": false,
+          "underWater": false,
+          "inWater": false,
+          "sleeping": false,
+          "food": 20,
+          "health": 20,
+          "cameraType": "first_person",
+          "eyeHeight": 1.62,
           "crouching": false,
           "swimming": false,
           "maxHealth": 20,
@@ -187,27 +204,10 @@
           "air": 300,
           "onFire": false,
           "experienceProgress": 0,
-          "z": 8.5,
-          "y": 80,
-          "x": -4.5,
-          "useTicks": 0,
-          "cameraIsPlayer": true,
-          "riding": false,
-          "usingItem": false,
-          "absorption": 0,
-          "maxAir": 300,
-          "sprinting": false,
-          "underWater": false,
-          "inWater": false,
-          "sleeping": false,
-          "food": 20,
-          "health": 20,
-          "cameraType": "first_person",
-          "eyeHeight": 1.62,
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
           "velocityX": 0,
-          "requestId": "3c7ab891-4261-4f11-b014-230b1943bf5c",
+          "requestId": "5e0bbe86-6dc5-4caa-8be0-e4e8eca6fb07",
           "protocolVersion": "v0"
         }
       },
@@ -238,7 +238,7 @@
           "z": 2.3,
           "y": 80,
           "x": 3.5,
-          "targetRef": "world:c8b884aa-446a-4346-bb5e-6baed37bdb92"
+          "targetRef": "world:bf73901d-c91b-44ff-a432-83e2318bfcbe"
         }
       ],
       "arrangeAuthority": "diagnostic_native_command"
@@ -247,15 +247,15 @@
       "case": "native_two_player_seat_fixture",
       "fixture": {
         "target": "26.3-neoforge",
-        "port": 10940,
+        "port": 8158,
         "source": "native_integrated_lan_diagnostic_fixture",
         "authentication": false,
         "productDeploymentClaimed": false
       },
       "partnerIdentity": {
-        "runtimeInstanceId": "dfa95970-83a9-494d-9e4a-a98bd6390428",
-        "pid": 89992,
-        "port": 10896
+        "runtimeInstanceId": "c87f9e57-9235-48ff-ae06-7d47f3cf7319",
+        "pid": 49652,
+        "port": 8115
       },
       "twoActualClients": true,
       "fakePlayerCreated": false,
@@ -269,7 +269,7 @@
           "case": "native_player_friendly_fire",
           "rejected": {
             "type": "operation",
-            "operationId": "ff1126e9-4f99-414b-986e-5db8c3dee332",
+            "operationId": "a1ee9165-fe1e-41cc-9ecc-35977f541f05",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -281,25 +281,25 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1792570384577,
-            "acceptedAtMillis": 1792570384577,
-            "scheduledAtMillis": 1792570384577,
-            "startedAtMillis": 1792570384577,
-            "completedAtMillis": 1792570384693,
+            "receivedAtMillis": 1793391837525,
+            "acceptedAtMillis": 1793391837525,
+            "scheduledAtMillis": 1793391837525,
+            "startedAtMillis": 1793391837525,
+            "completedAtMillis": 1793391837659,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "a8ad4ddd-cf9f-4a94-915f-6ff9f5927a07",
+              "gestureId": "863e87a9-9d17-48be-a4e8-10fb13310da4",
               "status": "completed",
               "stepCount": 3,
-              "durationMillis": 116,
+              "durationMillis": 134,
               "cleanupOnComplete": true,
               "steps": [
                 {
                   "index": 0,
                   "stepType": "world.action",
                   "status": "completed",
-                  "elapsedMillis": 105.1998,
+                  "elapsedMillis": 100.4683,
                   "result": {
                     "actualHit": {
                       "dataCategory": "USER",
@@ -324,9 +324,9 @@
                     "input": {
                       "type": "input.result",
                       "target": "26.3-neoforge",
-                      "clientTick": 1320,
+                      "clientTick": 1244,
                       "entryLayer": "GAME_ROUTED_RAW",
-                      "gestureId": "a8ad4ddd-cf9f-4a94-915f-6ff9f5927a07",
+                      "gestureId": "863e87a9-9d17-48be-a4e8-10fb13310da4",
                       "inputOrigin": "AGENT_ROUTED",
                       "hostCursorUsed": false,
                       "screenObserved": false,
@@ -354,20 +354,20 @@
                     "entryLayer": "GAME_ROUTED_RAW",
                     "directMutationUsed": false,
                     "action": "attack",
-                    "targetRef": "world:efd7479a-5eb6-489a-ad1d-489e8f62b863"
+                    "targetRef": "world:f7b471b4-d914-4e27-9b8f-b68bc910ece7"
                   }
                 },
                 {
                   "index": 1,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.2637,
+                  "elapsedMillis": 9.3772,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1322,
+                    "clientTick": 1246,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "a8ad4ddd-cf9f-4a94-915f-6ff9f5927a07",
+                    "gestureId": "863e87a9-9d17-48be-a4e8-10fb13310da4",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -386,13 +386,13 @@
                   "index": 2,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.4263,
+                  "elapsedMillis": 9.8277,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1322,
+                    "clientTick": 1246,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "a8ad4ddd-cf9f-4a94-915f-6ff9f5927a07",
+                    "gestureId": "863e87a9-9d17-48be-a4e8-10fb13310da4",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -411,51 +411,51 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.032,
-                "totalMillis": 115.8941,
+                "queueMillis": 0.0316,
+                "totalMillis": 134.2278,
                 "requestedDelayMillis": 80,
                 "inputCallbackCount": 5,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 9.8249,
+                    "elapsedMillis": 5.4426,
                     "calls": 1
                   },
                   "nativeCall": {
-                    "elapsedMillis": 22.9706,
+                    "elapsedMillis": 37.4587,
                     "calls": 6
                   },
                   "delay": {
-                    "elapsedMillis": 81.0186,
+                    "elapsedMillis": 80.1823,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 0.0347,
+                    "elapsedMillis": 0.0718,
                     "calls": 2
                   },
                   "cleanup": {
-                    "elapsedMillis": 0.0388,
+                    "elapsedMillis": 8.9498,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 23.5688,
-                "lastInputCallbackOffsetMillis": 115.4327
+                "firstInputCallbackOffsetMillis": 14.9996,
+                "lastInputCallbackOffsetMillis": 124.5297
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "26.3-neoforge",
-                "clientTick": 1322,
+                "clientTick": 1246,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 1123
               }
             },
-            "requestId": "d8c52f49-c646-4059-912f-5c2f5aa63b81",
+            "requestId": "46f3fb37-9a9f-4f51-9755-44356f28fc4d",
             "protocolVersion": "v0"
           },
           "accepted": {
             "type": "operation",
-            "operationId": "facd43b4-9d65-4524-862c-d5c3f1f9fcb1",
+            "operationId": "7d930177-c3e8-4e05-b966-e99cee9d1f4b",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -467,25 +467,25 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1792570387202,
-            "acceptedAtMillis": 1792570387202,
-            "scheduledAtMillis": 1792570387202,
-            "startedAtMillis": 1792570387202,
-            "completedAtMillis": 1792570387317,
+            "receivedAtMillis": 1793391840073,
+            "acceptedAtMillis": 1793391840073,
+            "scheduledAtMillis": 1793391840073,
+            "startedAtMillis": 1793391840073,
+            "completedAtMillis": 1793391840200,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "6bd2b012-8350-49a3-8edf-04c4d643ce70",
+              "gestureId": "db5acfd1-5630-4eac-91bc-5730bb766c87",
               "status": "completed",
               "stepCount": 3,
-              "durationMillis": 116,
+              "durationMillis": 127,
               "cleanupOnComplete": true,
               "steps": [
                 {
                   "index": 0,
                   "stepType": "world.action",
                   "status": "completed",
-                  "elapsedMillis": 102.8146,
+                  "elapsedMillis": 92.7075,
                   "result": {
                     "actualHit": {
                       "dataCategory": "USER",
@@ -510,9 +510,9 @@
                     "input": {
                       "type": "input.result",
                       "target": "26.3-neoforge",
-                      "clientTick": 1372,
+                      "clientTick": 1295,
                       "entryLayer": "GAME_ROUTED_RAW",
-                      "gestureId": "6bd2b012-8350-49a3-8edf-04c4d643ce70",
+                      "gestureId": "db5acfd1-5630-4eac-91bc-5730bb766c87",
                       "inputOrigin": "AGENT_ROUTED",
                       "hostCursorUsed": false,
                       "screenObserved": false,
@@ -540,20 +540,20 @@
                     "entryLayer": "GAME_ROUTED_RAW",
                     "directMutationUsed": false,
                     "action": "attack",
-                    "targetRef": "world:be0a1680-6e11-475f-9034-faf38bce02d5"
+                    "targetRef": "world:b4f18075-a427-46ba-a163-2419fa679352"
                   }
                 },
                 {
                   "index": 1,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.1628,
+                  "elapsedMillis": 13.8764,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1374,
+                    "clientTick": 1297,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "6bd2b012-8350-49a3-8edf-04c4d643ce70",
+                    "gestureId": "db5acfd1-5630-4eac-91bc-5730bb766c87",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -572,13 +572,13 @@
                   "index": 2,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.0678,
+                  "elapsedMillis": 10.0959,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1374,
+                    "clientTick": 1297,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "6bd2b012-8350-49a3-8edf-04c4d643ce70",
+                    "gestureId": "db5acfd1-5630-4eac-91bc-5730bb766c87",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -597,46 +597,46 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.0396,
-                "totalMillis": 115.5813,
+                "queueMillis": 0.0257,
+                "totalMillis": 127.5683,
                 "requestedDelayMillis": 80,
                 "inputCallbackCount": 5,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 12.3146,
+                    "elapsedMillis": 0.7364,
                     "calls": 1
                   },
                   "nativeCall": {
-                    "elapsedMillis": 16.1831,
+                    "elapsedMillis": 36.1316,
                     "calls": 6
                   },
                   "delay": {
-                    "elapsedMillis": 86.6113,
+                    "elapsedMillis": 80.1088,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 0.0252,
+                    "elapsedMillis": 0.0694,
                     "calls": 2
                   },
                   "cleanup": {
-                    "elapsedMillis": 0.0374,
+                    "elapsedMillis": 10.0014,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 26.3841,
-                "lastInputCallbackOffsetMillis": 115.4778
+                "firstInputCallbackOffsetMillis": 9.074,
+                "lastInputCallbackOffsetMillis": 117.279
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "26.3-neoforge",
-                "clientTick": 1374,
+                "clientTick": 1297,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 1182
               }
             },
-            "requestId": "70540860-d54d-4731-bb6c-36687147ad93",
+            "requestId": "66767cd3-dc68-4143-80f2-69b8f5f1bd74",
             "protocolVersion": "v0"
           },
           "protectedHealth": 20,
@@ -649,7 +649,7 @@
           "case": "native_player_shield_axe",
           "held": {
             "type": "operation",
-            "operationId": "860b8f6f-9c29-40c8-be7b-7bca31bbad5f",
+            "operationId": "86c615cc-25cb-45f1-947d-f47758101420",
             "status": "running",
             "state": "executing",
             "received": true,
@@ -661,17 +661,17 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1792570391856,
-            "acceptedAtMillis": 1792570391856,
-            "scheduledAtMillis": 1792570391856,
-            "startedAtMillis": 1792570391856,
+            "receivedAtMillis": 1793391844627,
+            "acceptedAtMillis": 1793391844627,
+            "scheduledAtMillis": 1793391844627,
+            "startedAtMillis": 1793391844627,
             "commandSubmissionsComplete": false,
-            "requestId": "15fff3cd-b135-40b9-a99f-f3eafcd986b6",
+            "requestId": "88367d46-43ac-4398-9b23-c04c0e3d1f8e",
             "protocolVersion": "v0"
           },
           "blocked": {
             "type": "operation",
-            "operationId": "e5401211-cb84-4bea-8348-e908d2c2ce7c",
+            "operationId": "d0350d6f-7e83-45f5-9308-1f39e4efe632",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -683,25 +683,25 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1792570392500,
-            "acceptedAtMillis": 1792570392500,
-            "scheduledAtMillis": 1792570392500,
-            "startedAtMillis": 1792570392500,
-            "completedAtMillis": 1792570392627,
+            "receivedAtMillis": 1793391845216,
+            "acceptedAtMillis": 1793391845216,
+            "scheduledAtMillis": 1793391845216,
+            "startedAtMillis": 1793391845216,
+            "completedAtMillis": 1793391845342,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "4db72e52-f0e2-42d0-9d3a-a42fa634b4dc",
+              "gestureId": "83bc8b12-e768-4f68-af60-e116ff4efb37",
               "status": "completed",
               "stepCount": 3,
-              "durationMillis": 127,
+              "durationMillis": 126,
               "cleanupOnComplete": true,
               "steps": [
                 {
                   "index": 0,
                   "stepType": "world.action",
                   "status": "completed",
-                  "elapsedMillis": 100.1923,
+                  "elapsedMillis": 92.7922,
                   "result": {
                     "actualHit": {
                       "dataCategory": "USER",
@@ -726,9 +726,9 @@
                     "input": {
                       "type": "input.result",
                       "target": "26.3-neoforge",
-                      "clientTick": 1478,
+                      "clientTick": 1398,
                       "entryLayer": "GAME_ROUTED_RAW",
-                      "gestureId": "4db72e52-f0e2-42d0-9d3a-a42fa634b4dc",
+                      "gestureId": "83bc8b12-e768-4f68-af60-e116ff4efb37",
                       "inputOrigin": "AGENT_ROUTED",
                       "hostCursorUsed": false,
                       "screenObserved": false,
@@ -756,20 +756,20 @@
                     "entryLayer": "GAME_ROUTED_RAW",
                     "directMutationUsed": false,
                     "action": "attack",
-                    "targetRef": "world:b8a18469-2abb-4d06-b09f-6839caac9b2b"
+                    "targetRef": "world:1f095182-3086-4d1e-9a3d-4c9da3c72666"
                   }
                 },
                 {
                   "index": 1,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 9.4408,
+                  "elapsedMillis": 8.284,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1480,
+                    "clientTick": 1400,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "4db72e52-f0e2-42d0-9d3a-a42fa634b4dc",
+                    "gestureId": "83bc8b12-e768-4f68-af60-e116ff4efb37",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -788,13 +788,13 @@
                   "index": 2,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.2919,
+                  "elapsedMillis": 8.3854,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1480,
+                    "clientTick": 1400,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "4db72e52-f0e2-42d0-9d3a-a42fa634b4dc",
+                    "gestureId": "83bc8b12-e768-4f68-af60-e116ff4efb37",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -813,51 +813,51 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.026,
-                "totalMillis": 125.9792,
+                "queueMillis": 0.0225,
+                "totalMillis": 125.6019,
                 "requestedDelayMillis": 80,
                 "inputCallbackCount": 5,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 7.2568,
+                    "elapsedMillis": 7.7363,
                     "calls": 1
                   },
                   "nativeCall": {
-                    "elapsedMillis": 28.3556,
+                    "elapsedMillis": 28.8398,
                     "calls": 6
                   },
                   "delay": {
-                    "elapsedMillis": 81.2122,
+                    "elapsedMillis": 80.1719,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 0.0601,
+                    "elapsedMillis": 0.0743,
                     "calls": 2
                   },
                   "cleanup": {
-                    "elapsedMillis": 8.6174,
+                    "elapsedMillis": 8.2298,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 20.1724,
-                "lastInputCallbackOffsetMillis": 117.0805
+                "firstInputCallbackOffsetMillis": 16.3472,
+                "lastInputCallbackOffsetMillis": 117.0076
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "26.3-neoforge",
-                "clientTick": 1481,
+                "clientTick": 1400,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 1559
               }
             },
-            "requestId": "9011341a-35a7-4ca6-9323-a692182b9bee",
+            "requestId": "3c0f9c18-400f-46bc-b1d9-c6eaea9dd3cb",
             "protocolVersion": "v0"
           },
           "disabled": {
             "type": "operation",
-            "operationId": "3bfdbe66-a5b6-4965-87db-1730382b147a",
+            "operationId": "0a264cb5-12cc-4149-8871-b72373bf4422",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -869,31 +869,31 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1792570395235,
-            "acceptedAtMillis": 1792570395235,
-            "scheduledAtMillis": 1792570395235,
-            "startedAtMillis": 1792570395235,
-            "completedAtMillis": 1792570395468,
+            "receivedAtMillis": 1793391847774,
+            "acceptedAtMillis": 1793391847774,
+            "scheduledAtMillis": 1793391847774,
+            "startedAtMillis": 1793391847774,
+            "completedAtMillis": 1793391848018,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+              "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
               "status": "completed",
               "stepCount": 6,
-              "durationMillis": 233,
+              "durationMillis": 244,
               "cleanupOnComplete": true,
               "steps": [
                 {
                   "index": 0,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 0.3573,
+                  "elapsedMillis": 8.5351,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1533,
+                    "clientTick": 1449,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+                    "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -912,13 +912,13 @@
                   "index": 1,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 9.7487,
+                  "elapsedMillis": 8.3378,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1533,
+                    "clientTick": 1449,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+                    "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -937,7 +937,7 @@
                   "index": 2,
                   "stepType": "delay",
                   "status": "completed",
-                  "elapsedMillis": 100.4881,
+                  "elapsedMillis": 100.5668,
                   "result": {
                     "type": "delay"
                   }
@@ -946,7 +946,7 @@
                   "index": 3,
                   "stepType": "world.action",
                   "status": "completed",
-                  "elapsedMillis": 95.2518,
+                  "elapsedMillis": 93.6258,
                   "result": {
                     "actualHit": {
                       "dataCategory": "USER",
@@ -971,9 +971,9 @@
                     "input": {
                       "type": "input.result",
                       "target": "26.3-neoforge",
-                      "clientTick": 1535,
+                      "clientTick": 1451,
                       "entryLayer": "GAME_ROUTED_RAW",
-                      "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+                      "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
                       "inputOrigin": "AGENT_ROUTED",
                       "hostCursorUsed": false,
                       "screenObserved": false,
@@ -1001,20 +1001,20 @@
                     "entryLayer": "GAME_ROUTED_RAW",
                     "directMutationUsed": false,
                     "action": "attack",
-                    "targetRef": "world:2576eee6-bda7-4e21-991b-be8d18260d02"
+                    "targetRef": "world:1982eee0-9399-4aed-976e-dd1bb6bf3483"
                   }
                 },
                 {
                   "index": 4,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 9.25,
+                  "elapsedMillis": 8.3677,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1537,
+                    "clientTick": 1453,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+                    "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1033,13 +1033,13 @@
                   "index": 5,
                   "stepType": "key",
                   "status": "completed",
-                  "elapsedMillis": 8.9403,
+                  "elapsedMillis": 8.2704,
                   "result": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1537,
+                    "clientTick": 1453,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "87080128-37dc-4a90-9c54-4ac4eb32c77f",
+                    "gestureId": "fa43704a-7989-454c-941e-e19f957eab3a",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1058,46 +1058,46 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.021,
-                "totalMillis": 232.7501,
+                "queueMillis": 0.0223,
+                "totalMillis": 243.8116,
                 "requestedDelayMillis": 180,
                 "inputCallbackCount": 7,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 0.3223,
+                    "elapsedMillis": 7.8202,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 9.6017,
+                    "elapsedMillis": 16.2853,
                     "calls": 6
                   },
                   "nativeCall": {
-                    "elapsedMillis": 32.7186,
+                    "elapsedMillis": 29.2657,
                     "calls": 8
                   },
                   "delay": {
-                    "elapsedMillis": 181.0662,
+                    "elapsedMillis": 181.4926,
                     "calls": 2
                   },
                   "cleanup": {
-                    "elapsedMillis": 8.2156,
+                    "elapsedMillis": 8.1,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 0.5216,
-                "lastInputCallbackOffsetMillis": 224.1992
+                "firstInputCallbackOffsetMillis": 16.2045,
+                "lastInputCallbackOffsetMillis": 235.4048
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "26.3-neoforge",
-                "clientTick": 1537,
+                "clientTick": 1453,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 1634
               }
             },
-            "requestId": "0f03ae1e-b4cb-40ec-aaa9-257f7cc247e9",
+            "requestId": "f9848c40-d24d-4652-a0f3-a0c61c01784c",
             "protocolVersion": "v0"
           },
           "blockedHealth": 20,
@@ -1116,7 +1116,7 @@
       "driver": {
         "operation": {
           "type": "operation",
-          "operationId": "a459c45b-8b84-491f-ad36-18af31ecf5fa",
+          "operationId": "15791e0d-98ae-4fb6-a82e-5414351e3447",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -1128,25 +1128,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570405071,
-          "acceptedAtMillis": 1792570405071,
-          "scheduledAtMillis": 1792570405071,
-          "startedAtMillis": 1792570405071,
-          "completedAtMillis": 1792570405297,
+          "receivedAtMillis": 1793391857294,
+          "acceptedAtMillis": 1793391857294,
+          "scheduledAtMillis": 1793391857294,
+          "startedAtMillis": 1793391857294,
+          "completedAtMillis": 1793391857494,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "7f0991e1-cd76-4d98-861e-c7b2f048b329",
+            "gestureId": "4df73449-a207-4159-9e73-10e614221d97",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 227,
+            "durationMillis": 200,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 189.661,
+                "elapsedMillis": 186.8837,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -1154,26 +1154,26 @@
                     "kind": "entity",
                     "source": "native_interaction_pick",
                     "entityType": "minecraft:oak_boat",
-                    "distance": 1.2907749446578154,
+                    "distance": 1.2901645907020898,
                     "position": {
                       "x": 0.5,
-                      "y": 81.08935546875,
-                      "z": 1.6766547217218115
+                      "y": 81.08723958333334,
+                      "z": 1.6750280866659577
                     }
                   },
                   "onTarget": true,
-                  "aimError": 2.5970823962495615E-06,
+                  "aimError": 0.05589414484015265,
                   "dx": 0,
-                  "dy": -1.7313882641663746E-05,
+                  "dy": -0.37262763226768436,
                   "cameraProcessing": "vanilla_sensitivity_inversion",
                   "outcome": "input_dispatched_effect_requires_observation",
                   "aimValidation": "native_interaction_pick",
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1731,
+                    "clientTick": 1640,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "7f0991e1-cd76-4d98-861e-c7b2f048b329",
+                    "gestureId": "4df73449-a207-4159-9e73-10e614221d97",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1201,55 +1201,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:4374d7b8-b2b2-4b42-a8c6-0890db3dc27d"
+                  "targetRef": "world:09ef053c-28ea-48d2-8586-7765e530d7e0"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.0335,
-              "totalMillis": 227.0581,
+              "queueMillis": 0.0237,
+              "totalMillis": 200.0506,
               "requestedDelayMillis": 130,
               "inputCallbackCount": 5,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 0.277,
+                  "elapsedMillis": 4.9709,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 57.9492,
+                  "elapsedMillis": 53.8703,
                   "calls": 6
                 },
                 "delay": {
-                  "elapsedMillis": 131.2689,
+                  "elapsedMillis": 132.4763,
                   "calls": 2
                 },
                 "cleanup": {
-                  "elapsedMillis": 36.9692,
+                  "elapsedMillis": 8.0166,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 19.4599,
-              "lastInputCallbackOffsetMillis": 189.7637
+              "firstInputCallbackOffsetMillis": 13.2912,
+              "lastInputCallbackOffsetMillis": 191.6664
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 1733,
+              "clientTick": 1643,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
               "inputDispatchSequence": 2242
             }
           },
-          "requestId": "0188876d-6691-4ba7-a32f-efa8141a79e7",
+          "requestId": "171df4f6-a55f-427c-8de9-9e4399b98b78",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1734,
+          "clientTick": 1643,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -1261,35 +1261,26 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570405318,
+          "sampledAtMillis": 1793391857502,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
-          "onGround": true,
+          "onGround": false,
           "flying": false,
           "anchor": {
-            "y": 80.11387806369251,
             "x": 0.5,
             "dimension": "minecraft:overworld",
-            "z": 2.3
+            "z": 2.3,
+            "y": 80.11406049679488
           },
           "maxRadius": 32,
-          "maxAir": 300,
-          "sprinting": false,
-          "underWater": false,
-          "inWater": true,
-          "sleeping": false,
-          "vehicleType": "minecraft:oak_boat",
-          "food": 20,
-          "health": 20,
-          "cameraType": "first_person",
           "eyeHeight": 1.62,
           "crouching": false,
           "swimming": false,
           "maxHealth": 20,
           "fallFlying": false,
           "inLava": false,
-          "pitch": 24.277878,
+          "pitch": 24.38971,
           "experienceLevel": 10,
           "deadOrDying": false,
           "vehicleControllerIsPlayer": true,
@@ -1302,24 +1293,33 @@
           "onFire": false,
           "experienceProgress": 0.96296287,
           "z": 2.3,
-          "y": 80.11387806369251,
+          "y": 80.11406049679488,
           "x": 0.5,
           "useTicks": 0,
           "cameraIsPlayer": true,
           "riding": true,
           "usingItem": false,
           "absorption": 0,
-          "velocityX": 0,
+          "maxAir": 300,
+          "sprinting": false,
+          "underWater": false,
+          "inWater": false,
+          "sleeping": false,
+          "vehicleType": "minecraft:oak_boat",
+          "food": 20,
+          "health": 20,
+          "cameraType": "first_person",
           "velocityZ": 0,
-          "velocityY": 0,
-          "requestId": "42405ad2-6c5a-46a9-85e3-7c1f7290a2d7",
+          "velocityY": -0.0784000015258789,
+          "velocityX": 0,
+          "requestId": "3990248d-1711-4c74-8ff3-9f1506f6fc31",
           "protocolVersion": "v0"
         }
       },
       "passenger": {
         "operation": {
           "type": "operation",
-          "operationId": "55c9b6bf-f096-4f85-bc28-2fe3b008194e",
+          "operationId": "47354d44-5ac8-47c3-bc2e-67adf61e8332",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -1331,25 +1331,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570405425,
-          "acceptedAtMillis": 1792570405425,
-          "scheduledAtMillis": 1792570405425,
-          "startedAtMillis": 1792570405425,
-          "completedAtMillis": 1792570405724,
+          "receivedAtMillis": 1793391857520,
+          "acceptedAtMillis": 1793391857520,
+          "scheduledAtMillis": 1793391857520,
+          "startedAtMillis": 1793391857520,
+          "completedAtMillis": 1793391857690,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "29dfeda1-b9e1-4904-846a-fcc4ea196d01",
+            "gestureId": "e63bc4f5-2290-465f-a7b0-d38c11f0e8b8",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 300,
+            "durationMillis": 170,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 262.0473,
+                "elapsedMillis": 158.968,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -1374,9 +1374,9 @@
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1234,
+                    "clientTick": 1148,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "29dfeda1-b9e1-4904-846a-fcc4ea196d01",
+                    "gestureId": "e63bc4f5-2290-465f-a7b0-d38c11f0e8b8",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1387,7 +1387,7 @@
                     "directMutationUsed": false,
                     "screenRevision": 9,
                     "menuRevision": 5,
-                    "inputDispatchSequence": 123,
+                    "inputDispatchSequence": 122,
                     "normalMenuProcessingObserved": false
                   },
                   "binding": {
@@ -1404,55 +1404,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:43195609-4878-46c9-a113-3304e920c0df"
+                  "targetRef": "world:7f3db880-7332-49b7-8c9f-ec7e6aea1174"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.0613,
-              "totalMillis": 299.6561,
+              "queueMillis": 0.0438,
+              "totalMillis": 171.1134,
               "requestedDelayMillis": 130,
               "inputCallbackCount": 5,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 5.4621,
+                  "elapsedMillis": 2.7523,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 81.8956,
+                  "elapsedMillis": 25.6394,
                   "calls": 6
                 },
                 "delay": {
-                  "elapsedMillis": 159.7991,
+                  "elapsedMillis": 131.0771,
                   "calls": 2
                 },
                 "cleanup": {
-                  "elapsedMillis": 31.882,
+                  "elapsedMillis": 9.1778,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 18.8011,
-              "lastInputCallbackOffsetMillis": 266.8025
+              "firstInputCallbackOffsetMillis": 11.5894,
+              "lastInputCallbackOffsetMillis": 161.0377
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 1238,
+              "clientTick": 1151,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
-              "inputDispatchSequence": 125
+              "inputDispatchSequence": 124
             }
           },
-          "requestId": "2a6daa98-3b98-4071-8c43-867f1002b1c3",
+          "requestId": "735fbfb7-d53d-4530-ac97-fa7a3be10520",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1238,
+          "clientTick": 1151,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -1464,36 +1464,19 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570405742,
+          "sampledAtMillis": 1793391857698,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
           "onGround": false,
           "flying": false,
           "anchor": {
-            "dimension": "minecraft:overworld",
             "z": 1.699999976158142,
             "y": 80.11435546875,
-            "x": 0.5
+            "x": 0.5,
+            "dimension": "minecraft:overworld"
           },
           "maxRadius": 32,
-          "crouching": false,
-          "swimming": false,
-          "maxHealth": 20,
-          "fallFlying": false,
-          "inLava": false,
-          "pitch": 15.143296,
-          "experienceLevel": 0,
-          "deadOrDying": false,
-          "vehicleControllerIsPlayer": false,
-          "dimension": "minecraft:overworld",
-          "usingHand": "none",
-          "pose": "standing",
-          "selectedSlot": 0,
-          "yaw": 0,
-          "air": 300,
-          "onFire": false,
-          "experienceProgress": 0,
           "z": 1.699999976158142,
           "y": 80.11435546875,
           "x": 0.5,
@@ -1512,16 +1495,33 @@
           "health": 20,
           "cameraType": "first_person",
           "eyeHeight": 1.62,
+          "crouching": false,
+          "swimming": false,
+          "maxHealth": 20,
+          "fallFlying": false,
+          "inLava": false,
+          "pitch": 15.143296,
+          "experienceLevel": 0,
+          "deadOrDying": false,
+          "vehicleControllerIsPlayer": false,
+          "dimension": "minecraft:overworld",
+          "usingHand": "none",
+          "pose": "standing",
+          "selectedSlot": 0,
+          "yaw": 0,
+          "air": 300,
+          "onFire": false,
+          "experienceProgress": 0,
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
           "velocityX": 0,
-          "requestId": "9d5cfb67-2213-4f35-860d-0cd1a4f2886e",
+          "requestId": "25a65be1-37cd-4a82-8f49-f9c3d4e5288b",
           "protocolVersion": "v0"
         }
       },
       "passengerInput": {
         "type": "operation",
-        "operationId": "5360a031-b883-4c94-95fb-ebfb007ce1e8",
+        "operationId": "dfe0e0c6-dfa2-4ce4-82ef-ebc6b9b98ef6",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -1533,31 +1533,31 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1792570405912,
-        "acceptedAtMillis": 1792570405912,
-        "scheduledAtMillis": 1792570405912,
-        "startedAtMillis": 1792570405912,
-        "completedAtMillis": 1792570406647,
+        "receivedAtMillis": 1793391857765,
+        "acceptedAtMillis": 1793391857765,
+        "scheduledAtMillis": 1793391857765,
+        "startedAtMillis": 1793391857765,
+        "completedAtMillis": 1793391858505,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "d16936f2-07f2-43ab-8417-ad2cbd3d2401",
+          "gestureId": "52c99de1-fd08-4a23-847d-2023a717d854",
           "status": "completed",
           "stepCount": 2,
-          "durationMillis": 736,
+          "durationMillis": 740,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "mouse.delta",
               "status": "completed",
-              "elapsedMillis": 14.3489,
+              "elapsedMillis": 12.0809,
               "result": {
                 "type": "input.mouse.delta",
                 "target": "26.3-neoforge",
-                "clientTick": 1242,
+                "clientTick": 1152,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "d16936f2-07f2-43ab-8417-ad2cbd3d2401",
+                "gestureId": "52c99de1-fd08-4a23-847d-2023a717d854",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -1568,7 +1568,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 126,
+                "inputDispatchSequence": 125,
                 "pointerPlane": "GAMEPLAY_RELATIVE",
                 "guiX": 260,
                 "guiY": 160.23882369879246,
@@ -1581,13 +1581,13 @@
               "index": 1,
               "stepType": "key.chord",
               "status": "completed",
-              "elapsedMillis": 711.6362,
+              "elapsedMillis": 718.4371,
               "result": {
                 "type": "input.result",
                 "target": "26.3-neoforge",
-                "clientTick": 1257,
+                "clientTick": 1167,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "d16936f2-07f2-43ab-8417-ad2cbd3d2401",
+                "gestureId": "52c99de1-fd08-4a23-847d-2023a717d854",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -1598,7 +1598,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 128,
+                "inputDispatchSequence": 127,
                 "keyMappingPath": true
               }
             }
@@ -1606,50 +1606,49 @@
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.035,
-            "totalMillis": 734.9375,
+            "queueMillis": 0.0335,
+            "totalMillis": 739.5721,
             "requestedDelayMillis": 700,
             "inputCallbackCount": 3,
             "stages": {
               "inputState": {
-                "elapsedMillis": 8.7172,
+                "elapsedMillis": 0.3083,
                 "calls": 1
               },
               "pointerState": {
-                "elapsedMillis": 13.4409,
+                "elapsedMillis": 15.477,
                 "calls": 4
               },
               "nativeCall": {
-                "elapsedMillis": 11.6532,
+                "elapsedMillis": 10.3311,
                 "calls": 3
               },
               "delay": {
-                "elapsedMillis": 700.0499,
+                "elapsedMillis": 700.9106,
                 "calls": 1
               },
               "cleanup": {
-                "elapsedMillis": 0.0389,
+                "elapsedMillis": 8.5293,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 23.0674,
-            "lastInputCallbackOffsetMillis": 734.6212
+            "firstInputCallbackOffsetMillis": 12.3557,
+            "lastInputCallbackOffsetMillis": 730.7197
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "26.3-neoforge",
-            "clientTick": 1257,
+            "clientTick": 1167,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
-            "inputDispatchSequence": 129
+            "inputDispatchSequence": 128
           }
         },
-        "requestId": "785b2ad7-cead-4365-be97-a9c54c7a9b14",
+        "requestId": "74cfb6a4-a924-499d-98e5-6cc1226397da",
         "protocolVersion": "v0"
       },
       "before": {
-        "leashHolderKnown": false,
         "targetTtlMs": 15000,
         "invisible": false,
         "type": "minecraft:oak_boat",
@@ -1659,12 +1658,12 @@
         "leashed": false,
         "name": "Oak Boat",
         "z": 2.3,
-        "y": 80.52259575080488,
+        "y": 80.52461737222643,
         "x": 0.5,
-        "targetRef": "world:79a70c73-f16b-4d3d-b432-8bf2548e00fb"
+        "targetRef": "world:f3adf58c-2fb3-4ce4-b2f5-03dbb3f26c67",
+        "leashHolderKnown": false
       },
       "after": {
-        "leashHolderKnown": false,
         "targetTtlMs": 15000,
         "invisible": false,
         "type": "minecraft:oak_boat",
@@ -1674,9 +1673,10 @@
         "leashed": false,
         "name": "Oak Boat",
         "z": 2.3,
-        "y": 80.52331854278134,
+        "y": 80.52323497311066,
         "x": 0.5,
-        "targetRef": "world:64847d64-5105-4e78-bc41-633eb17ae509"
+        "targetRef": "world:e146aa23-92ba-47ca-93b3-c018444a4692",
+        "leashHolderKnown": false
       },
       "actAuthority": "PLAYTEST",
       "directRelationOrCameraMutationByAct": false
@@ -1687,7 +1687,7 @@
       "driver": {
         "operation": {
           "type": "operation",
-          "operationId": "ede17830-a6c7-4128-94f4-9fa2c97b732c",
+          "operationId": "45d34778-32d4-41ed-89f4-c24b3d52c94e",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -1699,25 +1699,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570413735,
-          "acceptedAtMillis": 1792570413735,
-          "scheduledAtMillis": 1792570413735,
-          "startedAtMillis": 1792570413735,
-          "completedAtMillis": 1792570413845,
+          "receivedAtMillis": 1793391865224,
+          "acceptedAtMillis": 1793391865224,
+          "scheduledAtMillis": 1793391865224,
+          "startedAtMillis": 1793391865224,
+          "completedAtMillis": 1793391865333,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "1790d6f0-cfa4-42a5-b8a6-cec879ce670d",
+            "gestureId": "7087e929-5848-41c0-9686-0ec3efa2e261",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 110,
+            "durationMillis": 109,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 101.7104,
+                "elapsedMillis": 94.123,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -1742,9 +1742,9 @@
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1903,
+                    "clientTick": 1798,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "1790d6f0-cfa4-42a5-b8a6-cec879ce670d",
+                    "gestureId": "7087e929-5848-41c0-9686-0ec3efa2e261",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1772,55 +1772,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:a1d6871a-6ecd-4bc5-97d8-56f80a5a7b21"
+                  "targetRef": "world:0a2ce6e9-a821-4177-a6df-98aa9a82fe6a"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.0214,
-              "totalMillis": 110.0034,
+              "queueMillis": 0.0232,
+              "totalMillis": 109.0712,
               "requestedDelayMillis": 80,
               "inputCallbackCount": 3,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 8.0455,
+                  "elapsedMillis": 6.7336,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 21.4643,
+                  "elapsedMillis": 12.6045,
                   "calls": 4
                 },
                 "delay": {
-                  "elapsedMillis": 80.0864,
+                  "elapsedMillis": 81.3498,
                   "calls": 1
                 },
                 "cleanup": {
-                  "elapsedMillis": 0.0413,
+                  "elapsedMillis": 8.0791,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 18.2016,
-              "lastInputCallbackOffsetMillis": 109.6249
+              "firstInputCallbackOffsetMillis": 16.1733,
+              "lastInputCallbackOffsetMillis": 100.6813
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 1905,
+              "clientTick": 1800,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
               "inputDispatchSequence": 2669
             }
           },
-          "requestId": "b1c6b7f5-27b0-411a-89f1-9d345fedb984",
+          "requestId": "78219034-afa6-417f-988d-86a4d1615b2f",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1905,
+          "clientTick": 1800,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -1832,28 +1832,19 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570413860,
+          "sampledAtMillis": 1793391865342,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
           "onGround": false,
           "flying": false,
           "anchor": {
-            "y": 81.4,
             "x": 0.5,
             "dimension": "minecraft:overworld",
-            "z": 2.8
+            "z": 2.8,
+            "y": 81.4
           },
           "maxRadius": 32,
-          "maxAir": 300,
-          "sprinting": false,
-          "underWater": false,
-          "inWater": false,
-          "sleeping": false,
-          "vehicleType": "minecraft:camel",
-          "food": 20,
-          "health": 20,
-          "cameraType": "first_person",
           "eyeHeight": 1.62,
           "crouching": false,
           "swimming": false,
@@ -1880,17 +1871,26 @@
           "riding": true,
           "usingItem": false,
           "absorption": 0,
-          "velocityX": 0,
+          "maxAir": 300,
+          "sprinting": false,
+          "underWater": false,
+          "inWater": false,
+          "sleeping": false,
+          "vehicleType": "minecraft:camel",
+          "food": 20,
+          "health": 20,
+          "cameraType": "first_person",
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
-          "requestId": "c14c8e09-2d43-47c1-90e4-223ad38bbf0b",
+          "velocityX": 0,
+          "requestId": "bbd3b98c-25ee-4b17-9560-5fd8022f5dc9",
           "protocolVersion": "v0"
         }
       },
       "passenger": {
         "operation": {
           "type": "operation",
-          "operationId": "05c8c64e-eed7-4d93-a702-5b127fe99587",
+          "operationId": "0aa98f9d-c6c4-401d-8b40-4b8468d9b3a1",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -1902,25 +1902,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570413874,
-          "acceptedAtMillis": 1792570413874,
-          "scheduledAtMillis": 1792570413874,
-          "startedAtMillis": 1792570413874,
-          "completedAtMillis": 1792570413977,
+          "receivedAtMillis": 1793391865352,
+          "acceptedAtMillis": 1793391865352,
+          "scheduledAtMillis": 1793391865352,
+          "startedAtMillis": 1793391865352,
+          "completedAtMillis": 1793391865462,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "6925ae98-09fc-4575-baa9-1b6bd188dadf",
+            "gestureId": "c1222e9f-13c4-4da7-9995-bb0fb8be6371",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 105,
+            "durationMillis": 110,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 91.076,
+                "elapsedMillis": 93.5081,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -1945,9 +1945,9 @@
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1401,
+                    "clientTick": 1304,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "6925ae98-09fc-4575-baa9-1b6bd188dadf",
+                    "gestureId": "c1222e9f-13c4-4da7-9995-bb0fb8be6371",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1958,7 +1958,7 @@
                     "directMutationUsed": false,
                     "screenRevision": 9,
                     "menuRevision": 5,
-                    "inputDispatchSequence": 133,
+                    "inputDispatchSequence": 132,
                     "normalMenuProcessingObserved": false
                   },
                   "binding": {
@@ -1975,55 +1975,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:ea666f5c-b17b-4e6d-9899-fa1dc5ba08aa"
+                  "targetRef": "world:dfd46dbc-0440-4b22-b5c4-cafe7a8fe83c"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.0257,
-              "totalMillis": 104.5971,
+              "queueMillis": 0.029,
+              "totalMillis": 109.2005,
               "requestedDelayMillis": 80,
               "inputCallbackCount": 3,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 3.3687,
+                  "elapsedMillis": 5.5364,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 10.3579,
+                  "elapsedMillis": 12.9758,
                   "calls": 4
                 },
                 "delay": {
-                  "elapsedMillis": 80.407,
+                  "elapsedMillis": 80.1896,
                   "calls": 1
                 },
                 "cleanup": {
-                  "elapsedMillis": 7.8204,
+                  "elapsedMillis": 9.9124,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 5.7561,
-              "lastInputCallbackOffsetMillis": 96.2321
+              "firstInputCallbackOffsetMillis": 15.7968,
+              "lastInputCallbackOffsetMillis": 98.7958
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 1403,
+              "clientTick": 1306,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
-              "inputDispatchSequence": 135
+              "inputDispatchSequence": 134
             }
           },
-          "requestId": "a3862766-674c-4d7f-a31f-741bc843814d",
+          "requestId": "572cd939-983a-4145-b72d-ffa96cccb40e",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1403,
+          "clientTick": 1306,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -2035,36 +2035,19 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570413990,
+          "sampledAtMillis": 1793391865472,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
           "onGround": false,
           "flying": false,
           "anchor": {
-            "dimension": "minecraft:overworld",
             "z": 1.6000000119209288,
             "y": 81.4,
-            "x": 0.5
+            "x": 0.5,
+            "dimension": "minecraft:overworld"
           },
           "maxRadius": 32,
-          "crouching": false,
-          "swimming": false,
-          "maxHealth": 20,
-          "fallFlying": false,
-          "inLava": false,
-          "pitch": 0,
-          "experienceLevel": 0,
-          "deadOrDying": false,
-          "vehicleControllerIsPlayer": false,
-          "dimension": "minecraft:overworld",
-          "usingHand": "none",
-          "pose": "standing",
-          "selectedSlot": 0,
-          "yaw": 0,
-          "air": 300,
-          "onFire": false,
-          "experienceProgress": 0,
           "z": 1.6000000119209288,
           "y": 81.4,
           "x": 0.5,
@@ -2083,16 +2066,33 @@
           "health": 20,
           "cameraType": "first_person",
           "eyeHeight": 1.62,
+          "crouching": false,
+          "swimming": false,
+          "maxHealth": 20,
+          "fallFlying": false,
+          "inLava": false,
+          "pitch": 0,
+          "experienceLevel": 0,
+          "deadOrDying": false,
+          "vehicleControllerIsPlayer": false,
+          "dimension": "minecraft:overworld",
+          "usingHand": "none",
+          "pose": "standing",
+          "selectedSlot": 0,
+          "yaw": 0,
+          "air": 300,
+          "onFire": false,
+          "experienceProgress": 0,
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
           "velocityX": 0,
-          "requestId": "c5fa4a3e-7742-49ac-abdf-40abde81c0df",
+          "requestId": "1b0e220a-374f-41e5-9b6b-23a42e46497f",
           "protocolVersion": "v0"
         }
       },
       "passengerInput": {
         "type": "operation",
-        "operationId": "5301726c-9770-4c0b-a8e7-45b1f857c656",
+        "operationId": "65b455ff-f0e7-4aa9-b669-6cd2f1105d69",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -2104,31 +2104,31 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1792570414091,
-        "acceptedAtMillis": 1792570414091,
-        "scheduledAtMillis": 1792570414091,
-        "startedAtMillis": 1792570414091,
-        "completedAtMillis": 1792570414827,
+        "receivedAtMillis": 1793391865542,
+        "acceptedAtMillis": 1793391865542,
+        "scheduledAtMillis": 1793391865542,
+        "startedAtMillis": 1793391865542,
+        "completedAtMillis": 1793391866282,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "e7dee8d7-5425-46c4-9abe-712a8e60d427",
+          "gestureId": "9b580472-fabb-40e1-80ae-485cae0f2efe",
           "status": "completed",
           "stepCount": 2,
-          "durationMillis": 736,
+          "durationMillis": 740,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "mouse.delta",
               "status": "completed",
-              "elapsedMillis": 8.6212,
+              "elapsedMillis": 9.6996,
               "result": {
                 "type": "input.mouse.delta",
                 "target": "26.3-neoforge",
-                "clientTick": 1406,
+                "clientTick": 1308,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "e7dee8d7-5425-46c4-9abe-712a8e60d427",
+                "gestureId": "9b580472-fabb-40e1-80ae-485cae0f2efe",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -2139,7 +2139,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 136,
+                "inputDispatchSequence": 135,
                 "pointerPlane": "GAMEPLAY_RELATIVE",
                 "guiX": 280,
                 "guiY": 160.23882369879246,
@@ -2152,13 +2152,13 @@
               "index": 1,
               "stepType": "key.chord",
               "status": "completed",
-              "elapsedMillis": 717.8108,
+              "elapsedMillis": 713.8262,
               "result": {
                 "type": "input.result",
                 "target": "26.3-neoforge",
-                "clientTick": 1420,
+                "clientTick": 1322,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "e7dee8d7-5425-46c4-9abe-712a8e60d427",
+                "gestureId": "9b580472-fabb-40e1-80ae-485cae0f2efe",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -2169,7 +2169,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 138,
+                "inputDispatchSequence": 137,
                 "keyMappingPath": true
               }
             }
@@ -2177,50 +2177,49 @@
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0255,
-            "totalMillis": 736.1218,
+            "queueMillis": 0.0279,
+            "totalMillis": 740.3216,
             "requestedDelayMillis": 700,
             "inputCallbackCount": 3,
             "stages": {
               "inputState": {
-                "elapsedMillis": 0.5268,
+                "elapsedMillis": 8.5608,
                 "calls": 1
               },
               "pointerState": {
-                "elapsedMillis": 19.6781,
+                "elapsedMillis": 17.8601,
                 "calls": 4
               },
               "nativeCall": {
-                "elapsedMillis": 6.0522,
+                "elapsedMillis": 4.6311,
                 "calls": 3
               },
               "delay": {
-                "elapsedMillis": 700.4085,
+                "elapsedMillis": 700.7185,
                 "calls": 1
               },
               "cleanup": {
-                "elapsedMillis": 8.999,
+                "elapsedMillis": 8.0579,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 9.0053,
-            "lastInputCallbackOffsetMillis": 726.8339
+            "firstInputCallbackOffsetMillis": 18.117,
+            "lastInputCallbackOffsetMillis": 731.9438
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "26.3-neoforge",
-            "clientTick": 1420,
+            "clientTick": 1322,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
-            "inputDispatchSequence": 139
+            "inputDispatchSequence": 138
           }
         },
-        "requestId": "ef930098-a4c8-47fa-b9e2-ecf28f45893f",
+        "requestId": "ad511100-00ff-40e3-96bd-0865290946ff",
         "protocolVersion": "v0"
       },
       "before": {
-        "leashHolderKnown": false,
         "baby": false,
         "targetTtlMs": 15000,
         "invisible": false,
@@ -2234,10 +2233,10 @@
         "z": 2.3,
         "y": 80,
         "x": 0.5,
-        "targetRef": "world:f41925ae-a280-4352-920a-d8e771400323"
+        "targetRef": "world:cc95220b-9b86-4abb-aeaa-9ed3dc7e92cc",
+        "leashHolderKnown": false
       },
       "after": {
-        "leashHolderKnown": false,
         "baby": false,
         "targetTtlMs": 15000,
         "invisible": false,
@@ -2251,7 +2250,8 @@
         "z": 2.3,
         "y": 80,
         "x": 0.5,
-        "targetRef": "world:fa3b2503-6afd-441e-b029-6248a556a430"
+        "targetRef": "world:65c780a6-56d7-473b-b943-52a0fd7a4d02",
+        "leashHolderKnown": false
       },
       "actAuthority": "PLAYTEST",
       "directRelationOrCameraMutationByAct": false
@@ -2262,7 +2262,7 @@
       "driver": {
         "operation": {
           "type": "operation",
-          "operationId": "b67326ef-b285-476c-ba71-584d582446b7",
+          "operationId": "3fa02388-cf81-461b-bf39-70ee28c2845d",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -2274,25 +2274,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570421299,
-          "acceptedAtMillis": 1792570421299,
-          "scheduledAtMillis": 1792570421299,
-          "startedAtMillis": 1792570421299,
-          "completedAtMillis": 1792570421421,
+          "receivedAtMillis": 1793391872429,
+          "acceptedAtMillis": 1793391872429,
+          "scheduledAtMillis": 1793391872429,
+          "startedAtMillis": 1793391872429,
+          "completedAtMillis": 1793391872539,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "70181eda-0897-400f-93b3-8f168c6744e6",
+            "gestureId": "da646ed1-e134-4851-be66-329ca5665802",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 122,
+            "durationMillis": 111,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 98.321,
+                "elapsedMillis": 96.3328,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -2317,9 +2317,9 @@
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 2054,
+                    "clientTick": 1942,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "70181eda-0897-400f-93b3-8f168c6744e6",
+                    "gestureId": "da646ed1-e134-4851-be66-329ca5665802",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -2347,55 +2347,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:68f129d8-4c41-43e2-b581-7362310a3b97"
+                  "targetRef": "world:8836747c-fdad-4407-b71b-e3679e93e6f6"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.02,
-              "totalMillis": 121.9674,
+              "queueMillis": 0.0204,
+              "totalMillis": 110.6994,
               "requestedDelayMillis": 80,
               "inputCallbackCount": 3,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 9.863,
+                  "elapsedMillis": 6.1207,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 17.9035,
+                  "elapsedMillis": 14.7966,
                   "calls": 4
                 },
                 "delay": {
-                  "elapsedMillis": 80.1553,
+                  "elapsedMillis": 81.3687,
                   "calls": 1
                 },
                 "cleanup": {
-                  "elapsedMillis": 13.6479,
+                  "elapsedMillis": 8.1124,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 22.4263,
-              "lastInputCallbackOffsetMillis": 108.0175
+              "firstInputCallbackOffsetMillis": 14.4494,
+              "lastInputCallbackOffsetMillis": 102.2921
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 2056,
+              "clientTick": 1944,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
               "inputDispatchSequence": 3071
             }
           },
-          "requestId": "8acdebdd-2148-4b43-bfa9-aa05d3eea864",
+          "requestId": "27f4d113-8c82-44b0-9188-3a3f373f1a27",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 2057,
+          "clientTick": 1944,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -2407,28 +2407,19 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570421448,
+          "sampledAtMillis": 1793391872547,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
           "onGround": false,
           "flying": false,
           "anchor": {
-            "y": 83.4,
             "x": 0.5,
             "dimension": "minecraft:overworld",
-            "z": 4.780708482299603
+            "z": 4.347588880570153,
+            "y": 83.4
           },
           "maxRadius": 32,
-          "maxAir": 300,
-          "sprinting": false,
-          "underWater": false,
-          "inWater": false,
-          "sleeping": false,
-          "vehicleType": "minecraft:happy_ghast",
-          "food": 20,
-          "health": 20,
-          "cameraType": "first_person",
           "eyeHeight": 1.62,
           "crouching": false,
           "swimming": false,
@@ -2447,7 +2438,7 @@
           "air": 300,
           "onFire": false,
           "experienceProgress": 0.96296287,
-          "z": 4.780708482299603,
+          "z": 4.347588880570153,
           "y": 83.4,
           "x": 0.5,
           "useTicks": 0,
@@ -2455,17 +2446,26 @@
           "riding": true,
           "usingItem": false,
           "absorption": 0,
-          "velocityX": 0,
+          "maxAir": 300,
+          "sprinting": false,
+          "underWater": false,
+          "inWater": false,
+          "sleeping": false,
+          "vehicleType": "minecraft:happy_ghast",
+          "food": 20,
+          "health": 20,
+          "cameraType": "first_person",
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
-          "requestId": "0aa38002-ebcf-4cc1-887e-741a7efc6e4b",
+          "velocityX": 0,
+          "requestId": "7f1405a7-21e3-4538-a984-b174b647ec75",
           "protocolVersion": "v0"
         }
       },
       "passenger": {
         "operation": {
           "type": "operation",
-          "operationId": "47befbe7-95cd-47e2-874b-09c8ed06b9b8",
+          "operationId": "a3c766b6-4fd1-47d7-9b08-b139b7db2d88",
           "status": "completed",
           "state": "completed",
           "received": true,
@@ -2477,25 +2477,25 @@
           "cancelled": false,
           "timedOut": false,
           "leaseBound": true,
-          "receivedAtMillis": 1792570421459,
-          "acceptedAtMillis": 1792570421459,
-          "scheduledAtMillis": 1792570421459,
-          "startedAtMillis": 1792570421459,
-          "completedAtMillis": 1792570421584,
+          "receivedAtMillis": 1793391872559,
+          "acceptedAtMillis": 1793391872559,
+          "scheduledAtMillis": 1793391872559,
+          "startedAtMillis": 1793391872559,
+          "completedAtMillis": 1793391872668,
           "commandSubmissionsComplete": true,
           "result": {
             "type": "pipeline.result",
-            "gestureId": "24aff2df-78c8-4efb-a44d-60fcb2c3d318",
+            "gestureId": "83ad53f8-2cfb-4629-a4a4-f96a9ce843c5",
             "status": "completed",
             "stepCount": 1,
-            "durationMillis": 125,
+            "durationMillis": 109,
             "cleanupOnComplete": true,
             "steps": [
               {
                 "index": 0,
                 "stepType": "world.action",
                 "status": "completed",
-                "elapsedMillis": 101.5304,
+                "elapsedMillis": 95.7662,
                 "result": {
                   "actualHit": {
                     "dataCategory": "USER",
@@ -2511,18 +2511,18 @@
                     }
                   },
                   "onTarget": true,
-                  "aimError": 7.666150302587723,
-                  "dx": -17.33556276263016,
-                  "dy": -48.077770975868454,
+                  "aimError": 7.219020735238554,
+                  "dx": 0,
+                  "dy": -48.12680490159036,
                   "cameraProcessing": "vanilla_sensitivity_inversion",
                   "outcome": "input_dispatched_effect_requires_observation",
                   "aimValidation": "native_interaction_pick",
                   "input": {
                     "type": "input.result",
                     "target": "26.3-neoforge",
-                    "clientTick": 1553,
+                    "clientTick": 1448,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "24aff2df-78c8-4efb-a44d-60fcb2c3d318",
+                    "gestureId": "83ad53f8-2cfb-4629-a4a4-f96a9ce843c5",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -2533,7 +2533,7 @@
                     "directMutationUsed": false,
                     "screenRevision": 9,
                     "menuRevision": 5,
-                    "inputDispatchSequence": 143,
+                    "inputDispatchSequence": 142,
                     "normalMenuProcessingObserved": false
                   },
                   "binding": {
@@ -2550,55 +2550,55 @@
                   "entryLayer": "GAME_ROUTED_RAW",
                   "directMutationUsed": false,
                   "action": "use",
-                  "targetRef": "world:e8643256-bf99-49ef-863f-f0bbc6bad522"
+                  "targetRef": "world:68b1e810-1203-44a4-ba90-de45fa5d2f87"
                 }
               }
             ],
             "timing": {
               "timeSource": "monotonic_elapsed",
               "scope": "automation_pipeline_not_http_or_server_effect",
-              "queueMillis": 0.0291,
-              "totalMillis": 124.9529,
+              "queueMillis": 0.024,
+              "totalMillis": 109.0406,
               "requestedDelayMillis": 80,
               "inputCallbackCount": 3,
               "stages": {
                 "inputState": {
-                  "elapsedMillis": 7.5708,
+                  "elapsedMillis": 5.1271,
                   "calls": 1
                 },
                 "nativeCall": {
-                  "elapsedMillis": 21.2144,
+                  "elapsedMillis": 14.2282,
                   "calls": 4
                 },
                 "delay": {
-                  "elapsedMillis": 80.0903,
+                  "elapsedMillis": 81.2847,
                   "calls": 1
                 },
                 "cleanup": {
-                  "elapsedMillis": 15.6393,
+                  "elapsedMillis": 7.9859,
                   "calls": 1
                 }
               },
-              "firstInputCallbackOffsetMillis": 19.9255,
-              "lastInputCallbackOffsetMillis": 108.8562
+              "firstInputCallbackOffsetMillis": 13.489,
+              "lastInputCallbackOffsetMillis": 100.6537
             },
             "cleanup": {
               "type": "input.release_all",
               "target": "26.3-neoforge",
-              "clientTick": 1555,
+              "clientTick": 1450,
               "reason": "pipeline_completed",
               "releasedKeys": 0,
               "releasedButtons": 0,
-              "inputDispatchSequence": 145
+              "inputDispatchSequence": 144
             }
           },
-          "requestId": "931d515d-a6d7-446c-b4e0-d26518402b45",
+          "requestId": "caa7a967-f8ed-4b8e-b52f-0697ec0c84b0",
           "protocolVersion": "v0"
         },
         "state": {
           "type": "player.state",
           "target": "26.3-neoforge",
-          "clientTick": 1556,
+          "clientTick": 1450,
           "domain": "WORLD",
           "dataCategory": "USER",
           "authority": "CLIENT_KNOWN",
@@ -2610,37 +2610,20 @@
           "completeGameData": false,
           "storageAccessed": false,
           "chunkLoadRequested": false,
-          "sampledAtMillis": 1792570421629,
+          "sampledAtMillis": 1793391872677,
           "precision": "client_state_not_server_truth",
           "available": true,
           "gameMode": "survival",
           "onGround": false,
           "flying": false,
           "anchor": {
-            "dimension": "minecraft:overworld",
-            "z": 2.8327636755711865,
+            "z": 2.3,
             "y": 83.4,
-            "x": -1.2
+            "x": -1.2,
+            "dimension": "minecraft:overworld"
           },
           "maxRadius": 32,
-          "crouching": false,
-          "swimming": false,
-          "maxHealth": 20,
-          "fallFlying": false,
-          "inLava": false,
-          "pitch": 0,
-          "experienceLevel": 0,
-          "deadOrDying": false,
-          "vehicleControllerIsPlayer": false,
-          "dimension": "minecraft:overworld",
-          "usingHand": "none",
-          "pose": "standing",
-          "selectedSlot": 0,
-          "yaw": 90,
-          "air": 300,
-          "onFire": false,
-          "experienceProgress": 0,
-          "z": 2.8327636755711865,
+          "z": 2.3,
           "y": 83.4,
           "x": -1.2,
           "useTicks": 0,
@@ -2658,16 +2641,33 @@
           "health": 20,
           "cameraType": "first_person",
           "eyeHeight": 1.62,
+          "crouching": false,
+          "swimming": false,
+          "maxHealth": 20,
+          "fallFlying": false,
+          "inLava": false,
+          "pitch": 0,
+          "experienceLevel": 0,
+          "deadOrDying": false,
+          "vehicleControllerIsPlayer": false,
+          "dimension": "minecraft:overworld",
+          "usingHand": "none",
+          "pose": "standing",
+          "selectedSlot": 0,
+          "yaw": 90,
+          "air": 300,
+          "onFire": false,
+          "experienceProgress": 0,
           "velocityZ": 0,
           "velocityY": -0.0784000015258789,
           "velocityX": 0,
-          "requestId": "5d099d49-7cc2-4cff-b93f-90d6b918e60f",
+          "requestId": "9a5d7eed-d229-44b2-81b0-f054554a8089",
           "protocolVersion": "v0"
         }
       },
       "passengerInput": {
         "type": "operation",
-        "operationId": "fd4af6a2-a81e-4593-bc69-42bbbc897d4d",
+        "operationId": "3e1d8b00-2c92-41b3-a983-223a92d462d6",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -2679,31 +2679,31 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1792570421734,
-        "acceptedAtMillis": 1792570421734,
-        "scheduledAtMillis": 1792570421734,
-        "startedAtMillis": 1792570421734,
-        "completedAtMillis": 1792570422457,
+        "receivedAtMillis": 1793391872744,
+        "acceptedAtMillis": 1793391872744,
+        "scheduledAtMillis": 1793391872744,
+        "startedAtMillis": 1793391872744,
+        "completedAtMillis": 1793391873483,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "a082eb87-00fd-46c3-b6dc-7fb1e6193079",
+          "gestureId": "4610b2cb-21cf-4f10-b2c6-f29d6bf77bb5",
           "status": "completed",
           "stepCount": 2,
-          "durationMillis": 723,
+          "durationMillis": 739,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "mouse.delta",
               "status": "completed",
-              "elapsedMillis": 0.3025,
+              "elapsedMillis": 8.532,
               "result": {
                 "type": "input.mouse.delta",
                 "target": "26.3-neoforge",
-                "clientTick": 1558,
+                "clientTick": 1452,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "a082eb87-00fd-46c3-b6dc-7fb1e6193079",
+                "gestureId": "4610b2cb-21cf-4f10-b2c6-f29d6bf77bb5",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -2714,7 +2714,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 146,
+                "inputDispatchSequence": 145,
                 "pointerPlane": "GAMEPLAY_RELATIVE",
                 "guiX": 300,
                 "guiY": 160.23882369879246,
@@ -2727,13 +2727,13 @@
               "index": 1,
               "stepType": "key.chord",
               "status": "completed",
-              "elapsedMillis": 706.5394,
+              "elapsedMillis": 715.0229,
               "result": {
                 "type": "input.result",
                 "target": "26.3-neoforge",
-                "clientTick": 1573,
+                "clientTick": 1466,
                 "entryLayer": "GAME_ROUTED_RAW",
-                "gestureId": "a082eb87-00fd-46c3-b6dc-7fb1e6193079",
+                "gestureId": "4610b2cb-21cf-4f10-b2c6-f29d6bf77bb5",
                 "inputOrigin": "AGENT_ROUTED",
                 "hostCursorUsed": false,
                 "screenObserved": false,
@@ -2744,7 +2744,7 @@
                 "directMutationUsed": false,
                 "screenRevision": 9,
                 "menuRevision": 5,
-                "inputDispatchSequence": 148,
+                "inputDispatchSequence": 147,
                 "keyMappingPath": true
               }
             }
@@ -2752,50 +2752,49 @@
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0267,
-            "totalMillis": 723.5065,
+            "queueMillis": 0.0315,
+            "totalMillis": 739.768,
             "requestedDelayMillis": 700,
             "inputCallbackCount": 3,
             "stages": {
               "inputState": {
-                "elapsedMillis": 8.4377,
+                "elapsedMillis": 7.6569,
                 "calls": 1
               },
               "pointerState": {
-                "elapsedMillis": 0.1415,
+                "elapsedMillis": 16.2695,
                 "calls": 4
               },
               "nativeCall": {
-                "elapsedMillis": 5.1095,
+                "elapsedMillis": 5.994,
                 "calls": 3
               },
               "delay": {
-                "elapsedMillis": 701.3943,
+                "elapsedMillis": 700.9811,
                 "calls": 1
               },
               "cleanup": {
-                "elapsedMillis": 8.0458,
+                "elapsedMillis": 8.3647,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 8.7277,
-            "lastInputCallbackOffsetMillis": 715.1355
+            "firstInputCallbackOffsetMillis": 16.1309,
+            "lastInputCallbackOffsetMillis": 731.0355
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "26.3-neoforge",
-            "clientTick": 1573,
+            "clientTick": 1466,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
-            "inputDispatchSequence": 149
+            "inputDispatchSequence": 148
           }
         },
-        "requestId": "b14566d8-7a1e-477d-b9f2-c8315f3a4934",
+        "requestId": "7dbf6497-2e2e-4da2-9ec0-a95e7c77acfd",
         "protocolVersion": "v0"
       },
       "before": {
-        "leashHolderKnown": false,
         "baby": false,
         "targetTtlMs": 15000,
         "invisible": false,
@@ -2806,13 +2805,13 @@
         "yaw": 0,
         "leashed": false,
         "name": "Happy Ghast",
-        "z": 3.0807084822996025,
+        "z": 3.25173313959592,
         "y": 80,
         "x": 0.5,
-        "targetRef": "world:0d5890c8-439e-4ca2-8c7a-d5935fc59574"
+        "targetRef": "world:7cd530e1-80e4-4710-a895-890ac3caef1f",
+        "leashHolderKnown": false
       },
       "after": {
-        "leashHolderKnown": false,
         "baby": false,
         "targetTtlMs": 15000,
         "invisible": false,
@@ -2823,10 +2822,11 @@
         "yaw": 0,
         "leashed": false,
         "name": "Happy Ghast",
-        "z": 3.0807084822996025,
+        "z": 3.25173313959592,
         "y": 80,
         "x": 0.5,
-        "targetRef": "world:bc3826a4-e8b2-4441-95e6-f5086c174b69"
+        "targetRef": "world:65b0d40a-6da6-4850-b710-b4aab8cc6f90",
+        "leashHolderKnown": false
       },
       "actAuthority": "PLAYTEST",
       "directRelationOrCameraMutationByAct": false
@@ -2836,16 +2836,16 @@
       "finalInput": {
         "type": "input.state",
         "target": "26.3-neoforge",
-        "clientTick": 1626,
+        "clientTick": 1514,
         "pressedKeys": [],
         "pressedButtons": [],
         "pressedKeyCount": 0,
         "pressedButtonCount": 0,
-        "inputDispatchSequence": 152,
+        "inputDispatchSequence": 151,
         "nativeEntityAttackCount": 0,
         "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
         "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-        "nativeEntityAttackContextId": "d3dfaeed-0c2a-4904-9385-c1d96946f42f",
+        "nativeEntityAttackContextId": "9ccc269c-127c-4c54-98d7-6109b4a5e0cf",
         "nativeEntityAttackContextGeneration": 1,
         "nativeEntityAttackControlGeneration": 1,
         "nativeEntityAttackLeaseActive": true,
@@ -2858,17 +2858,17 @@
         "takeoverActive": true,
         "modeTransitionReason": "agent_control_acquired",
         "modeVersion": {
-          "controlSessionId": "ca009d46-24c0-4640-a776-3c7aaa411447",
+          "controlSessionId": "56ae45da-ea4c-48b3-91fa-45492e3906ac",
           "generation": 1
         },
         "modeContract": "explicit_intent_separate_authorization_v1",
-        "controlChromeRenderedFrames": 6011,
+        "controlChromeRenderedFrames": 6989,
         "controlChromeAlpha": 1,
-        "controlChromeEdgeAlpha": 0.8522546,
-        "controlChromeEdgeWidth": 0.9261273,
+        "controlChromeEdgeAlpha": 0.77417886,
+        "controlChromeEdgeWidth": 0.88708943,
         "operatorChromeLayer": "after_content_capture_before_present",
         "captureExcludesOperatorChrome": true,
-        "captureFrameSequence": 6139,
+        "captureFrameSequence": 7132,
         "capturePending": 0,
         "captureReadbacks": 0,
         "nativeRevocations": 0,
@@ -2912,15 +2912,15 @@
         "inputCleanupPending": false,
         "inputCleanupFailed": false,
         "inputContextGeneration": 1,
-        "inputContextId": "d3dfaeed-0c2a-4904-9385-c1d96946f42f",
+        "inputContextId": "9ccc269c-127c-4c54-98d7-6109b4a5e0cf",
         "inputContextAvailable": true,
-        "requestId": "fff5ac7a-6279-4b60-aafd-fca2021d8998",
+        "requestId": "9806e789-f3d4-409c-9ed9-fa46c586db92",
         "protocolVersion": "v0"
       }
     },
     {
       "case": "partner_quit_unconfirmed",
-      "error": "Error: {\"error\":\"RUNTIME_SHUTTING_DOWN\",\"message\":\"unknown\",\"executionOutcome\":\"not_confirmed\",\"retrySafe\":false,\"requestId\":\"1015e855-9b25-427c-be33-b3d622abf30c\",\"protocolVersion\":\"v0\"}",
+      "error": "Error: {\"error\":\"RUNTIME_SHUTTING_DOWN\",\"message\":\"unknown\",\"executionOutcome\":\"not_confirmed\",\"retrySafe\":false,\"requestId\":\"1f2a909c-b0e1-47bd-8f6c-3d344d29c028\",\"protocolVersion\":\"v0\"}",
       "retrySafe": false
     },
     {
@@ -2937,7 +2937,7 @@
       "before": {
         "type": "input.state",
         "target": "26.3-neoforge",
-        "clientTick": 2269,
+        "clientTick": 2150,
         "pressedKeys": [],
         "pressedButtons": [],
         "pressedKeyCount": 0,
@@ -2946,7 +2946,7 @@
         "nativeEntityAttackCount": 4,
         "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
         "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-        "nativeEntityAttackContextId": "9e9423eb-2b65-4b30-8080-2122cf1ed2b9",
+        "nativeEntityAttackContextId": "b560e487-b99d-403f-9696-4d927fa2d3f9",
         "nativeEntityAttackContextGeneration": 1,
         "nativeEntityAttackControlGeneration": 6,
         "nativeEntityAttackLeaseActive": true,
@@ -2959,17 +2959,17 @@
         "takeoverActive": true,
         "modeTransitionReason": "agent_control_acquired",
         "modeVersion": {
-          "controlSessionId": "b93f6610-d3f7-423e-9ff3-85c21f562049",
+          "controlSessionId": "94a4e528-9bc1-4893-9565-453f8df0bce6",
           "generation": 6
         },
         "modeContract": "explicit_intent_separate_authorization_v1",
-        "controlChromeRenderedFrames": 7392,
+        "controlChromeRenderedFrames": 8748,
         "controlChromeAlpha": 1,
-        "controlChromeEdgeAlpha": 0.9729626,
-        "controlChromeEdgeWidth": 0.9864813,
+        "controlChromeEdgeAlpha": 0.9805526,
+        "controlChromeEdgeWidth": 0.99027634,
         "operatorChromeLayer": "after_content_capture_before_present",
         "captureExcludesOperatorChrome": true,
-        "captureFrameSequence": 8090,
+        "captureFrameSequence": 9429,
         "capturePending": 0,
         "captureReadbacks": 0,
         "nativeRevocations": 0,
@@ -2994,7 +2994,7 @@
           "plane": "GUI_ABSOLUTE",
           "x": 240,
           "y": 135,
-          "alpha": 0.30088347,
+          "alpha": 0.26411477,
           "gameCaptured": false,
           "gameCursorVisible": true,
           "gameCursorRevision": 145,
@@ -3013,15 +3013,15 @@
         "inputCleanupPending": false,
         "inputCleanupFailed": false,
         "inputContextGeneration": 1,
-        "inputContextId": "9e9423eb-2b65-4b30-8080-2122cf1ed2b9",
+        "inputContextId": "b560e487-b99d-403f-9696-4d927fa2d3f9",
         "inputContextAvailable": true,
-        "requestId": "abd036a3-c74b-4290-81f9-e90915468786",
+        "requestId": "9520d845-8a9b-433a-813c-d36ebb22f014",
         "protocolVersion": "v0"
       },
       "after": {
         "type": "input.state",
         "target": "26.3-neoforge",
-        "clientTick": 2307,
+        "clientTick": 2186,
         "pressedKeys": [],
         "pressedButtons": [],
         "pressedKeyCount": 0,
@@ -3030,7 +3030,7 @@
         "nativeEntityAttackCount": 0,
         "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
         "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-        "nativeEntityAttackContextId": "a8144497-b3cf-4000-96bb-ce208a77a5bb",
+        "nativeEntityAttackContextId": "06794798-b996-46fc-9df6-ce1d81d4dd6d",
         "nativeEntityAttackContextGeneration": 2,
         "nativeEntityAttackControlGeneration": 6,
         "nativeEntityAttackLeaseActive": false,
@@ -3043,17 +3043,17 @@
         "takeoverActive": true,
         "modeTransitionReason": "agent_control_acquired",
         "modeVersion": {
-          "controlSessionId": "b93f6610-d3f7-423e-9ff3-85c21f562049",
+          "controlSessionId": "94a4e528-9bc1-4893-9565-453f8df0bce6",
           "generation": 6
         },
         "modeContract": "explicit_intent_separate_authorization_v1",
-        "controlChromeRenderedFrames": 7530,
+        "controlChromeRenderedFrames": 8879,
         "controlChromeAlpha": 1,
-        "controlChromeEdgeAlpha": 0.81027544,
-        "controlChromeEdgeWidth": 0.9051377,
+        "controlChromeEdgeAlpha": 0.84223807,
+        "controlChromeEdgeWidth": 0.92111903,
         "operatorChromeLayer": "after_content_capture_before_present",
         "captureExcludesOperatorChrome": true,
-        "captureFrameSequence": 8228,
+        "captureFrameSequence": 9560,
         "capturePending": 0,
         "captureReadbacks": 0,
         "nativeRevocations": 0,
@@ -3097,9 +3097,9 @@
         "inputCleanupPending": false,
         "inputCleanupFailed": false,
         "inputContextGeneration": 2,
-        "inputContextId": "a8144497-b3cf-4000-96bb-ce208a77a5bb",
+        "inputContextId": "06794798-b996-46fc-9df6-ce1d81d4dd6d",
         "inputContextAvailable": false,
-        "requestId": "8f23337d-4643-403c-a557-a29ad68848b0",
+        "requestId": "21e6dec8-4645-4f9e-bb84-6a3d0cf57365",
         "protocolVersion": "v0"
       },
       "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
@@ -3111,7 +3111,7 @@
           "message": "unknown",
           "executionOutcome": "not_confirmed",
           "retrySafe": false,
-          "requestId": "1bc87d2b-bf8c-417a-8834-dcc15166c833",
+          "requestId": "05fa4148-5d92-472a-abf3-c36947d975de",
           "protocolVersion": "v0"
         }
       },
@@ -3127,7 +3127,7 @@
           "pressedButtonCount": 0
         },
         "waited": true,
-        "requestId": "6d9e7883-0553-42ed-b3ed-fee26af96fd6",
+        "requestId": "e935af6d-c661-4031-af99-e0acdd9c1c11",
         "protocolVersion": "v0"
       }
     }
@@ -3159,12 +3159,12 @@
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeServerCommandCompletionTest.java": "282d94450001692396ad577d7c2ebe7fa6be84db6742a1f3c75bcd8b4ad4b9b3",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldEnvironmentTest.java": "45c1e4cfeb462df417b8c0e74e3cbe824932dc7e52010cd2ed7ce2eb1e1bcf65",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldItemMutationTest.java": "186ae04230949f7530d0773f73796a6d618d344c1c05530201395755374c316f",
-    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldLoadingTest.java": "58251798b4fb205d5d42c059a280f14d75e6f6f50304040b5cfb3ca9094a53d7",
-    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldReadBoundaryTest.java": "603851a5a826ef86be0f57fd2ccedd873e450f118aceee001a3890a5cdea5e9c",
+    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldLoadingTest.java": "c8753868f9d43b00f2987cb6ddc2268c5309acfd7ba610cb74ce4bf4ddf38df6",
+    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldReadBoundaryTest.java": "bc5853289dea10adab14757cf87b818656b235f37b0958ead721d8faa53e6ea8",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldRelationTest.java": "1131d61a65336d304721ec2eca355727c77e8078bcd102f2d9067fd24dad77ea",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldStateProjectionTest.java": "36bdc3dd4d96f7a50c0923b8a5048bf5ad014b2a7e6f54cbc620856d9e3bd86d",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeWorldTransferTest.java": "893661f6dd2d326f8e4af3b9e76a574f7b0fe96e80523d013d9a04ab35b0214e",
-    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapterTest.java": "c23109e55c79ae5bf0a87fcf756ead060d847d57eeb595b1451b6223e1109823",
+    "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapterTest.java": "ab87d2a39c0f7548ba8cf8762d1090b4b71632be592186e6898d1cbee7fdda31",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundationTest.java": "1603f496541af4f260b6587ff749dc73dec7d1825ed3b021f486690451486280",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PlayerTabPresentationTest.java": "b281c1ccbaa24ba0a3c9e8b5688dbca5713c510c04614c78c8908dedd2b239ce",
     "versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RecipeBookBoundsTest.java": "54c17e0e0b5e1e5602b0a201efecb4a8d7ae6553ae7b61b6e3c72b33dd9ab9e8",
@@ -3245,18 +3245,20 @@
     "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/WorldTransferProbeMixin.java": "a20a3787dbd4255a0d34989dcc06ecdb8f49a3fd2e0746c7a5ad690cc40726d5",
     "versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/WorldUserCatalogProbeMixin.java": "9887e98badfc483e8d8f064358897f04609634d046cf8a8f967e94756f14b217",
     "versions/26.3-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
-    "versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "059324f72d5514fa834036dfc084dbabf622abc575b45d04e8dc1e5a4ca222c1",
+    "versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "8bca32b03ad266ceb2d38adf7e2ff5f3f2e8a9053ab357573a31b1c8a760e283",
     "versions/26.3-neoforge/src/main/resources/META-INF/accesstransformer.cfg": "5ccad9292bbdb89190dc4f10e939e5727dda875b4efe674b902f27846ba846d1",
     "versions/26.3-neoforge/src/main/resources/META-INF/neoforge.mods.toml": "d53a552e294024e63abbc65019459e7b94b22ee7a83f987ba2d558999fcd6c7b",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "daae044e9efbb1c2ceba3f0536d05f3af96c2767558afe64310557c603e2aeff",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "5d718bd9ea52c2bb331dbdae925130973c466e7ead595574354128c020e05013",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "cae7fbc13406b41f3995012e0c93a9347b80a208db6a5b612918f0a5f2d262a0",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/server/DedicatedServerRuntime.java": "750b723e30ea27c14bd51732672dd6b7117cdf3ffb84381b0354425485a68130",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "27ea6c55d83bcf86f86b5c6bad1170a3f9db3e13dde43b8afec7d7e73b48d79d",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedWorldDebug.java": "02dcce6882a8d08f01350d4ab511d88b2b8a2b4a0da24d61bb6b85636916bd57",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandPayloads.java": "583418609021d5c53adbf2b1bc24524d80dbeff65a23db9f9e9022045e2a5470",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandSuggestions.java": "9a81d1b805a7ecfe3a58a35b3b50c1e9d1301300d8c959ddb9b14ddbed7c7e03",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeInputMapping.java": "96794b84dc8cbcedceee4bf2dbfb16e5e3d1639ac731be4c479fe2f158735d22",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativePlayerCommands.java": "88c54566015c0392410025e42f6e4c0aa264c0761a69e6b5bb56f81262feb08c",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "4a58a26a4760c50b64d9b830790caad7b448f09210a37262d97946f1fafe0ca2",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "531b8e81ac204f18a1c35fe51dffcf6e6a28d3b8d3f91c9e9f3a312ff8cca81d",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "89def56aa99ad7e5eddd02e561569cb123dc034930869eca962ef74ac5bf3966",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "bcb580f0cc8dddffad22d5ca50cf31e3b5ac851f1903410858951cb575eef96b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "287fc0d1c634c4b6410bc0a1b4b6d18b4e981a61dbc0fe5a8cae85c14ac5677a",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "40519b16683f1d9ca73e4be92245f771a6cf605cabade0fe3a8e504b6d02f9d0",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RichTextUiRegions.java": "3f5ff3fa3c56845c171cc642b40f76b279b1a844a5094912be49ee319fccefdb",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/SpectatorUiTree.java": "5eb64da21e6e4c4e00d0be845bdff61334ce0d5d4e182d0bb3838a04b847b0e0",
@@ -3276,7 +3278,7 @@
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldPresentationSnapshot.java": "c7e1bf9d9eab69597703049a69ca52a65e74479ccc2f9d76c662ccb1ad46fdb7",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldRegionSnapshot.java": "5bfd3a979417d2cefb097ff9e4bed593003a98a3f5d0a18153473036235ad48e",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/WorldTargeting.java": "69f833d39525d3e0783d5fdd9f15f0da6bf22a64ad59cae69f4008188307da17",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "d8c8864302b681e7209e550196679ccd8dc0551b62192be20fc1923fb8d96b0b",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java": "d165dd96aa567f7397a18a3a4ac65cd586f82a4e79ce6c25b114154f0e277092",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "8eaa90d5777020803ac95890c34769622ccb36408ae4386ab0f0dd42e93983d8",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "c89afa39e0b959f1183fcb742e6fea937d057e94f61b4a22a7906b21354b66b6",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "a677f06b81d0c0eb02ebf61ba308cab67ac594c1be3041c97f6555c138695cd6",
@@ -3413,9 +3415,11 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java": "b9105c25b687da5d33353ec4057d8ebcda6da1f49bcc8a40b276a7e85715e5c4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java": "e76f8dcef0ba6e8b1b4b3fc4e3274d2667f8e006bd1311c2f592d51651579e20",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ReadProvider.java": "9512ba382990bad409b26e3d9c226831c6a21bbc0e085f86836d57f14beae18c",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java": "229a54012b2803c0e10a3229d6d3f6044af33d50a9ad6473c416104fa1d89de0",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java": "0320201196435ab3d00d4dc9153a591061b47e110ad979e84e49efb4ce33627d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/BoundedTaskExecutor.java": "2b322b169ec24eb0998b9df00557ab1a5e154bac5df51cc5dd7f0ee97070db5e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ClientDebugCapabilities.java": "f2cdd73a592edfd73ba056697f93cfa00f2bb042e7f046a6fd42c5d137e19adf",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java": "13dbbb575ff7129b811148bb368d3a19e70ccbfa78c8bf2444e1c1fbc280f521",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConsoleLogCapture.java": "ffef173061bde39cbcc8967a1e84cd6a224ce412cbe9640eaafe19b26716969b",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBatchEngine.java": "316097da7e100811d7e612d7bb77ba88db0659c77e84526ee38df379db61c4b4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugBlockStateRequest.java": "b73c16487e9280ca48a5da150ab5f8f495d2b469adab517ace81cc801eb8a010",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugEffectRequest.java": "6d9883476b026a4634f0e93873b297460e3e0c41b467f4a4986702c0e9e6586d",
@@ -3427,15 +3431,17 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugStateRequest.java": "7f68f3a8b3965da8466a122d7841c1caf7a3e40f30bf59596c746770a02213d9",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DebugTransferRequest.java": "1ac2ab7eba624ea01f60bdc5a86ba92941990f8e4f3f61ade45f5cc83b4cd889",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DeepBlockEntityPages.java": "2d2972dca811777be4066a82b585590f84fe9395ada8f25fdde5c87f006611c1",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DeepObservationRequestContext.java": "b9056bf469e21c1035985d669dfa20bd1eabb3b2c532156349e274cb29d21148",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/DeepObservationRequestContext.java": "79aa6df466e413ff39f639cebe7cd69e7b8356d8a324f75014d051603f3a367d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/EnvironmentControlRevisions.java": "1271df5ceb131c52651b5f597c93ff5d78314634c4b1d38c6ace19b37cf4ca80",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/EventHub.java": "08c8fccc693e7a3aed11c5b64af7b0108f999f4a9379294ad176b4de705d3136",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/EventHub.java": "7556423ad00c2127c92a6e77dae9d554165e31d3e24286b148adc3a3a1b1b1cf",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/HeadlessProbeService.java": "0ae88f2130e7ad655ef7a00e4638d7a88a8d69ea7f467511fc5e5b1450dc06fb",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/InputDispatchContext.java": "92aec26204c4a1e516e2a076cafb200fdf62d7da81789296682d3eea663fce24",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/LoadedChunkMutationScope.java": "02072ac288442acd61693e9321f095e351c8847615844878ae94fa4223de801c",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationEngine.java": "34b692a71a72a2c06c0dd1358fa20ae01655725aa6786cac004bfbfe3762ffd2",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationEngine.java": "e541d3d47791d38f393cb586df5700e7d6f22108b6a3b8c63d4598ccbb5c578e",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationLifecycleTracker.java": "500f4bf27674b2f247b31acc0ce33bd27b474af94600d27d7f4a1aa220d3c039",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ObservationRevisionTracker.java": "15f78ac63048f950954dbf774ac9a1c10d0463eaa9edc374a78e114604afe1c4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PartialDebugMutation.java": "f136a336033cdb11fd3666dbbf83db56ffe3fc0e27b47b1177b8165b3069b60b",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PeerDelegations.java": "ce984bc32379fdfc43dc0ad9595d3d02b63488456093e17cace638a5f7d286f9",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/Phase9AExperimentalService.java": "47d32e1a03ed423c0466ae832316ad1bf4b0d36d06253195c768f318a2b810d6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PipelineTiming.java": "ca41a479f62b187c4024eda6d8941909f12a7be7b4a200e9e16b80d448a1e9bb",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandBatch.java": "b9e327db8346a28ab7a5c895c9ba8e361a6414ef05682c28af81dc74d7ebbb48",
@@ -3448,17 +3454,21 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPolicy.java": "7b56e194bb312d314dd111ff0f609891bd724c919f9128d794bd7ecf4a9aaa8a",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandSuggestionRequests.java": "b1f3b1c576201dfc803fb45df19b9dbb03c0ca42cf3757ce234dfe15a5289258",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerStateStream.java": "fabcf2db9d40ff2a154e224bdb3c8e8ceb05506bc4c77acacfc534730bce5608",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "6e66f902758bc6413284b40cd23c8cd7b56b0f0da9a147cfb49028afe06ab6a9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "037a29560b4d79e84985a7445836c068d4daa0f15262f8c6f39b126549ee71a4",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java": "711c7d9944e7abacb370efd9003a87f576ec4707527c66e9531096ed2834f0a5",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "125abbf5f6eb1224c250c5cea922d03e72c86c7ccfe7cdc581503caa1cb3efc2",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "2727b062145571b4897c3390958407ba084cf09ebbd51dae8b0aec0500df7c72",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java": "85f824a8ed6f3fe1430e25eafee5d5f62364039e628e1e0459dbaa2c53a423db",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderExecutionEngine.java": "48af63a07039a2dd355798bedf1ce4ab2d714264601d9572549b37f09db4dd29",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderInspection.java": "8e797b722e23fa5e578ffd127e190a8954636a3a951cfc3e3665b2ff465b9465",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngine.java": "ddae1215ff8dc5b102b384b351e0f876b8f6230c277246cdb30415eecd395a7e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngine.java": "28f1f338534e9472f79202ea15043d0d43fa9a6e671fc31c90cd503cb33afac0",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ResourceVersionVerifier.java": "6c671064473dc451481ad5d7ac1e2bed2256517c788784edf01dd076466dd0fa",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeEndpoint.java": "f73514a77aecf707da969549fd652cfaa06c236dd048998ce95f917c157e8f62",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeEndpoint.java": "f17bdc2ce094033ed874f002e2e902ebb614ad9d2c462276910cf0481f8f97fe",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeToken.java": "87598ed50accec7629249302972f3b92247738c755b8e2d70c5fe66596df199d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ScheduledTickRead.java": "4a7b7b9c446dd88fc18e182ab5fa8cbc6bb8780fb4da8064f39e1e026c8a0b02",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/SecurityGate.java": "911ab27edab6ff08164dda38673965206dcf7b8f39531700e9c9940f2614c6e1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/SecurityGate.java": "8c767e9e28677f7dcc5d734c5785aa3684d28510dae7669d95bfdab453e7dbb6",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerConsole.java": "0fbf38666ce94a019e23fb8f2a0fc170d6be93dbc4abc26bd0428f255bdd219e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerConsoleService.java": "5ad291690a5c9498f708eda09e06d0afdf053db715bf753615989e9400e919dc",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerPeerReceiver.java": "302921cb3d2b8cf8edf070cd2ca8122f17b7d0c6f90628b8f4b1cbbe8df400f1",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerWorldDebug.java": "abaa7b13b586ffd99309de1b04e8339a453a03949c4b109e5b08265724a1dba7",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiItemDataGuard.java": "db8a49fb43f522d027ef5a24bcaed77a46064053cb3727b01b72041f50651308",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiMutationSupport.java": "c25151d0d906eca54f7371bb30fb7793b21b0afd0bf784c740f565e6079de052",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiTitleLifecycleSource.java": "2bc4e028ecc8d87ea42aba5c62d58d28c5688a0b395ec21e98dba00403db308a",
@@ -3466,47 +3476,47 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiToastResetSource.java": "f0ec63df67dff88e40a2fabd5c5bbb0cee2106ddd3043727ed503bb3bcc58f53",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldDebugInspection.java": "90dac6f218410f39303abf58972c7b4c4503758236f6fea6ae24137d1f188cf4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldHitEvidence.java": "b0058630308963835cc3c35dfa55ead65f488f9865d68e6bdd1f38b7f2681103",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldReadEngine.java": "672e4fb5194de94d4c75cbf93c0ca5c08c88762f1de0b9d184a73c95d63f55a8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldReadEngine.java": "c3ade92cd9bdc7d046f8b5e34ea1011c9709d5a99e5544528ae2e6b572f31dcc",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
-    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "abab6eb216dba4306435e0c0d5a07ba4bb504c6a6dfcbb16da8f3fb96dc69fb5",
-    "components\\validation_tools\\conformance-world_read\\task\\world-read-smoke.mjs": "525a3affc2959a2845cfacef0fc61a6a7004b669437f4e5afa0ff63f6efc2736",
-    "components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1": "2398915e25e2f73d2de8a49615d0ef31886b2b1c6d760c4bcb65ab106dfe8bf6",
+    "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "04f9a61c4367fe0957bf872464e2e96ec716d4513e6dfc9facec6c301510bc25",
+    "components\\validation_tools\\conformance-world_read\\task\\world-read-smoke.mjs": "f193fc4efb9c9324ca2f8b67478a27e34d414ebcc553357ab04acd580024b8e7",
+    "components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1": "e26baeadfef55d8ab61f0807910ef6f620498cfe25b1bd5588867cb38bdc4790",
     "components/validation_tools/conformance-world_read/task/Test-WorldReadArtifact.ps1": "941c11e52a376680ccc14cff1624e255e52561f5a891fcc418536f85145844cf",
     "components/validation_tools/conformance-world_read/task/world-read-consumers.mjs": "321cc69ed2fc1a532c06235b162ae1497a01f47abf0e31c3c410f2ffa0ec72a1",
     "components/validation_tools/conformance-world_read/task/world-held-actions.mjs": "e212fb9ca6ff0f54be7bd74a98f83ddf825e900f20254ef7673d4ae106730239",
     "components/validation_tools/conformance-world_read/task/world-entity-actions.mjs": "16b2a6b703e0e75d375124440800df3d326e4120088cca75de7c43c68207d936",
     "validations/conformance-world_read/validation.toml": "0115c152670016dd8542a30a3366894f72ead3438690fcab2da0346033b815ca",
-    "gradle.properties": "fa9512a931759ac9801cd5ae8d7da2dd5608f4594eaf1d559edfc3b172bf4df4",
+    "gradle.properties": "916fcec0135feb60736f077b5daad1e050f67ba629e72b4843cf45023b2b9fe1",
     "settings.gradle.kts": "d6c3ac3c26aaebae98d57804c9257275f0d1e95349272fb4554774ef5e593672",
-    "gradle/libs.versions.toml": "ad049aff46cecf5ccca49249b2c1b9ca3fb14af83c27ab37b2a6a1aaf7e7bb99",
+    "gradle/libs.versions.toml": "20f05a84f4a90d5b1b7eeaf2a7ddc282b7527eef3e09befb773efa49e356f0b3",
     "versions/26.3-neoforge/build.gradle.kts": "8f17f21e750d2f5fd5088f59b27e42db59df67b41b140cccb90196bdac90b814",
     "versions/26.3-neoforge/target.properties": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2",
-    "components/companion/src/config.ts": "7e676ad972b14568a115f8099da343e4d10ca81b378a862fede4de6438ed0423",
-    "components/companion/src/discovery.ts": "ee4f97e93db76d0b754290e22a7d27206406bbcd6dfb37907d2e9fa88a99584b",
+    "components/companion/src/config.ts": "622df5e63dc331a079b918fc2285e0e547e7a3a4dfd27bae523a4c82656fbfd4",
+    "components/companion/src/discovery.ts": "f7779392a4879037f7bbfdbf95035b54858ede010120cbdcfc12c7b617afda9d",
     "components/companion/src/index.ts": "25a659fcef08f9a2905f08346aec93e688c4af38a854e4f485c25f68bb87b875",
-    "components/companion/src/live-conformance.ts": "d39f00ae0ae7cb8193b7ad5154eab5a522fe8d669f0e60b8f4771697203fb851",
-    "components/companion/src/mode-policy.ts": "cca5e5c270eda25c8486b9df95b1f8bd49e1156b1dd58ac982e7bf402844e475",
+    "components/companion/src/live-conformance.ts": "3313785eaddd239ba62e9b5feedc68e46b0b0a315fef264c78688304bbb77e10",
+    "components/companion/src/mode-policy.ts": "b946bf67d39d9b1be40f4b90c3e37ae04424f5aa41e8ceae3abcc92e754efccb",
     "components/companion/src/result.ts": "02753bf103ca7d05a522e6b9fac1d37bb73a8cc7a1f596c04f4a75eee5b26793",
-    "components/companion/src/runtime-client.ts": "572414c32b560512001267ec69304b95686f63ea7c90e6469757253d46efbb44",
-    "components/companion/src/server.ts": "898b385d28f3971a2ccc78f2f80ea8fb74548dc1e0dec3e0b419c2ecd3283d04",
+    "components/companion/src/runtime-client.ts": "35862e0d659fc1c56a726b98c9cb971d20c1917d3aab07e9c000bbbee7556002",
+    "components/companion/src/server.ts": "19569062a6576622e4155b03b5f798929c7dc0dd3daa6b2ebc6be58e504e2341",
     "components/companion/src/session-state.ts": "8a099018b92f44609100e420e0336b32555fdca3a7e3844decc90f4e5b074202",
     "components/companion/src/types.ts": "bc1ccc5a0f0688b5e2ac1d5a4cbcd79905fc293875e4ae5d981257c11742a7fd",
-    "components/companion/src/ui-console-http.ts": "2c0741bf588a2b74d4b59964584252fa99921af301e17d59a5ec6ac574b472f8",
+    "components/companion/src/ui-console-http.ts": "db40ae9472ee1f0b8a893459ffecb0107effc9bcdea84f2c326f60a824452399",
     "components/companion/src/ui-console-main.ts": "da838fb80ce8560ed6ea8e9522bf63b1b76fa7d1f6de5b53fc8c59830621aca8",
-    "components/companion/src/ui-console.ts": "96eb3929cf5554ee62a111a1f0a52dc209edd7d826682373498023c7de53d6be",
+    "components/companion/src/ui-console.ts": "e1c2834852737db2eadce0ef5e0ce61ca06d282c9d810a991bd2b1ed3ed36e2b",
     "components/companion/src/test/authorization-feedback.test.ts": "79ecf941c185168306fc413e6f3a6217674d4d5d5047e4155fc81cc8513d7c92",
-    "components/companion/src/test/companion.test.ts": "61f2a290ae27a6bf9c6d278a1b01cd3c54beed408ad7ad91ce23d49001176c00",
-    "components/companion/src/test/discovery.test.ts": "4191e02958a841ded60573a6448190d4d19b6e5bc78ce53cb6a11dd25ece8e82",
+    "components/companion/src/test/companion.test.ts": "4519dcaf6d1bf8b237ca56be6306fc6b187192b0809e8f76b8a5095a7d1b0d8f",
+    "components/companion/src/test/discovery.test.ts": "5684e2c38a868782540a858632863f2d354e7f795da32a10ca00a600ad2c4986",
     "components/companion/src/test/streaming.test.ts": "beed8196af1650b17f64c97c09c9145b125a3da770b6f098f2e720689c18913a",
-    "components/companion/src/test/ui-console.test.ts": "f3ce422459475ed3e20d3400ed22519ae132060a766a3a0fc0d9129c8e8b5aa0",
+    "components/companion/src/test/ui-console.test.ts": "f9422a872b44b81ccd826beaf792b2436cffcf712dd28a11c31e05a1b6b7ff98",
     "components/companion/package.json": "7ae5c275c5a5d82202386a8265bd4e8bf5a0ed73954a12694230fc578bb46cb5",
     "components/companion/package-lock.json": "40efc507a89559491f5448f18c5dfa4396797a32229e22542190d4ee720062a5",
     "components/validation_tools/InstanceProfiles.ps1": "091d108f77facd0311189f93fa8327a2c69d7bf8d4c08aa8551e4c1907b62f5c",
     "components/validation_tools/Prepare-InstanceProfile.ps1": "31224a3b5f7598a1574de8123f81f62fda91b26800d226a6a4b01b21e73531a6",
     "components/validation_tools/instance-profiles.gradle": "d36cd6d5e3667a3440cd9fe71396369f9ec83c052a106b0f2b2847bcf1a09b5a",
-    "build.gradle.kts": "e3dd1773ff4849d90f35eb95e387efc5f73af4e8e8527a42c49c98e7ab4deab3",
-    "components/validation_tools/RuntimeConnection.ps1": "d95077fd228dbedbeab42927bc96e3e6159fa6fe9a8449b3af8154a016e9ec71",
+    "build.gradle.kts": "d3adc558b324b45d1e1c41597cd46cb5c0e197b0f5f7f883e8530796bbf15ebf",
+    "components/validation_tools/RuntimeConnection.ps1": "536b11e315c3631463860034e9cffccb88d7ec9ec9ed5f53f3d2e70080c99636",
     "components/validation_tools/runtime-connection.mjs": "531c8cdb8a448df6aafc8d878df4d66a34ed800a568f4288637c97560d948f62",
     "components/validation_tools/vanilla-command-fixtures.mjs": "2fde4ed1bfecc84e2d98fd90266af6e0ea95681e8914022fb62df23826c9636c",
     "components/validation_tools/conformance-world_read/task/WorldReadFixture.ps1": "ea2ad473eea917b6e257b3ff54e36bac3ecdb88830991a472157117c4f15c034",
@@ -3520,12 +3530,13 @@
     "components/validation_tools/conformance-world_read/task/consumer-player-feedback.mjs": "2698d995cc53ba547a770c2e86eff8f6479fa015142c098f60c3f206b1a48fa6",
     "components/validation_tools/conformance-world_read/task/consumer-hit-feedback.mjs": "ab0587eae9de101d39fa4ac957e69f8bfa25eb8934f0e3f03ec714d748235d28",
     "components/validation_tools/conformance-world_read/task/mode-collaboration-actions.mjs": "20123a9b092471beeb4eb3cdd1ae31f33ad2fb6c6c53db5db79ffb5257f20f3c",
+    "components/validation_tools/conformance-world_read/task/integrated-peer-actions.mjs": "bbf1e17efc910894f1a01337f98003120723022533aeac737ab3eaa4ccd2b282",
     "components/validation_tools/conformance-world_read/task/interaction-baseline-actions.mjs": "372b23ed7352eeb14eecf6874461ff6bd50f079d85caf7b1b109ba3ae8073541",
-    "components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs": "431fe7d439364f90cd214b6b18a973b02afd13b7cdabc9dd673eed63ce86bccb",
+    "components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs": "1c769b6de85af60d5d4a837c611c5b01ac28738d83800e2daded7f1e22de989e",
     "components/validation_tools/conformance-world_read/task/continuous-performance-actions.mjs": "3d9501c1e30a373b1d1f5e4a7dd329f0edd9e756241c75d814d0a3ae89e7cb54",
     "components/validation_tools/conformance-world_read/task/context-exit-evidence.mjs": "2166d314b524381b8748b5a86c706a1b0630fea27071af2f8093c48be151934f",
     "components/validation_tools/conformance-world_read/task/input-context-actions.mjs": "fc968dff8d43460744eeb18d6f0aa5fb780962b1dc81c1adf5b0a4c724ba6870",
-    "components/validation_tools/conformance-world_read/task/region-stream-actions.mjs": "ad52a6ea406f93f4019c279e20168962d50de3e55250ecd299ff7c6610069ca9",
+    "components/validation_tools/conformance-world_read/task/region-stream-actions.mjs": "e55fc1d9c565fd6a6f6a677e70834df350ad12d86b8e58c23eceecaae80cb292",
     "components/validation_tools/conformance-world_read/task/world-placement-receipts-actions.mjs": "3257f59a7312b94658cc564cfe95864ac7adb3c3aa54dc1d5dd5103dd4226852",
     "components/validation_tools/conformance-world_read/task/mcp-world-baseline.mjs": "58a1ad76a9753e47d4f607d5ac98fac109abd6b82d45f65e7adf80bb17ac6245",
     "components/validation_tools/conformance-world_read/task/resource-version-actions.mjs": "69b640e244caeacc4109bd3d555e9c7e204cfdf147daf9a168ff44c328ceaaeb",
@@ -3538,10 +3549,10 @@
   "cleanShutdown": true,
   "maximumHeapBytes": 4294967296,
   "seatPartner": {
-    "maximumHeapBytes": 4294967296,
-    "pid": 89992,
+    "port": 8115,
+    "runtimeInstanceId": "c87f9e57-9235-48ff-ae06-7d47f3cf7319",
     "cleanShutdown": true,
-    "runtimeInstanceId": "dfa95970-83a9-494d-9e4a-a98bd6390428",
-    "port": 10896
+    "maximumHeapBytes": 4294967296,
+    "pid": 49652
   }
 }

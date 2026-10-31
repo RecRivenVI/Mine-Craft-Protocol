@@ -14,7 +14,7 @@
 - Debug 采用 typed namespaces、bounded batch、逐项取消、before/after 和 resource/value preconditions。
   scope、Debug Arm、READ/OPERATE/TAKEOVER 意图、Lease、Evidence authority 正交。
 - Chunk/Client/Network 的部分边界仍为 PARTIAL；没有任意反射、raw packet 或任意字段后门。
-- Dedicated Peer 保留独立权限下的 typed health/block 子集；不能声称完整 Deep Debug ResourceVersion parity。
+- Dedicated Peer 已接入服务器签发的连接级委托和批准的 typed 目录；五端具名验证范围见[状态页](status-milestones.md)，不外推完整 Deep Debug ResourceVersion parity。
 - Persistent Read 有五端 Target adapter、有界 NBT/Region 只读访问、队列/生命周期约束和明确 stale/consistency。
   `PERSISTED / last_saved_state` 不冒充 LIVE。无调用方任意文件路径。
 - Write Safety Foundation 包含稳定 storage identity、offline ownership、前置条件、单文件 commit/recovery 基础。

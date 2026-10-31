@@ -5,6 +5,8 @@ import {candidateSource,sha256} from './alpha-candidate.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
 import {readDependencyBaseline,historicalTrialBaseline,dependencyPerformance} from './dependency-proof.mjs';
 import {eUiRegressionProof,inputContextProof,continuousInputProof,commandConfigurationProof,placementReceiptsProof} from './alpha-evidence.mjs';
+import {collectDpFreezeProof} from './dp-freeze-proof.mjs';
+import {probePublicationUpdate} from './probe-publication-proof.mjs';
 
 export const E_WORLD_PROFILE='e_world_trial_v1';
 export const E_WORLD_SCOPE='E_WORLD_affected_groups_and_installed_world_smoke';
@@ -74,6 +76,16 @@ const worldListReadinessUpdates=new Map([
 ]);
 
 export function eWorldUnexecutedReadinessUpdate(source,current,recordedDigest,scenario,result){
+ if(source==='components/validation_tools/conformance-world_read/task/resource-version-actions.mjs'&&scenario!=='resource-version'&&result?.scenario===scenario){
+  // The recorder lists this helper in every scenario; only resource-version calls it.
+  // Match only the known catalogue assertions and final disarm pacing, never other Act changes.
+  const text=current.toString('utf8'),count='assert.equal(contract.operations.length,27);',prefix="'provider.mutate','player.transform.set','entity.transform.set',";
+  const paced="try {await paced();await api('POST','/v0/debug/disarm');setArm(undefined);}catch(error){cleanupErrors.push(`disarm: ${error}`);}";
+  const variants=[text,text.replace(paced,paced.replace('await paced();',''))];
+  return current.equals(Buffer.from(text))&&text.split(count).length===2&&text.split(prefix).length===2
+   &&variants.some(value=>[value,value.replace(count,'assert.equal(contract.operations.length,24);').replace(prefix,'')].some(value=>sha256(Buffer.from(value))===recordedDigest));
+ }
+
  if(source==='components/validation_tools/conformance-world_read/task/command-configuration-smoke.mjs'&&scenario==='player-command'){
   const identity='runtimeConnection:{runtimeInstanceId:connection.instanceId,port:connection.port,pid:connection.pid},',text=current.toString('utf8');
   // The standalone player-command recorder lists this file but never imports it.
@@ -111,9 +123,13 @@ export async function collectEWorldProof(repo,targets,sourceHashes){
    if(path.includes('/src/test/'))continue;
    const current=await readFile(resolve(repo,path));
    if(sha256(current)!==digest){
+    if(scenario!=='command-configuration'&&probePublicationUpdate(path,current,digest)){
+     recordedToolUpdates.push({source:path,reason:'probe_json_publication_only',previousSha256:digest,currentSha256:sha256(current),currentProducerProof:`validations/conformance-world_read/result/${target}-command-configuration.json`});
+     continue;
+    }
     assert(eWorldUnexecutedReadinessUpdate(path,current,digest,scenario,result),'Changed E world executed binding: '+target+' '+scenario+' '+path);
     const update=worldListReadinessUpdates.get(path);
-    recordedToolUpdates.push(path.endsWith('/command-configuration-smoke.mjs')?{source:path,unexecutedScenario:'command-configuration',reason:'exact_reverse_hash_of_unexecuted_configuration_receipt_identity_only'}:update?{source:path,unexecutedScenario:update.scenario,reason:'exact_reverse_hash_of_unexecuted_world_list_readiness_only'}
+    recordedToolUpdates.push(path.endsWith('/command-configuration-smoke.mjs')?{source:path,unexecutedScenario:'command-configuration',reason:'exact_reverse_hash_of_unexecuted_configuration_receipt_identity_only'}:path.endsWith('/resource-version-actions.mjs')?{source:path,unexecutedScenario:'resource-version',reason:'exact_reverse_hash_of_unexecuted_catalogue_or_disarm_pacing_only'}:update?{source:path,unexecutedScenario:update.scenario,reason:'exact_reverse_hash_of_unexecuted_world_list_readiness_only'}
      :{source:path,reason:'exact_reverse_hash_of_optimizer_error_diagnostics_only',newDiagnosticsCovered:false,nativeRequestsAndSuccessAdmissionUnchanged:true});
    }
   }
@@ -128,6 +144,7 @@ export async function verifyEWorldPublication(report,repo){
  assert.equal(report.publicationProfile,E_WORLD_PROFILE);assert.equal(report.nativeSmokeScope,'e-world-affected');assert.equal(report.fullNativeSmoke,false);assert.equal(report.fullMilestonesComplete,false);assert.equal(report.runtimeAcceptance,E_WORLD_SCOPE);assert.equal(report.delivery,'e_world_trial_with_known_performance_limit');assert.equal(report.performancePolicy,'DEFERRED_BY_USER_2026_10_20');
  const targets=report.artifacts.map(row=>row.target),sources=await candidateSource(repo,targets);assert.deepEqual(report.sourceHashes,sources);assert.equal(report.sourceFingerprint,sha256(JSON.stringify(sources)));assert.deepEqual(report.eWorldTrial,await collectEWorldProof(repo,targets,sources));
  const baseline=await readDependencyBaseline(report.historicalBaseline?.directory);assert.deepEqual(report.historicalBaseline,historicalTrialBaseline(baseline));assert.deepEqual(report.performanceAcceptance,dependencyPerformance(baseline));
+ if(report.developerPreviewFreeze)assert.deepEqual(report.developerPreviewFreeze,await collectDpFreezeProof(repo,report.artifacts,sources));
  const installed=await collectInstalledProof(repo,report.artifacts,report.sourceFingerprint,{requireEnteredWorld:true});assert.equal(report.packagedRuntimeVerified,true);assert.equal(report.packagedRuntime.length,5);assert.equal(report.nativeSmoke.length,5);
  for(const actual of installed){const stored=report.packagedRuntime.filter(row=>row.target===actual.target),native=report.nativeSmoke.filter(row=>row.target===actual.target);assert.equal(stored.length,1);assert.equal(native.length,1);for(const[key,value]of Object.entries(actual))assert.deepEqual(stored[0][key],value);assert.equal(native[0].resultSha256,actual.resultSha256);assert.equal(native[0].enteredWorld,true);assert.equal(native[0].cleanShutdown,true);}
  return{scope:E_WORLD_SCOPE,currentDevelopmentRuns:report.eWorldTrial.currentDevelopmentRuns,currentInstalledWorldTargets:5,performanceAcceptance:report.performanceAcceptance,humanAcceptance:'NOT_PERFORMED',fullMilestonesComplete:false};

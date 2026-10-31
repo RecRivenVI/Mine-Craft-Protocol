@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import {coreShowcaseProof,commandConfigurationProof,consumerPriorityProof,consumerFeedbackProof,uiRegressionProof,collaborationIncrementProof,continuousInputProof,canonicalSourceHashes,verifyEvidenceSources,CONTINUOUS_PROFILE,DEFERRED_PERFORMANCE,collectContinuousGameplayProof,E_UI_PROFILE,E_UI_SCOPE,collectEUiProof} from './alpha-evidence.mjs';
 import {candidateSource} from './alpha-candidate.mjs';
+import {collectDpFreezeProof} from './dp-freeze-proof.mjs';
 import {E_WORLD_PROFILE,E_WORLD_SCOPE,collectEWorldProof} from './e-world-proof.mjs';
 import {collectInstalledProof} from '../../integration-packaged_runtime/task/installed-evidence.mjs';
 import {DEPENDENCY_PROFILE,DEPENDENCY_SCOPE,readDependencyBaseline,dependencySourceProof,dependencyPerformance,historicalTrialBaseline} from './dependency-proof.mjs';
@@ -125,6 +126,7 @@ if(eWorldUpdate){
  report.continuousGameplay=await collectContinuousGameplayProof(repo,targets,sourceHashes,report.performancePolicy);
  report.delivery=report.continuousGameplay.delivery;report.performanceAcceptance=report.continuousGameplay.performanceAcceptance;
 }
+if(process.argv.includes('--dp-freeze')){if(!eWorldUpdate)throw new Error('DP freeze requires the existing E world trial profile');report.developerPreviewFreeze=await collectDpFreezeProof(repo,artifacts,sourceHashes);}
 report.fullMilestonesComplete=false;
 for(const proof of report.nativeSmoke)proof.resultSha256=digest(await readFile(resolve(repo,proof.result)));
 const output=resolve(repo,'build/alpha-manifest.json');
@@ -163,11 +165,12 @@ const introductionEnd=guide.indexOf('\n\n',guide.indexOf('\n\n')+2);
 if(introductionEnd<0)throw new Error('Agent guide must start with a title and introduction');
 const dependencyNotice=dependencyUpdate?'\n\n## 本次依赖更新的验证边界\n\n当前候选只新验五端独立发行JAR进入固定世界、USER读取和正常退出，未重跑65场景矩阵；原矩阵仅引用不可变基线`'+report.dependencyBaseline.directory.replaceAll('\\','/')+'`。产品源码、资源、协议与构建脚本逐哈希不变，只有清单中明确列出的依赖事实和Companion Zod更新。基线攻击比值NOT_MET仅为历史记录，本轮不做新性能测量，也不宣称完整里程碑或真人验收PASS。Companion包/锁文件SHA另列清单；不以旧MCP现场结果证明新依赖包。':'';
 const eUiNotice=eUiUpdate?'\n\n## 本次 UI 试用的验证边界\n\n本快照修复 CF-017、CF-018、CF-072、CF-071、CF-021，并包含 CF-019、CF-023 的 HUD 就绪与结构化失败解释修复。当前证据为五端完整既有 UI 套件及本轮新增组、五端独立 --demo 原生 HUD、五端输入上下文和连续输入、五端方块实体坐标筛选、五端命令权限协作，以及两个代表端的后台首次转向，共 32 份开发 Runtime 运行，加五端最终单 JAR 独立安装进入世界，合计 37 份运行记录。原生不适用项与外部服务限制不计作操作通过，优化器先完成不冒充取消覆盖。自动权限夹具不等同真人 OP 变更或合作；humanAcceptance=NOT_PERFORMED。65 组旧矩阵只保留为历史基线，不冒充当前候选验收。性能检测依用户决定暂缓，历史攻击比值仍 NOT_MET；完整领域里程碑与真人验收尚未完成。':'';
-const eWorldNotice=eWorldUpdate?'\n\n## 本次世界试用的验证边界\n\n本快照交付M-05/WU-01～20与M-06/WD-01～12的已列适用独立分支，含CF-022有界DEBUG方块实体分页、实体部位、原生远距瞄准、自然死亡清理、传送与权限/证据隔离。验收组及本候选结果逐项见alpha-manifest.json的eWorldTrial。最终五端单JAR安装仅证明进入世界、握手、USER读取与正常退出；开发运行不冒充完整制品功能验收。M-01、M-09、批次F、第三方兼容和真人验收未完成；不宣称两个领域READY。历史性能目标仍NOT_MET，本轮未测性能；Persistent Write=0。':'';
-guide=guide.slice(0,introductionEnd)+'\n\n'+snapshot.replace(/\n+(?=- )/g,'\n\n').trimEnd()+dependencyNotice+eUiNotice+eWorldNotice+guide.slice(introductionEnd);
+const eWorldNotice=eWorldUpdate&&!report.developerPreviewFreeze?'\n\n## 本次世界试用的验证边界\n\n本快照交付M-05/WU-01～20与M-06/WD-01～12的已列适用独立分支，含CF-022有界DEBUG方块实体分页、实体部位、原生远距瞄准、自然死亡清理、传送与权限/证据隔离。验收组及本候选结果逐项见alpha-manifest.json的eWorldTrial。最终五端单JAR安装仅证明进入世界、握手、USER读取与正常退出；开发运行不冒充完整制品功能验收。M-01、M-09、批次F、第三方兼容和真人验收未完成；不宣称两个领域READY。历史性能目标仍NOT_MET，本轮未测性能；Persistent Write=0。':'';
+const dpNotice=report.developerPreviewFreeze?'\n\n## 本次开发者预览自动冻结的边界\n\n本批包含当前五端完整既有UI/世界验收组、45秒连续正确性、独立单JAR安装、服务端世界DEBUG及三安装组合。具体源码/制品绑定和复用范围见alpha-manifest.json的eWorldTrial、developerPreviewFreeze和packagedRuntime。Native/MCP条件与目录整合包含本轮修复；没有开发classpath才能使用的依赖。统一真人协作、真实撤权/恢复、物理Esc和整体体验仍为NOT_PERFORMED，两个领域没有宣称完整READY。未做新性能测试；历史性能目标仍NOT_MET，Persistent Write=0。真人集中清单见源码documents/development/testing-cooperative_acceptance.md。':'';
+guide=guide.slice(0,introductionEnd)+'\n\n'+snapshot.replace(/\n+(?=- )/g,'\n\n').trimEnd()+dependencyNotice+eUiNotice+eWorldNotice+dpNotice+guide.slice(introductionEnd);
 report.agentGuide={path:relative(repo,guideOutput).replaceAll('\\','/'),fileName:'AGENT_GUIDE.md',sha256:digest(Buffer.from(guide)),source:guideSource,sourceSha256:digest(guideBytes)};
 await writeFile(guideOutput,guide);
 await writeFile(output,JSON.stringify(report,null,2)+'\n');
 console.log('Prepared internal alpha manifest: '+output+' ('+artifacts.length+' JARs)');
 console.log('Prepared Agent guide: '+guideOutput);
-execFileSync('pwsh',['-NoProfile','-File',resolve(import.meta.dirname,'Publish-AlphaSnapshot.ps1'),'-OutputRoot',alphaRoot,'-RepositoryRoot',repo],{cwd:repo,stdio:'inherit'});
+execFileSync('pwsh',['-NoProfile','-File',resolve(import.meta.dirname,'Publish-AlphaSnapshot.ps1'),'-OutputRoot',alphaRoot,'-RepositoryRoot',repo,...(report.developerPreviewFreeze?['-KeepExistingSnapshots']:[])],{cwd:repo,stdio:'inherit'});

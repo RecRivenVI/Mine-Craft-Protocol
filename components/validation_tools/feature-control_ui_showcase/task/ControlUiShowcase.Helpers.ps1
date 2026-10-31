@@ -30,7 +30,7 @@ function Invoke-ShowcaseApi([string]$Method,[string]$Path,[object]$Body=$null,[h
         $detail=$_.ErrorDetails.Message
         if($detail){
             $failure=[InvalidOperationException]::new("${Method} ${Path}: $detail",$_.Exception)
-            try {$failure.Data['RuntimeError']=($detail|ConvertFrom-Json).error}catch{}
+            try {$native=$detail|ConvertFrom-Json;$failure.Data['RuntimeError']=$native.error;$failure.Data['NativeError']=$native;$failure.Data['HttpStatus']=[int]$_.Exception.Response.StatusCode}catch{}
             throw $failure
         }
         throw
@@ -237,16 +237,37 @@ function Enter-ShowcaseWorld {
     Close-ShowcaseScreen
     Set-ShowcaseMode READ|Out-Null
 }
+function Confirm-ShowcaseWorldExit($Before,$After,$Tree,$Failure) {
+    Assert-Showcase ($Failure.status-eq409-and$Failure.body.error-in@('REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED')) 'unknown exit error is not an independently confirmed transition'
+    Assert-Showcase ($Failure.body.executionOutcome-eq'not_confirmed'-and$Failure.body.retrySafe-eq$false) 'exit request must retain its unconfirmed/no-retry outcome'
+    Assert-Showcase ($Tree.screenClass-match'TitleScreen$'-and$Tree.overlayIdentity-eq0) 'unconfirmed exit needs an unobscured actual title'
+    foreach($field in @('inputGeneration','inputContextGeneration')){Assert-Showcase ($null-ne$Before.$field-and$After.$field-gt$Before.$field) 'exit needs new input and native context generations'}
+    Assert-Showcase ($Before.inputContextAvailable-eq$true-and$After.inputContextAvailable-eq$false-and$Before.inputContextId-and$After.inputContextId-and$Before.inputContextId-ne$After.inputContextId) 'exit needs a replaced native world context'
+    Assert-Showcase ($After.pressedKeyCount-eq0-and$After.pressedButtonCount-eq0-and$After.inputCleanupPending-eq$false-and$After.inputCleanupFailed-eq$false) 'unconfirmed exit needs clean released input'
+    return @{outcome='world_exit_independently_observed';requestOutcome='not_confirmed';requestReplayed=$false;before=$Before;after=$After;screenClass=$Tree.screenClass;error=$Failure}
+}
 function Exit-ShowcaseWorld {
     $session=Invoke-ShowcaseApi GET '/v0/session'
     if(-not$session.inWorld){return}
     Write-Host '  [收尾/TAKEOVER] 正常 Save & Quit，回到标题页。'
     Start-ShowcaseTakeover;Close-ShowcaseScreen
     Send-ShowcaseKey 256;Wait-ShowcaseScreen 'PauseScreen'
-    Click-ShowcaseLabel 'Save and Quit to Title'
+    $before=Invoke-ShowcaseApi GET '/v0/input/state'
+    $unconfirmed=$null
+    try{Click-ShowcaseLabel 'Save and Quit to Title'}catch{
+        if($_.Exception.Data['RuntimeError']-notin@('REQUEST_CANCELLED','CONTROL_INPUT_GENERATION_CHANGED')){throw}
+        $unconfirmed=@{status=$_.Exception.Data['HttpStatus'];body=$_.Exception.Data['NativeError']}
+    }
     $until=[DateTime]::UtcNow.AddSeconds(60)
-    do{$session=Invoke-ShowcaseApi GET '/v0/session';if($session.screenClass-match'TitleScreen'){break};Update-ShowcaseLease;Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$until)
-    Assert-Showcase ($session.screenClass-match'TitleScreen') 'Save & Quit did not reach title'
+    do{$tree=Get-ShowcaseTree;if($tree.screenClass-match'TitleScreen$'-and-not$tree.overlayIdentity){break};Update-ShowcaseLease;Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$until)
+    Assert-Showcase ($tree.screenClass-match'TitleScreen$'-and-not$tree.overlayIdentity) 'Save & Quit did not reach an unobscured title'
+    if($unconfirmed){
+        Invoke-ShowcaseApi POST '/v0/wait/until' @{condition=@{type='input.released'};timeoutMs=5000}|Out-Null
+        $receipt=Confirm-ShowcaseWorldExit $before (Invoke-ShowcaseApi GET '/v0/input/state') $tree $unconfirmed
+        if($null-eq$script:contextExitReceipts){$script:contextExitReceipts=[Collections.Generic.List[object]]::new()}
+        $script:contextExitReceipts.Add($receipt)
+        Write-Host '  Save & Quit回执未确认；新原生上下文、标题页和输入清零已独立确认，没有重放点击。'
+    }
     Set-ShowcaseMode READ|Out-Null
 }
 function Open-ShowcaseInventory {

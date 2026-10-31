@@ -45,6 +45,17 @@ alpha 刷新须验证当前源码、实际五端运行结果、发行 JAR 与生
 
 ## 运行
 
+Developer Preview自动冻结沿用E世界试用profile，并增加五端连续正确性、集成服/协作消费者和当前单JAR服务端/三安装组合证明：
+
+```powershell
+node components/validation_tools/regression-v1_release/task/write-alpha-manifest.mjs --profile=e_world_trial_v1 --scenario=e-world-affected --historical-baseline=D:/Workspaces/Artifacts/MineCraftProtocol/Alpha/20261020-0337-f2dc15c9 --dp-freeze
+```
+
+仅在完整既有UI/世界组、补充组及独立安装均匹配当前候选后执行。此命令实际发布固定快照并更新latest，
+保留本次发布前的全部旧快照，不自动通知使用方。developerPreviewFreeze写入当前具名证明，
+humanAcceptance仍为NOT_PERFORMED、fullMilestonesComplete=false；不测性能或升级为1.0.0正式验收。
+真人步骤见[集中清单](../../documents/development/testing-cooperative_acceptance.md)。
+
 E世界试用使用e_world_trial_v1，M-05/M-06的实际适用验收组和受影响UI/连续输入须在冻结候选重新执行；每组定义在e-world-proof.mjs。不接受尾部调试场景替代完整组。五端最终单JAR另需独立安装入世界，人工及历史性能不在自动通过范围。
 
 ```powershell

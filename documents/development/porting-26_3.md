@@ -306,6 +306,8 @@ flying通过既有native mayFly条件与普通abilities更新同步，noAi通过
 
 ## 世界环境
 
+原生属性ID使用对应版本的注册表，不能假定旧端与26.x命名一致。既有玩家最大生命值别名由各端Attributes.MAX_HEALTH的真实注册键解析，完整资源版本路径与普通typed路径保持同一映射，不改变实体属性目录或授权。
+
 1.x的Overworld主数据提供实际可写dayTime，DerivedLevelData的其他维度setter为空，不发布伪独立时钟。
 旧ServerLevel.setDayTime同时供自然tick与显式控制使用；只在tickTime中确切的那次自然调用设置局部标志并以finally恢复，其他具名调用照常递增控制版本，不阻止原生更新。
 26.x在ServerClockManager.modifyClock后记录具名控制，普通tick不经过此入口。26.3提供公开ServerClockInstance；26.1.2实例与getter私有，使用只读Map/播放字段accessor识别实际实例，数值优先使用公开getTotalTicks/getPartialTick。

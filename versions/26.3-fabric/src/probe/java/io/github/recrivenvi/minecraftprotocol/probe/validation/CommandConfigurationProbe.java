@@ -187,12 +187,31 @@ public final class CommandConfigurationProbe {
         try {
             Path output = Path.of(System.getProperty("validation.result"));
             Files.createDirectories(output);
-            Files.writeString(
+            Path destination =
                     output.resolve(
                             System.getProperty("validation.target")
-                                    + "-command-configuration-probe.json"),
-                    result + "\n",
-                    StandardCharsets.UTF_8);
+                                    + "-command-configuration-probe.json");
+            Path pending = destination.resolveSibling(destination.getFileName() + ".pending");
+            Files.writeString(pending, result + "\n", StandardCharsets.UTF_8);
+            for (int publicationAttempt = 0; ; publicationAttempt++) {
+                try {
+                    Files.move(
+                            pending,
+                            destination,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    break;
+                } catch (java.nio.file.AccessDeniedException busy) {
+                    // Keep the complete old record while Windows readers temporarily map it.
+                    if (publicationAttempt == 24) throw busy;
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new java.io.IOException("Probe publication interrupted", interrupted);
+                    }
+                }
+            }
         } catch (java.io.IOException failure) {
             throw new IllegalStateException(failure);
         }

@@ -174,6 +174,11 @@ try{
     & $recycle $usageRoot
     $final=Run-Publisher
     Require (@($final.retained).Count-eq3) 'repaired registry permits pruning without rewriting survivors'
+    $previousSnapshots=@($final.retained)
+    Make-Batch 7|Out-Null
+    $final=& $publisher -OutputRoot $output -RepositoryRoot $repo -RecycleAction $recycle -KeepExistingSnapshots|ConvertFrom-Json
+    Require (@($final.retained).Count-eq4) 'explicit keep preserves all previous snapshots during a checkpoint release'
+    foreach($previousSnapshot in $previousSnapshots){Require (Test-Path -LiteralPath $previousSnapshot) 'keep never retires an existing snapshot'}
     $lock=[IO.File]::Open((Join-Path $output '.alpha.lock'),[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     try{Rejected {Run-Publisher} 'concurrent publication/use is excluded by an OS lock'}finally{$lock.Dispose()}
     Rejected {Run-Publisher 'Pin' '..' 'voxy'} 'pin path traversal'

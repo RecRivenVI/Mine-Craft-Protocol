@@ -6,6 +6,7 @@ param(
     [string]$Snapshot,
     [string]$Consumer,
     [string]$Reason,
+    [switch]$KeepExistingSnapshots,
     [scriptblock]$RecycleAction
 )
 $ErrorActionPreference='Stop'
@@ -248,7 +249,7 @@ try{
         $latestBackup=$null
     }else{[IO.File]::Move($temporaryLatest,$latest)}
     $temporaryLatest=$null
-    $retained=@(Prune-Snapshots $directory)
+    $retained=if($KeepExistingSnapshots){@(Get-ChildItem -LiteralPath $root -Directory -Force|Where-Object Name -CMatch $namePattern|Select-Object -ExpandProperty FullName)}else{@(Prune-Snapshots $directory)}
     @{mode='Publish';directory=$directory;latest=$latest;files=@($files.Keys);retained=@($retained);recycled=@($recycled);warnings=@($warnings);persistentWriteCalls=0}|ConvertTo-Json -Depth 6
 }finally{
     if($stage){Recycle $stage}

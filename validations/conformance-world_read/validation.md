@@ -508,6 +508,20 @@ Computer Use 或宿主输入。最后正常退出并验证进程/端口/发现�
 
 ## 通过标准
 
+### 连续正确性冻结
+
+M-10使用独立的功能场景，五端各执行一次；不调用性能比较或延迟统计：
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1 -Target 26.3-neoforge -Scenario continuous-correctness
+```
+
+场景从不可变副本经真实GUI进入世界，以显式原生命令建立封闭安全平台，仅作为诊断准备；
+实际45秒W/S持续输入和相对视角全部GAME_ROUTED。穿插USER玩家/场景读取，确认实际移动、tick推进、
+客户端来源和不加载区块。强停止后等待input.released，释放Lease并确认READ、held keys/buttons=0和后续派发计数不增长。
+结果固定为result/<target>-continuous-correctness.json；只记录功能持续时间，不产生吞吐、延迟分布或攻击比值。
+该组不替代真人Esc、焦点变化或完整人工验收。
+
 使用方consumer专项复用本验证的固定副本，覆盖USER运动/相对视角、资源重载、维度往返、保存重进、只读Capture/Recording Artifact，
 及公开注册Provider V2的owner读取、schema/类别/scope、独立Arm/OPERATE/版本、延迟future超时后无late effect及真实MCP读取。
 全套full包含同一组；专项只写`<target>-consumer.json`，不是五端或完整里程碑通过。

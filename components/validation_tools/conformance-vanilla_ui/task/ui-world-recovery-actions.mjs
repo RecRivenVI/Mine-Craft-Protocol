@@ -152,8 +152,8 @@ export async function worldRecoveryUiActions({api, repo, instance, target, tree,
     const value = await wait(value => value.screenClass.endsWith(name), 'Actual native world recovery ' + name); healthy();
     assert.equal(value.dataCategory, 'USER'); assert.equal(value.treeTruncated, false); return value;
   }
-  async function button(key, label) {
-    const value = await tree(), found = nodes(value).filter(node => node.visible && node.active && node.actions?.includes('click')
+  async function button(key, label, observedTree) {
+    const value = observedTree ?? await tree(), found = nodes(value).filter(node => node.visible && node.active && node.actions?.includes('click')
       && (key ? node.translationKey === key : node.label === label));
     assert.equal(found.length, 1, 'One safe semantic native button: ' + (key || label));
     const outcome = await ui({nodeId: found[0].nodeId}); healthy(); assert.notEqual(outcome.directMutationUsed, true);
@@ -254,7 +254,7 @@ export async function worldRecoveryUiActions({api, repo, instance, target, tree,
       if (!context.proof.returnedToFixture) {
         assert.equal(context.nativePage.screenClass, CLASSES.optimize); const cancel = nodes(context.nativePage).filter(node => node.visible && node.active && node.translationKey === 'gui.cancel');
         assert.equal(cancel.length, 1, 'The actual running optimizer must expose its native Cancel button');
-        try {value.semanticActions.push(await button('gui.cancel')); value.cancelInputSubmitted = true;}
+        try {value.semanticActions.push(await button('gui.cancel', undefined, context.nativePage)); value.cancelInputSubmitted = true;}
         catch (error) {
           // The worker may finish after the USER tree read but before click dispatch.
           // Never replay the click, extend the world, or count this race as Cancel.
@@ -280,7 +280,13 @@ export async function worldRecoveryUiActions({api, repo, instance, target, tree,
       try {
         const current = await tree();
         if (current.screenClass === CLASSES.recover) await button('gui.back');
-        else if (current.screenClass === CLASSES.optimize) await button('gui.cancel');
+        else if (current.screenClass === CLASSES.optimize) {
+          try {await button('gui.cancel', undefined, current);}
+          catch (error) {
+            if (!['UI_TARGET_INVALIDATED', 'UI_NODE_NOT_FOUND'].includes(error.code)) throw error;
+            assert.equal((await returned()).callbackAction, 'optimize_finished');
+          }
+        }
         assert(expected?.caseId, 'Unknown auxiliary native ownership cannot be treated as closed');
         const proof = await returned(); assert.equal(proof.storageAccessClosed, true); assert.equal(proof.directoryLockReacquiredAndClosed, true);
       } catch (error) {cleanupFailure = error;}
