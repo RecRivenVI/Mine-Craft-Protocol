@@ -216,6 +216,9 @@ public final class UiExtensionEngine {
                             node.has("semanticState") && node.get("semanticState").isJsonObject()
                                     ? node.getAsJsonObject("semanticState").deepCopy()
                                     : new JsonObject();
+                    if (nativeNode != null && nativeNode.has("semanticState"))
+                        semantic.add(
+                                "nativeSemanticState", nativeNode.get("semanticState").deepCopy());
                     semantic.addProperty("extensionTargetRevision", item.targetRevision());
                     semantic.addProperty("extensionTargetKey", item.key());
                     node.add("semanticState", semantic);

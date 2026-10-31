@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {checkServerWorldDebug} from './server-world-debug-checks.mjs';
 import {prepareServerWorld} from './server-world-fixture.mjs';
+import {serverInstallationReady,recordServerInstallation} from './server-installation.mjs';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createWriteStream} from 'node:fs';
@@ -63,7 +64,17 @@ if(loader==='fabric'){
   for(const file of cp)assert(await exists(file),'Official Fabric profile library missing: '+file);
   launchArgs=['-Dfabric.gameJarPath='+bundled,'-cp',cp.join(';'),'net.fabricmc.loader.impl.launch.server.FabricServerLauncher','nogui'];
 }else{
-  if(!await exists(join(game,argsFile)))await runInstaller();
+  const installer=join(repo,'validations/integration-packaged_runtime/instance/downloads',loader+'-'+coordinate+'-installer.jar');
+  const installerHash=digest(await readFile(installer));
+  if(!await serverInstallationReady(game,argsFile,installerHash)){
+    try{
+      await runInstaller();
+      await recordServerInstallation(game,argsFile,installerHash);
+      assert(await serverInstallationReady(game,argsFile,installerHash),'Official server installation is incomplete');
+    }catch(error){
+      await writeFile(resultPath,JSON.stringify({target,status:'FAIL',stage:'official_installation',error:String(error.stack??error),persistentWriteCalls:0})+'\n');throw error;
+    }
+  }
   launchArgs=['@'+argsFile,'nogui'];
 }
 const jarName=`${product.mod_id}-${target}-${product.mod_version}.jar`,jar=join(repo,'versions',target,'build/libs',jarName);
@@ -85,7 +96,7 @@ const fixtureBlock=extensionPlatform?({ae2:'ae2:drive',create:'create:mechanical
 if(fixtureBlock)report.fixtureArrangement={authority:'HOST_NATIVE_CONSOLE_FIXTURE',world:fixtureWorld,commands:['forceload add 0 0','setblock 0 80 0 '+fixtureBlock],gameplayEvidence:false,runtimeCommandSupportNotClaimed:true};
 if(extensionPlatform){
   report.sourceHashes=await candidateSource(repo,[target]);report.toolHashes={};
-  for(const path of ['components/validation_tools/integration-server_peer/task/server-console-smoke.mjs','components/validation_tools/integration-server_peer/task/server-world-fixture.mjs','components/validation_tools/integration-extension_platform/task/installed-package.mjs','components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs'])report.toolHashes[path]=digest(await readFile(join(repo,path)));
+  for(const path of ['components/validation_tools/integration-server_peer/task/server-console-smoke.mjs','components/validation_tools/integration-server_peer/task/server-world-fixture.mjs','components/validation_tools/integration-server_peer/task/server-installation.mjs','components/validation_tools/integration-extension_platform/task/installed-package.mjs','components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs'])report.toolHashes[path]=digest(await readFile(join(repo,path)));
 }
 report.fixture=await prepareServerWorld({repo,game,world:fixtureWorld,target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),...(extensionPlatform?{baselineId:'fixture-baseline-'+extensionAdapter+(fixtureBlock?extensionAdapter==='littletiles'?'-machine-v3':'-machine-v1':''),fixtureIdentity:{adapter:extensionAdapter,upstream:await extensionInputArtifacts(game)}}:{}),
   start:async()=>{

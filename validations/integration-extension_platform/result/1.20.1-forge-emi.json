@@ -1,14 +1,14 @@
 {
   "target": "1.20.1-forge",
   "status": "PASS",
-  "testedAt": "2026-10-31T20:07:11.212Z",
+  "testedAt": "2026-10-31T21:50:35.302Z",
   "runtime": "installed_loader_release_jar",
   "loaderVersion": "47.4.28",
   "minecraft": "1.20.1",
   "javaVersion": "17",
   "installerJavaVersion": "25",
-  "artifactSha256": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398",
-  "sourceFingerprint": "29430f521454110e56d629a07b561da2a1749720fddbdc720d420202426c12cc",
+  "artifactSha256": "decdf790408dee3dd7c7aec220f7c37d089c36bb08cb364005c83e723ac3f3cc",
+  "sourceFingerprint": "673684d2ee5bca12400284cb937b41819e4a756b616e95ba9b804e96d30cadf0",
   "sourceHashes": {
     "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "d9a3b1bda3d6ccfb5b6d10852017caa1d607ccf4b965d98910fd6c2e3c8bbd17",
     "components/runtime_core/build.gradle.kts": "314fc81c2f6b3f31f8f11482a5d8057ab36735ce6e95dd8e499435eab6b4e552",
@@ -85,9 +85,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -891,7 +891,7 @@
   "readSample": {
     "type": "player.state",
     "target": "1.20.1-forge",
-    "clientTick": 126,
+    "clientTick": 118,
     "domain": "WORLD",
     "dataCategory": "USER",
     "authority": "CLIENT_KNOWN",
@@ -903,14 +903,14 @@
     "completeGameData": false,
     "storageAccessed": false,
     "chunkLoadRequested": false,
-    "sampledAtMillis": 1793477255000,
+    "sampledAtMillis": 1793483456700,
     "precision": "client_state_not_server_truth",
     "available": false,
     "gameMode": "unknown",
     "onGround": "unknown",
     "flying": "unknown",
     "reason": "client_world_unavailable",
-    "requestId": "5ea40aac-4ca2-4b17-bb0a-0538c7068427",
+    "requestId": "04de38f7-9b4c-4178-a31a-9915706b5a68",
     "protocolVersion": "v0"
   },
   "providerCatalog": [
@@ -1083,12 +1083,12 @@
       "status": "registered"
     }
   ],
-  "nettyHttpOrigin": "[17.761s][info][class,load] io.netty.handler.codec.http.HttpMessage source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161_/META-INF/jarjar/netty-codec-http-4.1.82.Final.jar%23169!/",
-  "transportOrigin": "[17.757s][info][class,load] io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
+  "nettyHttpOrigin": "[15.798s][info][class,load] io.netty.handler.codec.http.HttpMessage source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161_/META-INF/jarjar/netty-codec-http-4.1.82.Final.jar%23169!/",
+  "transportOrigin": "[15.795s][info][class,load] io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
   "providerSpiOrigins": [
-    "[16.224s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2 source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
-    "[16.625s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2 source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
-    "[16.599s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/"
+    "[14.417s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2 source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
+    "[14.658s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2 source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/",
+    "[14.641s][info][class,load] io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry source: union:/D:/Workspaces/Repositories/GitHub/RecRivenVI/Mine-Craft-Protocol/validations/integration-extension_platform/instance/installed/1.20.1-forge/client/mods/minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar%23161!/"
   ],
   "providerRegistryResolved": true,
   "extensionStage": {
@@ -1103,7 +1103,7 @@
     "message": "unknown",
     "executionOutcome": "not_confirmed",
     "retrySafe": false,
-    "requestId": "eeb64b27-2b48-4ef4-bbf5-8a32ade72227",
+    "requestId": "d0362862-77e1-4079-86af-59d2494069b8",
     "protocolVersion": "v0"
   },
   "cleanShutdown": true,
@@ -1111,7 +1111,7 @@
   "modArtifacts": {
     "extension-input-emi-1-20-1-forge.jar": "92784dcf5222d72983a420c90f2e9240468ee0fece96f757c82d7884b6cbdb72",
     "minecraft-protocol-extension-libraries.jar": "64fdcf2d4ddfd0c439b15104614bb28e4d9d652da852e77ce60c9500df69b595",
-    "minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398"
+    "minecraft_protocol_probe-1.20.1-forge-0.0.1-phase8.jar": "decdf790408dee3dd7c7aec220f7c37d089c36bb08cb364005c83e723ac3f3cc"
   },
   "singleProductJarOnly": false,
   "noCrashReports": true,

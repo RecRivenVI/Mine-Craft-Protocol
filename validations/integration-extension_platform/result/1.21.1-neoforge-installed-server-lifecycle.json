@@ -1,7 +1,7 @@
 {
   "target": "1.21.1-neoforge",
-  "jarSha256": "eaaba159881ba2465b906235ca5de365004ea7831cc0aa35b29e03bba2a0ed44",
-  "startedAt": "2026-10-31T19:55:26.559Z",
+  "jarSha256": "791ef64cf72aa69be4f2fdc4725d0b42fd58bde6002455aeef6c8eb5c4c41349",
+  "startedAt": "2026-10-31T21:25:05.900Z",
   "scope": "single_final_jar_dedicated_console_zero_players_no_client",
   "checks": {
     "authAndInstancePin": true,
@@ -92,9 +92,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -290,8 +290,9 @@
     "versions/1.21.1-neoforge/target.properties": "91e3d01ffc8a08a8fb19d7369a30567cc57b47eb59fac3ec545e7fc771e57245"
   },
   "toolHashes": {
-    "components/validation_tools/integration-server_peer/task/server-console-smoke.mjs": "06b239713cd82c8a0dbf3e51255b7b31a6d1a0e92beec2066014d51d9a037577",
+    "components/validation_tools/integration-server_peer/task/server-console-smoke.mjs": "543be81ea3519a5adc1f9656a3f0e224e2285e2f353a1e68edb609ca7a238f4f",
     "components/validation_tools/integration-server_peer/task/server-world-fixture.mjs": "5479d9c0daeabc5be03d3a1e4e6482249c0ee995055030e9741f4935d64df518",
+    "components/validation_tools/integration-server_peer/task/server-installation.mjs": "527ba67a5f6995073678a85a26c9d107b20eec56e941b1e90f6c8b8df4db5bf4",
     "components/validation_tools/integration-extension_platform/task/installed-package.mjs": "7baf525d4c6e31b1ad8c0829ca2bc51f9a177c053b9334b2bea290bcf43ab40f",
     "components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs": "a8ee9c9e21efee622f743c370c9fa96ea2b3876c4cb7aaa7ebad7fd3c6c3b99f"
   },
@@ -299,15 +300,15 @@
     "policy": "immutable_baseline_restored",
     "target": "1.21.1-neoforge",
     "world": "Console-Smoke",
-    "baselineSha256": "9abeb2e490a8061cd41b8c1f225acbf1962ccbe6d12c8fcc6000123588e0b5ce",
-    "restoredSha256": "9abeb2e490a8061cd41b8c1f225acbf1962ccbe6d12c8fcc6000123588e0b5ce",
+    "baselineSha256": "8f677133ac5da44935d2097b4073130d3f46fadcf1f91243ba4ba49ea9fc58a8",
+    "restoredSha256": "8f677133ac5da44935d2097b4073130d3f46fadcf1f91243ba4ba49ea9fc58a8",
     "targetFactsSha256": "91e3d01ffc8a08a8fb19d7369a30567cc57b47eb59fac3ec545e7fc771e57245",
     "credentialsCopied": false
   },
-  "pid": 107660,
+  "pid": 120600,
   "gamePort": 0,
-  "runtimeInstanceId": "28a9b70c-3e49-4346-9e79-2f59c16d36a4",
-  "runtimePort": 3552,
+  "runtimeInstanceId": "74f92152-9eb9-4098-aeaf-ef1f40624455",
+  "runtimePort": 3035,
   "session": {
     "domain": "UI",
     "dataCategory": "USER",
@@ -329,16 +330,16 @@
     "serverReady": true,
     "runtimeConnection": {
       "schemaVersion": 1,
-      "runtimeInstanceId": "28a9b70c-3e49-4346-9e79-2f59c16d36a4",
+      "runtimeInstanceId": "74f92152-9eb9-4098-aeaf-ef1f40624455",
       "target": "1.21.1-neoforge",
       "deploymentRole": "DEDICATED_SERVER",
       "gameDirectory": "D:\\Workspaces\\Repositories\\GitHub\\RecRivenVI\\Mine-Craft-Protocol\\validations\\integration-extension_platform\\instance\\installed\\1.21.1-neoforge\\server",
-      "pid": 107660,
-      "processStartedAt": "2026-10-31T19:55:48.894Z",
-      "startedAt": "2026-10-31T19:56:13.915274400Z",
+      "pid": 120600,
+      "processStartedAt": "2026-10-31T21:25:34.527Z",
+      "startedAt": "2026-10-31T21:26:00.233259Z",
       "tokenFile": "token",
-      "baseUrl": "http://127.0.0.1:3552",
-      "port": 3552,
+      "baseUrl": "http://127.0.0.1:3035",
+      "port": 3035,
       "state": "RUNNING"
     },
     "control": {
@@ -350,7 +351,7 @@
       "takeoverActive": false,
       "modeTransitionReason": "initial",
       "modeVersion": {
-        "controlSessionId": "521beb62-3558-4d78-81ed-7a49ebbcd2b5",
+        "controlSessionId": "b942ca0a-f96f-4f3d-b8b3-1a4c84d8204f",
         "generation": 0
       },
       "type": "control.mode",
@@ -363,7 +364,7 @@
         "expiresAtMillis": 0,
         "deadlineAtMillis": 0,
         "active": false,
-        "controlSessionId": "521beb62-3558-4d78-81ed-7a49ebbcd2b5",
+        "controlSessionId": "b942ca0a-f96f-4f3d-b8b3-1a4c84d8204f",
         "grantsAuthority": false
       },
       "modeScope": "authenticated_runtime_control_session",
@@ -372,7 +373,7 @@
       "modeTransitionPending": false,
       "activeOperateRequests": 0,
       "authorization": {
-        "principalId": "token:aeb2b6bf-5063-322e-8f1c-5ca9cdba6046",
+        "principalId": "token:8525204c-3bf9-3824-a1fa-c519a8fbf3e2",
         "grantedScopes": [
           "command",
           "control",
@@ -424,12 +425,12 @@
     },
     "mode": "READ",
     "modeVersion": {
-      "controlSessionId": "521beb62-3558-4d78-81ed-7a49ebbcd2b5",
+      "controlSessionId": "b942ca0a-f96f-4f3d-b8b3-1a4c84d8204f",
       "generation": 0
     },
     "takeoverActive": false,
     "reconsentRequired": false,
-    "requestId": "2c939034-eb5b-495f-8de5-28568187f13b"
+    "requestId": "8fe26ba1-759e-494c-8bf7-781a7a4d6397"
   },
   "list": {
     "domain": "UI",
@@ -439,7 +440,7 @@
     "untrustedData": true,
     "chunkLoadRequested": false,
     "storageAccessed": false,
-    "commandRequestId": "52c8b276-51b5-428f-98ab-1444c45bbaa9",
+    "commandRequestId": "86417b67-f747-4e3d-86b0-b7a226eefc28",
     "route": "NATIVE_SERVER_CONSOLE",
     "dispatchState": "native_dispatch_returned",
     "worldEffectConfirmed": false,
@@ -462,7 +463,7 @@
     "untrustedData": true,
     "chunkLoadRequested": false,
     "storageAccessed": false,
-    "commandRequestId": "3f513dd8-db19-461c-85e4-9aeec7744a55",
+    "commandRequestId": "9fb9f220-c32a-43c9-98ad-987868db5a5f",
     "route": "NATIVE_SERVER_CONSOLE",
     "dispatchState": "native_dispatch_returned",
     "worldEffectConfirmed": false,
@@ -483,7 +484,7 @@
     "untrustedData": true,
     "chunkLoadRequested": false,
     "storageAccessed": false,
-    "commandRequestId": "db93bafb-2354-4ee1-bff1-532ba02555f2",
+    "commandRequestId": "2cb75982-7961-40eb-929d-ce471c293fc0",
     "route": "NATIVE_SERVER_CONSOLE",
     "dispatchState": "native_dispatch_returned",
     "worldEffectConfirmed": false,
@@ -506,18 +507,18 @@
     "untrustedData": true,
     "chunkLoadRequested": false,
     "storageAccessed": false,
-    "commandRequestId": "b2a05f49-da04-402d-b879-3cf76476c217",
+    "commandRequestId": "7e280b7e-f633-4393-94ca-606775ebf7f1",
     "route": "NATIVE_SERVER_CONSOLE",
     "dispatchState": "native_dispatch_returned",
     "worldEffectConfirmed": false,
     "evidenceAuthority": "SERVER_OPERATOR_COMMAND",
     "cleanGameplayAcceptance": false,
     "feedback": [
-      "The time is 1234"
+      "The time is 1235"
     ],
     "nativeResult": {
       "success": true,
-      "value": 1234
+      "value": 1235
     },
     "resultCallbackReceived": true
   },
@@ -529,7 +530,7 @@
     "untrustedData": true,
     "chunkLoadRequested": false,
     "storageAccessed": false,
-    "commandRequestId": "5c602774-2597-40a2-97e3-200b5b40d688",
+    "commandRequestId": "cf9e19ef-20ed-4879-84ce-601375cc908b",
     "route": "NATIVE_SERVER_CONSOLE",
     "dispatchState": "native_dispatch_returned",
     "worldEffectConfirmed": false,
@@ -560,13 +561,13 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 1,
-        "timeMillis": 1793476575372,
+        "timeMillis": 1793481961460,
         "level": "INFO",
         "logger": "native_command_feedback",
         "thread": "Server thread",
         "text": "There are 0 of a max of 1 players online: ",
         "truncated": false,
-        "commandRequestId": "52c8b276-51b5-428f-98ab-1444c45bbaa9"
+        "commandRequestId": "86417b67-f747-4e3d-86b0-b7a226eefc28"
       },
       {
         "domain": "UI",
@@ -577,7 +578,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 2,
-        "timeMillis": 1793476575373,
+        "timeMillis": 1793481961460,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -593,7 +594,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 3,
-        "timeMillis": 1793476575510,
+        "timeMillis": 1793481961491,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -609,13 +610,13 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 4,
-        "timeMillis": 1793476575614,
+        "timeMillis": 1793481961609,
         "level": "INFO",
         "logger": "native_command_feedback",
         "thread": "Server thread",
         "text": "Set the time to 1234",
         "truncated": false,
-        "commandRequestId": "db93bafb-2354-4ee1-bff1-532ba02555f2"
+        "commandRequestId": "2cb75982-7961-40eb-929d-ce471c293fc0"
       },
       {
         "domain": "UI",
@@ -626,7 +627,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 5,
-        "timeMillis": 1793476575614,
+        "timeMillis": 1793481961611,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -642,7 +643,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 6,
-        "timeMillis": 1793476575614,
+        "timeMillis": 1793481961611,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -658,13 +659,13 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 7,
-        "timeMillis": 1793476575623,
+        "timeMillis": 1793481961621,
         "level": "INFO",
         "logger": "native_command_feedback",
         "thread": "Server thread",
-        "text": "The time is 1234",
+        "text": "The time is 1235",
         "truncated": false,
-        "commandRequestId": "b2a05f49-da04-402d-b879-3cf76476c217"
+        "commandRequestId": "7e280b7e-f633-4393-94ca-606775ebf7f1"
       },
       {
         "domain": "UI",
@@ -675,11 +676,11 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 8,
-        "timeMillis": 1793476575623,
+        "timeMillis": 1793481961621,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
-        "text": "The time is 1234",
+        "text": "The time is 1235",
         "truncated": false
       },
       {
@@ -691,13 +692,13 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 9,
-        "timeMillis": 1793476575631,
+        "timeMillis": 1793481961631,
         "level": "INFO",
         "logger": "native_command_feedback",
         "thread": "Server thread",
         "text": "Incorrect argument for command",
         "truncated": false,
-        "commandRequestId": "5c602774-2597-40a2-97e3-200b5b40d688"
+        "commandRequestId": "cf9e19ef-20ed-4879-84ce-601375cc908b"
       },
       {
         "domain": "UI",
@@ -708,7 +709,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 10,
-        "timeMillis": 1793476575632,
+        "timeMillis": 1793481961631,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -724,13 +725,13 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 11,
-        "timeMillis": 1793476575633,
+        "timeMillis": 1793481961632,
         "level": "INFO",
         "logger": "native_command_feedback",
         "thread": "Server thread",
         "text": "time console_smoke_invalid<--[HERE]",
         "truncated": false,
-        "commandRequestId": "5c602774-2597-40a2-97e3-200b5b40d688"
+        "commandRequestId": "cf9e19ef-20ed-4879-84ce-601375cc908b"
       },
       {
         "domain": "UI",
@@ -741,7 +742,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 12,
-        "timeMillis": 1793476575633,
+        "timeMillis": 1793481961632,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -757,7 +758,7 @@
         "chunkLoadRequested": false,
         "storageAccessed": false,
         "sequence": 13,
-        "timeMillis": 1793476575650,
+        "timeMillis": 1793481961661,
         "level": "INFO",
         "logger": "net.minecraft.server.MinecraftServer",
         "thread": "Server thread",
@@ -771,7 +772,7 @@
     "gap": false,
     "hasMore": false,
     "state": "LIVE",
-    "requestId": "6e47ffd0-cc42-4681-9139-0a14edae1958",
+    "requestId": "0bd91d3a-0467-4d9b-a46b-dba7aeb335e4",
     "protocolVersion": "v0"
   },
   "providerDescriptors": {
@@ -824,7 +825,7 @@
         "explicitCategoryRequired": true
       }
     ],
-    "requestId": "1335027a-ff60-4bca-ad3c-e3601e3a11cf",
+    "requestId": "2beb9e7b-27b7-4236-900e-d71cdacb2548",
     "protocolVersion": "v0"
   },
   "recording": {
@@ -834,10 +835,10 @@
     "type": "recording.session",
     "domain": "WORLD",
     "dataCategory": "USER",
-    "recordingId": "65162be6-50e9-4bf0-b7ed-4a3cd29f8e36",
+    "recordingId": "f846257f-1480-43b9-b93b-36ecc69e5684",
     "status": "recording",
     "lifecycle": "RUNNING",
-    "startedAtMillis": 1793476575795,
+    "startedAtMillis": 1793481961804,
     "completedAtMillis": 0,
     "samples": 2,
     "writtenFrames": 0,
@@ -848,7 +849,7 @@
     "writerQueueCapacity": 64,
     "evidenceContaminated": false,
     "artifactReady": false,
-    "requestId": "753aa663-b070-40d9-b6fc-cdb87d792505",
+    "requestId": "e98e0745-2739-4b4d-b1bd-d2ca247d7865",
     "protocolVersion": "v0"
   },
   "extensionStage": {
@@ -859,5 +860,5 @@
   "extensionPlatform": true,
   "status": "PASS",
   "exitCode": 0,
-  "finishedAt": "2026-10-31T19:56:20.325Z"
+  "finishedAt": "2026-10-31T21:26:06.284Z"
 }

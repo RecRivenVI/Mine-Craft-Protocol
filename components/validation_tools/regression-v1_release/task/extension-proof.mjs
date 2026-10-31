@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
 import {resolve,relative} from 'node:path';
 import {candidateSource,extensionPackageSource,sha256} from './alpha-candidate.mjs';
+import {canonicalSourceHashes,inputContextProof} from './alpha-evidence.mjs';
 
 export const EXTENSION_PROFILE='extension_platform_trial_v1';
 const base='validations/integration-extension_platform/result/';
@@ -62,17 +63,22 @@ export async function collectExtensionProof(repo,artifacts){
     await installedExit(target,'');
     await platform(target,'-installed-server',['platform_probe'],true);
     await installedExit(target,'-installed-server-lifecycle',true);
-    for(const [folder,suffix,scenario] of [['conformance-world_read','','full'],['conformance-vanilla_ui','','all'],['conformance-world_read','-input-context','input-context'],['conformance-world_read','-continuous-correctness','continuous-correctness']]){
+    const regressions=[['conformance-world_read','','full'],['conformance-world_read','-input-context','input-context'],['conformance-world_read','-continuous-correctness','continuous-correctness']];
+    const uiScenarios=target==='26.3-neoforge'?['all']:['pointer','special-menus','ui-navigation'];
+    for(const scenario of uiScenarios)regressions.push(['conformance-vanilla_ui',scenario==='all'?'':'-'+scenario,scenario]);
+    for(const [folder,suffix,scenario] of regressions){
       const {value,proof}=await read(`validations/${folder}/result/${target}${suffix}.json`);
       assert.equal(value.target,target);assert.equal(value.status,'PASS');assert.equal(value.scenario,scenario);assert.equal(value.cleanShutdown,true);assert.equal(value.sourceChangedDuringRun,false);assert.equal(value.persistentWriteCalls,0);
       assert(value.checks.length>0&&value.checks.every(item=>item.status==='PASS'));
-      await currentHashes(repo,value.sourceHashes);
+      const bindings=canonicalSourceHashes(value.sourceHashes);
+      await currentHashes(repo,bindings);
       const product=await candidateSource(repo,[target]);
-      for(const [path,hash] of Object.entries(product))if(path.endsWith('.java')||path.startsWith(`versions/${target}/src/`)||path.endsWith('/target.properties'))assert.equal(value.sourceHashes[path],hash,'Regression does not bind current production: '+path);
+      for(const [path,hash] of Object.entries(product))if(path.endsWith('.java')||path.startsWith(`versions/${target}/src/`)||path.endsWith('/target.properties'))assert.equal(bindings[path],hash,'Regression does not bind current production: '+path);
+      if(scenario==='input-context')inputContextProof(value,target);
       if(scenario==='continuous-correctness'){
         const {continuousCorrectnessProof}=await import('./dp-freeze-proof.mjs');continuousCorrectnessProof(value);
       }
-      rows.push({...proof,target,scope:scenario,checks:value.checks.length});
+      rows.push({...proof,target,validation:folder,scope:scenario,checks:value.checks.length});
     }
   }
   const lifetime=await platform('26.3-neoforge','-client-lifetimes',['platform_probe','lifetime_left','lifetime_right']);

@@ -2,7 +2,7 @@
   "target": "1.20.1-forge",
   "role": "client",
   "adapter": "littletiles",
-  "runtimeInstanceId": "ba2275e5-3a97-4360-9d23-ceb93ccfed26",
+  "runtimeInstanceId": "fc94cf4f-e3fa-45f7-b3b4-d26f3e229b13",
   "developmentClasspath": false,
   "finalJarInstall": true,
   "toolFiles": {
@@ -255,7 +255,7 @@
             }
           }
         ],
-        "requestId": "7fa1a56a-db0c-43d2-8be1-df36b13a7658",
+        "requestId": "dded0c88-3868-46e7-87b8-b11140424ac7",
         "protocolVersion": "v0"
       },
       "document": {
@@ -266,22 +266,31 @@
         "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
         "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
         "contentIsData": true,
-        "requestId": "d60ddde3-7472-4cce-af44-8ea47e244388",
+        "requestId": "b161308a-b5c3-47ac-ab84-f681ea578e34",
         "protocolVersion": "v0"
       }
     },
     {
       "nativeUiEnrichment": {
-        "nodeRevision": 1,
-        "interactionX": 240,
-        "interactionY": 125,
-        "nodeId": "ui:1:3",
-        "active": true,
-        "class": "net.minecraft.client.gui.components.Button",
-        "height": 20,
         "width": 200,
-        "capabilitySource": "platform_probe:native_ui",
-        "role": "button",
+        "height": 20,
+        "class": "net.minecraft.client.gui.components.Button",
+        "active": true,
+        "nodeId": "ui:1:3",
+        "interactionY": 125,
+        "interactionX": 240,
+        "nodeRevision": 1,
+        "visible": true,
+        "label": "Singleplayer",
+        "acquisition": "installed_extension",
+        "elementIdentity": 3,
+        "coverage": "native_with_extension_semantics",
+        "boundsAvailable": true,
+        "focused": false,
+        "translationKey": "menu.singleplayer",
+        "hovered": false,
+        "y": 115,
+        "x": 140,
         "actions": [
           "hover",
           "click",
@@ -289,17 +298,8 @@
           "mouse_down",
           "mouse_up"
         ],
-        "x": 140,
-        "y": 115,
-        "hovered": false,
-        "translationKey": "menu.singleplayer",
-        "focused": false,
-        "boundsAvailable": true,
-        "coverage": "native_with_extension_semantics",
-        "elementIdentity": 3,
-        "acquisition": "installed_extension",
-        "label": "Singleplayer",
-        "visible": true
+        "role": "button",
+        "capabilitySource": "platform_probe:native_ui"
       }
     },
     {
@@ -334,8 +334,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "7bd548b7-8902-4bf4-8c33-8a3847602b04",
-        "auditReference": "7bd548b7-8902-4bf4-8c33-8a3847602b04",
+        "debugOperationId": "7080d406-a1f6-40a5-8f0f-f67d2a68d34f",
+        "auditReference": "7080d406-a1f6-40a5-8f0f-f67d2a68d34f",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -347,8 +347,8 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:d98370a1-11a8-331d-9d03-678cff66436b",
-        "debugArmId": "503de930-abd7-4a83-acf7-bf4319267b5f",
+        "principalId": "token:4c0607bd-c6ee-3229-a857-e9dbc94700ef",
+        "debugArmId": "7fb4b4d0-0129-49dc-a33a-56803dfd6f73",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
@@ -356,7 +356,7 @@
           "adapterRevision": "managed_async_preparation_v3",
           "sampledAtNanos": 0,
           "ownerThread": "",
-          "passiveNativeHookCalls": 31,
+          "passiveNativeHookCalls": 30,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
@@ -368,13 +368,13 @@
           "adapterRevision": "managed_async_preparation_v3",
           "sampledAtNanos": 0,
           "ownerThread": "",
-          "passiveNativeHookCalls": 31,
+          "passiveNativeHookCalls": 30,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -384,7 +384,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -393,8 +393,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 51098,
-        "requestId": "7bd548b7-8902-4bf4-8c33-8a3847602b04",
+        "durationMicros": 23797,
+        "requestId": "7080d406-a1f6-40a5-8f0f-f67d2a68d34f",
         "protocolVersion": "v0"
       },
       "sampled": {
@@ -406,19 +406,19 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
-        "capturedAt": 1793478094122,
+        "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
+        "capturedAt": 1793484206303,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.20.1-forge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "5b10d2fd-1530-4476-9150-390420e9c41a",
-          "snapshotSequence": 32,
-          "capturedAtMillis": 1793478094122,
+          "snapshotId": "03f31314-036a-49f4-aba9-e743113a20c1",
+          "snapshotSequence": 31,
+          "capturedAtMillis": 1793484206303,
           "clientTick": -1,
-          "serverTick": 32,
+          "serverTick": 31,
           "consistency": "server_thread_bounded",
           "perspective": "server_authoritative",
           "acquisition": "public_api_plus_internal_projection",
@@ -441,7 +441,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 52,
+          "ownerThreadCaptureMicros": 30,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -451,14 +451,14 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478094122,
-          "snapshotId": "e24627de-802d-458c-8d36-70a746e42c5c",
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "capturedAt": 1793484206303,
+          "snapshotId": "a3eebb56-4fe9-4ff9-a13b-37be85da121e",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "clientTick": -1,
-          "serverTick": 32,
+          "serverTick": 31,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+            "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
             "entryCount": 56,
             "entryBound": 4096,
             "evictionCount": 0,
@@ -466,13 +466,13 @@
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 6,
+          "revisionComputationMicros": 7,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+            "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -551,27 +551,27 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 1,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 573502359791700,
+              "sampledAtNanos": 579614551209600,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 32,
+              "passiveNativeHookCalls": 31,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
             },
             "providerRevision": 1,
             "bytes": 471,
-            "entryDurationMicros": 34,
-            "validationDurationMicros": 109,
-            "durationMicros": 9007
+            "entryDurationMicros": 47,
+            "validationDurationMicros": 130,
+            "durationMicros": 10947
           }
         ],
-        "responseBytes": 4318,
+        "responseBytes": 4319,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "4c0b331d-93c2-46e1-916b-66ea6bc9f121",
+        "requestId": "8a256d5c-7cab-4128-9f3b-731f5231f3ea",
         "protocolVersion": "v0"
       }
     },
@@ -579,8 +579,8 @@
       "stopped": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "91f74039-7c77-46e0-b8d5-7600acdadda7",
-        "auditReference": "91f74039-7c77-46e0-b8d5-7600acdadda7",
+        "debugOperationId": "4011dc97-f884-41ee-bfa2-157ec854638c",
+        "auditReference": "4011dc97-f884-41ee-bfa2-157ec854638c",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -592,16 +592,16 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:d98370a1-11a8-331d-9d03-678cff66436b",
-        "debugArmId": "503de930-abd7-4a83-acf7-bf4319267b5f",
+        "principalId": "token:4c0607bd-c6ee-3229-a857-e9dbc94700ef",
+        "debugArmId": "7fb4b4d0-0129-49dc-a33a-56803dfd6f73",
         "before": {
           "running": true,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573503114684600,
+          "sampledAtNanos": 579615314294200,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 47,
+          "passiveNativeHookCalls": 46,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
@@ -611,15 +611,15 @@
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573503114684600,
+          "sampledAtNanos": 579615314294200,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 47,
+          "passiveNativeHookCalls": 46,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -629,7 +629,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -638,8 +638,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 6075,
-        "requestId": "91f74039-7c77-46e0-b8d5-7600acdadda7",
+        "durationMicros": 5825,
+        "requestId": "4011dc97-f884-41ee-bfa2-157ec854638c",
         "protocolVersion": "v0"
       }
     },
@@ -647,8 +647,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "ce056c44-a176-441c-9a19-5e2cde43090c",
-        "auditReference": "ce056c44-a176-441c-9a19-5e2cde43090c",
+        "debugOperationId": "43adcaad-4b7a-43c7-8c39-92c9222ca273",
+        "auditReference": "43adcaad-4b7a-43c7-8c39-92c9222ca273",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -660,14 +660,14 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:d98370a1-11a8-331d-9d03-678cff66436b",
-        "debugArmId": "30c5ac93-9471-47e0-b3f8-2fa3cd8e14cf",
+        "principalId": "token:4c0607bd-c6ee-3229-a857-e9dbc94700ef",
+        "debugArmId": "d0f22e8f-ef9c-4dba-873f-a57bb18b39a5",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573503114684600,
+          "sampledAtNanos": 579615314294200,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 70,
           "passiveNativeHookThread": "Server thread",
@@ -687,7 +687,7 @@
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -697,7 +697,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -706,8 +706,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 1923,
-        "requestId": "ce056c44-a176-441c-9a19-5e2cde43090c",
+        "durationMicros": 1790,
+        "requestId": "43adcaad-4b7a-43c7-8c39-92c9222ca273",
         "protocolVersion": "v0"
       },
       "stopped": {
@@ -719,17 +719,17 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
-        "capturedAt": 1793478096395,
+        "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
+        "capturedAt": 1793484208593,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.20.1-forge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "a2465c0a-de73-43bc-bdd1-43056506e65e",
+          "snapshotId": "4f11b492-d4ae-4559-a67a-1c14a80dec3c",
           "snapshotSequence": 77,
-          "capturedAtMillis": 1793478096395,
+          "capturedAtMillis": 1793484208593,
           "clientTick": -1,
           "serverTick": 77,
           "consistency": "server_thread_bounded",
@@ -754,7 +754,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 24,
+          "ownerThreadCaptureMicros": 25,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -764,14 +764,14 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478096395,
-          "snapshotId": "c90742a7-40ff-470a-ae1c-906b74c3c09f",
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "capturedAt": 1793484208593,
+          "snapshotId": "196bf546-0848-4828-87e2-f192a1cd1eca",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "clientTick": -1,
           "serverTick": 77,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+            "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
             "entryCount": 56,
             "entryBound": 4096,
             "evictionCount": 0,
@@ -785,7 +785,7 @@
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+            "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -862,20 +862,20 @@
             "data": {
               "running": false,
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
-              "samples": 7,
+              "samples": 6,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 573504615632800,
+              "sampledAtNanos": 579616765687200,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 78,
+              "passiveNativeHookCalls": 77,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
             },
             "providerRevision": 4,
             "bytes": 473,
-            "entryDurationMicros": 22,
-            "validationDurationMicros": 65,
-            "durationMicros": 9758
+            "entryDurationMicros": 27,
+            "validationDurationMicros": 98,
+            "durationMicros": 5327
           }
         ],
         "responseBytes": 4318,
@@ -884,19 +884,19 @@
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "c179ba59-961b-416c-8454-8c34e3138abc",
+        "requestId": "1c02d963-2020-43eb-97ce-13093c241159",
         "protocolVersion": "v0"
       },
       "cleanup": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "ba2275e5-3a97-4360-9d23-ceb93ccfed26",
+        "runtimeInstanceId": "fc94cf4f-e3fa-45f7-b3b4-d26f3e229b13",
         "activeScopes": 2,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "503de930-abd7-4a83-acf7-bf4319267b5f",
+            "contextId": "7fb4b4d0-0129-49dc-a33a-56803dfd6f73",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -918,7 +918,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "30c5ac93-9471-47e0-b3f8-2fa3cd8e14cf",
+            "contextId": "d0f22e8f-ef9c-4dba-873f-a57bb18b39a5",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -938,7 +938,7 @@
           }
         ],
         "inputCleanup": [],
-        "requestId": "8ee7ece0-f141-4488-a6c6-daa171080ddd",
+        "requestId": "68f98ffe-cf45-488e-b135-accf75dcb843",
         "protocolVersion": "v0"
       }
     },
@@ -967,12 +967,12 @@
         "attributes": {
           "nativeParent": "minecraft:chest"
         },
-        "targetRef": "world:343ae908-4b0b-4d46-8aca-ceeae1576950",
+        "targetRef": "world:b78440be-9732-4188-b101-0b5c74a1d237",
         "targetTtlMs": 15000
       },
       "result": {
         "type": "operation",
-        "operationId": "f0037dc7-1d9a-4b87-8c1a-0ff94309cc23",
+        "operationId": "a181d564-8370-4a6e-aa4a-f9c9a0eeff6c",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -984,25 +984,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478100287,
-        "acceptedAtMillis": 1793478100287,
-        "scheduledAtMillis": 1793478100287,
-        "startedAtMillis": 1793478100287,
-        "completedAtMillis": 1793478100467,
+        "receivedAtMillis": 1793484212457,
+        "acceptedAtMillis": 1793484212457,
+        "scheduledAtMillis": 1793484212457,
+        "startedAtMillis": 1793484212457,
+        "completedAtMillis": 1793484212630,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "280a1029-1815-4d1b-95af-16200727d81d",
+          "gestureId": "46c6d33a-75cd-4cc2-80cf-2a5c47997e44",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 180,
+          "durationMillis": 173,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 164.296,
+              "elapsedMillis": 157.0886,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -1032,9 +1032,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "1.20.1-forge",
-                  "clientTick": 556,
+                  "clientTick": 527,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "280a1029-1815-4d1b-95af-16200727d81d",
+                  "gestureId": "46c6d33a-75cd-4cc2-80cf-2a5c47997e44",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -1062,49 +1062,49 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:343ae908-4b0b-4d46-8aca-ceeae1576950"
+                "targetRef": "world:b78440be-9732-4188-b101-0b5c74a1d237"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0386,
-            "totalMillis": 179.3634,
+            "queueMillis": 0.0269,
+            "totalMillis": 172.9057,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 4.6578,
+                "elapsedMillis": 4.7676,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 30.0446,
+                "elapsedMillis": 23.9014,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 131.894,
+                "elapsedMillis": 130.779,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 10.2508,
+                "elapsedMillis": 10.8953,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 13.0535,
-            "lastInputCallbackOffsetMillis": 168.3043
+            "firstInputCallbackOffsetMillis": 13.1568,
+            "lastInputCallbackOffsetMillis": 161.0885
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "1.20.1-forge",
-            "clientTick": 558,
+            "clientTick": 529,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 219
           }
         },
-        "requestId": "842d8a87-d0b0-4fe2-a2c7-27c3ddb31a6a",
+        "requestId": "8634cec2-1c65-433b-bed6-576a9e98a85a",
         "protocolVersion": "v0"
       },
       "actualNativeScreen": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
@@ -1114,7 +1114,7 @@
     {
       "stalePartRejected": {
         "type": "operation",
-        "operationId": "83106c18-484f-40ad-825f-9b9767f297d5",
+        "operationId": "0088482a-3acf-43fa-b141-569041e770eb",
         "status": "failed",
         "state": "failed",
         "received": true,
@@ -1126,15 +1126,15 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478101518,
-        "acceptedAtMillis": 1793478101518,
-        "scheduledAtMillis": 1793478101518,
-        "startedAtMillis": 1793478101518,
-        "completedAtMillis": 1793478101545,
+        "receivedAtMillis": 1793484213673,
+        "acceptedAtMillis": 1793484213673,
+        "scheduledAtMillis": 1793484213673,
+        "startedAtMillis": 1793484213673,
+        "completedAtMillis": 1793484213701,
         "commandSubmissionsComplete": true,
         "error": "Block/chunk identity or bounded history changed; rediscover target",
         "errorCode": "WORLD_TARGET_STALE",
-        "requestId": "f89759e4-08a5-4aad-8830-0e043930b9aa",
+        "requestId": "1e7fc86f-f330-41cf-affe-86e835194bb1",
         "protocolVersion": "v0"
       },
       "cleanupCounterAdvanced": 1,
@@ -1145,7 +1145,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 580,
+        "clientTick": 552,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1161,14 +1161,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "0fd509c7-cf18-41f4-9000-d0444699480a",
+        "gestureId": "58428028-42fa-4c6e-ab09-6a7576a6f35b",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "0fd509c7-cf18-41f4-9000-d0444699480a",
+        "requestId": "58428028-42fa-4c6e-ab09-6a7576a6f35b",
         "protocolVersion": "v0"
       }
     },
@@ -1177,7 +1177,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 591,
+        "clientTick": 563,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1193,14 +1193,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "276be70a-8845-4d64-9401-41d904178b4e",
+        "gestureId": "5daeb34d-5f9c-4ec5-973c-470c216650d2",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "276be70a-8845-4d64-9401-41d904178b4e",
+        "requestId": "5daeb34d-5f9c-4ec5-973c-470c216650d2",
         "protocolVersion": "v0"
       }
     },
@@ -1209,7 +1209,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 602,
+        "clientTick": 575,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1225,14 +1225,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "10695447-32a9-48ed-ad17-88444c83d29c",
+        "gestureId": "8fc9b224-2b4a-4917-b535-fb580bdb99f5",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "10695447-32a9-48ed-ad17-88444c83d29c",
+        "requestId": "8fc9b224-2b4a-4917-b535-fb580bdb99f5",
         "protocolVersion": "v0"
       }
     },
@@ -1241,7 +1241,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 614,
+        "clientTick": 586,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1257,14 +1257,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "2c3e4d55-5112-41ec-a108-b616dfcf36bc",
+        "gestureId": "c094cdd5-379d-4ea8-8c70-27688d945d57",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "2c3e4d55-5112-41ec-a108-b616dfcf36bc",
+        "requestId": "c094cdd5-379d-4ea8-8c70-27688d945d57",
         "protocolVersion": "v0"
       }
     },
@@ -1273,7 +1273,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 625,
+        "clientTick": 597,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1289,14 +1289,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "fb868b0b-f47f-4658-9225-b3746c30050b",
+        "gestureId": "3b331a2b-0fb0-472d-b16a-ed763f45fe99",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "fb868b0b-f47f-4658-9225-b3746c30050b",
+        "requestId": "3b331a2b-0fb0-472d-b16a-ed763f45fe99",
         "protocolVersion": "v0"
       }
     },
@@ -1305,7 +1305,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.20.1-forge",
-        "clientTick": 637,
+        "clientTick": 609,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1321,14 +1321,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "141f3541-abd6-41ab-a1a3-2c2bcf508310",
+        "gestureId": "13adff39-5be6-4e51-9cc7-9e5577437b60",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "141f3541-abd6-41ab-a1a3-2c2bcf508310",
+        "requestId": "13adff39-5be6-4e51-9cc7-9e5577437b60",
         "protocolVersion": "v0"
       }
     },
@@ -1337,8 +1337,8 @@
       "fixture": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "a4bcd89d-567f-4afe-ad53-2ec19bf68223",
-        "auditReference": "a4bcd89d-567f-4afe-ad53-2ec19bf68223",
+        "debugOperationId": "6f34f537-76a3-47e9-a96d-6289a749a6e1",
+        "auditReference": "6f34f537-76a3-47e9-a96d-6289a749a6e1",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "littletiles:example_fixture",
@@ -1350,24 +1350,24 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:d98370a1-11a8-331d-9d03-678cff66436b",
-        "debugArmId": "a60ce9eb-4556-4122-a3ba-9789122a35f0",
+        "principalId": "token:4c0607bd-c6ee-3229-a857-e9dbc94700ef",
+        "debugArmId": "e568cef7-0922-4365-8e51-2b110832280c",
         "before": {
           "available": true,
           "playerUuid": "b726e6e9-1d5c-43cf-8790-9f8a57d435ee",
           "slotEmpty": true,
           "item": "0 air",
-          "stackIdentity": 1746456305
+          "stackIdentity": 548476886
         },
         "after": {
           "available": true,
           "playerUuid": "b726e6e9-1d5c-43cf-8790-9f8a57d435ee",
           "slotEmpty": false,
           "item": "1 blueprint",
-          "stackIdentity": 1426697104
+          "stackIdentity": 221845230
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "littletiles:example_fixture",
           "lifecycleId": "provider:littletiles:example_fixture@runtime_registration",
@@ -1377,7 +1377,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "196d1026-b8fa-4ff1-bb02-d8e4def3475f",
+          "sessionEpoch": "e859ebeb-ae2a-4822-ad94-c0cc97fbe222",
           "resourceType": "provider",
           "resourceKey": "littletiles:example_fixture",
           "lifecycleId": "provider:littletiles:example_fixture@runtime_registration",
@@ -1386,11 +1386,11 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 10264,
-        "requestId": "a4bcd89d-567f-4afe-ad53-2ec19bf68223",
+        "durationMicros": 12809,
+        "requestId": "6f34f537-76a3-47e9-a96d-6289a749a6e1",
         "protocolVersion": "v0"
       },
-      "armIdentity": "a60ce9eb-4556-4122-a3ba-9789122a35f0",
+      "armIdentity": "e568cef7-0922-4365-8e51-2b110832280c",
       "leaseRequired": false,
       "gameplayEvidence": false
     },
@@ -1398,7 +1398,7 @@
       "case": "littletiles_static_native_geometry",
       "placement": {
         "type": "operation",
-        "operationId": "a8be258f-ca58-44a9-801d-5b1b2fc11d58",
+        "operationId": "c6391d74-2ba1-48ac-af81-226c3d5e3aee",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -1410,25 +1410,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478105144,
-        "acceptedAtMillis": 1793478105144,
-        "scheduledAtMillis": 1793478105144,
-        "startedAtMillis": 1793478105144,
-        "completedAtMillis": 1793478105309,
+        "receivedAtMillis": 1793484217343,
+        "acceptedAtMillis": 1793484217343,
+        "scheduledAtMillis": 1793484217343,
+        "startedAtMillis": 1793484217343,
+        "completedAtMillis": 1793484217510,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "2366f510-534c-408a-b0be-c2d801407b4e",
+          "gestureId": "c18cd690-aacf-4908-927f-1b0a97d67de3",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 165,
+          "durationMillis": 167,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 143.1206,
+              "elapsedMillis": 151.2264,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -1458,9 +1458,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "1.20.1-forge",
-                  "clientTick": 653,
+                  "clientTick": 625,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "2366f510-534c-408a-b0be-c2d801407b4e",
+                  "gestureId": "c18cd690-aacf-4908-927f-1b0a97d67de3",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -1488,53 +1488,56 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:adcd0135-5e14-4458-aff5-c8d15d087c69"
+                "targetRef": "world:ae199e62-51f7-42a8-98bb-a707b7df9b03"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0205,
-            "totalMillis": 163.9628,
+            "queueMillis": 0.0201,
+            "totalMillis": 167.7162,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 6.9204,
+                "elapsedMillis": 6.0015,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 11.996,
+                "elapsedMillis": 20.0543,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 130.9429,
+                "elapsedMillis": 130.972,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 13.8,
+                "elapsedMillis": 10.3578,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 16.8468,
-            "lastInputCallbackOffsetMillis": 149.7998
+            "firstInputCallbackOffsetMillis": 14.7235,
+            "lastInputCallbackOffsetMillis": 156.9771
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "1.20.1-forge",
-            "clientTick": 654,
+            "clientTick": 627,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 233
           }
         },
-        "requestId": "133e839f-e469-466a-ad6a-a07ebefc4a15",
+        "requestId": "89b121fd-0e1b-485a-b630-12afcef3c30d",
         "protocolVersion": "v0"
       },
       "parent": {
-        "targetRef": "world:93973b88-a386-492b-9cee-a920523a8db8",
+        "targetRef": "world:3e04d49f-0646-4ddf-b615-8d8d5cd111e1",
+        "state": "Block{littletiles:tiles}[waterlogged=false]",
+        "targetTtlMs": 15000,
+        "block": "littletiles:tiles",
         "extensionParts": [
           {
             "key": "group:20:tile:21:box:22",
@@ -1558,11 +1561,11 @@
               "z": 3.5
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:b2ab0696-890c-44b2-b3f2-74c9cda4fd61",
+            "targetRef": "world:c62a17b0-3528-41f8-b7fb-29b3ee1bca44",
             "targetTtlMs": 15000
           },
           {
@@ -1587,11 +1590,11 @@
               "z": 3.03125
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:6c20d66d-a365-46d6-b416-9ad523f077e3",
+            "targetRef": "world:32081d23-4e37-488d-a120-33fb62f82c5b",
             "targetTtlMs": 15000
           },
           {
@@ -1616,11 +1619,11 @@
               "z": 3.96875
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:c0a8c90c-69f0-493e-b371-5de42ab2c56d",
+            "targetRef": "world:dae615f8-8a59-4609-840c-9af0062b8006",
             "targetTtlMs": 15000
           },
           {
@@ -1645,11 +1648,11 @@
               "z": 3.5
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:8b9f2b60-e1ec-4fe6-b7e7-ee5eb8ebc3fc",
+            "targetRef": "world:3c186f52-a47b-4381-ada6-c562763f1db1",
             "targetTtlMs": 15000
           },
           {
@@ -1674,11 +1677,11 @@
               "z": 3.5
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:9eb8bb47-fa42-4608-b5e6-59d7071b8bb2",
+            "targetRef": "world:9e947894-c389-4861-a19d-94a7d1db4952",
             "targetTtlMs": 15000
           },
           {
@@ -1703,11 +1706,11 @@
               "z": 3.09375
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:611aa117-e793-4f9a-90f0-8a54f11a2d82",
+            "targetRef": "world:4fad860c-f2ad-4cd9-8248-be5ea372f280",
             "targetTtlMs": 15000
           },
           {
@@ -1732,11 +1735,11 @@
               "z": 3.90625
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:03298e35-5bc8-4282-8c39-c2d40c78a4de",
+            "targetRef": "world:61fb3363-ba8b-4532-ab9f-58c9aad6a8d4",
             "targetTtlMs": 15000
           },
           {
@@ -1761,11 +1764,11 @@
               "z": 3.90625
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:060d8407-c51b-415d-834a-e03c19167bd4",
+            "targetRef": "world:d77b1e9a-e4cd-4dd5-a8a1-8cd543789bbd",
             "targetTtlMs": 15000
           },
           {
@@ -1790,11 +1793,11 @@
               "z": 3.90625
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:6f6dfe44-93dd-4278-975b-eb99299c3ed1",
+            "targetRef": "world:9256deef-a341-45ee-aad4-47e3e46c497f",
             "targetTtlMs": 15000
           },
           {
@@ -1819,11 +1822,11 @@
               "z": 3.90625
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:8fdc5d65-de81-4d59-91a7-fec2905c4211",
+            "targetRef": "world:71830f49-4463-40f5-933f-2a50998a4535",
             "targetTtlMs": 15000
           },
           {
@@ -1848,17 +1851,14 @@
               "z": 3.90625
             },
             "attributes": {
-              "material": "littletiles:colored_clay",
+              "grid": "16",
               "coverage": "bounded_first_64_static_boxes",
-              "grid": "16"
+              "material": "littletiles:colored_clay"
             },
-            "targetRef": "world:2292f273-a547-4d63-a5be-9e135657986e",
+            "targetRef": "world:c67a50d5-79b8-4a3c-a9a8-371d83410610",
             "targetTtlMs": 15000
           }
         ],
-        "block": "littletiles:tiles",
-        "targetTtlMs": 15000,
-        "state": "Block{littletiles:tiles}[waterlogged=false]",
         "x": 0,
         "y": 81,
         "z": 3
@@ -1881,7 +1881,7 @@
         "structures": [
           {
             "nativeType": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "identity": 1310680411,
+            "identity": 903342280,
             "stateCount": 2,
             "changing": false,
             "outputState": 0,
@@ -1915,11 +1915,11 @@
             "z": 3.5
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:b2ab0696-890c-44b2-b3f2-74c9cda4fd61",
+          "targetRef": "world:c62a17b0-3528-41f8-b7fb-29b3ee1bca44",
           "targetTtlMs": 15000
         },
         {
@@ -1944,11 +1944,11 @@
             "z": 3.03125
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:6c20d66d-a365-46d6-b416-9ad523f077e3",
+          "targetRef": "world:32081d23-4e37-488d-a120-33fb62f82c5b",
           "targetTtlMs": 15000
         },
         {
@@ -1973,11 +1973,11 @@
             "z": 3.96875
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:c0a8c90c-69f0-493e-b371-5de42ab2c56d",
+          "targetRef": "world:dae615f8-8a59-4609-840c-9af0062b8006",
           "targetTtlMs": 15000
         },
         {
@@ -2002,11 +2002,11 @@
             "z": 3.5
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:8b9f2b60-e1ec-4fe6-b7e7-ee5eb8ebc3fc",
+          "targetRef": "world:3c186f52-a47b-4381-ada6-c562763f1db1",
           "targetTtlMs": 15000
         },
         {
@@ -2031,11 +2031,11 @@
             "z": 3.5
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:9eb8bb47-fa42-4608-b5e6-59d7071b8bb2",
+          "targetRef": "world:9e947894-c389-4861-a19d-94a7d1db4952",
           "targetTtlMs": 15000
         },
         {
@@ -2060,11 +2060,11 @@
             "z": 3.09375
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:611aa117-e793-4f9a-90f0-8a54f11a2d82",
+          "targetRef": "world:4fad860c-f2ad-4cd9-8248-be5ea372f280",
           "targetTtlMs": 15000
         },
         {
@@ -2089,11 +2089,11 @@
             "z": 3.90625
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:03298e35-5bc8-4282-8c39-c2d40c78a4de",
+          "targetRef": "world:61fb3363-ba8b-4532-ab9f-58c9aad6a8d4",
           "targetTtlMs": 15000
         },
         {
@@ -2118,11 +2118,11 @@
             "z": 3.90625
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:060d8407-c51b-415d-834a-e03c19167bd4",
+          "targetRef": "world:d77b1e9a-e4cd-4dd5-a8a1-8cd543789bbd",
           "targetTtlMs": 15000
         },
         {
@@ -2147,11 +2147,11 @@
             "z": 3.90625
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:6f6dfe44-93dd-4278-975b-eb99299c3ed1",
+          "targetRef": "world:9256deef-a341-45ee-aad4-47e3e46c497f",
           "targetTtlMs": 15000
         },
         {
@@ -2176,11 +2176,11 @@
             "z": 3.90625
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:8fdc5d65-de81-4d59-91a7-fec2905c4211",
+          "targetRef": "world:71830f49-4463-40f5-933f-2a50998a4535",
           "targetTtlMs": 15000
         },
         {
@@ -2205,11 +2205,11 @@
             "z": 3.90625
           },
           "attributes": {
-            "material": "littletiles:colored_clay",
+            "grid": "16",
             "coverage": "bounded_first_64_static_boxes",
-            "grid": "16"
+            "material": "littletiles:colored_clay"
           },
-          "targetRef": "world:2292f273-a547-4d63-a5be-9e135657986e",
+          "targetRef": "world:c67a50d5-79b8-4a3c-a9a8-371d83410610",
           "targetTtlMs": 15000
         }
       ]
@@ -2218,7 +2218,7 @@
       "case": "littletiles_normal_door_input",
       "click": {
         "type": "operation",
-        "operationId": "d81d7f0e-3f38-401c-b695-07fbc44c75fd",
+        "operationId": "f23bac5d-f8b0-41d5-a5c4-562dc987322c",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -2230,25 +2230,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478106258,
-        "acceptedAtMillis": 1793478106258,
-        "scheduledAtMillis": 1793478106258,
-        "startedAtMillis": 1793478106258,
-        "completedAtMillis": 1793478106432,
+        "receivedAtMillis": 1793484218453,
+        "acceptedAtMillis": 1793484218453,
+        "scheduledAtMillis": 1793484218453,
+        "startedAtMillis": 1793484218453,
+        "completedAtMillis": 1793484218615,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "479932bb-448c-4681-94e1-6c660a42447b",
+          "gestureId": "b16a1b8d-66f0-4712-a182-c3d1ed86301c",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 174,
+          "durationMillis": 162,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 158.803,
+              "elapsedMillis": 146.2606,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -2278,9 +2278,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "1.20.1-forge",
-                  "clientTick": 675,
+                  "clientTick": 647,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "479932bb-448c-4681-94e1-6c660a42447b",
+                  "gestureId": "b16a1b8d-66f0-4712-a182-c3d1ed86301c",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -2308,49 +2308,49 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:94ee45c1-c4d3-47a7-a074-935c46baefa7"
+                "targetRef": "world:2bea7076-2f45-4c77-b3fe-0b86a0843894"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0205,
-            "totalMillis": 174.1947,
+            "queueMillis": 0.0177,
+            "totalMillis": 162.2488,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 6.0164,
+                "elapsedMillis": 5.5284,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 26.4644,
+                "elapsedMillis": 14.8934,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 132.1694,
+                "elapsedMillis": 131.1904,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 9.2527,
+                "elapsedMillis": 10.3073,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 14.3692,
-            "lastInputCallbackOffsetMillis": 164.5123
+            "firstInputCallbackOffsetMillis": 13.8774,
+            "lastInputCallbackOffsetMillis": 151.5852
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "1.20.1-forge",
-            "clientTick": 677,
+            "clientTick": 649,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 240
           }
         },
-        "requestId": "6a5b868e-d5b2-4285-b2f1-d798d05301c6",
+        "requestId": "e601bf94-ed7f-4191-8e77-a41bcf6987be",
         "protocolVersion": "v0"
       },
       "before": {
@@ -2371,7 +2371,7 @@
         "structures": [
           {
             "nativeType": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "identity": 1310680411,
+            "identity": 903342280,
             "stateCount": 2,
             "changing": false,
             "outputState": 0,
@@ -2393,11 +2393,11 @@
             {
               "stage": "enter",
               "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-              "receiverIdentity": 310912664,
+              "receiverIdentity": 1918904681,
               "side": "client",
-              "focusparent": 362710066,
-              "focustile": 886429175,
-              "focusbox": 401260981,
+              "focusparent": 1853121167,
+              "focustile": 306596636,
+              "focusbox": 959157033,
               "rightClick": true,
               "activateParent": false,
               "currentState": 0,
@@ -2408,11 +2408,11 @@
             {
               "stage": "return",
               "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-              "receiverIdentity": 310912664,
+              "receiverIdentity": 1918904681,
               "side": "client",
-              "focusparent": 362710066,
-              "focustile": 886429175,
-              "focusbox": 401260981,
+              "focusparent": 1853121167,
+              "focustile": 306596636,
+              "focusbox": 959157033,
               "rightClick": true,
               "activateParent": false,
               "currentState": 0,
@@ -2424,11 +2424,11 @@
             {
               "stage": "enter",
               "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-              "receiverIdentity": 1310680411,
+              "receiverIdentity": 903342280,
               "side": "server",
-              "focusparent": 161777074,
-              "focustile": 63759978,
-              "focusbox": 1805958362,
+              "focusparent": 627894061,
+              "focustile": 1317250436,
+              "focusbox": 305522829,
               "rightClick": true,
               "activateParent": false,
               "currentState": 0,
@@ -2439,11 +2439,11 @@
             {
               "stage": "return",
               "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-              "receiverIdentity": 1310680411,
+              "receiverIdentity": 903342280,
               "side": "server",
-              "focusparent": 161777074,
-              "focustile": 63759978,
-              "focusbox": 1805958362,
+              "focusparent": 627894061,
+              "focustile": 1317250436,
+              "focusbox": 305522829,
               "rightClick": true,
               "activateParent": false,
               "currentState": 0,
@@ -2456,11 +2456,11 @@
         },
         "animations": [
           {
-            "uuid": "88f9efa7-4cde-4137-adee-d6770116714a",
+            "uuid": "e6b6c291-66dc-466d-b81b-7bb8d065d084",
             "structures": [
               {
                 "nativeType": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-                "identity": 259598061,
+                "identity": 322909619,
                 "stateCount": 2,
                 "changing": false,
                 "outputState": 1,
@@ -2481,11 +2481,11 @@
           {
             "stage": "enter",
             "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "receiverIdentity": 310912664,
+            "receiverIdentity": 1918904681,
             "side": "client",
-            "focusparent": 362710066,
-            "focustile": 886429175,
-            "focusbox": 401260981,
+            "focusparent": 1853121167,
+            "focustile": 306596636,
+            "focusbox": 959157033,
             "rightClick": true,
             "activateParent": false,
             "currentState": 0,
@@ -2496,11 +2496,11 @@
           {
             "stage": "return",
             "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "receiverIdentity": 310912664,
+            "receiverIdentity": 1918904681,
             "side": "client",
-            "focusparent": 362710066,
-            "focustile": 886429175,
-            "focusbox": 401260981,
+            "focusparent": 1853121167,
+            "focustile": 306596636,
+            "focusbox": 959157033,
             "rightClick": true,
             "activateParent": false,
             "currentState": 0,
@@ -2512,11 +2512,11 @@
           {
             "stage": "enter",
             "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "receiverIdentity": 1310680411,
+            "receiverIdentity": 903342280,
             "side": "server",
-            "focusparent": 161777074,
-            "focustile": 63759978,
-            "focusbox": 1805958362,
+            "focusparent": 627894061,
+            "focustile": 1317250436,
+            "focusbox": 305522829,
             "rightClick": true,
             "activateParent": false,
             "currentState": 0,
@@ -2527,11 +2527,11 @@
           {
             "stage": "return",
             "receiverClass": "team.creative.littletiles.common.structure.type.animation.LittleAxisDoor",
-            "receiverIdentity": 1310680411,
+            "receiverIdentity": 903342280,
             "side": "server",
-            "focusparent": 161777074,
-            "focustile": 63759978,
-            "focusbox": 1805958362,
+            "focusparent": 627894061,
+            "focustile": 1317250436,
+            "focusbox": 305522829,
             "rightClick": true,
             "activateParent": false,
             "currentState": 0,
@@ -2554,8 +2554,8 @@
       "case": "native_act_receipt",
       "started": {
         "type": "debug.evidence.gameplay_act",
-        "actId": "9c2f80a0-01e2-49c2-81df-1f30f9cd32a8",
-        "startedAtMillis": 1793478105136,
+        "actId": "71c9f30c-f337-41c0-9258-cd8a8f1e13e3",
+        "startedAtMillis": 1793484217333,
         "debugSequenceAtStart": 4,
         "lastDebugMutationSequence": 4,
         "debugMutationCount": 0,
@@ -2567,14 +2567,14 @@
         "contaminated": false,
         "gameplayEvidence": "gameplay",
         "status": "active",
-        "requestId": "ac13baed-fd72-4a43-b38b-9eb876885be6",
+        "requestId": "0627c4f6-52c0-4e80-89f5-b870ff875015",
         "protocolVersion": "v0"
       },
       "finished": {
         "type": "debug.evidence.gameplay_act",
-        "actId": "9c2f80a0-01e2-49c2-81df-1f30f9cd32a8",
-        "startedAtMillis": 1793478105136,
-        "completedAtMillis": 1793478107372,
+        "actId": "71c9f30c-f337-41c0-9258-cd8a8f1e13e3",
+        "startedAtMillis": 1793484217333,
+        "completedAtMillis": 1793484219554,
         "debugSequenceAtStart": 4,
         "lastDebugMutationSequence": 4,
         "debugMutationCount": 0,
@@ -2586,7 +2586,7 @@
         "contaminated": false,
         "gameplayEvidence": "gameplay",
         "status": "completed",
-        "requestId": "443a0649-b4fc-45c9-8b10-cbac1b8630d8",
+        "requestId": "960e56b4-bdff-4c07-b4ca-0aafb96cfac4",
         "protocolVersion": "v0"
       }
     },
@@ -2598,7 +2598,7 @@
         "before": {
           "type": "input.state",
           "target": "1.20.1-forge",
-          "clientTick": 699,
+          "clientTick": 672,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -2607,7 +2607,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "0d170e49-643a-451d-a3bd-35855158de7d",
+          "nativeEntityAttackContextId": "66bbb555-7b0c-4758-8e70-674431be7d6f",
           "nativeEntityAttackContextGeneration": 1,
           "nativeEntityAttackControlGeneration": 24,
           "nativeEntityAttackLeaseActive": true,
@@ -2620,17 +2620,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "4156284a-68db-460d-a16d-1eff73e62791",
+            "controlSessionId": "b9989724-9a5a-465b-bea9-5ded960042dc",
             "generation": 24
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 2395,
+          "controlChromeRenderedFrames": 2420,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.8348948,
-          "controlChromeEdgeWidth": 0.99996185,
+          "controlChromeEdgeAlpha": 0.80078965,
+          "controlChromeEdgeWidth": 0.98768675,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 2607,
+          "captureFrameSequence": 2618,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -2655,7 +2655,7 @@
             "plane": "GUI_ABSOLUTE",
             "x": 240,
             "y": 135,
-            "alpha": 0.25313044,
+            "alpha": 0.25693768,
             "gameCaptured": false,
             "gameCursorVisible": true,
             "gameCursorRevision": 11,
@@ -2674,20 +2674,20 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 1,
-          "inputContextId": "0d170e49-643a-451d-a3bd-35855158de7d",
+          "inputContextId": "66bbb555-7b0c-4758-8e70-674431be7d6f",
           "inputContextAvailable": true,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "0e416013-4eb9-458e-b37a-8133e4412399",
+          "requestId": "7fdb4b30-f56f-4d0e-9ee1-d182c891e25e",
           "protocolVersion": "v0"
         },
         "after": {
           "type": "input.state",
           "target": "1.20.1-forge",
-          "clientTick": 733,
+          "clientTick": 706,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -2696,7 +2696,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "333c5dae-256f-4c99-8443-9474316449c9",
+          "nativeEntityAttackContextId": "225a4ad4-1ef6-4a24-a20f-227ab194a31f",
           "nativeEntityAttackContextGeneration": 2,
           "nativeEntityAttackControlGeneration": 24,
           "nativeEntityAttackLeaseActive": false,
@@ -2709,17 +2709,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "4156284a-68db-460d-a16d-1eff73e62791",
+            "controlSessionId": "b9989724-9a5a-465b-bea9-5ded960042dc",
             "generation": 24
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 2675,
+          "controlChromeRenderedFrames": 2656,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.9535785,
-          "controlChromeEdgeWidth": 0.97678924,
+          "controlChromeEdgeAlpha": 0.9446149,
+          "controlChromeEdgeWidth": 0.97230744,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 2887,
+          "captureFrameSequence": 2854,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -2763,14 +2763,14 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 2,
-          "inputContextId": "333c5dae-256f-4c99-8443-9474316449c9",
+          "inputContextId": "225a4ad4-1ef6-4a24-a20f-227ab194a31f",
           "inputContextAvailable": false,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "76aec131-f3f2-4d78-aa50-8f4fd8f8fa2d",
+          "requestId": "c84721cb-fc32-4f84-aed8-520a1cd410ab",
           "protocolVersion": "v0"
         },
         "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
@@ -2782,7 +2782,7 @@
             "message": "unknown",
             "executionOutcome": "not_confirmed",
             "retrySafe": false,
-            "requestId": "e26ed863-24f3-4910-ba4e-57ac498d11c9",
+            "requestId": "040875d3-46e4-4932-8327-219598e3fe0a",
             "protocolVersion": "v0"
           }
         },
@@ -2798,7 +2798,7 @@
             "pressedButtonCount": 0
           },
           "waited": true,
-          "requestId": "44311a8d-4c71-4fae-8d33-e92cfa624853",
+          "requestId": "8fa5835b-af68-4294-8e13-ee7869bbbf52",
           "protocolVersion": "v0"
         }
       }
@@ -2806,7 +2806,7 @@
   ],
   "admissionRetries": [],
   "persistentWriteCalls": 0,
-  "artifactSha256": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398",
+  "artifactSha256": "decdf790408dee3dd7c7aec220f7c37d089c36bb08cb364005c83e723ac3f3cc",
   "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
   "sourceFiles": {
     "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "d9a3b1bda3d6ccfb5b6d10852017caa1d607ccf4b965d98910fd6c2e3c8bbd17",
@@ -2884,9 +2884,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -3093,14 +3093,14 @@
   "expectedCleanupFailures": [],
   "debugCleanupBeforeShutdown": {
     "type": "extensions.resources",
-    "runtimeInstanceId": "ba2275e5-3a97-4360-9d23-ceb93ccfed26",
+    "runtimeInstanceId": "fc94cf4f-e3fa-45f7-b3b4-d26f3e229b13",
     "activeScopes": 2,
     "cleanup": [
       {
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "503de930-abd7-4a83-acf7-bf4319267b5f",
+        "contextId": "7fb4b4d0-0129-49dc-a33a-56803dfd6f73",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -3122,7 +3122,7 @@
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "30c5ac93-9471-47e0-b3f8-2fa3cd8e14cf",
+        "contextId": "d0f22e8f-ef9c-4dba-873f-a57bb18b39a5",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -3144,15 +3144,15 @@
         "complete": true,
         "packageId": "littletiles",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "a60ce9eb-4556-4122-a3ba-9789122a35f0",
+        "contextId": "e568cef7-0922-4365-8e51-2b110832280c",
         "reason": "grant_invalidated",
         "released": true,
         "resources": []
       }
     ],
     "inputCleanup": [],
-    "requestId": "da68add4-f293-4ff1-99fc-fe1fb6a28e28",
+    "requestId": "866d16ad-018f-4358-b17a-b477a2d5d25b",
     "protocolVersion": "v0"
   },
-  "completedAt": "2026-10-31T20:21:50.186Z"
+  "completedAt": "2026-10-31T22:03:41.985Z"
 }

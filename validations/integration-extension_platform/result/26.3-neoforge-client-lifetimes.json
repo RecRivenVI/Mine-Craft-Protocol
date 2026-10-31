@@ -2,7 +2,7 @@
   "target": "26.3-neoforge",
   "role": "client",
   "adapter": "platform_probe",
-  "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+  "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
   "developmentClasspath": true,
   "finalJarInstall": false,
   "toolFiles": {
@@ -268,7 +268,7 @@
             }
           }
         ],
-        "requestId": "9fb64df2-d5a9-49fc-b89c-61f9130e8571",
+        "requestId": "de9d3aae-cef7-46e5-ae13-c94c0b67f05e",
         "protocolVersion": "v0"
       },
       "document": {
@@ -279,12 +279,25 @@
         "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
         "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
         "contentIsData": true,
-        "requestId": "d473b445-6612-4d54-895a-fcf51dd280df",
+        "requestId": "60727072-b5f8-4a3e-b404-04eb0a0d59d3",
         "protocolVersion": "v0"
       }
     },
     {
       "nativeUiEnrichment": {
+        "actions": [
+          "hover",
+          "click",
+          "double_click",
+          "mouse_down",
+          "mouse_up"
+        ],
+        "x": 140,
+        "y": 99,
+        "hovered": false,
+        "translationKey": "menu.singleplayer",
+        "focused": false,
+        "boundsAvailable": true,
         "coverage": "native_with_extension_semantics",
         "elementIdentity": 5,
         "acquisition": "installed_extension",
@@ -299,20 +312,7 @@
         "height": 20,
         "width": 200,
         "capabilitySource": "platform_probe:native_ui",
-        "role": "button",
-        "actions": [
-          "hover",
-          "click",
-          "double_click",
-          "mouse_down",
-          "mouse_up"
-        ],
-        "x": 140,
-        "y": 99,
-        "hovered": false,
-        "translationKey": "menu.singleplayer",
-        "focused": false,
-        "boundsAvailable": true
+        "role": "button"
       }
     },
     {
@@ -339,8 +339,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "644ae76e-f88a-43a2-acb2-81f43d08157e",
-        "auditReference": "644ae76e-f88a-43a2-acb2-81f43d08157e",
+        "debugOperationId": "c071dfc5-661a-42d5-93b7-8ace06cb7f22",
+        "auditReference": "c071dfc5-661a-42d5-93b7-8ace06cb7f22",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -352,8 +352,8 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:67aa6c3d-2811-312d-a807-74eb8ee19626",
-        "debugArmId": "a4480364-2de6-47c6-a857-80ac7d310946",
+        "principalId": "token:2f8955e6-c46a-3a81-a1d4-880fd3eb1fd5",
+        "debugArmId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
@@ -379,7 +379,7 @@
           "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -389,7 +389,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -398,8 +398,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 11499,
-        "requestId": "644ae76e-f88a-43a2-acb2-81f43d08157e",
+        "durationMicros": 10241,
+        "requestId": "c071dfc5-661a-42d5-93b7-8ace06cb7f22",
         "protocolVersion": "v0"
       },
       "sampled": {
@@ -411,19 +411,19 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
-        "capturedAt": 1793478213226,
+        "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
+        "capturedAt": 1793484323995,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "26.3-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "bffe0496-37b4-4b7a-be8a-336d7bd9b37b",
-          "snapshotSequence": 30,
-          "capturedAtMillis": 1793478213226,
+          "snapshotId": "8057f910-5837-4bbb-a2da-baa5ee458c77",
+          "snapshotSequence": 29,
+          "capturedAtMillis": 1793484323995,
           "clientTick": -1,
-          "serverTick": 30,
+          "serverTick": 29,
           "consistency": "server_thread_bounded",
           "perspective": "server_authoritative",
           "acquisition": "public_api_plus_internal_projection",
@@ -456,28 +456,28 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478213226,
-          "snapshotId": "832f8175-d756-4ddd-aa5f-55585e05036f",
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "capturedAt": 1793484323995,
+          "snapshotId": "eb92216c-8ba9-4d02-9308-f7ee2b472097",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "clientTick": -1,
-          "serverTick": 30,
+          "serverTick": 29,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
-            "entryCount": 77,
+            "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
+            "entryCount": 79,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 141,
+            "generationHighWatermark": 143,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 5,
+          "revisionComputationMicros": 8,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+            "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -556,18 +556,18 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 1,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 573621468113700,
+              "sampledAtNanos": 579732243613600,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 30,
+              "passiveNativeHookCalls": 29,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
             },
             "providerRevision": 1,
             "bytes": 496,
-            "entryDurationMicros": 25,
-            "validationDurationMicros": 85,
-            "durationMicros": 12148
+            "entryDurationMicros": 29,
+            "validationDurationMicros": 96,
+            "durationMicros": 12616
           }
         ],
         "responseBytes": 4345,
@@ -576,7 +576,7 @@
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "762419c4-5094-48c7-8516-9df65fc4c662",
+        "requestId": "5774d7dc-cf11-4f0d-bae8-9442d8cd8475",
         "protocolVersion": "v0"
       }
     },
@@ -584,8 +584,8 @@
       "stopped": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "93ac961e-8070-4562-a3df-8ff4a6462bd5",
-        "auditReference": "93ac961e-8070-4562-a3df-8ff4a6462bd5",
+        "debugOperationId": "1b1d42c7-982c-4086-84bb-901c1a4e44a7",
+        "auditReference": "1b1d42c7-982c-4086-84bb-901c1a4e44a7",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -597,16 +597,16 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:67aa6c3d-2811-312d-a807-74eb8ee19626",
-        "debugArmId": "a4480364-2de6-47c6-a857-80ac7d310946",
+        "principalId": "token:2f8955e6-c46a-3a81-a1d4-880fd3eb1fd5",
+        "debugArmId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
         "before": {
           "running": true,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573622223172500,
+          "sampledAtNanos": 579733000719800,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 45,
+          "passiveNativeHookCalls": 44,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
@@ -616,15 +616,15 @@
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573622223172500,
+          "sampledAtNanos": 579733000719800,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 45,
+          "passiveNativeHookCalls": 44,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -634,7 +634,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -643,8 +643,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 3821,
-        "requestId": "93ac961e-8070-4562-a3df-8ff4a6462bd5",
+        "durationMicros": 4162,
+        "requestId": "1b1d42c7-982c-4086-84bb-901c1a4e44a7",
         "protocolVersion": "v0"
       }
     },
@@ -652,8 +652,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "2a0dd82f-ecbc-4a71-bf9d-4d20787ce175",
-        "auditReference": "2a0dd82f-ecbc-4a71-bf9d-4d20787ce175",
+        "debugOperationId": "6bb795fa-8cf1-428e-9695-90bf64190822",
+        "auditReference": "6bb795fa-8cf1-428e-9695-90bf64190822",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -665,14 +665,14 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:67aa6c3d-2811-312d-a807-74eb8ee19626",
-        "debugArmId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+        "principalId": "token:2f8955e6-c46a-3a81-a1d4-880fd3eb1fd5",
+        "debugArmId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 573622223172500,
+          "sampledAtNanos": 579733000719800,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 73,
           "passiveNativeHookThread": "Server thread",
@@ -692,7 +692,7 @@
           "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -702,7 +702,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -711,8 +711,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 6677,
-        "requestId": "2a0dd82f-ecbc-4a71-bf9d-4d20787ce175",
+        "durationMicros": 7566,
+        "requestId": "6bb795fa-8cf1-428e-9695-90bf64190822",
         "protocolVersion": "v0"
       },
       "stopped": {
@@ -724,17 +724,17 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
-        "capturedAt": 1793478215755,
+        "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
+        "capturedAt": 1793484326554,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "26.3-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "f05e2234-5960-4d14-a427-1234bb884f91",
+          "snapshotId": "df7a53b5-df1e-4579-ae5d-3af4ada0679b",
           "snapshotSequence": 80,
-          "capturedAtMillis": 1793478215755,
+          "capturedAtMillis": 1793484326554,
           "clientTick": -1,
           "serverTick": 80,
           "consistency": "server_thread_bounded",
@@ -759,7 +759,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 23,
+          "ownerThreadCaptureMicros": 27,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -769,18 +769,18 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478215755,
-          "snapshotId": "175fa19d-3c3d-4f4a-b00e-fbebb5cebad5",
-          "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+          "capturedAt": 1793484326554,
+          "snapshotId": "270a4788-fcaa-489d-99e2-c9de9714e13b",
+          "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
           "clientTick": -1,
           "serverTick": 80,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
-            "entryCount": 77,
+            "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
+            "entryCount": 79,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 141,
+            "generationHighWatermark": 143,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
@@ -790,7 +790,7 @@
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "8835c9ce-1189-4247-a633-f596470d185b",
+            "sessionEpoch": "35a6052e-4bea-4a1e-b3fc-db760fbcc58a",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -869,7 +869,7 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 6,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 573623926192900,
+              "sampledAtNanos": 579734708974600,
               "ownerThread": "Server thread",
               "passiveNativeHookCalls": 81,
               "passiveNativeHookThread": "Server thread",
@@ -878,9 +878,9 @@
             },
             "providerRevision": 4,
             "bytes": 498,
-            "entryDurationMicros": 20,
-            "validationDurationMicros": 62,
-            "durationMicros": 11052
+            "entryDurationMicros": 19,
+            "validationDurationMicros": 85,
+            "durationMicros": 10115
           }
         ],
         "responseBytes": 4346,
@@ -889,19 +889,19 @@
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "a1b806f0-d5a7-490f-98b8-7f516ccbb086",
+        "requestId": "600e7867-0b22-434e-8280-a70da419f801",
         "protocolVersion": "v0"
       },
       "cleanup": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+        "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
         "activeScopes": 3,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "a4480364-2de6-47c6-a857-80ac7d310946",
+            "contextId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -923,7 +923,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+            "contextId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -946,285 +946,285 @@
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192257,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192258,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           }
         ],
-        "requestId": "a4b06932-2ab6-4c11-8a04-90c492f46902",
+        "requestId": "0fbd8ab5-bcfc-4a6f-a1d0-029106f55093",
         "protocolVersion": "v0"
       }
     },
@@ -1253,12 +1253,12 @@
         "attributes": {
           "nativeParent": "minecraft:chest"
         },
-        "targetRef": "world:084f0d11-a6c8-49e7-a49b-34c5ab45a294",
+        "targetRef": "world:2500dfe8-91f6-4ac3-b563-2c7b72869147",
         "targetTtlMs": 15000
       },
       "result": {
         "type": "operation",
-        "operationId": "b9451cbf-f6e6-4164-800d-e745a2acb437",
+        "operationId": "bf00ba53-1964-4265-920e-e49077f01d5d",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -1270,25 +1270,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478219668,
-        "acceptedAtMillis": 1793478219668,
-        "scheduledAtMillis": 1793478219668,
-        "startedAtMillis": 1793478219668,
-        "completedAtMillis": 1793478219836,
+        "receivedAtMillis": 1793484330454,
+        "acceptedAtMillis": 1793484330454,
+        "scheduledAtMillis": 1793484330454,
+        "startedAtMillis": 1793484330454,
+        "completedAtMillis": 1793484330610,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "dc79f20c-a501-4559-82f0-d60cb6a598c8",
+          "gestureId": "46e0df0f-4135-4b61-b0e1-4f88ccb68542",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 168,
+          "durationMillis": 156,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 156.921,
+              "elapsedMillis": 147.8388,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -1318,9 +1318,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "26.3-neoforge",
-                  "clientTick": 559,
+                  "clientTick": 555,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "dc79f20c-a501-4559-82f0-d60cb6a598c8",
+                  "gestureId": "46e0df0f-4135-4b61-b0e1-4f88ccb68542",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -1348,49 +1348,49 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:084f0d11-a6c8-49e7-a49b-34c5ab45a294"
+                "targetRef": "world:2500dfe8-91f6-4ac3-b563-2c7b72869147"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0357,
-            "totalMillis": 167.8152,
+            "queueMillis": 0.028,
+            "totalMillis": 156.4253,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 1.7117,
+                "elapsedMillis": 0.6813,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 23.4144,
+                "elapsedMillis": 14.9487,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 131.7514,
+                "elapsedMillis": 131.2544,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 9.0172,
+                "elapsedMillis": 7.7641,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 10.1083,
-            "lastInputCallbackOffsetMillis": 158.0898
+            "firstInputCallbackOffsetMillis": 9.2964,
+            "lastInputCallbackOffsetMillis": 148.0326
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "26.3-neoforge",
-            "clientTick": 561,
+            "clientTick": 557,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 247
           }
         },
-        "requestId": "7b33e9bb-d94d-4edb-85f8-9156e5b4478b",
+        "requestId": "b4803256-9d5e-47dc-bfe7-f482d24de598",
         "protocolVersion": "v0"
       },
       "actualNativeScreen": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
@@ -1400,7 +1400,7 @@
     {
       "stalePartRejected": {
         "type": "operation",
-        "operationId": "33744353-f9be-4f93-93e6-2e0fa481f196",
+        "operationId": "e0ffe33f-e54b-4b37-9934-ef72ca2b0bc1",
         "status": "failed",
         "state": "failed",
         "received": true,
@@ -1412,15 +1412,15 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478220893,
-        "acceptedAtMillis": 1793478220893,
-        "scheduledAtMillis": 1793478220893,
-        "startedAtMillis": 1793478220893,
-        "completedAtMillis": 1793478220926,
+        "receivedAtMillis": 1793484331485,
+        "acceptedAtMillis": 1793484331485,
+        "scheduledAtMillis": 1793484331485,
+        "startedAtMillis": 1793484331485,
+        "completedAtMillis": 1793484331513,
         "commandSubmissionsComplete": true,
         "error": "Block/chunk identity or bounded history changed; rediscover target",
         "errorCode": "WORLD_TARGET_STALE",
-        "requestId": "fbe4b122-bfaf-476a-9c76-b654509fcf31",
+        "requestId": "d2325e63-2a7a-4baa-b0f4-275ab36c6e38",
         "protocolVersion": "v0"
       },
       "cleanupCounterAdvanced": 1,
@@ -1441,7 +1441,7 @@
           "takeoverActive": false,
           "modeTransitionReason": "explicit_mode_transition",
           "modeVersion": {
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "generation": 19
           },
           "type": "control.mode",
@@ -1454,7 +1454,7 @@
             "expiresAtMillis": 0,
             "deadlineAtMillis": 0,
             "active": false,
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "grantsAuthority": false
           },
           "modeScope": "authenticated_runtime_control_session",
@@ -1463,7 +1463,7 @@
           "modeTransitionPending": false,
           "activeOperateRequests": 0,
           "authorization": {
-            "principalId": "token:67aa6c3d-2811-312d-a807-74eb8ee19626",
+            "principalId": "token:2f8955e6-c46a-3a81-a1d4-880fd3eb1fd5",
             "grantedScopes": [
               "capture",
               "command",
@@ -1489,7 +1489,7 @@
             },
             "debugArm": {
               "status": "armed",
-              "remainingTtlMs": 59865,
+              "remainingTtlMs": 59832,
               "namespaces": [
                 "provider"
               ],
@@ -1498,19 +1498,19 @@
           },
           "availableTransitions": []
         },
-        "requestId": "aaa869df-c85a-4563-ada5-581aac7a506e",
+        "requestId": "977bccbf-3694-4eb9-9e6d-8905244ad72c",
         "protocolVersion": "v0"
       },
       "diagnostic": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+        "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
         "activeScopes": 5,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "a4480364-2de6-47c6-a857-80ac7d310946",
+            "contextId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -1532,7 +1532,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+            "contextId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -1555,453 +1555,453 @@
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192257,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192258,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219835,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219836,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "failed",
             "failure": "IllegalStateException"
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "released",
             "failure": ""
           }
         ],
-        "requestId": "7e1067ee-5ff6-4910-9bc7-95932e46d4fa",
+        "requestId": "fc2c30b9-6131-4ce1-a7fc-9337d8409f27",
         "protocolVersion": "v0"
       },
       "otherSamplerContinued": true,
@@ -2022,7 +2022,7 @@
           "takeoverActive": false,
           "modeTransitionReason": "explicit_mode_transition",
           "modeVersion": {
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "generation": 24
           },
           "type": "control.mode",
@@ -2035,7 +2035,7 @@
             "expiresAtMillis": 0,
             "deadlineAtMillis": 0,
             "active": false,
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "grantsAuthority": false
           },
           "modeScope": "authenticated_runtime_control_session",
@@ -2044,7 +2044,7 @@
           "modeTransitionPending": false,
           "activeOperateRequests": 0,
           "authorization": {
-            "principalId": "token:67aa6c3d-2811-312d-a807-74eb8ee19626",
+            "principalId": "token:2f8955e6-c46a-3a81-a1d4-880fd3eb1fd5",
             "grantedScopes": [
               "capture",
               "command",
@@ -2070,7 +2070,7 @@
             },
             "debugArm": {
               "status": "armed",
-              "remainingTtlMs": 59706,
+              "remainingTtlMs": 59675,
               "namespaces": [
                 "provider"
               ],
@@ -2079,19 +2079,19 @@
           },
           "availableTransitions": []
         },
-        "requestId": "15faf38a-626a-4f52-94fe-caca9c48864d",
+        "requestId": "cdc9bcf9-da4c-4626-acb1-7aad198975fb",
         "protocolVersion": "v0"
       },
       "diagnostic": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+        "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
         "activeScopes": 5,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "a4480364-2de6-47c6-a857-80ac7d310946",
+            "contextId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -2113,7 +2113,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+            "contextId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -2136,495 +2136,523 @@
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192257,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192258,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219835,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219836,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "failed",
             "failure": "IllegalStateException"
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221180,
+            "startedAtMillis": 1793484331799,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221180,
+            "startedAtMillis": 1793484331799,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_left:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331807,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_right:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331807,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_left:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331808,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_right:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331808,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221194,
+            "startedAtMillis": 1793484331809,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221194,
+            "startedAtMillis": 1793484331809,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221261,
+            "startedAtMillis": 1793484331876,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221261,
+            "startedAtMillis": 1793484331876,
             "status": "failed",
             "failure": "IllegalStateException"
           }
         ],
-        "requestId": "0aef0e96-5ede-466a-aa12-61bd07e844fb",
+        "requestId": "58d69395-de86-4592-b18c-9203f1695a79",
         "protocolVersion": "v0"
       },
       "otherSamplerContinued": true,
@@ -2638,7 +2666,7 @@
           "complete": true,
           "packageId": "lifetime_left",
           "lifetime": "DEBUG_GRANT",
-          "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+          "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
           "reason": "grant_invalidated",
           "released": false,
           "resources": [
@@ -2660,7 +2688,7 @@
           "complete": true,
           "packageId": "lifetime_right",
           "lifetime": "DEBUG_GRANT",
-          "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+          "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
           "reason": "grant_invalidated",
           "released": true,
           "resources": [
@@ -2689,7 +2717,7 @@
           "complete": true,
           "packageId": "lifetime_left",
           "lifetime": "DEBUG_GRANT",
-          "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+          "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
           "reason": "grant_invalidated",
           "released": true,
           "resources": [
@@ -2711,7 +2739,7 @@
           "complete": true,
           "packageId": "lifetime_right",
           "lifetime": "DEBUG_GRANT",
-          "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+          "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
           "reason": "grant_invalidated",
           "released": false,
           "resources": [
@@ -2738,21 +2766,21 @@
         "running": true,
         "failInput": false,
         "failCleanup": false,
-        "samples": 121,
+        "samples": 122,
         "contextCleanups": 1,
         "grantCleanups": 3,
         "contexts": {
-          "CONNECTION": "0993a480-5e51-48ce-9876-ff872bdcafdd",
-          "SCREEN": "16fd1591-a66d-4486-8540-4580f545803e",
-          "WORLD": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
-          "INPUT_LEASE": "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd"
+          "SCREEN": "c3821bf7-cb43-4247-b7f3-05116b54287f",
+          "CONNECTION": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+          "WORLD": "49f56137-a155-42df-94fa-e7a14a47184e",
+          "INPUT_LEASE": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d"
         },
         "watchedContexts": {
-          "500e26d2-a039-4e8a-9193-fc71aeb278d5": true,
-          "0993a480-5e51-48ce-9876-ff872bdcafdd": true,
-          "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd": true,
-          "843593db-6f12-45c7-b21e-90f4a6959837": false,
-          "16fd1591-a66d-4486-8540-4580f545803e": true
+          "49f56137-a155-42df-94fa-e7a14a47184e": true,
+          "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": true,
+          "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": true,
+          "19864582-72c3-4768-a6c9-3a8fa795c582": false,
+          "c3821bf7-cb43-4247-b7f3-05116b54287f": true
         }
       },
       "released": {
@@ -2763,16 +2791,16 @@
         "contextCleanups": 2,
         "grantCleanups": 3,
         "contexts": {
-          "WORLD": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
-          "CONNECTION": "0993a480-5e51-48ce-9876-ff872bdcafdd",
-          "SCREEN": "16fd1591-a66d-4486-8540-4580f545803e"
+          "CONNECTION": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+          "WORLD": "49f56137-a155-42df-94fa-e7a14a47184e",
+          "SCREEN": "c3821bf7-cb43-4247-b7f3-05116b54287f"
         },
         "watchedContexts": {
-          "500e26d2-a039-4e8a-9193-fc71aeb278d5": true,
-          "0993a480-5e51-48ce-9876-ff872bdcafdd": true,
-          "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd": false,
-          "843593db-6f12-45c7-b21e-90f4a6959837": false,
-          "16fd1591-a66d-4486-8540-4580f545803e": true
+          "49f56137-a155-42df-94fa-e7a14a47184e": true,
+          "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": true,
+          "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": false,
+          "19864582-72c3-4768-a6c9-3a8fa795c582": false,
+          "c3821bf7-cb43-4247-b7f3-05116b54287f": true
         }
       },
       "closed": {
@@ -2783,21 +2811,21 @@
         "contextCleanups": 3,
         "grantCleanups": 3,
         "contexts": {
-          "WORLD": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
-          "CONNECTION": "0993a480-5e51-48ce-9876-ff872bdcafdd",
-          "INPUT_LEASE": "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd"
+          "CONNECTION": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+          "WORLD": "49f56137-a155-42df-94fa-e7a14a47184e",
+          "INPUT_LEASE": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d"
         },
         "watchedContexts": {
-          "500e26d2-a039-4e8a-9193-fc71aeb278d5": true,
-          "0993a480-5e51-48ce-9876-ff872bdcafdd": true,
-          "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd": false,
-          "843593db-6f12-45c7-b21e-90f4a6959837": false,
-          "16fd1591-a66d-4486-8540-4580f545803e": false,
-          "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd": true
+          "49f56137-a155-42df-94fa-e7a14a47184e": true,
+          "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": true,
+          "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": false,
+          "19864582-72c3-4768-a6c9-3a8fa795c582": false,
+          "c3821bf7-cb43-4247-b7f3-05116b54287f": false,
+          "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d": true
         }
       },
-      "worldContextId": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
-      "connectionContextId": "0993a480-5e51-48ce-9876-ff872bdcafdd",
+      "worldContextId": "49f56137-a155-42df-94fa-e7a14a47184e",
+      "connectionContextId": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
       "oldPublicationsRejected": true
     },
     {
@@ -2808,7 +2836,7 @@
         "before": {
           "type": "input.state",
           "target": "26.3-neoforge",
-          "clientTick": 809,
+          "clientTick": 800,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -2817,7 +2845,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "58e82d8a-d340-4de8-92b6-5382ccd63b84",
+          "nativeEntityAttackContextId": "6d1de1db-d0ce-42fc-b2d9-8030c39df3c0",
           "nativeEntityAttackContextGeneration": 1,
           "nativeEntityAttackControlGeneration": 34,
           "nativeEntityAttackLeaseActive": true,
@@ -2830,17 +2858,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "generation": 34
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 3137,
+          "controlChromeRenderedFrames": 3156,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.5346903,
-          "controlChromeEdgeWidth": 0.8911553,
+          "controlChromeEdgeAlpha": 0.520619,
+          "controlChromeEdgeWidth": 0.8806024,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 3301,
+          "captureFrameSequence": 3322,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -2865,10 +2893,10 @@
             "plane": "GUI_ABSOLUTE",
             "x": 240,
             "y": 135,
-            "alpha": 0.23841242,
+            "alpha": 0.23657042,
             "gameCaptured": false,
             "gameCursorVisible": true,
-            "gameCursorRevision": 13,
+            "gameCursorRevision": 14,
             "evidencePixels": false
           },
           "rejectedHostGrabs": 6,
@@ -2884,20 +2912,20 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 1,
-          "inputContextId": "58e82d8a-d340-4de8-92b6-5382ccd63b84",
+          "inputContextId": "6d1de1db-d0ce-42fc-b2d9-8030c39df3c0",
           "inputContextAvailable": true,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "79412819-b71f-4f9e-af87-c1f0d9658553",
+          "requestId": "063338c3-333a-4809-9aae-4f4c0ce05a6e",
           "protocolVersion": "v0"
         },
         "after": {
           "type": "input.state",
           "target": "26.3-neoforge",
-          "clientTick": 845,
+          "clientTick": 836,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -2906,7 +2934,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "48e9bb36-a650-42c6-bbcc-ca6218647b79",
+          "nativeEntityAttackContextId": "d72f7e92-56d4-42e4-bc73-b7c0d9d0cee0",
           "nativeEntityAttackContextGeneration": 2,
           "nativeEntityAttackControlGeneration": 34,
           "nativeEntityAttackLeaseActive": false,
@@ -2919,17 +2947,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "adf6ace9-7c93-4074-a955-371fa9b3a953",
+            "controlSessionId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895",
             "generation": 34
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 3303,
+          "controlChromeRenderedFrames": 3328,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.8303549,
-          "controlChromeEdgeWidth": 0.91517746,
+          "controlChromeEdgeAlpha": 0.92381525,
+          "controlChromeEdgeWidth": 0.9619076,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 3467,
+          "captureFrameSequence": 3494,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -2957,7 +2985,7 @@
             "alpha": 1,
             "gameCaptured": false,
             "gameCursorVisible": true,
-            "gameCursorRevision": 13,
+            "gameCursorRevision": 14,
             "evidencePixels": false
           },
           "rejectedHostGrabs": 6,
@@ -2973,14 +3001,14 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 2,
-          "inputContextId": "48e9bb36-a650-42c6-bbcc-ca6218647b79",
+          "inputContextId": "d72f7e92-56d4-42e4-bc73-b7c0d9d0cee0",
           "inputContextAvailable": false,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "b5a0540a-d8e8-4e42-92a7-4eaf4cd57853",
+          "requestId": "d3078984-5cb3-42b1-be96-e329ac015e91",
           "protocolVersion": "v0"
         },
         "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
@@ -2992,7 +3020,7 @@
             "message": "unknown",
             "executionOutcome": "not_confirmed",
             "retrySafe": false,
-            "requestId": "101f6d42-bed8-4641-85b5-ae64ac8ac853",
+            "requestId": "f49506c8-fb9f-42b3-9118-44e1d7432a26",
             "protocolVersion": "v0"
           }
         },
@@ -3008,7 +3036,7 @@
             "pressedButtonCount": 0
           },
           "waited": true,
-          "requestId": "04f9899e-207a-4a8a-b1f3-c920bd28f4f4",
+          "requestId": "605a0ce6-6f69-436b-890a-33ecf7e817ea",
           "protocolVersion": "v0"
         }
       }
@@ -3016,14 +3044,14 @@
     {
       "nativeWorldExitResources": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+        "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
         "activeScopes": 3,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "a4480364-2de6-47c6-a857-80ac7d310946",
+            "contextId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3045,7 +3073,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+            "contextId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3067,7 +3095,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "0f34a50e-3f8d-4802-89fa-ccf2b7cdfb9e",
+            "contextId": "a5abdf85-d6d7-4f65-9f5f-5216a3c5b6c4",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3089,7 +3117,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "0f34a50e-3f8d-4802-89fa-ccf2b7cdfb9e",
+            "contextId": "a5abdf85-d6d7-4f65-9f5f-5216a3c5b6c4",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3111,7 +3139,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+            "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
             "reason": "grant_invalidated",
             "released": false,
             "resources": [
@@ -3133,7 +3161,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+            "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3155,7 +3183,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+            "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3177,7 +3205,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+            "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
             "reason": "grant_invalidated",
             "released": false,
             "resources": [
@@ -3197,57 +3225,9 @@
           },
           {
             "complete": true,
-            "packageId": "lifetime_left",
-            "lifetime": "SCREEN",
-            "contextId": "843593db-6f12-45c7-b21e-90f4a6959837",
-            "reason": "grant_invalidated",
-            "released": true,
-            "resources": [
-              {
-                "resourceId": "context-counter",
-                "ownerThread": "detached_cleanup",
-                "status": "released",
-                "failure": ""
-              }
-            ]
-          },
-          {
-            "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "SCREEN",
-            "contextId": "843593db-6f12-45c7-b21e-90f4a6959837",
-            "reason": "grant_invalidated",
-            "released": true,
-            "resources": [
-              {
-                "resourceId": "context-counter",
-                "ownerThread": "detached_cleanup",
-                "status": "released",
-                "failure": ""
-              }
-            ]
-          },
-          {
-            "complete": true,
-            "packageId": "lifetime_left",
-            "lifetime": "INPUT_LEASE",
-            "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
-            "reason": "grant_invalidated",
-            "released": true,
-            "resources": [
-              {
-                "resourceId": "context-counter",
-                "ownerThread": "detached_cleanup",
-                "status": "released",
-                "failure": ""
-              }
-            ]
-          },
-          {
-            "complete": true,
-            "packageId": "lifetime_right",
-            "lifetime": "INPUT_LEASE",
-            "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+            "contextId": "19864582-72c3-4768-a6c9-3a8fa795c582",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3263,23 +3243,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "SCREEN",
-            "contextId": "16fd1591-a66d-4486-8540-4580f545803e",
-            "reason": "grant_invalidated",
-            "released": true,
-            "resources": [
-              {
-                "resourceId": "context-counter",
-                "ownerThread": "detached_cleanup",
-                "status": "released",
-                "failure": ""
-              }
-            ]
-          },
-          {
-            "complete": true,
-            "packageId": "lifetime_right",
-            "lifetime": "SCREEN",
-            "contextId": "16fd1591-a66d-4486-8540-4580f545803e",
+            "contextId": "19864582-72c3-4768-a6c9-3a8fa795c582",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3295,7 +3259,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "INPUT_LEASE",
-            "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+            "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3311,7 +3275,71 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "INPUT_LEASE",
-            "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+            "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+            "reason": "grant_invalidated",
+            "released": true,
+            "resources": [
+              {
+                "resourceId": "context-counter",
+                "ownerThread": "detached_cleanup",
+                "status": "released",
+                "failure": ""
+              }
+            ]
+          },
+          {
+            "complete": true,
+            "packageId": "lifetime_right",
+            "lifetime": "SCREEN",
+            "contextId": "c3821bf7-cb43-4247-b7f3-05116b54287f",
+            "reason": "grant_invalidated",
+            "released": true,
+            "resources": [
+              {
+                "resourceId": "context-counter",
+                "ownerThread": "detached_cleanup",
+                "status": "released",
+                "failure": ""
+              }
+            ]
+          },
+          {
+            "complete": true,
+            "packageId": "lifetime_left",
+            "lifetime": "SCREEN",
+            "contextId": "c3821bf7-cb43-4247-b7f3-05116b54287f",
+            "reason": "grant_invalidated",
+            "released": true,
+            "resources": [
+              {
+                "resourceId": "context-counter",
+                "ownerThread": "detached_cleanup",
+                "status": "released",
+                "failure": ""
+              }
+            ]
+          },
+          {
+            "complete": true,
+            "packageId": "lifetime_right",
+            "lifetime": "INPUT_LEASE",
+            "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+            "reason": "grant_invalidated",
+            "released": true,
+            "resources": [
+              {
+                "resourceId": "context-counter",
+                "ownerThread": "detached_cleanup",
+                "status": "released",
+                "failure": ""
+              }
+            ]
+          },
+          {
+            "complete": true,
+            "packageId": "lifetime_left",
+            "lifetime": "INPUT_LEASE",
+            "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3327,7 +3355,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "8571a655-f7df-4e09-9e2b-163f7bf5673d",
+            "contextId": "3c940bce-8255-4055-93e6-c932b2988df7",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3349,7 +3377,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "8571a655-f7df-4e09-9e2b-163f7bf5673d",
+            "contextId": "3c940bce-8255-4055-93e6-c932b2988df7",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3371,7 +3399,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "WORLD",
-            "contextId": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
+            "contextId": "49f56137-a155-42df-94fa-e7a14a47184e",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3387,7 +3415,7 @@
             "complete": true,
             "packageId": "lifetime_left",
             "lifetime": "CONNECTION",
-            "contextId": "0993a480-5e51-48ce-9876-ff872bdcafdd",
+            "contextId": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3403,7 +3431,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "WORLD",
-            "contextId": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
+            "contextId": "49f56137-a155-42df-94fa-e7a14a47184e",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3419,7 +3447,7 @@
             "complete": true,
             "packageId": "lifetime_right",
             "lifetime": "CONNECTION",
-            "contextId": "0993a480-5e51-48ce-9876-ff872bdcafdd",
+            "contextId": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -3436,817 +3464,845 @@
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192257,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478192258,
+            "startedAtMillis": 1793484303146,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478193909,
+            "startedAtMillis": 1793484304681,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478195986,
+            "startedAtMillis": 1793484306776,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478198354,
+            "startedAtMillis": 1793484309158,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478199134,
+            "startedAtMillis": 1793484309931,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478199209,
+            "startedAtMillis": 1793484310006,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199243,
+            "startedAtMillis": 1793484310039,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478199244,
+            "startedAtMillis": 1793484310041,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478199260,
+            "startedAtMillis": 1793484310056,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478200574,
+            "startedAtMillis": 1793484311422,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202074,
+            "startedAtMillis": 1793484312924,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478202557,
+            "startedAtMillis": 1793484313511,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210482,
+            "startedAtMillis": 1793484321430,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210507,
+            "startedAtMillis": 1793484321476,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478210516,
+            "startedAtMillis": 1793484321483,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478211886,
+            "startedAtMillis": 1793484322669,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478212898,
+            "startedAtMillis": 1793484323727,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478213011,
+            "startedAtMillis": 1793484323819,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213012,
+            "startedAtMillis": 1793484323820,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478213249,
+            "startedAtMillis": 1793484324019,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478219650,
+            "startedAtMillis": 1793484330435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478219767,
+            "startedAtMillis": 1793484330569,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219835,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478219836,
+            "startedAtMillis": 1793484330610,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478220583,
+            "startedAtMillis": 1793484331349,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478220642,
+            "startedAtMillis": 1793484331403,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220677,
+            "startedAtMillis": 1793484331435,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "mode_transition",
-            "startedAtMillis": 1793478220678,
+            "startedAtMillis": 1793484331436,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220888,
+            "startedAtMillis": 1793484331481,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_failed",
-            "startedAtMillis": 1793478220925,
+            "startedAtMillis": 1793484331513,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478220947,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478220949,
+            "startedAtMillis": 1793484331533,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "failed",
             "failure": "IllegalStateException"
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221100,
+            "startedAtMillis": 1793484331717,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221180,
+            "startedAtMillis": 1793484331799,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221180,
+            "startedAtMillis": 1793484331799,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_left:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331807,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_right:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331807,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_left:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331808,
+            "status": "released",
+            "failure": ""
+          },
+          {
+            "adapterId": "lifetime_right:input",
+            "reason": "control_transition",
+            "startedAtMillis": 1793484331808,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221194,
+            "startedAtMillis": 1793484331809,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221194,
+            "startedAtMillis": 1793484331809,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221261,
+            "startedAtMillis": 1793484331876,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221261,
+            "startedAtMillis": 1793484331876,
             "status": "failed",
             "failure": "IllegalStateException"
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221338,
+            "startedAtMillis": 1793484331960,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "emergency_release",
-            "startedAtMillis": 1793478221338,
+            "startedAtMillis": 1793484331960,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221346,
+            "startedAtMillis": 1793484331968,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478221346,
+            "startedAtMillis": 1793484331968,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230609,
+            "startedAtMillis": 1793484341168,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230609,
+            "startedAtMillis": 1793484341168,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478230660,
+            "startedAtMillis": 1793484341185,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478230660,
+            "startedAtMillis": 1793484341185,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478230703,
+            "startedAtMillis": 1793484341232,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478230703,
+            "startedAtMillis": 1793484341232,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478230764,
+            "startedAtMillis": 1793484341282,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478230764,
+            "startedAtMillis": 1793484341282,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230818,
+            "startedAtMillis": 1793484341334,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230818,
+            "startedAtMillis": 1793484341334,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478230819,
+            "startedAtMillis": 1793484341336,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478230819,
+            "startedAtMillis": 1793484341336,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230857,
+            "startedAtMillis": 1793484341376,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478230857,
+            "startedAtMillis": 1793484341376,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478231459,
+            "startedAtMillis": 1793484341977,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478231459,
+            "startedAtMillis": 1793484341977,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478231511,
+            "startedAtMillis": 1793484342030,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478231511,
+            "startedAtMillis": 1793484342030,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478231547,
+            "startedAtMillis": 1793484342067,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478231547,
+            "startedAtMillis": 1793484342067,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478231548,
+            "startedAtMillis": 1793484342068,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478231548,
+            "startedAtMillis": 1793484342068,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478232127,
+            "startedAtMillis": 1793484342667,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478232127,
+            "startedAtMillis": 1793484342667,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478232154,
+            "startedAtMillis": 1793484342685,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478232154,
+            "startedAtMillis": 1793484342685,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478232214,
+            "startedAtMillis": 1793484342744,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_completed",
-            "startedAtMillis": 1793478232214,
+            "startedAtMillis": 1793484342745,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478233526,
+            "startedAtMillis": 1793484344025,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478233526,
+            "startedAtMillis": 1793484344025,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478234287,
+            "startedAtMillis": 1793484344710,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478234287,
+            "startedAtMillis": 1793484344710,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478234315,
+            "startedAtMillis": 1793484344737,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "screen_changed",
-            "startedAtMillis": 1793478234315,
+            "startedAtMillis": 1793484344737,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "pipeline_cancelled:operation_cancelled",
-            "startedAtMillis": 1793478234315,
+            "startedAtMillis": 1793484344738,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "pipeline_cancelled:operation_cancelled",
-            "startedAtMillis": 1793478234315,
+            "startedAtMillis": 1793484344738,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478234316,
+            "startedAtMillis": 1793484344738,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "native_input_context_changed",
-            "startedAtMillis": 1793478234316,
+            "startedAtMillis": 1793484344738,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478234392,
+            "startedAtMillis": 1793484344814,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "control_transition",
-            "startedAtMillis": 1793478234392,
+            "startedAtMillis": 1793484344814,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_left:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478234393,
+            "startedAtMillis": 1793484344815,
             "status": "released",
             "failure": ""
           },
           {
             "adapterId": "lifetime_right:input",
             "reason": "client_release",
-            "startedAtMillis": 1793478234393,
+            "startedAtMillis": 1793484344815,
             "status": "released",
             "failure": ""
           }
         ],
-        "requestId": "1b19440b-a62a-4586-9732-7824997e3298",
+        "requestId": "f8f78906-b503-4456-be01-5254b0f9586d",
         "protocolVersion": "v0"
       }
     }
@@ -4427,9 +4483,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -4631,7 +4687,7 @@
       "complete": true,
       "packageId": "lifetime_left",
       "lifetime": "DEBUG_GRANT",
-      "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+      "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
       "reason": "grant_invalidated",
       "released": false,
       "resources": [
@@ -4653,7 +4709,7 @@
       "complete": true,
       "packageId": "lifetime_right",
       "lifetime": "DEBUG_GRANT",
-      "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+      "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
       "reason": "grant_invalidated",
       "released": false,
       "resources": [
@@ -4674,14 +4730,14 @@
   ],
   "debugCleanupBeforeShutdown": {
     "type": "extensions.resources",
-    "runtimeInstanceId": "cb09496c-f813-4737-a2cd-76e94e3c2398",
+    "runtimeInstanceId": "7e92c3e9-ed97-4f73-bff4-2ff0997e5cd4",
     "activeScopes": 3,
     "cleanup": [
       {
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "a4480364-2de6-47c6-a857-80ac7d310946",
+        "contextId": "5b1208bb-b620-4a05-a622-32de7a4c9f18",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4703,7 +4759,7 @@
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "c53459b5-9c2f-4569-abfd-38c80d6be6b8",
+        "contextId": "3a3ef025-3495-45b5-9189-c539dfea8dc8",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4725,7 +4781,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "0f34a50e-3f8d-4802-89fa-ccf2b7cdfb9e",
+        "contextId": "a5abdf85-d6d7-4f65-9f5f-5216a3c5b6c4",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4747,7 +4803,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "0f34a50e-3f8d-4802-89fa-ccf2b7cdfb9e",
+        "contextId": "a5abdf85-d6d7-4f65-9f5f-5216a3c5b6c4",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4769,7 +4825,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+        "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
         "reason": "grant_invalidated",
         "released": false,
         "resources": [
@@ -4791,7 +4847,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "1a580af3-1bcb-4eb5-85d9-efda08a67d37",
+        "contextId": "b6277d3b-460c-4cb5-95f2-5916b50c2f91",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4813,7 +4869,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+        "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4835,7 +4891,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "445a1713-6ad2-44de-94eb-1bd5a955c853",
+        "contextId": "567d3577-2870-4137-81b4-36006652b1d1",
         "reason": "grant_invalidated",
         "released": false,
         "resources": [
@@ -4855,57 +4911,9 @@
       },
       {
         "complete": true,
-        "packageId": "lifetime_left",
-        "lifetime": "SCREEN",
-        "contextId": "843593db-6f12-45c7-b21e-90f4a6959837",
-        "reason": "grant_invalidated",
-        "released": true,
-        "resources": [
-          {
-            "resourceId": "context-counter",
-            "ownerThread": "detached_cleanup",
-            "status": "released",
-            "failure": ""
-          }
-        ]
-      },
-      {
-        "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "SCREEN",
-        "contextId": "843593db-6f12-45c7-b21e-90f4a6959837",
-        "reason": "grant_invalidated",
-        "released": true,
-        "resources": [
-          {
-            "resourceId": "context-counter",
-            "ownerThread": "detached_cleanup",
-            "status": "released",
-            "failure": ""
-          }
-        ]
-      },
-      {
-        "complete": true,
-        "packageId": "lifetime_left",
-        "lifetime": "INPUT_LEASE",
-        "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
-        "reason": "grant_invalidated",
-        "released": true,
-        "resources": [
-          {
-            "resourceId": "context-counter",
-            "ownerThread": "detached_cleanup",
-            "status": "released",
-            "failure": ""
-          }
-        ]
-      },
-      {
-        "complete": true,
-        "packageId": "lifetime_right",
-        "lifetime": "INPUT_LEASE",
-        "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:29:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+        "contextId": "19864582-72c3-4768-a6c9-3a8fa795c582",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4921,23 +4929,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "SCREEN",
-        "contextId": "16fd1591-a66d-4486-8540-4580f545803e",
-        "reason": "grant_invalidated",
-        "released": true,
-        "resources": [
-          {
-            "resourceId": "context-counter",
-            "ownerThread": "detached_cleanup",
-            "status": "released",
-            "failure": ""
-          }
-        ]
-      },
-      {
-        "complete": true,
-        "packageId": "lifetime_right",
-        "lifetime": "SCREEN",
-        "contextId": "16fd1591-a66d-4486-8540-4580f545803e",
+        "contextId": "19864582-72c3-4768-a6c9-3a8fa795c582",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4953,7 +4945,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "INPUT_LEASE",
-        "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+        "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4969,7 +4961,71 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "INPUT_LEASE",
-        "contextId": "adf6ace9-7c93-4074-a955-371fa9b3a953:31:500e26d2-a039-4e8a-9193-fc71aeb278d5:0993a480-5e51-48ce-9876-ff872bdcafdd",
+        "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:29:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+        "reason": "grant_invalidated",
+        "released": true,
+        "resources": [
+          {
+            "resourceId": "context-counter",
+            "ownerThread": "detached_cleanup",
+            "status": "released",
+            "failure": ""
+          }
+        ]
+      },
+      {
+        "complete": true,
+        "packageId": "lifetime_right",
+        "lifetime": "SCREEN",
+        "contextId": "c3821bf7-cb43-4247-b7f3-05116b54287f",
+        "reason": "grant_invalidated",
+        "released": true,
+        "resources": [
+          {
+            "resourceId": "context-counter",
+            "ownerThread": "detached_cleanup",
+            "status": "released",
+            "failure": ""
+          }
+        ]
+      },
+      {
+        "complete": true,
+        "packageId": "lifetime_left",
+        "lifetime": "SCREEN",
+        "contextId": "c3821bf7-cb43-4247-b7f3-05116b54287f",
+        "reason": "grant_invalidated",
+        "released": true,
+        "resources": [
+          {
+            "resourceId": "context-counter",
+            "ownerThread": "detached_cleanup",
+            "status": "released",
+            "failure": ""
+          }
+        ]
+      },
+      {
+        "complete": true,
+        "packageId": "lifetime_right",
+        "lifetime": "INPUT_LEASE",
+        "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
+        "reason": "grant_invalidated",
+        "released": true,
+        "resources": [
+          {
+            "resourceId": "context-counter",
+            "ownerThread": "detached_cleanup",
+            "status": "released",
+            "failure": ""
+          }
+        ]
+      },
+      {
+        "complete": true,
+        "packageId": "lifetime_left",
+        "lifetime": "INPUT_LEASE",
+        "contextId": "3aa14dc8-60d2-4cf0-a7d6-4fb34613b895:31:49f56137-a155-42df-94fa-e7a14a47184e:62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -4985,7 +5041,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "8571a655-f7df-4e09-9e2b-163f7bf5673d",
+        "contextId": "3c940bce-8255-4055-93e6-c932b2988df7",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5007,7 +5063,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "8571a655-f7df-4e09-9e2b-163f7bf5673d",
+        "contextId": "3c940bce-8255-4055-93e6-c932b2988df7",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5029,7 +5085,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "WORLD",
-        "contextId": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
+        "contextId": "49f56137-a155-42df-94fa-e7a14a47184e",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5045,7 +5101,7 @@
         "complete": true,
         "packageId": "lifetime_left",
         "lifetime": "CONNECTION",
-        "contextId": "0993a480-5e51-48ce-9876-ff872bdcafdd",
+        "contextId": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5061,7 +5117,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "WORLD",
-        "contextId": "500e26d2-a039-4e8a-9193-fc71aeb278d5",
+        "contextId": "49f56137-a155-42df-94fa-e7a14a47184e",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5077,7 +5133,7 @@
         "complete": true,
         "packageId": "lifetime_right",
         "lifetime": "CONNECTION",
-        "contextId": "0993a480-5e51-48ce-9876-ff872bdcafdd",
+        "contextId": "62f08be4-2cf8-40d0-83fe-8a18ae9a1e1d",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -5094,819 +5150,847 @@
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478192257,
+        "startedAtMillis": 1793484303146,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478192258,
+        "startedAtMillis": 1793484303146,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478193909,
+        "startedAtMillis": 1793484304681,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478193909,
+        "startedAtMillis": 1793484304681,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478195986,
+        "startedAtMillis": 1793484306776,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478195986,
+        "startedAtMillis": 1793484306776,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478198354,
+        "startedAtMillis": 1793484309158,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478198354,
+        "startedAtMillis": 1793484309158,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478199134,
+        "startedAtMillis": 1793484309931,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478199134,
+        "startedAtMillis": 1793484309931,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478199209,
+        "startedAtMillis": 1793484310006,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478199209,
+        "startedAtMillis": 1793484310006,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478199243,
+        "startedAtMillis": 1793484310039,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478199243,
+        "startedAtMillis": 1793484310039,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478199244,
+        "startedAtMillis": 1793484310041,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478199244,
+        "startedAtMillis": 1793484310041,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478199260,
+        "startedAtMillis": 1793484310056,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478199260,
+        "startedAtMillis": 1793484310056,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478200574,
+        "startedAtMillis": 1793484311422,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478200574,
+        "startedAtMillis": 1793484311422,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478202074,
+        "startedAtMillis": 1793484312924,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478202074,
+        "startedAtMillis": 1793484312924,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478202557,
+        "startedAtMillis": 1793484313511,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478202557,
+        "startedAtMillis": 1793484313511,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210482,
+        "startedAtMillis": 1793484321430,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210482,
+        "startedAtMillis": 1793484321430,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210507,
+        "startedAtMillis": 1793484321476,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210507,
+        "startedAtMillis": 1793484321476,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210516,
+        "startedAtMillis": 1793484321483,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478210516,
+        "startedAtMillis": 1793484321483,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "native_input_context_changed",
-        "startedAtMillis": 1793478211886,
+        "startedAtMillis": 1793484322669,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "native_input_context_changed",
-        "startedAtMillis": 1793478211886,
+        "startedAtMillis": 1793484322669,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478212898,
+        "startedAtMillis": 1793484323727,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478212898,
+        "startedAtMillis": 1793484323727,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478213011,
+        "startedAtMillis": 1793484323819,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478213011,
+        "startedAtMillis": 1793484323819,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478213012,
+        "startedAtMillis": 1793484323820,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478213012,
+        "startedAtMillis": 1793484323820,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478213249,
+        "startedAtMillis": 1793484324019,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478213249,
+        "startedAtMillis": 1793484324019,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478219650,
+        "startedAtMillis": 1793484330435,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478219650,
+        "startedAtMillis": 1793484330435,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478219767,
+        "startedAtMillis": 1793484330569,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478219767,
+        "startedAtMillis": 1793484330569,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478219835,
+        "startedAtMillis": 1793484330610,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478219836,
+        "startedAtMillis": 1793484330610,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478220583,
+        "startedAtMillis": 1793484331349,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478220583,
+        "startedAtMillis": 1793484331349,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478220642,
+        "startedAtMillis": 1793484331403,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478220642,
+        "startedAtMillis": 1793484331403,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220677,
+        "startedAtMillis": 1793484331435,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220677,
+        "startedAtMillis": 1793484331435,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "mode_transition",
-        "startedAtMillis": 1793478220678,
+        "startedAtMillis": 1793484331436,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "mode_transition",
-        "startedAtMillis": 1793478220678,
+        "startedAtMillis": 1793484331436,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220888,
+        "startedAtMillis": 1793484331481,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220888,
+        "startedAtMillis": 1793484331481,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_failed",
-        "startedAtMillis": 1793478220925,
+        "startedAtMillis": 1793484331513,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_failed",
-        "startedAtMillis": 1793478220925,
+        "startedAtMillis": 1793484331513,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220947,
+        "startedAtMillis": 1793484331533,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478220947,
+        "startedAtMillis": 1793484331533,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478220949,
+        "startedAtMillis": 1793484331533,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478220949,
+        "startedAtMillis": 1793484331533,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221100,
+        "startedAtMillis": 1793484331717,
         "status": "failed",
         "failure": "IllegalStateException"
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221100,
+        "startedAtMillis": 1793484331717,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221180,
+        "startedAtMillis": 1793484331799,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221180,
+        "startedAtMillis": 1793484331799,
+        "status": "released",
+        "failure": ""
+      },
+      {
+        "adapterId": "lifetime_left:input",
+        "reason": "control_transition",
+        "startedAtMillis": 1793484331807,
+        "status": "released",
+        "failure": ""
+      },
+      {
+        "adapterId": "lifetime_right:input",
+        "reason": "control_transition",
+        "startedAtMillis": 1793484331807,
+        "status": "released",
+        "failure": ""
+      },
+      {
+        "adapterId": "lifetime_left:input",
+        "reason": "control_transition",
+        "startedAtMillis": 1793484331808,
+        "status": "released",
+        "failure": ""
+      },
+      {
+        "adapterId": "lifetime_right:input",
+        "reason": "control_transition",
+        "startedAtMillis": 1793484331808,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478221194,
+        "startedAtMillis": 1793484331809,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478221194,
+        "startedAtMillis": 1793484331809,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221261,
+        "startedAtMillis": 1793484331876,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221261,
+        "startedAtMillis": 1793484331876,
         "status": "failed",
         "failure": "IllegalStateException"
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221338,
+        "startedAtMillis": 1793484331960,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "emergency_release",
-        "startedAtMillis": 1793478221338,
+        "startedAtMillis": 1793484331960,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478221346,
+        "startedAtMillis": 1793484331968,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478221346,
+        "startedAtMillis": 1793484331968,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230609,
+        "startedAtMillis": 1793484341168,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230609,
+        "startedAtMillis": 1793484341168,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478230660,
+        "startedAtMillis": 1793484341185,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478230660,
+        "startedAtMillis": 1793484341185,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478230703,
+        "startedAtMillis": 1793484341232,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478230703,
+        "startedAtMillis": 1793484341232,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478230764,
+        "startedAtMillis": 1793484341282,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478230764,
+        "startedAtMillis": 1793484341282,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230818,
+        "startedAtMillis": 1793484341334,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230818,
+        "startedAtMillis": 1793484341334,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478230819,
+        "startedAtMillis": 1793484341336,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478230819,
+        "startedAtMillis": 1793484341336,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230857,
+        "startedAtMillis": 1793484341376,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478230857,
+        "startedAtMillis": 1793484341376,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478231459,
+        "startedAtMillis": 1793484341977,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478231459,
+        "startedAtMillis": 1793484341977,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478231511,
+        "startedAtMillis": 1793484342030,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478231511,
+        "startedAtMillis": 1793484342030,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478231547,
+        "startedAtMillis": 1793484342067,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478231547,
+        "startedAtMillis": 1793484342067,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478231548,
+        "startedAtMillis": 1793484342068,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478231548,
+        "startedAtMillis": 1793484342068,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478232127,
+        "startedAtMillis": 1793484342667,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478232127,
+        "startedAtMillis": 1793484342667,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478232154,
+        "startedAtMillis": 1793484342685,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478232154,
+        "startedAtMillis": 1793484342685,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478232214,
+        "startedAtMillis": 1793484342744,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_completed",
-        "startedAtMillis": 1793478232214,
+        "startedAtMillis": 1793484342745,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478233526,
+        "startedAtMillis": 1793484344025,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478233526,
+        "startedAtMillis": 1793484344025,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478234287,
+        "startedAtMillis": 1793484344710,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478234287,
+        "startedAtMillis": 1793484344710,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478234315,
+        "startedAtMillis": 1793484344737,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "screen_changed",
-        "startedAtMillis": 1793478234315,
+        "startedAtMillis": 1793484344737,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "pipeline_cancelled:operation_cancelled",
-        "startedAtMillis": 1793478234315,
+        "startedAtMillis": 1793484344738,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "pipeline_cancelled:operation_cancelled",
-        "startedAtMillis": 1793478234315,
+        "startedAtMillis": 1793484344738,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "native_input_context_changed",
-        "startedAtMillis": 1793478234316,
+        "startedAtMillis": 1793484344738,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "native_input_context_changed",
-        "startedAtMillis": 1793478234316,
+        "startedAtMillis": 1793484344738,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478234392,
+        "startedAtMillis": 1793484344814,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "control_transition",
-        "startedAtMillis": 1793478234392,
+        "startedAtMillis": 1793484344814,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_left:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478234393,
+        "startedAtMillis": 1793484344815,
         "status": "released",
         "failure": ""
       },
       {
         "adapterId": "lifetime_right:input",
         "reason": "client_release",
-        "startedAtMillis": 1793478234393,
+        "startedAtMillis": 1793484344815,
         "status": "released",
         "failure": ""
       }
     ],
-    "requestId": "187104be-df34-49bd-b6ab-43a52ac5b10d",
+    "requestId": "c50e8abb-2684-4200-9193-5ff6f16e3c46",
     "protocolVersion": "v0"
   },
-  "completedAt": "2026-10-31T20:23:56.082Z",
+  "completedAt": "2026-10-31T22:05:46.487Z",
   "cleanShutdown": true
 }

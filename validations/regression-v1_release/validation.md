@@ -45,7 +45,8 @@ alpha 刷新须验证当前源码、实际五端运行结果、发行 JAR 与生
 
 ## 运行
 
-扩展平台当前候选使用extension_platform_trial_v1；完整收齐五端平台、成品客户端/独服、适配业务、双包故障/替包与受影响原版UI/世界/输入/45秒连续正确性，以及纯净单JAR入世界证明后执行：
+扩展平台当前候选使用extension_platform_trial_v1；完整收齐五端平台、成品客户端/独服、适配业务、双包故障/替包与受影响原版回归，以及纯净单JAR入世界证明后执行。
+原版回归的固定范围：五端世界full、input-context和45秒continuous-correctness；参考端原版UI all，其余四端UI pointer、special-menus、ui-navigation。该范围覆盖本次原生输入/目标守卫改动，不声称五端原版UI全量重测：
 
 ```powershell
 node components/validation_tools/regression-v1_release/task/write-extension-alpha.mjs

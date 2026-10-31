@@ -28,7 +28,11 @@ public final class LogicalInputRouter {
         target.remove();
         if (guard == null || !guard.has("node")) return;
         var node = guard.getAsJsonObject("node");
-        if (!node.has("semanticState") || !node.has("capabilitySource")) return;
+        // Native regions also use semanticState (for example a merchant fingerprint).
+        // Only an extension's structured target can bind framework input.
+        if (!node.has("semanticState")
+                || !node.get("semanticState").isJsonObject()
+                || !node.has("capabilitySource")) return;
         var state = node.getAsJsonObject("semanticState");
         if (!state.has("extensionTargetKey") || !state.has("extensionTargetRevision")) return;
         target.set(

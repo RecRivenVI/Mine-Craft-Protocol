@@ -156,6 +156,7 @@ val verifyServerFixtures by
             "node",
             "--test",
             "components/validation_tools/integration-server_peer/task/server-world-fixture.test.mjs",
+            "components/validation_tools/integration-server_peer/task/server-installation.test.mjs",
         )
     }
 

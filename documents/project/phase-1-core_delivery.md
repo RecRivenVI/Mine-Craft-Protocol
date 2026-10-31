@@ -2723,3 +2723,13 @@ Forge Exposure首次进世界曾两次无响应。第二次线程转储确认Ren
 独服夹具最初误用了LittleTiles物品名作为方块注册名，Native控制台报告Unknown block，随后Provider读取不可用；未将目录已装载记作业务通过。修正为实际tiles注册名及固定半尺寸石块NBT，并在封存前用原生execute if block确认，再正常保存重启。旧失败基线不覆盖；正式Act仍只经Native/MCP读取，远端目标保持不加载。AE2/Create的原生机器夹具与客户端专用包不执行入口的结果分开记录。
 
 本检查点的整仓check、Java/Companion、协议/控制/文档、严格合规及五端verifyRelease通过；后续工具和其他版本仍须收口后重新冻结。没有新Alpha发布，不更新latest，DP集中真人验收仍待办；不以这些有限增量宣称全平台或两个领域完成。
+
+EP-4/5阶段检查点a17f51b9已SSH签名推送：19个有匹配上游包的业务组合、五端Native/成品平台、34份独服详细/退出结果、双包故障恢复、本体不变1.0.3→1.0.4替包、停机快照恢复均绑定自己的候选。正式作者查阅与离线安装步骤已补齐，派生库跨目录但同Target/运行端/审批内容的生产代码校验通过。Forge官方安装器下载Mojang映射曾TLS握手失败，一次有界重跑通过，未禁用证书或哈希检查。
+
+随后原版完整世界组在村民交易项点击处返回ClassCastException。原因是LogicalInputRouter仅按semanticState/capabilitySource存在就强转扩展对象，原版交易/滚动区域使用字符串指纹。修复限定只有结构化扩展目标才绑定框架输入，并保留增强前的原生semanticState供旧目标守卫比较；补充原生指纹多形态、前一框架目标清除及增强后原生状态变化拒绝测试。此为平台接线的真实回归，未将失败记作PASS；新JAR变化后重新执行冻结，先前a17结果不替代新候选。
+
+独服重跑另发现安装器中断会先留下win_args.txt，旧Runner只检查参数文件而误用缺失server-extra.jar的半成品。增加成功安装标记、安装器/参数/实际库SHA-256校验，缺失或变动时重新执行官方安装器；实际文件负控覆盖部分输出、间接文件变化及身份变化。Forge AE2随后首次只读Provider用31.985ms触发既有同步入口预算，安全失败并正常关闭；原失败单独保存，同一候选完整重跑通过，根因未定。没有放宽预算、自动重放修改或将复测称为修复。
+
+最终源码指纹673684d2完成当前候选冻结：发布侧重新读取105份具名证明，验证实际生产源码、执行工具、包内容身份和发行JAR；19个可用业务组合与五端仅Loader/单JAR入世界均通过。原版范围为五端世界full、input-context及45秒continuous-correctness，参考端UI all、其余四端pointer/special-menus/ui-navigation；不称为五端UI全量重测。双包故障/分别恢复、独服入口、同本体1.0.3→1.0.4替包及正常退出重新绑定当前候选。
+
+完整check、Java/Companion、协议/文档/严格合规0失败0警告及五端verifyRelease通过；作者资料分发保留相对目录并包含所引用的SDK示例源码，发布前拒绝缺失链接。固定快照交付SDK、七包、Companion和五端本体，不含第三方原包。CC26.3 NeoForge上游阻断、LittleTiles运动关闭及Forge AE2首次读超预算限制保留，真实IME/宿主输入/体验仍待集中人工验收。未运行整合包、性能基准、Persistent Write或E1～E3。

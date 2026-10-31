@@ -77,6 +77,51 @@ class UiExtensionEngineTest {
     }
 
     @Test
+    void nativeSemanticFingerprintRemainsGuardedAfterExtensionEnrichment() {
+        var before = tree();
+        var after = tree();
+        before.getAsJsonArray("children")
+                .get(0)
+                .getAsJsonObject()
+                .addProperty("semanticState", "offer-v1");
+        after.getAsJsonArray("children")
+                .get(0)
+                .getAsJsonObject()
+                .addProperty("semanticState", "offer-v2");
+        var enrichment =
+                adapter(
+                        c ->
+                                new UiAdapter.Projection(
+                                        c.frame(),
+                                        System.nanoTime(),
+                                        List.of(
+                                                new UiAdapter.Node(
+                                                        "offer",
+                                                        10,
+                                                        "same-extension-revision",
+                                                        UiAdapter.Space.GUI,
+                                                        json("{\"label\":\"projected\"}")))));
+        capture(before, UiAdapter.View.USER, enrichment);
+        capture(after, UiAdapter.View.USER, enrichment);
+        var node = before.getAsJsonArray("children").get(0).getAsJsonObject();
+        assertEquals(
+                "offer-v1",
+                node.getAsJsonObject("semanticState").get("nativeSemanticState").getAsString());
+        var guard =
+                json(
+                        "{\"frame\":{},\"selector\":{\"nodeId\":\"widget:7:10\"},\"action\":\"click\"}");
+        guard.add("node", node);
+        var error =
+                assertThrows(
+                        io.github.recrivenvi.minecraftprotocol.core.ProtocolState.ProtocolException
+                                .class,
+                        () ->
+                                io.github.recrivenvi.minecraftprotocol.core.AutomationEngine
+                                        .validatePointerGuard(guard, after));
+        assertEquals("UI_TARGET_INVALIDATED", error.code());
+    }
+
+    @Test
     void explicitCoordinateSpacesClipWithoutMovingOrRoundingTheInputPoint() {
         var root = tree();
         capture(

@@ -2,7 +2,7 @@
   "target": "1.20.1-forge",
   "role": "client",
   "adapter": "platform_probe",
-  "runtimeInstanceId": "f482a936-cb1f-4810-a734-a5c7de486795",
+  "runtimeInstanceId": "06594f83-70cc-47e6-9432-dda5eb770aad",
   "developmentClasspath": false,
   "finalJarInstall": true,
   "toolFiles": {
@@ -192,7 +192,7 @@
             }
           }
         ],
-        "requestId": "f42e6bb6-3758-4fad-8ce4-9523b3b947a7",
+        "requestId": "99b5cc75-073a-41ec-aaf8-2def2659f5bc",
         "protocolVersion": "v0"
       },
       "document": {
@@ -203,30 +203,24 @@
         "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
         "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
         "contentIsData": true,
-        "requestId": "2ae880d4-bff5-4360-b0b2-29720d3b9a3c",
+        "requestId": "718c58d0-3d35-47f0-a8d7-ecbf3a918507",
         "protocolVersion": "v0"
       }
     },
     {
       "nativeUiEnrichment": {
-        "translationKey": "menu.singleplayer",
-        "focused": false,
-        "boundsAvailable": true,
-        "coverage": "native_with_extension_semantics",
-        "elementIdentity": 3,
-        "acquisition": "installed_extension",
-        "label": "Singleplayer",
-        "visible": true,
         "nodeRevision": 1,
-        "interactionX": 240,
-        "interactionY": 125,
-        "nodeId": "ui:1:3",
-        "active": true,
-        "class": "net.minecraft.client.gui.components.Button",
-        "height": 20,
-        "width": 200,
-        "capabilitySource": "platform_probe:native_ui",
-        "role": "button",
+        "visible": true,
+        "label": "Singleplayer",
+        "acquisition": "installed_extension",
+        "elementIdentity": 3,
+        "coverage": "native_with_extension_semantics",
+        "boundsAvailable": true,
+        "focused": false,
+        "translationKey": "menu.singleplayer",
+        "hovered": false,
+        "y": 115,
+        "x": 140,
         "actions": [
           "hover",
           "click",
@@ -234,80 +228,86 @@
           "mouse_down",
           "mouse_up"
         ],
-        "x": 140,
-        "y": 115,
-        "hovered": false
+        "role": "button",
+        "capabilitySource": "platform_probe:native_ui",
+        "width": 200,
+        "height": 20,
+        "class": "net.minecraft.client.gui.components.Button",
+        "active": true,
+        "nodeId": "ui:1:3",
+        "interactionY": 125,
+        "interactionX": 240
       }
     },
     {
       "case": "forge_vanilla_experience_draw",
       "nodes": [
         {
-          "controlKey": "hud.context.experience.hud/experience_bar_background.149.241",
-          "boundsAvailable": true,
-          "atlasWidth": 256,
-          "textureId": "minecraft:textures/gui/icons.png",
-          "textureU": 0,
-          "textureV": 64,
+          "iconSource": "last_completed_native_hud_draw",
+          "visible": true,
+          "atlasHeight": 256,
           "label": "experience hud/experience_bar_background",
-          "atlasHeight": 256,
-          "visible": true,
-          "iconSource": "last_completed_native_hud_draw",
-          "opacity": 1,
-          "nodeId": "hud.context.experience.hud/experience_bar_background.149.241",
-          "active": false,
-          "spriteRegion": "hud/experience_bar_background",
-          "height": 5,
-          "width": 182,
-          "role": "status_icon",
-          "spriteSemantics": "native_gui_icons_atlas_region",
-          "actions": [],
-          "x": 149,
-          "y": 241
-        },
-        {
-          "controlKey": "hud.context.experience.hud/experience_bar_progress.149.241",
-          "boundsAvailable": true,
-          "atlasWidth": 256,
-          "textureId": "minecraft:textures/gui/icons.png",
+          "textureV": 64,
           "textureU": 0,
-          "textureV": 69,
-          "valueMaximum": 182,
-          "label": "experience hud/experience_bar_progress",
-          "atlasHeight": 256,
-          "visible": true,
-          "iconSource": "last_completed_native_hud_draw",
-          "opacity": 1,
-          "nodeId": "hud.context.experience.hud/experience_bar_progress.149.241",
-          "active": false,
-          "spriteRegion": "hud/experience_bar_progress",
-          "height": 5,
-          "width": 78,
-          "value": 78,
-          "valueSemantics": "drawn_sprite_extent_not_raw_player_statistics",
-          "valueMinimum": 0,
-          "role": "progress_bar",
-          "spriteSemantics": "native_gui_icons_atlas_region",
-          "actions": [],
+          "textureId": "minecraft:textures/gui/icons.png",
+          "atlasWidth": 256,
+          "boundsAvailable": true,
+          "controlKey": "hud.context.experience.hud/experience_bar_background.149.241",
+          "y": 241,
           "x": 149,
-          "y": 241
+          "actions": [],
+          "spriteSemantics": "native_gui_icons_atlas_region",
+          "role": "status_icon",
+          "width": 182,
+          "height": 5,
+          "spriteRegion": "hud/experience_bar_background",
+          "active": false,
+          "nodeId": "hud.context.experience.hud/experience_bar_background.149.241",
+          "opacity": 1
         },
         {
-          "controlKey": "hud.context.experience.level",
-          "boundsAvailable": true,
-          "label": "7",
-          "visible": true,
           "iconSource": "last_completed_native_hud_draw",
-          "labelSource": "last_completed_native_hud_draw",
-          "opacity": 1,
-          "nodeId": "hud.context.experience.level",
-          "active": false,
-          "height": 9,
-          "width": 6,
-          "role": "hud_text",
+          "visible": true,
+          "atlasHeight": 256,
+          "label": "experience hud/experience_bar_progress",
+          "valueMaximum": 182,
+          "textureV": 69,
+          "textureU": 0,
+          "textureId": "minecraft:textures/gui/icons.png",
+          "atlasWidth": 256,
+          "boundsAvailable": true,
+          "controlKey": "hud.context.experience.hud/experience_bar_progress.149.241",
+          "y": 241,
+          "x": 149,
           "actions": [],
+          "spriteSemantics": "native_gui_icons_atlas_region",
+          "role": "progress_bar",
+          "valueMinimum": 0,
+          "valueSemantics": "drawn_sprite_extent_not_raw_player_statistics",
+          "value": 78,
+          "width": 78,
+          "height": 5,
+          "spriteRegion": "hud/experience_bar_progress",
+          "active": false,
+          "nodeId": "hud.context.experience.hud/experience_bar_progress.149.241",
+          "opacity": 1
+        },
+        {
+          "iconSource": "last_completed_native_hud_draw",
+          "visible": true,
+          "label": "7",
+          "boundsAvailable": true,
+          "controlKey": "hud.context.experience.level",
+          "y": 235,
           "x": 237,
-          "y": 235
+          "actions": [],
+          "role": "hud_text",
+          "width": 6,
+          "height": 9,
+          "active": false,
+          "nodeId": "hud.context.experience.level",
+          "opacity": 1,
+          "labelSource": "last_completed_native_hud_draw"
         }
       ]
     },
@@ -335,8 +335,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "580bd066-fd82-48c1-864a-480fbfa41f9a",
-        "auditReference": "580bd066-fd82-48c1-864a-480fbfa41f9a",
+        "debugOperationId": "37425c6c-fab6-43ff-bcc0-62d132e965a8",
+        "auditReference": "37425c6c-fab6-43ff-bcc0-62d132e965a8",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -348,8 +348,8 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:99791dcb-1bb6-3705-a192-be1c10cec09c",
-        "debugArmId": "08cac610-1ef0-4fc6-aef4-3017041634fd",
+        "principalId": "token:244205e7-864b-3ace-ae4c-9b05e29e6448",
+        "debugArmId": "a4c6c999-7244-4f70-aa84-f2728b96a8af",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
@@ -375,7 +375,7 @@
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -385,7 +385,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -394,8 +394,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 10972,
-        "requestId": "580bd066-fd82-48c1-864a-480fbfa41f9a",
+        "durationMicros": 6940,
+        "requestId": "37425c6c-fab6-43ff-bcc0-62d132e965a8",
         "protocolVersion": "v0"
       },
       "sampled": {
@@ -407,17 +407,17 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
-        "capturedAt": 1793478638029,
+        "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
+        "capturedAt": 1793484632528,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.20.1-forge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "74656d8d-cef3-4472-a13d-5f32dbd1cf61",
+          "snapshotId": "7a249987-0e28-42c3-b515-5daa96d9a5d0",
           "snapshotSequence": 62,
-          "capturedAtMillis": 1793478638029,
+          "capturedAtMillis": 1793484632528,
           "clientTick": -1,
           "serverTick": 62,
           "consistency": "server_thread_bounded",
@@ -442,7 +442,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 32,
+          "ownerThreadCaptureMicros": 28,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -452,14 +452,14 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478638029,
-          "snapshotId": "f3f51f16-1bcd-4b8e-8023-cf1e71328634",
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "capturedAt": 1793484632528,
+          "snapshotId": "3919d42d-0218-4ad8-8604-2e20b766d9ae",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "clientTick": -1,
           "serverTick": 62,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+            "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
             "entryCount": 56,
             "entryBound": 4096,
             "evictionCount": 0,
@@ -467,13 +467,13 @@
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 15,
+          "revisionComputationMicros": 4,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+            "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -552,7 +552,7 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 1,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 574046280178600,
+              "sampledAtNanos": 580040784742900,
               "ownerThread": "Server thread",
               "passiveNativeHookCalls": 62,
               "passiveNativeHookThread": "Server thread",
@@ -561,9 +561,9 @@
             },
             "providerRevision": 1,
             "bytes": 471,
-            "entryDurationMicros": 25,
-            "validationDurationMicros": 76,
-            "durationMicros": 8858
+            "entryDurationMicros": 28,
+            "validationDurationMicros": 84,
+            "durationMicros": 10787
           }
         ],
         "responseBytes": 4318,
@@ -572,7 +572,7 @@
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "5717241d-c8d4-4e3a-a95f-8d28b522f37e",
+        "requestId": "37be4e66-67de-4e58-9137-c515a6d8f288",
         "protocolVersion": "v0"
       }
     },
@@ -580,8 +580,8 @@
       "stopped": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "cbe50c48-b383-4d83-b7c8-1ed0e60ff6c2",
-        "auditReference": "cbe50c48-b383-4d83-b7c8-1ed0e60ff6c2",
+        "debugOperationId": "1ae1e32e-622c-4c20-aa53-084d444f3e80",
+        "auditReference": "1ae1e32e-622c-4c20-aa53-084d444f3e80",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -593,14 +593,14 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:99791dcb-1bb6-3705-a192-be1c10cec09c",
-        "debugArmId": "08cac610-1ef0-4fc6-aef4-3017041634fd",
+        "principalId": "token:244205e7-864b-3ace-ae4c-9b05e29e6448",
+        "debugArmId": "a4c6c999-7244-4f70-aa84-f2728b96a8af",
         "before": {
           "running": true,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 574047037213600,
+          "sampledAtNanos": 580041541666700,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 77,
           "passiveNativeHookThread": "Server thread",
@@ -612,7 +612,7 @@
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 574047037213600,
+          "sampledAtNanos": 580041541666700,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 77,
           "passiveNativeHookThread": "Server thread",
@@ -620,7 +620,7 @@
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -630,7 +630,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -639,8 +639,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 5320,
-        "requestId": "cbe50c48-b383-4d83-b7c8-1ed0e60ff6c2",
+        "durationMicros": 3383,
+        "requestId": "1ae1e32e-622c-4c20-aa53-084d444f3e80",
         "protocolVersion": "v0"
       }
     },
@@ -648,8 +648,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "65c5fbd8-ca1c-48b7-8016-3f13a1458139",
-        "auditReference": "65c5fbd8-ca1c-48b7-8016-3f13a1458139",
+        "debugOperationId": "38796495-bac3-4955-9ee7-e72e95075e97",
+        "auditReference": "38796495-bac3-4955-9ee7-e72e95075e97",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -661,14 +661,14 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:99791dcb-1bb6-3705-a192-be1c10cec09c",
-        "debugArmId": "8a5bd170-c0ad-4ad5-98d7-a7a6c438a132",
+        "principalId": "token:244205e7-864b-3ace-ae4c-9b05e29e6448",
+        "debugArmId": "3c5d2f7b-9442-403b-a598-a456bfb0b49c",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
           "samples": 16,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 574047037213600,
+          "sampledAtNanos": 580041541666700,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 106,
           "passiveNativeHookThread": "Server thread",
@@ -688,7 +688,7 @@
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -698,7 +698,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -707,8 +707,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 4662,
-        "requestId": "65c5fbd8-ca1c-48b7-8016-3f13a1458139",
+        "durationMicros": 6747,
+        "requestId": "38796495-bac3-4955-9ee7-e72e95075e97",
         "protocolVersion": "v0"
       },
       "stopped": {
@@ -720,17 +720,17 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
-        "capturedAt": 1793478640588,
+        "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
+        "capturedAt": 1793484635096,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.20.1-forge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "f3efd1b6-0e78-4dbf-a9ae-bf4df3bd281d",
+          "snapshotId": "32e7b5da-7fe1-4283-a08b-83046c83cd80",
           "snapshotSequence": 113,
-          "capturedAtMillis": 1793478640588,
+          "capturedAtMillis": 1793484635096,
           "clientTick": -1,
           "serverTick": 113,
           "consistency": "server_thread_bounded",
@@ -755,7 +755,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 20,
+          "ownerThreadCaptureMicros": 23,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -765,14 +765,14 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793478640588,
-          "snapshotId": "6f3fd92b-cca0-40b0-b3b2-69014795caba",
-          "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+          "capturedAt": 1793484635096,
+          "snapshotId": "d881f3e1-f26b-46e6-aaf5-d83c2cef2d0c",
+          "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
           "clientTick": -1,
           "serverTick": 113,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+            "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
             "entryCount": 56,
             "entryBound": 4096,
             "evictionCount": 0,
@@ -780,13 +780,13 @@
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 3,
+          "revisionComputationMicros": 4,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "32d0a603-62a4-44a5-89df-54cd1a474555",
+            "sessionEpoch": "1fbb0b80-eff8-4b3d-b2b7-28b2007794f4",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -865,39 +865,39 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 6,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 574048749963900,
+              "sampledAtNanos": 580043264111000,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 113,
+              "passiveNativeHookCalls": 114,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
             },
             "providerRevision": 4,
             "bytes": 474,
-            "entryDurationMicros": 26,
-            "validationDurationMicros": 112,
-            "durationMicros": 8369
+            "entryDurationMicros": 22,
+            "validationDurationMicros": 81,
+            "durationMicros": 9573
           }
         ],
-        "responseBytes": 4323,
+        "responseBytes": 4322,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "59d352fc-4f9a-4f72-833b-20646e4d8a53",
+        "requestId": "c40d4177-6c98-43ad-82d3-3619b812052e",
         "protocolVersion": "v0"
       },
       "cleanup": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "f482a936-cb1f-4810-a734-a5c7de486795",
+        "runtimeInstanceId": "06594f83-70cc-47e6-9432-dda5eb770aad",
         "activeScopes": 1,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "08cac610-1ef0-4fc6-aef4-3017041634fd",
+            "contextId": "a4c6c999-7244-4f70-aa84-f2728b96a8af",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -919,7 +919,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "8a5bd170-c0ad-4ad5-98d7-a7a6c438a132",
+            "contextId": "3c5d2f7b-9442-403b-a598-a456bfb0b49c",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -939,7 +939,7 @@
           }
         ],
         "inputCleanup": [],
-        "requestId": "8fe517ca-ef8b-4fb3-8b40-ac10af73b42b",
+        "requestId": "656f99dc-e8e6-49d7-a4c2-0fcb70aa0977",
         "protocolVersion": "v0"
       }
     },
@@ -968,12 +968,12 @@
         "attributes": {
           "nativeParent": "minecraft:chest"
         },
-        "targetRef": "world:e72db29a-f71d-41bb-a92b-e1c18e981d22",
+        "targetRef": "world:0c4565f2-48d6-4dc8-a0b3-111885236165",
         "targetTtlMs": 15000
       },
       "result": {
         "type": "operation",
-        "operationId": "1543ea20-072e-4d2d-8c1a-b2ff4c2c9e03",
+        "operationId": "463d307d-5f5b-452c-b018-475f51748973",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -985,25 +985,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478644480,
-        "acceptedAtMillis": 1793478644480,
-        "scheduledAtMillis": 1793478644480,
-        "startedAtMillis": 1793478644480,
-        "completedAtMillis": 1793478644649,
+        "receivedAtMillis": 1793484639045,
+        "acceptedAtMillis": 1793484639045,
+        "scheduledAtMillis": 1793484639045,
+        "startedAtMillis": 1793484639045,
+        "completedAtMillis": 1793484639215,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "ae69d985-6eb3-4651-b537-d034ffecfbdf",
+          "gestureId": "9dac477c-b86a-4ebb-a0e2-18cd71a9dac4",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 169,
+          "durationMillis": 170,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 152.0331,
+              "elapsedMillis": 153.1936,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -1033,9 +1033,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "1.20.1-forge",
-                  "clientTick": 592,
+                  "clientTick": 598,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "ae69d985-6eb3-4651-b537-d034ffecfbdf",
+                  "gestureId": "9dac477c-b86a-4ebb-a0e2-18cd71a9dac4",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -1063,49 +1063,49 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:e72db29a-f71d-41bb-a92b-e1c18e981d22"
+                "targetRef": "world:0c4565f2-48d6-4dc8-a0b3-111885236165"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0287,
-            "totalMillis": 169.2593,
+            "queueMillis": 0.0546,
+            "totalMillis": 169.5299,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 2.3931,
+                "elapsedMillis": 3.696,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 17.4752,
+                "elapsedMillis": 18.6906,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 131.3941,
+                "elapsedMillis": 131.8504,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 14.6689,
+                "elapsedMillis": 12.4372,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 10.7575,
-            "lastInputCallbackOffsetMillis": 153.1995
+            "firstInputCallbackOffsetMillis": 13.5351,
+            "lastInputCallbackOffsetMillis": 155.7783
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "1.20.1-forge",
-            "clientTick": 594,
+            "clientTick": 600,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 222
           }
         },
-        "requestId": "59ed6c5d-5978-40bb-acc2-48523d171fe5",
+        "requestId": "45bb2901-78c7-464b-a133-c540d337529f",
         "protocolVersion": "v0"
       },
       "actualNativeScreen": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
@@ -1115,7 +1115,7 @@
     {
       "stalePartRejected": {
         "type": "operation",
-        "operationId": "3f2972e3-df09-40c3-a529-cef7a0fed204",
+        "operationId": "a426446e-737b-4ed1-9569-d4896108d27e",
         "status": "failed",
         "state": "failed",
         "received": true,
@@ -1127,15 +1127,15 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793478645689,
-        "acceptedAtMillis": 1793478645689,
-        "scheduledAtMillis": 1793478645689,
-        "startedAtMillis": 1793478645689,
-        "completedAtMillis": 1793478645714,
+        "receivedAtMillis": 1793484640278,
+        "acceptedAtMillis": 1793484640278,
+        "scheduledAtMillis": 1793484640278,
+        "startedAtMillis": 1793484640278,
+        "completedAtMillis": 1793484640306,
         "commandSubmissionsComplete": true,
         "error": "Block/chunk identity or bounded history changed; rediscover target",
         "errorCode": "WORLD_TARGET_STALE",
-        "requestId": "86080d7b-10c0-443d-a069-3fc22615aa74",
+        "requestId": "e05aca24-e6e5-447e-9354-c3aa200f44ee",
         "protocolVersion": "v0"
       },
       "cleanupCounterAdvanced": 1,
@@ -1149,7 +1149,7 @@
         "before": {
           "type": "input.state",
           "target": "1.20.1-forge",
-          "clientTick": 621,
+          "clientTick": 627,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -1158,7 +1158,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "029fe718-37f3-4624-a521-ad7157bd61ff",
+          "nativeEntityAttackContextId": "f5bb684b-ebea-45ad-8867-94a0d87c6561",
           "nativeEntityAttackContextGeneration": 1,
           "nativeEntityAttackControlGeneration": 18,
           "nativeEntityAttackLeaseActive": true,
@@ -1171,17 +1171,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "ed068fbe-e941-4830-8ac4-940474df0fa8",
+            "controlSessionId": "add6922d-1d96-493e-b556-9e35f90435f3",
             "generation": 18
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 1963,
+          "controlChromeRenderedFrames": 1987,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.6256495,
-          "controlChromeEdgeWidth": 0.96639884,
+          "controlChromeEdgeAlpha": 0.6230403,
+          "controlChromeEdgeWidth": 0.9803984,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 2165,
+          "captureFrameSequence": 2190,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -1206,10 +1206,10 @@
             "plane": "GUI_ABSOLUTE",
             "x": 240,
             "y": 135,
-            "alpha": 0.23845568,
+            "alpha": 0.2611077,
             "gameCaptured": false,
             "gameCursorVisible": true,
-            "gameCursorRevision": 9,
+            "gameCursorRevision": 10,
             "evidencePixels": false
           },
           "rejectedHostGrabs": 4,
@@ -1225,20 +1225,20 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 1,
-          "inputContextId": "029fe718-37f3-4624-a521-ad7157bd61ff",
+          "inputContextId": "f5bb684b-ebea-45ad-8867-94a0d87c6561",
           "inputContextAvailable": true,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "c994ae24-8f31-4364-8c98-525b1f5a387a",
+          "requestId": "9721482e-1cf2-4887-818f-d6e891c89b05",
           "protocolVersion": "v0"
         },
         "after": {
           "type": "input.state",
           "target": "1.20.1-forge",
-          "clientTick": 657,
+          "clientTick": 662,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -1247,7 +1247,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "3fc1796e-1a39-414a-9163-f2e299773b15",
+          "nativeEntityAttackContextId": "240cb622-e462-46c8-9f23-8ba3c180e28f",
           "nativeEntityAttackContextGeneration": 2,
           "nativeEntityAttackControlGeneration": 18,
           "nativeEntityAttackLeaseActive": false,
@@ -1260,17 +1260,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "ed068fbe-e941-4830-8ac4-940474df0fa8",
+            "controlSessionId": "add6922d-1d96-493e-b556-9e35f90435f3",
             "generation": 18
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 2196,
+          "controlChromeRenderedFrames": 2217,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.77023363,
-          "controlChromeEdgeWidth": 0.8851168,
+          "controlChromeEdgeAlpha": 0.7805037,
+          "controlChromeEdgeWidth": 0.8902518,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 2398,
+          "captureFrameSequence": 2420,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -1298,7 +1298,7 @@
             "alpha": 1,
             "gameCaptured": false,
             "gameCursorVisible": true,
-            "gameCursorRevision": 9,
+            "gameCursorRevision": 10,
             "evidencePixels": false
           },
           "rejectedHostGrabs": 4,
@@ -1314,14 +1314,14 @@
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 2,
-          "inputContextId": "3fc1796e-1a39-414a-9163-f2e299773b15",
+          "inputContextId": "240cb622-e462-46c8-9f23-8ba3c180e28f",
           "inputContextAvailable": false,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "31c5d5b9-f878-4e04-aba2-cfae3721fd6e",
+          "requestId": "d88897b6-d177-4528-bdac-56ad6938c860",
           "protocolVersion": "v0"
         },
         "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
@@ -1333,7 +1333,7 @@
             "message": "unknown",
             "executionOutcome": "not_confirmed",
             "retrySafe": false,
-            "requestId": "82a90943-2f21-488e-8214-e1f6103dc2db",
+            "requestId": "89915620-ffc7-4505-ae64-7643d18902f6",
             "protocolVersion": "v0"
           }
         },
@@ -1349,7 +1349,7 @@
             "pressedButtonCount": 0
           },
           "waited": true,
-          "requestId": "ed027f68-8c48-466c-828f-0dd84b5c0574",
+          "requestId": "2dfbf272-9403-4b8b-bb1b-7a2bbf557122",
           "protocolVersion": "v0"
         }
       }
@@ -1357,7 +1357,7 @@
   ],
   "admissionRetries": [],
   "persistentWriteCalls": 0,
-  "artifactSha256": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398",
+  "artifactSha256": "decdf790408dee3dd7c7aec220f7c37d089c36bb08cb364005c83e723ac3f3cc",
   "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
   "sourceFiles": {
     "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "d9a3b1bda3d6ccfb5b6d10852017caa1d607ccf4b965d98910fd6c2e3c8bbd17",
@@ -1435,9 +1435,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -1644,14 +1644,14 @@
   "expectedCleanupFailures": [],
   "debugCleanupBeforeShutdown": {
     "type": "extensions.resources",
-    "runtimeInstanceId": "f482a936-cb1f-4810-a734-a5c7de486795",
+    "runtimeInstanceId": "06594f83-70cc-47e6-9432-dda5eb770aad",
     "activeScopes": 1,
     "cleanup": [
       {
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "08cac610-1ef0-4fc6-aef4-3017041634fd",
+        "contextId": "a4c6c999-7244-4f70-aa84-f2728b96a8af",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -1673,7 +1673,7 @@
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "8a5bd170-c0ad-4ad5-98d7-a7a6c438a132",
+        "contextId": "3c5d2f7b-9442-403b-a598-a456bfb0b49c",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -1693,8 +1693,8 @@
       }
     ],
     "inputCleanup": [],
-    "requestId": "2993c605-4e03-4a35-8239-bf241736e4f2",
+    "requestId": "3236e98d-78a9-4ffa-a582-1a37b4d6ba22",
     "protocolVersion": "v0"
   },
-  "completedAt": "2026-10-31T20:30:48.302Z"
+  "completedAt": "2026-10-31T22:10:42.890Z"
 }

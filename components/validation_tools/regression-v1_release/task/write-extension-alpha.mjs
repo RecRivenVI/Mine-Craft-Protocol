@@ -35,8 +35,16 @@ const sdk=(await readdir(resolve(repo,'components/runtime_core/build/libs'))).fi
 await add('components/runtime_core/build/libs/'+sdk[0],'extensions/sdk/'+sdk[0]);
 const ids=JSON.parse(await readFile(resolve(repo,'components/extension_packages/packages/index.json'),'utf8'));
 for(const id of ids)await directory('components/extension_packages/build/packages/'+id,'extensions/packages/'+id);
-for(const name of ['procedure-author_extension','build-extension_packages','testing-extension_platform'])await add('documents/development/'+name+'.md','extensions/documents/'+name+'.md');
-await add('documents/reference/api-extension_platform.md','extensions/documents/api-extension_platform.md');
+for(const name of ['procedure-author_extension','build-extension_packages','testing-extension_platform'])await add('documents/development/'+name+'.md','extensions/documents/development/'+name+'.md');
+await add('documents/reference/api-extension_platform.md','extensions/documents/reference/api-extension_platform.md');
+await directory('components/extension_packages/packages/platform_probe/java','extensions/components/extension_packages/packages/platform_probe/java');
+for(const file of additionalArtifacts.filter(item=>item.fileName.startsWith('extensions/documents/'))){
+  for(const match of (await readFile(resolve(repo,file.path),'utf8')).matchAll(/\]\(([^)]+)\)/g)){
+    if(/^(?:[a-z][a-z0-9+.-]*:|#|\/)/i.test(match[1]))continue;
+    const linked=relative(repo,resolve(repo,dirname(file.fileName),match[1].split('#')[0])).replaceAll('\\','/');
+    assert(additionalArtifacts.some(item=>item.fileName===linked),'Missing distributed author reference: '+linked);
+  }
+}
 for(const name of ['package.json','package-lock.json'])await add('components/companion/'+name,'companion/'+name);
 await directory('components/companion/dist','companion/dist');
 await directory('components/companion/web','companion/web');
@@ -57,7 +65,7 @@ let guide=guideBytes.toString('utf8').replace(/\r\n/g,'\n').replace(/\]\(([^)]+)
   const [path,anchor]=link.split('#');return ']('+resolve(repo,dirname(guideSource),path).replaceAll('\\','/')+(anchor?'#'+anchor:'')+')';
 });
 const insert=guide.indexOf('\n\n');assert(insert>0);
-guide=guide.slice(0,insert)+`\n\n本批扩展平台固定快照：${name}；源码提交：${head}。其他线程应复制此不可变目录，不引用build。\n\n五端本体、SDK、七包和Companion同批交付；companion目录先执行npm ci --omit=dev，再运行dist/index.js。extensions/packages中的内容不是Loader模组，不放进mods：按同批作者规程离线审批和暂存后重启。作者规则可通过离线MCP资源查阅。\n\n当前证明为五端平台/发行安装/独服与原版UI、世界和输入生命周期回归，加上有上游包的具名有限业务。不是任意第三方功能全覆盖；CC NeoForge26.3上游启动失败、LittleTiles运动实体再次关闭等限制见alpha-manifest.json的extensionPlatform.limitations。真人协作/IME/视觉验收仍未执行，不声明两个领域整体接受或对外发布。Persistent Write=0，未测性能。\n\n[本批完整清单](alpha-manifest.json)。`+guide.slice(insert);
+guide=guide.slice(0,insert)+`\n\n本批扩展平台固定快照：${name}；源码提交：${head}。其他线程应复制此不可变目录，不引用build。\n\n五端本体、SDK、七包和Companion同批交付；companion目录先执行npm ci --omit=dev，再运行dist/index.js。extensions/packages中的内容不是Loader模组，不放进mods：按同批作者规程离线审批和暂存后重启。作者规则可通过离线MCP资源查阅。\n\n当前证明为五端平台/发行安装/独服、五端世界full与输入上下文/45秒连续正确性、参考端原版UI all及其余四端pointer/special-menus/ui-navigation，加上有上游包的具名有限业务。不是任意第三方功能全覆盖；CC NeoForge26.3上游启动失败、LittleTiles运动实体再次关闭等限制见alpha-manifest.json的extensionPlatform.limitations。Forge AE2首次只读采样曾超预算，同批重测通过，根因未确认；原失败保留在状态页。真人协作/IME/视觉验收仍未执行，不声明两个领域整体接受或对外发布。Persistent Write=0，未测性能。\n\n[本批完整清单](alpha-manifest.json)。`+guide.slice(insert);
 const report={type:'internal_alpha_build',preparedAt,commit:head,dirty:execFileSync('git',['status','--porcelain=v1'],{cwd:repo,encoding:'utf8'}).trim().length>0,modVersion:facts.mod_version,sourceHashes,sourceFingerprint,
   artifacts,additionalArtifacts,extensionSourceHashes,consumerSourceHashes,publicationProfile:EXTENSION_PROFILE,extensionPlatform,packagedRuntimeVerified:true,packagedRuntime,
   nativeSmoke:extensionPlatform.proofs.filter(item=>item.result.endsWith('-client.json')&&!item.result.includes('-installed-')).map(item=>({...item,sourceMatchesCurrent:true,cleanShutdown:true})),

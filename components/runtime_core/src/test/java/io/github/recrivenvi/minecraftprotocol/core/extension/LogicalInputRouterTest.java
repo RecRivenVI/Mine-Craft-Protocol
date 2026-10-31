@@ -48,6 +48,32 @@ class LogicalInputRouterTest {
     }
 
     @Test
+    void nativeMerchantAndScrollFingerprintsNeverBorrowThePreviousFrameworkTarget() {
+        var router = new LogicalInputRouter();
+        var extension =
+                com.google.gson.JsonParser.parseString(
+                                """
+                {"node":{"capabilitySource":"modern_ui:visible_views",
+                "semanticState":{"extensionTargetKey":"view:4","extensionTargetRevision":"editor"},
+                "x":12.125,"y":8.75,"width":30.5,"height":9.25}}
+                """)
+                        .getAsJsonObject();
+        for (String state : java.util.List.of("\"merchant:offer:0\"", "17", "null", "[]", "{}")) {
+            router.guard(extension, 480, 270, 1920, 1080);
+            assertNotNull(router.target());
+            var nativeGuard =
+                    com.google.gson.JsonParser.parseString(
+                                    "{\"node\":{\"capabilitySource\":\"vanilla_region\",\"semanticState\":"
+                                            + state
+                                            + "}}")
+                            .getAsJsonObject();
+            router.guard(nativeGuard, 480, 270, 1920, 1080);
+            assertNull(router.target());
+            assertEquals("native", router.collect(() -> "native").join());
+        }
+    }
+
+    @Test
     void snapshotIsScopedAndNativeReentryCannotBorrowIt() {
         var router = new LogicalInputRouter();
         var buttons = new java.util.HashSet<Integer>(Set.of(0, 1));

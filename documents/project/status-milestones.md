@@ -2,7 +2,7 @@
 
 UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验收未执行。
 Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI/世界、45秒连续正确性、单JAR及服务端/三安装组合证明仍保留，不等于人工接受。
-当前扩展平台工作区已有新增代码，尚未完成平台冻结；下方双里程碑矩阵记录DP基线，不证明新增平台已通过。实际已发布身份以外置latest及快照清单为准，不用新build文件替换旧快照。
+扩展平台已完成实装与当前候选自动冻结；下方双里程碑矩阵保留DP基线，平台证明另见EP-1～6，不把自动通过当作人工接受。实际已发布身份以外置latest及快照清单为准，不用新build文件替换旧快照。
 恢复先读本页及[执行计划](plan-execution.md)，普通开发直接与用户协作；不自动恢复旧Goal或扩展其他批次。
 本轮冻结与复用依据见[自动收尾记录](phase-1-core_delivery.md#2026-10-31开发者预览自动冻结)，既有安装和发布历史见[交付记录](phase-1-core_delivery.md#2026-10-22-e世界单jar与alpha交付)。
 
@@ -15,17 +15,20 @@ Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI
 | 阶段 | 当前状态 | 完成门禁 | 当前依据 |
 | --- | --- | --- | --- |
 | EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
-| EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.0→1.0.2替包另绑定EP-2前置二进制，不冒充最终Alpha冻结 |
+| EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.3→1.0.4替包已重新绑定当前最终JAR，不借用前置二进制 |
 | EP-3 深层UI与逻辑输入 | 完成 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | SDK及五端生产接线、Java/Companion/严格合规/五端发行门禁通过；三版Modern UI完成导航/滑块/文本/滚动/真实拖拽与活动取消，EMI完成配方导航，CC完成终端回读。分项绑定各自源码/包，不替代EP-6同批冻结；真实IME/桌面待人工 |
 | EP-4 世界适配与七包 | 完成，有明确限制 | 普通目标复用、PartRef与pick/版本守卫；七包逐项正常Act+独立Assert及可用Target移植；做不通明确缺口 | 当前19个有匹配上游包的具名业务组合均已重跑：四版AE2存取/自动合成，两版Create装配/Exposure拍照/LittleTiles打开，三版Modern UI、两版EMI、四版CC。LittleTiles运动关闭未闭合，CC26.3 NeoForge上游启动受阻，不外推全部Mod功能 |
 | EP-5 统一测试与作者交付 | 完成 | 完整上下文资源组、输入适配清理具名诊断；登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则/MCP查阅/独立安装；跨两个包故障/恢复 | 当前双包实际故障/分别恢复及退出、六类上下文退休、34份独服详细/生命周期证明、本体不变的1.0.3→1.0.4真实换包已通过。停机38文件副本恢复及跨目录派生库校验通过；普通实例离线步骤已明确，不开放Runtime路径/shell |
-| EP-6 冻结与Alpha | 待办 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 全部通过前不刷新latest |
+| EP-6 冻结与Alpha | 自动冻结完成 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 当前源码指纹673684d2的105份平台/适配/生命周期/受影响原版证明与五端纯净单JAR入世界通过，19个可用业务组合全部重新绑定当前包与JAR；完整check/Java/Companion/协议/文档/严格合规/五端发行通过。同批固定分发以外置latest及清单为准，人工仍待验 |
 
-下三步：完成五端最终成品和纯净安装；完成受影响原版UI/世界/输入及45秒连续正确性冻结回归；全部门禁通过后提交并分发同批Alpha及集中人工清单。不无限追加第三方业务。
+冻结范围为五端世界full/输入上下文/45秒连续正确性、参考端UI all、其余四端pointer/special-menus/ui-navigation；不是五端UI全量重测。
+下三步均等待用户安排：集中真人验收；最终确认SDK稳定候选/预览边界和可撤回工程取舍；再安排独立的整合包兼容性工作。不自动启动新开发或扩大七包业务。
 适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
 六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
 
 当前上游限制：CC 1.120.3的NeoForge 26.3发行包在本项目固定Loader上因ModConfig.Type.SERVER缺失而在Runtime生成端点前失败；不降级Loader、不修补第三方JAR、不计为平台通过。Fabric 26.3及其余有包版本分别实测，不能互相推定。Modern UI只有Forge1.20.1、NeoForge1.21.1/26.1.2具名输入，EMI只有前两个；其他Target没有匹配上游包时明确不声明业务验证。
+
+运行限制：Forge AE2独服首次纯读取曾用31.985ms触发既有同步入口预算；同候选完整重跑通过，根因未定，不称为已修复。原失败见[预算记录](../../validations/integration-extension_platform/result/1.20.1-forge-installed-server-ae2-first-entry-budget.json)。预算未放宽，声明为安全纯读取的调用可有界重新读取；不能据此重放修改。
 
 以下部署与双里程碑矩阵保留DP基线4346328d的既有结论；不表示新增平台或当前build产物已通过这些运行组。
 

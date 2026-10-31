@@ -5,50 +5,50 @@
     {
       "target": "1.20.1-forge",
       "status": "PASS",
-      "artifactSha256": "712852efc05b3bea3ec00f086d7486b0fb187d1aa3d59136f85fb8feeddb7398",
-      "clientRuntime": "f482a936-cb1f-4810-a734-a5c7de486795",
-      "serverRuntime": "2e75504a-1959-4d81-989c-51ce5a3cc134",
+      "artifactSha256": "decdf790408dee3dd7c7aec220f7c37d089c36bb08cb364005c83e723ac3f3cc",
+      "clientRuntime": "06594f83-70cc-47e6-9432-dda5eb770aad",
+      "serverRuntime": "d95107dd-de5f-4ed7-bd0f-b8faaa5eca65",
       "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
       "serverPackageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e"
     },
     {
       "target": "1.21.1-neoforge",
       "status": "PASS",
-      "artifactSha256": "eaaba159881ba2465b906235ca5de365004ea7831cc0aa35b29e03bba2a0ed44",
-      "clientRuntime": "7c643e8d-d94e-474e-892d-97b076373837",
-      "serverRuntime": "28a9b70c-3e49-4346-9e79-2f59c16d36a4",
+      "artifactSha256": "791ef64cf72aa69be4f2fdc4725d0b42fd58bde6002455aeef6c8eb5c4c41349",
+      "clientRuntime": "f0d2f5c3-c6ec-4dfb-8f74-7ad739f05668",
+      "serverRuntime": "74f92152-9eb9-4098-aeaf-ef1f40624455",
       "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
       "serverPackageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e"
     },
     {
       "target": "26.1.2-neoforge",
       "status": "PASS",
-      "artifactSha256": "8649bff102801ec1ef9fe84ead476739b8d95bc773d0a0af73fcd15990477eac",
-      "clientRuntime": "31846274-790d-4ab0-b7ea-4368666000fe",
-      "serverRuntime": "95178311-efca-46d7-a9e6-2ba011254fc3",
+      "artifactSha256": "d24873b8f164c27e26df9eadd49ba2d26f5c80daecab4838271998c008abe020",
+      "clientRuntime": "ae34e621-018d-42d5-9cad-37bea976612f",
+      "serverRuntime": "7fc59f9d-7c97-4eae-a85a-53b2b095c0ba",
       "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
       "serverPackageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e"
     },
     {
       "target": "26.3-neoforge",
       "status": "PASS",
-      "artifactSha256": "f92f43657c2984b1fe3e34b6f446dc6b440a4f596f7b40a04d200f26a0d2b61e",
-      "clientRuntime": "0ce63377-1342-4d64-8a83-373b96d23b29",
-      "serverRuntime": "8e067912-6d7f-471c-b025-7a8b68a29678",
+      "artifactSha256": "ac66a7e10f862ef0b643a4a2543acd67bae959991f823862efde43adf2a7f101",
+      "clientRuntime": "bf0c7ebc-6473-4357-9ece-8a4399d2999b",
+      "serverRuntime": "c1c1bfc0-da5d-4b62-b362-ba4e009e1899",
       "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
       "serverPackageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e"
     },
     {
       "target": "26.3-fabric",
       "status": "PASS",
-      "artifactSha256": "0e71bf2322df3742665e5e0ab4afaa887a7e710351ac5179998c93bf347c615c",
-      "clientRuntime": "157e3160-1386-420b-b647-cd585effa7d5",
-      "serverRuntime": "3ea98065-79b9-4e61-b869-63db8d767733",
+      "artifactSha256": "913eef35f9b1bd1bab0a4d27e21bae276dbd1d12141765c7223bb4f7d9841936",
+      "clientRuntime": "cc1731bd-60bd-4ed5-80a1-683abab4400b",
+      "serverRuntime": "83423092-fc36-4ee9-bad6-5f94e905ba9b",
       "packageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
       "serverPackageIdentity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e"
     }
   ],
-  "sourceFingerprint": "29430f521454110e56d629a07b561da2a1749720fddbdc720d420202426c12cc",
+  "sourceFingerprint": "673684d2ee5bca12400284cb937b41819e4a756b616e95ba9b804e96d30cadf0",
   "sourceHashes": {
     "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "d9a3b1bda3d6ccfb5b6d10852017caa1d607ccf4b965d98910fd6c2e3c8bbd17",
     "components/runtime_core/build.gradle.kts": "314fc81c2f6b3f31f8f11482a5d8057ab36735ce6e95dd8e499435eab6b4e552",
@@ -125,9 +125,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "3701c2b3d71e55b238561e70d4997131462dbcaf6454eab0312963c0f6ae8b1f",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "36f3dc96513ab5db729fc18d754acdd3f34c905fdac0b7c614d7769c64d1f159",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/LogicalInputRouter.java": "9cb11422477faa0d2c2921284e8934820e1cc704b61afde00ec1f8a96f69db3d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/NativeLifetimeContexts.java": "c1e166d43e547a9b6484c4d958a7ea04c6c9bb700810dca5a14e2a789f136717",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "8ce9d63a9ea3859f941357ff407af0b3193099283cef4016568ac14cbe2cdf0f",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/UiExtensionEngine.java": "9f6af57ed8d87b0d74a682b20990f6aaa66702a79cdec6f8cbba5cbf18bf1229",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/WorldExtensionEngine.java": "e3f3b52976236912662f9c753675426017513ad6fe596339e608b7cc2305d8a2",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeV2Providers.java": "329eb471b236b58314291440f77ec89e7f047402e294c35dd7cf7939ddf5ded6",
@@ -895,10 +895,10 @@
   },
   "replacement": {
     "proof": "26.3-neoforge-replacement.json",
-    "artifactSha256": "f92f43657c2984b1fe3e34b6f446dc6b440a4f596f7b40a04d200f26a0d2b61e",
+    "artifactSha256": "ac66a7e10f862ef0b643a4a2543acd67bae959991f823862efde43adf2a7f101",
     "basis": "same_current_final_host_two_independently_compiled_package_versions"
   },
-  "completedAt": "2026-10-31T20:35:13.243Z",
+  "completedAt": "2026-10-31T22:13:50.089Z",
   "humanAcceptance": "PENDING",
   "persistentWriteCalls": 0
 }
