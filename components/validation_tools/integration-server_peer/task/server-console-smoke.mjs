@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {checkServerWorldDebug} from './server-world-debug-checks.mjs';
 import {prepareServerWorld} from './server-world-fixture.mjs';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {createWriteStream} from 'node:fs';
 import {readFile,writeFile,mkdir,readdir,cp,copyFile,access} from 'node:fs/promises';
@@ -15,13 +15,17 @@ import {findJava} from '../../integration-packaged_runtime/task/installed-launch
 const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(arg=>arg.startsWith('--target='))?.slice(9);
 const worldDebug=process.argv.includes('--world-debug');
+const extensionPlatform=process.argv.includes('--extension-platform');
+assert(!(worldDebug&&extensionPlatform),'Separate explicit server acceptance groups');
 assert(['26.3-neoforge','26.1.2-neoforge','1.21.1-neoforge','1.20.1-forge','26.3-fabric'].includes(target),'Explicit registered Target required');
 const properties=async path=>Object.fromEntries((await readFile(path,'utf8')).split(/\r?\n/).filter(line=>line.includes('=')&&!line.startsWith('#')).map(line=>{const i=line.indexOf('=');return[line.slice(0,i),line.slice(i+1)];}));
 const facts=await properties(join(repo,'versions',target,'target.properties')), product=await properties(join(repo,'gradle.properties'));
-const base=join(repo,'validations/integration-server_peer'), game=join(base,'instance',target,'console-server');
+const base=join(repo,extensionPlatform?'validations/integration-extension_platform':'validations/integration-server_peer'), game=extensionPlatform?join(base,'instance/installed',target,'server'):join(base,'instance',target,'console-server');
 const exists=path=>access(path).then(()=>true,()=>false), sleep=ms=>new Promise(done=>setTimeout(done,ms).unref());
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 await mkdir(game,{recursive:true});await mkdir(join(base,'result'),{recursive:true});
+const resultPath=join(base,'result',target+(extensionPlatform?'-installed-server-lifecycle':worldDebug?'-server-debug':'-console')+'.json');
+await writeFile(resultPath,JSON.stringify({target,status:'IN_PROGRESS',stage:'installation',startedAt:new Date().toISOString()})+'\n');
 const ownerFile=join(game,'console-owner.json');
 function alive(pid){if(!pid)return false;assert(Number.isSafeInteger(pid)&&pid>0,'Invalid owned process identity');try{process.kill(pid,0);return true;}catch(error){if(error.code==='ESRCH')return false;throw error;}}
 if(await exists(ownerFile)){const owner=JSON.parse(await readFile(ownerFile,'utf8'));assert.equal(owner.owner,'server-console-smoke');assert.equal(owner.target,target);assert(!alive(owner.pid)&&!alive(owner.serverPid),'Owned server smoke or its surviving server is still running; directory left untouched');}
@@ -58,13 +62,17 @@ if(loader==='fabric'){
   launchArgs=['@'+argsFile,'nogui'];
 }
 const jarName=`${product.mod_id}-${target}-${product.mod_version}.jar`,jar=join(repo,'versions',target,'build/libs',jarName);
-await mkdir(join(game,'mods'),{recursive:true});assert((await readdir(join(game,'mods'))).every(name=>name===jarName),'Only this product JAR is permitted');
+await mkdir(join(game,'mods'),{recursive:true});assert((await readdir(join(game,'mods'))).every(name=>name===jarName||(extensionPlatform&&name==='minecraft-protocol-extension-libraries.jar')),'Only product and explicit approved extension library');
 await copyFile(jar,join(game,'mods',jarName));
+const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'server'}):undefined;
 await writeFile(join(game,'eula.txt'),'eula=true\n');
-const reservation=createServer();await new Promise(done=>reservation.listen(0,'127.0.0.1',done));const gamePort=reservation.address().port;await new Promise(done=>reservation.close(done));
+let gamePort=0;
+if(!extensionPlatform){const reservation=createServer();await new Promise(done=>reservation.listen(0,'127.0.0.1',done));gamePort=reservation.address().port;await new Promise(done=>reservation.close(done));}
+// Zero-player extension validation has no external game client: let Vanilla bind port 0 atomically.
+// Releasing a host reservation before starting Java races other local test processes.
 await writeFile(join(game,'server.properties'),`server-ip=127.0.0.1\nserver-port=${gamePort}\nlevel-name=Console-Smoke\nonline-mode=false\nwhite-list=false\nmax-players=1\nview-distance=2\nsimulation-distance=2\npause-when-empty-seconds=-1\n`);
 const report={target,jarSha256:digest(await readFile(jar)),startedAt:new Date().toISOString(),scope:worldDebug?'single_final_jar_dedicated_world_debug_and_console_zero_players_no_client':'single_final_jar_dedicated_console_zero_players_no_client',checks:{},persistentWriteCalls:0,persistentWriteBasis:'This runner invokes no Persistent Storage write API; ordinary native server saving is separate.'};
-report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,facts:join(repo,'versions',target,'target.properties'),
+report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),
   start:async()=>{
     const output=createWriteStream(join(game,'fixture-preparation.log'));
     const native=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false',...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -83,9 +91,9 @@ report.fixture=await prepareServerWorld({repo,game,world:'Console-Smoke',target,
     native.stdin.write('stop\n');let timer;
     try{assert.equal(await Promise.race([exit,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Fixture stop deadline')),45000);})]),0);}
     catch(error){native.kill();await exit;throw error;}finally{clearTimeout(timer);output.end();}
-  }});
+  }}).catch(async error=>{await writeFile(resultPath,JSON.stringify({...report,status:'FAIL',stage:'fixture',error:String(error.stack??error)},null,2)+'\n');throw error;});
 const log=createWriteStream(join(game,'console-smoke.log'));
-const child=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false','-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console'+(worldDebug?',storage.read,server_peer,debug,debug.world.read,debug.write,debug.world,debug.entity,debug.block_entity,debug.player,debug.menu,debug.provider':''),...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
+const child=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false','-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console'+(worldDebug||extensionPlatform?',storage.read,server_peer,debug,debug.world.read,debug.write,debug.world,debug.entity,debug.block_entity,debug.player,debug.menu,debug.provider':''),...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
 report.pid=child.pid;report.gamePort=gamePort;child.stdout.pipe(log,{end:false});child.stderr.pipe(log,{end:false});
 await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:process.pid,serverPid:child.pid}));
 let exited=false,exitCode,mcp,mcpTransport;const exit=new Promise(done=>child.once('exit',code=>{exited=true;exitCode=code;done(code);}));
@@ -142,6 +150,10 @@ try{
   const recorded=await until(()=>call('GET','/v0/recordings/'+recording.recordingId),value=>value.writtenStates>=2,'headless structured recording');
   assert.equal(recorded.writtenFrames,0);assert.equal(recorded.deploymentRole,'DEDICATED_SERVER');
   await call('DELETE','/v0/recordings/'+recording.recordingId);report.recording=recorded;
+  if(extensionPlatform){
+    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--server=true'],{cwd:repo,stdio:'inherit',timeout:60000});
+    report.extensionStage=extensionStage;report.extensionPlatform=true;
+  }
   if(worldDebug)report.worldDebug=await checkServerWorldDebug({call,mcp,child,until});
   await mcp.close();mcp=undefined;await mcpTransport.close();
   child.stdin.write('stop\n');assert.equal(await Promise.race([exit,sleep(30000).then(()=>{throw Error('normal stop deadline');})]),0);
@@ -151,5 +163,5 @@ try{
 finally{
   if(mcp)await mcp.close().catch(()=>{});if(mcpTransport)await mcpTransport.close().catch(()=>{});
   if(!exited){child.stdin.write('stop\n');await Promise.race([exit,sleep(30000)]);if(!exited)child.kill();}
-  report.exitCode=exitCode;report.finishedAt=new Date().toISOString();await writeFile(join(base,'result',target+(worldDebug?'-server-debug':'-console')+'.json'),JSON.stringify(report,null,2)+'\n');await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:0,serverPid:exited?0:child.pid}));log.end();
+  report.exitCode=exitCode;report.finishedAt=new Date().toISOString();await writeFile(resultPath,JSON.stringify(report,null,2)+'\n');await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:0,serverPid:exited?0:child.pid}));log.end();
 }

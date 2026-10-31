@@ -146,7 +146,7 @@ public final class ProbeTransport implements AutoCloseable {
                         new io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionStore(
                                 gameDirectory.resolve("minecraft-protocol/extensions")),
                         environment,
-                        (manifest, env) -> false,
+                        service.extensionEarlyHooks(),
                         this.runtimeInstanceId,
                         service.extensionThreadOwners());
         this.extensions = platform;

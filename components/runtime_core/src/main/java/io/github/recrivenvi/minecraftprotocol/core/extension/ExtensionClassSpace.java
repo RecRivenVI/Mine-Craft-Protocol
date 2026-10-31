@@ -116,10 +116,30 @@ final class ExtensionClassSpace extends ClassLoader {
         dependencies = Map.copyOf(values);
     }
 
+    Map<String, byte[]> stagedResources() {
+        return resources;
+    }
+
+    long expandedBytes() {
+        return resources.values().stream().mapToLong(value -> value.length).sum();
+    }
+
+    private java.util.List<String> nativeExports = java.util.List.of();
+
+    void nativeExports(java.util.List<String> prefixes) {
+        if (!manifest.exports().containsAll(prefixes))
+            throw new ExtensionFailure(
+                    "EXTENSION_EXPORT_INVALID", "Native exports exceed the approved declaration");
+        nativeExports = java.util.List.copyOf(prefixes);
+    }
+
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             Class<?> result = findLoadedClass(name);
+            if (result == null
+                    && nativeExports.stream().anyMatch(prefix -> name.startsWith(prefix + ".")))
+                result = getParent().loadClass(name);
             if (result == null && classes.containsKey(name)) result = findClass(name);
             if (result == null)
                 for (ExtensionClassSpace dependency : dependencies.values()) {

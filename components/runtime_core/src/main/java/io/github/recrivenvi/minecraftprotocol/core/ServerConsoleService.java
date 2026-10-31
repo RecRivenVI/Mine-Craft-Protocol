@@ -43,6 +43,14 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
     }
 
     @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return worldDebug == null
+                ? (manifest, environment) -> false
+                : worldDebug.extensionEarlyHooks();
+    }
+
+    @Override
     public void attachExtensionProviders(
             io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
         if (worldDebug == null) throw new UnsupportedOperationException("No world dispatcher");

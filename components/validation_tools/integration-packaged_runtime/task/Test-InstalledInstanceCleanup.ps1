@@ -78,6 +78,14 @@ try{
         try{Retire-Fixture $live {throw 'must not reach recycling'}}catch{$denied=$true}
         Assert-True ($denied-and(Test-Path -LiteralPath $live.Payload)) 'Open Runtime ownership lock must reject retirement'
     }finally{$held.Dispose()}
+    $server=New-Fixture 'live-server'
+    [IO.Directory]::CreateDirectory((Join-Path $server.Root 'server/minecraft-protocol'))|Out-Null
+    $held=[IO.File]::Open((Join-Path $server.Root 'server/minecraft-protocol/instance.lock'),[IO.FileMode]::Create,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    try{
+        $denied=$false
+        try{Retire-Fixture $server {throw 'must not reach recycling'}}catch{$denied=$true}
+        Assert-True ($denied-and(Test-Path -LiteralPath $server.Payload)) 'A stopped client must not allow retirement of its live sibling server'
+    }finally{$held.Dispose()}
     $policy=if($IsWindows){'Windows Recycle Bin; no permanent deletion'}else{'non-Windows owned temporary test directories only'}
     Write-Output "PASS installed cleanup: both platform branches, actual long-path cleanup, retained failure bytes, owner, Target, parent and live-lock rejection; $policy"
 }finally{

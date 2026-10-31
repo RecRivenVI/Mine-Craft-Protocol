@@ -587,6 +587,12 @@ public final class NeoForgeProbeRuntime implements Phase9AExperimentalService {
     }
 
     @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge.hooks();
+    }
+
+    @Override
     public void attachExtensionProviders(
             io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
         this.phase9a.installExtensionProviders(source);

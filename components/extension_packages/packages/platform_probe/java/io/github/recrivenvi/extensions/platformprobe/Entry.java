@@ -1,6 +1,7 @@
 package io.github.recrivenvi.extensions.platformprobe;
 
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.extensions.platformprobe.hooks.state.NativeCounter;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
 import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources;
@@ -8,8 +9,8 @@ import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
 import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageExtension;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /** A real owner-thread sample, independent of test fixtures and never an input path. */
@@ -21,18 +22,18 @@ public final class Entry implements PackageExtension {
     private boolean running;
     private String observedThread = "";
     private Sampling activeSampling;
+    private ScheduledThreadPoolExecutor scheduler;
 
     private static final class Sampling {
         final ExtensionResources.Scope grant;
         final java.util.concurrent.atomic.AtomicBoolean queued =
                 new java.util.concurrent.atomic.AtomicBoolean();
-        final ScheduledExecutorService scheduler =
-                Executors.newSingleThreadScheduledExecutor(
-                        task -> {
-                            Thread thread = new Thread(task, "extension-platform-sampling");
-                            thread.setDaemon(true);
-                            return thread;
-                        });
+        volatile ScheduledFuture<?> future;
+
+        void cancel() {
+            var current = future;
+            if (current != null) current.cancel(false);
+        }
 
         Sampling(ExtensionResources.Scope grant) {
             this.grant = grant;
@@ -41,6 +42,27 @@ public final class Entry implements PackageExtension {
 
     @Override
     public void initialize(PackageContext context) {
+        var process = context.processResources();
+        scheduler =
+                new ScheduledThreadPoolExecutor(
+                        1,
+                        task -> {
+                            Thread thread = new Thread(task, "extension-platform-sampling");
+                            thread.setDaemon(true);
+                            return thread;
+                        });
+        scheduler.setRemoveOnCancelPolicy(true);
+        process.own(
+                "sampling-worker",
+                new ExtensionResources.ThreadOwner("detached_cleanup", Runnable::run, () -> true),
+                scheduler::shutdownNow);
+        scheduler.prestartCoreThread();
+        String runtime = process.owner().runtimeId();
+        NativeCounter.enable(runtime);
+        process.own(
+                "passive-native-hook",
+                new ExtensionResources.ThreadOwner("detached_cleanup", Runnable::run, () -> true),
+                () -> NativeCounter.disable(runtime));
         ExtensionResources.ThreadOwner owner = context.threadOwners().get("server_thread");
         if (owner == null) throw new IllegalStateException("No server-thread owner");
         context.schema(
@@ -137,83 +159,155 @@ public final class Entry implements PackageExtension {
                     public CompletableFuture<JsonObject> mutate(DebugContext request) {
                         if (!owner.isCurrent().getAsBoolean())
                             throw new IllegalStateException("wrong mutation owner");
-                        long previous = revision;
-                        JsonObject before = snapshot(), previousState = revisionState();
-                        String action = request.mutation().get("action").getAsString();
-                        if (action.equals("start")) {
-                            if (running) throw new IllegalStateException("sampling already active");
-                            Sampling sampling = new Sampling(request.resources());
-                            sampling.grant.requireActive();
-                            samples = 0;
-                            sampledAt = 0;
-                            running = true;
-                            activeSampling = sampling;
-                            sampling.grant.own(
-                                    "scheduler-" + revision,
-                                    new ExtensionResources.ThreadOwner(
-                                            "detached_cleanup", Runnable::run, () -> true),
-                                    sampling.scheduler::shutdownNow);
-                            sampling.grant.own("sampling-" + revision, owner, () -> stop(sampling));
-                            sampling.scheduler.scheduleWithFixedDelay(
+                        long expectedRevision = revision;
+                        CompletableFuture<JsonObject> result = new CompletableFuture<>();
+                        try {
+                            scheduler.execute(
                                     () -> {
                                         try {
-                                            sampling.grant.requireActive();
-                                            if (!sampling.queued.compareAndSet(false, true)) return;
+                                            if ((request.cancellationRequested().getAsBoolean()
+                                                    || System.currentTimeMillis()
+                                                            >= request.deadlineMillis()))
+                                                throw new java.util.concurrent
+                                                        .CancellationException();
+                                            var grant = request.resources();
+                                            Sampling prepared =
+                                                    request.mutation()
+                                                                    .get("action")
+                                                                    .getAsString()
+                                                                    .equals("start")
+                                                            ? new Sampling(grant)
+                                                            : null;
                                             owner.executor()
                                                     .execute(
                                                             () -> {
-                                                                if (!owner.isCurrent()
-                                                                        .getAsBoolean()) return;
                                                                 try {
-                                                                    sampling.grant.publish(
-                                                                            () -> {
-                                                                                if (running
-                                                                                        && activeSampling
-                                                                                                == sampling) {
-                                                                                    samples++;
-                                                                                    sampledAt =
-                                                                                            System
-                                                                                                    .nanoTime();
-                                                                                    observedThread =
-                                                                                            Thread
-                                                                                                    .currentThread()
-                                                                                                    .getName();
-                                                                                }
-                                                                                return null;
-                                                                            });
-                                                                } catch (
-                                                                        IllegalStateException
-                                                                                cancelled) {
-                                                                    /* Invalid grants cannot publish. */
-                                                                } finally {
-                                                                    sampling.queued.set(false);
+                                                                    if (!owner.isCurrent()
+                                                                            .getAsBoolean())
+                                                                        throw new IllegalStateException(
+                                                                                "wrong deferred mutation owner");
+                                                                    if ((request.cancellationRequested()
+                                                                                            .getAsBoolean()
+                                                                                    || System
+                                                                                                    .currentTimeMillis()
+                                                                                            >= request
+                                                                                                    .deadlineMillis())
+                                                                            || result.isCancelled())
+                                                                        throw new java.util
+                                                                                .concurrent
+                                                                                .CancellationException();
+                                                                    grant.requireActive();
+                                                                    if (revision
+                                                                            != expectedRevision)
+                                                                        throw new IllegalStateException(
+                                                                                "sampling revision changed before deferred execution");
+                                                                    result.complete(
+                                                                            applyMutation(
+                                                                                    request, owner,
+                                                                                    prepared));
+                                                                } catch (Throwable error) {
+                                                                    result.completeExceptionally(
+                                                                            error);
                                                                 }
                                                             });
-                                        } catch (RuntimeException cancelled) {
-                                            sampling.queued.set(
-                                                    false); /* Owner cleanup shuts down this sampling session. */
+                                        } catch (Throwable error) {
+                                            result.completeExceptionally(error);
                                         }
-                                    },
-                                    0,
-                                    50,
-                                    TimeUnit.MILLISECONDS);
-                        } else stop(activeSampling);
-                        revision = Math.max(revision, previous + 1);
-                        JsonObject value = new JsonObject();
-                        value.addProperty("providerRevisionBefore", previous);
-                        value.addProperty("providerRevisionAfter", revision);
-                        value.add("revisionStateBefore", previousState);
-                        value.add("revisionStateAfter", revisionState());
-                        value.add("before", before);
-                        value.add("after", snapshot());
-                        return CompletableFuture.completedFuture(value);
+                                    });
+                        } catch (Throwable error) {
+                            result.completeExceptionally(error);
+                        }
+                        return result;
                     }
                 });
     }
 
+    private JsonObject applyMutation(
+            AgentDataProviderV2.DebugContext request,
+            ExtensionResources.ThreadOwner owner,
+            Sampling prepared) {
+        long previous = revision;
+        JsonObject before = snapshot(), previousState = revisionState();
+        String action = request.mutation().get("action").getAsString();
+        if (action.equals("start")) {
+            if (running) throw new IllegalStateException("sampling already active");
+            Sampling sampling = prepared;
+            sampling.grant.requireActive();
+            samples = 0;
+            sampledAt = 0;
+            running = true;
+            activeSampling = sampling;
+            sampling.grant.own("sampling-" + revision, owner, () -> stop(sampling));
+            try {
+                sampling.future =
+                        scheduler.scheduleWithFixedDelay(
+                                () -> {
+                                    try {
+                                        sampling.grant.requireActive();
+                                        if (!sampling.queued.compareAndSet(false, true)) return;
+                                        owner.executor()
+                                                .execute(
+                                                        () -> {
+                                                            if (!owner.isCurrent().getAsBoolean())
+                                                                return;
+                                                            try {
+                                                                sampling.grant.publish(
+                                                                        () -> {
+                                                                            if (running
+                                                                                    && activeSampling
+                                                                                            == sampling) {
+                                                                                samples++;
+                                                                                sampledAt =
+                                                                                        System
+                                                                                                .nanoTime();
+                                                                                observedThread =
+                                                                                        Thread
+                                                                                                .currentThread()
+                                                                                                .getName();
+                                                                            }
+                                                                            return null;
+                                                                        });
+                                                            } catch (
+                                                                    IllegalStateException
+                                                                            cancelled) {
+                                                                /* Invalid grants cannot publish. */
+                                                            } finally {
+                                                                sampling.queued.set(false);
+                                                            }
+                                                        });
+                                    } catch (RuntimeException cancelled) {
+                                        sampling.queued.set(
+                                                false); /* Owner cleanup shuts down this sampling session. */
+                                    }
+                                },
+                                0,
+                                50,
+                                TimeUnit.MILLISECONDS);
+                sampling.grant.own(
+                        "sampling-task-" + revision,
+                        new ExtensionResources.ThreadOwner(
+                                "detached_cleanup", Runnable::run, () -> true),
+                        sampling::cancel);
+            } catch (RuntimeException failure) {
+                sampling.cancel();
+                stop(sampling);
+                throw failure;
+            }
+        } else stop(activeSampling);
+        revision = Math.max(revision, previous + 1);
+        JsonObject value = new JsonObject();
+        value.addProperty("providerRevisionBefore", previous);
+        value.addProperty("providerRevisionAfter", revision);
+        value.add("revisionStateBefore", previousState);
+        value.add("revisionStateAfter", revisionState());
+        value.add("before", before);
+        value.add("after", snapshot());
+        return value;
+    }
+
     private void stop(Sampling sampling) {
         if (sampling == null) return;
-        sampling.scheduler.shutdownNow();
+        sampling.cancel();
         if (activeSampling != sampling) return;
         activeSampling = null;
         running = false;
@@ -229,8 +323,15 @@ public final class Entry implements PackageExtension {
     private JsonObject snapshot() {
         JsonObject value = revisionState();
         value.addProperty("samples", samples);
+        value.addProperty("adapterRevision", "managed_async_preparation_v3");
         value.addProperty("sampledAtNanos", sampledAt);
         value.addProperty("ownerThread", observedThread);
+        value.addProperty("passiveNativeHookCalls", NativeCounter.calls());
+        value.addProperty("passiveNativeHookThread", NativeCounter.thread());
+        value.addProperty("passiveNativeHookScope", "physical_jvm");
+        value.addProperty(
+                "nativeHelperClassLoader",
+                NativeCounter.class.getClassLoader().getClass().getName());
         return value;
     }
 

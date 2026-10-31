@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFile,writeFile,mkdir,readdir,copyFile,stat,access,lstat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,readdir,copyFile,cp,stat,access,lstat} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {createHash,randomUUID} from 'node:crypto';
 import {resolve,join,dirname,delimiter,basename} from 'node:path';
@@ -10,6 +10,10 @@ import {fileURLToPath} from 'node:url';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {candidateSource,sha256} from '../../regression-v1_release/task/alpha-candidate.mjs';
 import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
+
+export function installedRuntimeScopes({enterWorld=false,extensionPlatform=false}={}) {
+  return extensionPlatform?'read,ui,input,event,diagnostics,control,command,debug,debug.world.read,debug.write,debug.provider':enterWorld?'read,ui,input,control,diagnostics':'read,ui,input,control';
+}
 
 export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
   assert.match(String(version),/^[1-9]\d*$/,'An explicit Java major version is required');
@@ -122,8 +126,11 @@ async function main(){
 const repo=resolve(import.meta.dirname,'../../../..');
 const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
 const enterWorld=process.argv.includes('--enter-world');
+const extensionPlatform=process.argv.includes('--extension-platform');
+assert(!(extensionPlatform&&enterWorld),'Separate installed acceptance scenarios');
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
-const root=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target);
+const validation=extensionPlatform?'integration-extension_platform':'integration-packaged_runtime';
+const root=resolve(repo,'validations',validation,'instance/installed',target);
 const home=join(root,'installation'),game=join(root,'client');
 const cache=resolve(repo,'validations/integration-packaged_runtime/instance/downloads');
 const gradle=join(homedir(),'.gradle/caches');
@@ -190,6 +197,13 @@ const vanilla=await json(version.url,join(home,'versions',minecraft,minecraft+'.
 await download(vanilla.downloads.client.url,join(home,'versions',minecraft,minecraft+'.jar'),vanilla.downloads.client.sha1,[join(gradle,'neoformruntime/artifacts',`minecraft_${minecraft}_client.jar`)]);
 console.log('Official Minecraft '+minecraft+' verified; installing '+loader+' '+facts.loader_version);
 let profile;
+// Seed official, checksum-verified libraries before the Java installer. A transient Java TLS
+// failure must not turn a reusable upstream artifact into a dependency on a dev classpath.
+if(loader!=='fabric')for(const library of vanilla.libraries) {
+  const artifact=library.downloads?.artifact;
+  if(artifact&&permitted(library.rules))await download(artifact.url,join(home,'libraries',artifact.path),artifact.sha1,
+    [resolve(repo,'validations/integration-packaged_runtime/instance/installed',target,'installation/libraries',artifact.path)]);
+}
 if(loader==='fabric'){
   profile=await json(`https://meta.fabricmc.net/v2/versions/loader/${minecraft}/${facts.loader_version}/profile/json`,join(home,'fabric-profile.json'));
 }else{
@@ -199,6 +213,12 @@ if(loader==='fabric'){
   const checksumResponse=await fetch(url+'.sha1',{signal:AbortSignal.timeout(60000)});assert(checksumResponse.ok);
   const checksum=(await checksumResponse.text()).trim().split(/\s/)[0];assert.match(checksum,/^[a-f0-9]{40}$/i);
   await download(url,installer,checksum);
+  if(extensionPlatform){
+    const cached=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target,'installation/libraries');
+    if(await exists(cached))await cp(cached,join(home,'libraries'),{recursive:true,force:false});
+    // The official installer still validates library/output checksums and executes processors.
+    // Only its download cache is reused, never a game directory or development classpath.
+  }
   await writeFile(join(home,'launcher_profiles.json'),JSON.stringify({profiles:{},settings:{}}));
   console.log('Official installer Java '+installerJavaVersion+'; game Java '+facts.java_version);
   await run(installerJava,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
@@ -237,7 +257,8 @@ for(const path of classpath)assert(path.startsWith(home+'\\')&&!path.includes('\
 const name=`${product.mod_id}-${target}-${product.mod_version}.jar`,artifact=join(repo,'build/release',product.mod_version,name);
 const artifactBytes=await readFile(artifact),artifactSha256=digest(artifactBytes);
 await mkdir(join(game,'mods'));await writeFile(join(game,'mods',name),artifactBytes);
-await writeFile(join(game,'options.txt'),'lang:en_us\nsoundCategory_master:0.0\nonboardAccessibility:false\nautoJump:false\n');
+const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'client'}):undefined;
+await writeFile(join(game,'options.txt'),'lang:en_us\nsoundCategory_master:0.0\nonboardAccessibility:false\nautoJump:false\n'+(extensionPlatform?'pauseOnLostFocus:false\n':''));
 const substitutions={auth_player_name:'PackagedTest',version_name:profile.id,game_directory:game,assets_root:assets,assets_index_name:index.id,auth_uuid:'b726e6e91d5c43cf87909f8a57d435ee',auth_access_token:'0',clientid:'',auth_xuid:'0',user_type:'legacy',version_type:'release',natives_directory:natives,launcher_name:'Mine-Craft-Protocol-installed-smoke',launcher_version:'1',classpath:classpath.join(delimiter),library_directory:join(home,'libraries'),classpath_separator:delimiter};
 const expand=value=>value.replace(/\$\{([^}]+)\}/g,(_,key)=>{assert(Object.hasOwn(substitutions,key),'Unknown official argument '+key);return substitutions[key];});
 function argumentsFor(values){return values.flatMap(value=>typeof value==='string'?[expand(value)]:permitted(value.rules)?(Array.isArray(value.value)?value.value:[value.value]).map(expand):[]);}
@@ -245,7 +266,7 @@ const jvm=argumentsFor([...(vanilla.arguments?.jvm??[]),...(profile.arguments?.j
 const gameArgs=argumentsFor([...(vanilla.arguments?.game??[]),...(profile.arguments?.game??[])]);
 const args=['-Xmx4G','-Xms512M','-Xlog:class+load=info:file=class-load.log','-Dminecraft.protocol.probe.port=0',...jvm,profile.mainClass,...gameArgs,'--width',String(width),'--height',String(height)];
 const output=createWriteStream(join(root,'client-console.log'));
-const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:enterWorld?'read,ui,input,control,diagnostics':'read,ui,input,control'},windowsHide:true,stdio:['ignore','pipe','pipe']});
+const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:installedRuntimeScopes({enterWorld,extensionPlatform})},windowsHide:true,stdio:['ignore','pipe','pipe']});
 child.stdout.pipe(output,{end:false});child.stderr.pipe(output,{end:false});
 let exited=false,exitCode;const exit=new Promise((yes,no)=>{child.once('error',no);child.once('exit',code=>{exited=true;exitCode=code;output.end();yes(code);});});
 const started=Date.now();let connection,lease;
@@ -298,6 +319,11 @@ try{
     assert.deepEqual((await readInstalledWorldBaseline(repo,target)).summary,sourceInput,'Original baseline must remain unchanged after installed play');
     const returned=await connection.fetch('/v0/ui/tree');assert(returned.ok);title=await returned.json();assert(title.screenClass.endsWith('TitleScreen')&&!title.overlayIdentity);
   }
+  if(extensionPlatform){
+    execFileSync(process.execPath,[resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),'--target='+target,'--installed=true','--host-shutdown=true'],{cwd:repo,stdio:'inherit',timeout:240000});
+    report.extensionStage=extensionStage;report.extensionPlatform=true;
+    const current=await connection.fetch('/v0/ui/tree');assert(current.ok);title=await current.json();assert(title.screenClass.endsWith('TitleScreen'));
+  }
   const walk=node=>[node,...(node.children??[]).flatMap(walk)];const quit=walk(title).find(n=>n.translationKey==='menu.quit');assert(quit);
   lease=(await acquire()).leaseId;
   try{
@@ -316,7 +342,7 @@ try{
   let exitTimer;const code=await Promise.race([exit,new Promise((_,no)=>{exitTimer=setTimeout(()=>no(Error('Installed clean exit timeout')),60000);})]).finally(()=>clearTimeout(exitTimer));assert.equal(code,0);
   report.cleanShutdown=true;report.exitCode=code;assert(!await exists(join(game,'minecraft-protocol/endpoint.json')),'Endpoint removed');
   const log=await readFile(join(game,'logs/latest.log'),'utf8');assert(/Stopping!/.test(log),'Vanilla normal stopping log');
-  assert.equal((await readdir(join(game,'mods'))).length,1,'Exactly one installed product JAR');
+  assert.equal((await readdir(join(game,'mods'))).length,extensionPlatform?2:1,'Only product and explicit approved extension library');
   assert(!await exists(join(game,'crash-reports'))||!(await readdir(join(game,'crash-reports'))).length,'No crash reports');
   report.noCrashReports=true;
   assert.equal(digest(await readFile(artifact)),artifactSha256,'Artifact unchanged during run');
@@ -326,8 +352,8 @@ try{
 }catch(error){report.error=error.stack;throw error;}
 finally{
   if(!exited){child.kill();report.cleanShutdown=false;await exit.catch(()=>{});}
-  await mkdir(resolve(repo,'validations/integration-packaged_runtime/result'),{recursive:true});
-  await writeFile(resolve(repo,'validations/integration-packaged_runtime/result',target+'.json'),JSON.stringify(report,null,2)+'\n');
+  await mkdir(resolve(repo,'validations',validation,'result'),{recursive:true});
+  await writeFile(resolve(repo,'validations',validation,'result',target+'.json'),JSON.stringify(report,null,2)+'\n');
 }
 console.log('PASS installed Loader / one final JAR / endpoint / USER READ / clean exit: '+target);
 }

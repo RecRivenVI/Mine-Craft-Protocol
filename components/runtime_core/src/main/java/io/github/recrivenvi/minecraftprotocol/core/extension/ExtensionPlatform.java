@@ -2,6 +2,8 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlan.Candidate;
+import io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlan.Status;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
@@ -13,7 +15,6 @@ import io.github.recrivenvi.minecraftprotocol.probe.extension.Registration;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,9 +48,20 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
          * hooks.
          */
         boolean prepared(ExtensionManifest manifest, Environment environment);
+
+        default JsonObject diagnostics() {
+            JsonObject value = new JsonObject();
+            value.addProperty("state", "not_prepared");
+            return value;
+        }
+
+        default List<String> nativeExports(ExtensionManifest manifest, Environment environment) {
+            return List.of();
+        }
     }
 
     private final Environment environment;
+    private final EarlyHooks earlyHooks;
     private final List<Status> statuses = new ArrayList<>();
     private final Map<String, Candidate> candidates = new LinkedHashMap<>();
     private final List<Transaction> active = new ArrayList<>();
@@ -79,6 +91,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
             String runtimeId,
             Map<String, ExtensionResources.ThreadOwner> threadOwners) {
         this.environment = environment;
+        this.earlyHooks = hooks;
         this.threadOwners = Map.copyOf(threadOwners);
         this.runtimeId = runtimeId;
         this.resources = new ExtensionResources(runtimeId, java.time.Duration.ofSeconds(2));
@@ -92,97 +105,21 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                         });
         this.resourceExpiry.scheduleWithFixedDelay(
                 resources::expireInvalidGrants, 50, 50, java.util.concurrent.TimeUnit.MILLISECONDS);
-        Map<String, Integer> counts = new HashMap<>();
-        List<ExtensionStore.Inspection> inspected = store.inspect();
-        for (var inspection : inspected)
-            if (inspection.verified() != null)
-                counts.merge(inspection.verified().manifest().id(), 1, Integer::sum);
-        for (var inspection : inspected) {
-            var source = inspection.verified();
-            Status status =
-                    new Status(
-                            inspection.candidate(),
-                            source == null ? null : source.manifest(),
-                            inspection.status(),
-                            inspection.detail());
-            statuses.add(status);
-            if (source == null) continue;
-            var manifest = source.manifest();
-            if (counts.get(manifest.id()) != 1 || manifest.id().equals(environment.productId())) {
-                status.fail(
-                        "EXTENSION_DUPLICATE_OR_RESERVED_ID",
-                        "Package identity is duplicated or reserved");
-                continue;
-            }
-            var variant = manifest.variants().get(environment.target());
-            if (variant == null || variant.entrypoints(environment.side()).isEmpty()) {
-                status.fail("not_applicable", "No entrypoint for this Target and physical side");
-                continue;
-            }
-            if (variant.javaVersion() > environment.javaVersion()) {
-                status.fail(
-                        "EXTENSION_JAVA_VERSION",
-                        "The Target variant needs a newer Java feature version");
-                continue;
-            }
-            boolean dependencies =
-                    manifest.modDependencies().entrySet().stream()
-                            .allMatch(
-                                    entry ->
-                                            environment.mods().containsKey(entry.getKey())
-                                                    && ExtensionVersion.accepts(
-                                                            entry.getValue(),
-                                                            environment
-                                                                    .mods()
-                                                                    .get(entry.getKey())));
-            if (!dependencies) {
-                status.fail("EXTENSION_MOD_DEPENDENCY", "A required mod/version is unavailable");
-                continue;
-            }
-            boolean hasHooks =
-                    variant.mixins().stream()
-                            .anyMatch(
-                                    hook ->
-                                            hook.side().equals("common")
-                                                    || hook.side()
-                                                            .equals(
-                                                                    environment
-                                                                            .side()
-                                                                            .name()
-                                                                            .toLowerCase(
-                                                                                    java.util.Locale
-                                                                                            .ROOT)));
-            if (hasHooks && !hooks.prepared(manifest, environment)) {
-                status.fail(
+        ExtensionPlan plan = new ExtensionPlan(store, environment, true);
+        statuses.addAll(plan.statuses);
+        candidates.putAll(plan.candidates);
+        for (Candidate candidate : plan.order) {
+            var manifest = candidate.source.manifest();
+            if (ExtensionPlan.requiresHooks(manifest, environment)
+                    && !hooks.prepared(manifest, environment)) {
+                candidate.status.fail(
                         "EXTENSION_EARLY_HOOK_UNAVAILABLE",
-                        "The exact approved hooks were not prepared before class transformation");
-                continue;
+                        "Approved hooks were not registered before class transformation; run the offline installer and restart");
             }
-            try {
-                candidates.put(
-                        manifest.id(),
-                        new Candidate(
-                                source,
-                                status,
-                                new ExtensionClassSpace(environment.parent(), source, variant)));
-            } catch (ExtensionFailure failure) {
-                status.fail(failure.code(), failure.getMessage());
-            }
+            if (candidate.status.state.equals("verified"))
+                candidate.loader.nativeExports(hooks.nativeExports(manifest, environment));
         }
-        // Preflight every class identity before running any entrypoint.
-        Map<String, Candidate> classOwners = new HashMap<>();
-        for (var candidate : candidates.values())
-            for (String name : candidate.loader.classNames()) {
-                Candidate previous = classOwners.putIfAbsent(name, candidate);
-                if (previous != null) {
-                    candidate.status.fail("EXTENSION_DUPLICATE_CLASS", name);
-                    previous.status.fail("EXTENSION_DUPLICATE_CLASS", name);
-                }
-            }
-        List<Candidate> order = new ArrayList<>();
-        Set<String> visiting = new HashSet<>(), visited = new HashSet<>();
-        for (var candidate : candidates.values()) resolve(candidate, visiting, visited, order);
-        for (Candidate candidate : order) initialize(candidate);
+        for (Candidate candidate : plan.order) initialize(candidate);
     }
 
     private static String initializationDetail(Throwable failure) {
@@ -190,34 +127,6 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         String detail =
                 failure.getClass().getSimpleName() + (message == null ? "" : ": " + message);
         return detail.replaceAll("[\\p{Cntrl}]", " ").substring(0, Math.min(detail.length(), 512));
-    }
-
-    private boolean resolve(
-            Candidate candidate, Set<String> visiting, Set<String> visited, List<Candidate> order) {
-        String id = candidate.source.manifest().id();
-        if (visited.contains(id)) return candidate.status.state.equals("verified");
-        if (!candidate.status.state.equals("verified")) return false;
-        if (!visiting.add(id)) {
-            candidate.status.fail("EXTENSION_DEPENDENCY_CYCLE", "Cyclic package dependencies");
-            return false;
-        }
-        for (var dependency : candidate.source.manifest().packageDependencies().entrySet()) {
-            Candidate required = candidates.get(dependency.getKey());
-            if (required == null
-                    || !ExtensionVersion.accepts(
-                            dependency.getValue(), required.source.manifest().version())
-                    || !resolve(required, visiting, visited, order)) {
-                if (candidate.status.state.equals("verified"))
-                    candidate.status.fail(
-                            "EXTENSION_PACKAGE_DEPENDENCY",
-                            "A package dependency is unavailable or invalid");
-            }
-        }
-        visiting.remove(id);
-        visited.add(id);
-        if (!candidate.status.state.equals("verified")) return false;
-        order.add(candidate);
-        return true;
     }
 
     private void initialize(Candidate candidate) {
@@ -304,6 +213,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         result.addProperty("jvmSandbox", false);
         result.addProperty("codeUpdateRequiresRestart", true);
         result.addProperty("closed", closed);
+        result.add("earlyHooks", earlyHooks.diagnostics().deepCopy());
         JsonArray packages = new JsonArray();
         for (Status status : statuses) {
             JsonObject item = new JsonObject();
@@ -443,29 +353,6 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         resources.close();
         resourceExpiry.shutdownNow();
         closing.forEach(Transaction::close);
-    }
-
-    private record Candidate(
-            ExtensionStore.VerifiedPackage source, Status status, ExtensionClassSpace loader) {}
-
-    private static final class Status {
-        final String candidate;
-        final ExtensionManifest manifest;
-        String state;
-        String detail;
-        List<String> registered = List.of();
-
-        Status(String candidate, ExtensionManifest manifest, String state, String detail) {
-            this.candidate = candidate;
-            this.manifest = manifest;
-            this.state = state;
-            this.detail = detail;
-        }
-
-        void fail(String state, String detail) {
-            this.state = state;
-            this.detail = detail;
-        }
     }
 
     private final class Transaction implements PackageContext, AutoCloseable {

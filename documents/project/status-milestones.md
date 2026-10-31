@@ -15,13 +15,13 @@ Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI
 | 阶段 | 当前状态 | 完成门禁 | 当前依据 |
 | --- | --- | --- | --- |
 | EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
-| EP-2 五端早期加载桥 | 进行中 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | 研究仅1.21.1成品259实测，不能复用为本轮通过 |
-| EP-3 深层UI与逻辑输入 | 待办 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | 新门禁待实装 |
+| EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.0→1.0.2替包另绑定EP-2前置二进制，不冒充最终Alpha冻结 |
+| EP-3 深层UI与逻辑输入 | 进行中 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | 新门禁待实装 |
 | EP-4 世界适配与七包 | 待办 | 普通目标复用、PartRef与pick/版本守卫；CC、Create、AE2、EMI、Exposure、Modern UI、LittleTiles逐项正常Act+独立Assert；Create/LittleTiles/AE2因果诊断，做不通明确缺口 | 研究闭环与未确定项分别保留，不作当前产品PASS |
 | EP-5 统一测试与作者交付 | 待办 | 登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则、MCP文档/包目录/场景查阅、独立构建与安装；跨两个包故障/恢复 | 主机授权独立，CLI先行，不开放任意路径/shell |
 | EP-6 冻结与Alpha | 待办 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 全部通过前不刷新latest |
 
-下三步：打通EP-2的参考端、Fabric与旧Forge风险路径并补齐五端；深入UI逻辑输入；随后推进世界部件和七包并按实际依赖逐包验证，不无限追加第三方业务。
+下三步：在参考端落地可见UI投影和逻辑输入；深入Modern UI/EMI的实际输入与清理；随后推进世界部件和七包，并按实际可用的上游版本验证，不无限追加第三方业务。
 适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
 六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
 

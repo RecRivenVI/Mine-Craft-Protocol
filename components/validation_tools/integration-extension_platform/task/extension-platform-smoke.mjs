@@ -5,10 +5,12 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
+import {finishBaselineWorldExit} from '../../conformance-world_read/task/interaction-baseline-actions.mjs';
 import {candidateSource} from '../../regression-v1_release/task/alpha-candidate.mjs';
 const repo=resolve(import.meta.dirname,'../../../..');
 const args=Object.fromEntries(process.argv.slice(2).map(arg=>arg.replace(/^--/,'').split('=')));
-const target=args.target,instance=resolve(repo,`validations/integration-extension_platform/instance/${target}/client`);
+const target=args.target,server=args.server==='true',installed=args.installed==='true',role=server?'server':'client';
+const instance=resolve(repo,`validations/integration-extension_platform/instance/${installed?'installed/':''}${target}/${role}`);
 const connection=await connectRuntime(instance,target);
 let lease,arm,writeCalls=0;
 const checks=[],observations=[];
@@ -18,7 +20,7 @@ async function api(method,path,body,error){
   const response=await connection.fetch(path,{method,headers:{...(lease?{'x-mcp-control-lease':lease}:{}),...(arm?{'x-mcp-debug-arm':arm}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)});
   const value=await response.json();
   if(error){assert.equal(value.error,error,JSON.stringify(value));assert(!response.ok);return value;}
-  if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error,status:response.status});return value;
+  if(!response.ok)throw Object.assign(new Error(JSON.stringify(value)),{code:value.error,status:response.status,runtimeError:value});return value;
 }
 const nodes=tree=>(tree.children??[]).flatMap(node=>[node,...nodes(node)]);
 async function until(test,description,timeout=120000){const end=Date.now()+timeout;do{const value=await test();if(value)return value;await pause(150);}while(Date.now()<end);throw new Error(description);}
@@ -36,6 +38,7 @@ async function clickNode(node){
 async function click(key,label){const value=await tree(),found=nodes(value).filter(node=>(node.translationKey===key||node.label===label)&&node.active!==false&&node.visible!==false);assert.equal(found.length,1,JSON.stringify({key,candidates:found}));return clickNode(found[0]);}
 async function key(key){const started=await api('POST','/v0/pipelines',{steps:[{type:'key.tap',key,holdMs:40}],timeoutMs:10000});assert.equal((await api('POST',`/v0/operations/${started.operationId}/wait`,{timeoutMs:10000})).state,'completed');}
 async function shutdown(){
+  if(server)return;
   for(let i=0;i<8;i++){
     const state=await api('GET','/v0/control/mode');if(state.mode!=='TAKEOVER')await acquire();
     const value=await screen(()=>true);
@@ -44,7 +47,7 @@ async function shutdown(){
       return;
     }
     const exit=nodes(value).find(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey)&&node.active!==false);
-    if(exit){try{await clickNode(exit);}catch(error){observations.push({shutdownRequestUnconfirmed:String(error)});}await screen(t=>t.screenClass.endsWith('TitleScreen'));if((await api('GET','/v0/control/mode')).mode!=='TAKEOVER')lease=undefined;}
+    if(exit){observations.push({worldExit:await finishBaselineWorldExit({api,clickNode,wait:screen,quit:exit})});if((await api('GET','/v0/control/mode')).mode!=='TAKEOVER')lease=undefined;}
     else await key(256);
   }
   throw new Error('Could not navigate normal shutdown');
@@ -57,7 +60,8 @@ for(const file of ['Invoke-ExtensionPlatformSmoke.ps1','extension-platform-smoke
   const path='components/validation_tools/integration-extension_platform/task/'+file;
   toolFiles[path]=hash(await readFile(resolve(repo,path)));
 }
-const record={target,runtimeInstanceId:connection.instanceId,developmentClasspath:true,finalJarInstall:false,toolFiles,checks,observations,persistentWriteCalls:0};
+const record={target,role,runtimeInstanceId:connection.instanceId,developmentClasspath:!installed,finalJarInstall:installed,toolFiles,checks,observations,persistentWriteCalls:0};
+if(installed){const product=Object.fromEntries((await readFile(resolve(repo,'gradle.properties'),'utf8')).split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const at=line.indexOf('=');return[line.slice(0,at),line.slice(at+1)];}));const name=`${product.mod_id}-${target}-${product.mod_version}.jar`;record.artifactSha256=hash(await readFile(resolve(instance,'mods',name)));assert.equal(record.artifactSha256,hash(await readFile(resolve(repo,'build/release',product.mod_version,name))));}
 const check=async(name,run)=>{await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);};
 const request={category:'DEBUG',perspective:'server_authoritative',domains:['providers'],includeProviderData:true,providerIds:['platform_probe:sampling'],providerQuery:{},budgets:{maxProviders:1,providerTimeoutMs:1000}};
 async function read(){const value=await api('POST','/v0/observe/deep',request);assert.equal(value.providers[0].status,'completed',JSON.stringify(value.providers));return value;}
@@ -66,14 +70,18 @@ const version=value=>{const found=value.resourceRevisionRefs.find(ref=>ref.resou
 let fingerprint;
 const mutation=(observed,action)=>({operation:'provider.mutate',providerId:'platform_probe:sampling',worldFingerprint:fingerprint,expectedResourceVersion:version(observed),mutation:{action}});
 const startArm=async ttlMs=>{arm=(await api('POST','/v0/debug/arm',{worldFingerprint:fingerprint,namespaces:['provider'],ttlMs})).debugArmId;};
-async function write(body,error){const state=await api('GET','/v0/input/state');writeCalls++;const value=await api('POST','/v0/debug/mutations',body,error);const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,state.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);return value;}
+async function write(body,error){const state=server?null:await api('GET','/v0/input/state');writeCalls++;const value=await api('POST','/v0/debug/mutations',body,error);if(!server){const after=await api('GET','/v0/input/state');assert.equal(after.inputDispatchSequence,state.inputDispatchSequence);assert.equal(after.pressedKeyCount,0);assert.equal(after.pressedButtonCount,0);}return value;}
 try {
-  await screen(value=>value.screenClass.endsWith('TitleScreen'));
-  await check('approved independent SDK package loads and static catalog/documents work at title',async()=>{
+  if(!server)await screen(value=>value.screenClass.endsWith('TitleScreen'));
+  await check(server?'approved independent SDK package and static catalog/documents work without client classes':'approved independent SDK package loads and static catalog/documents work at title',async()=>{
     const catalog=await api('GET','/v0/extensions');const installed=catalog.packages.find(item=>item.packageId==='platform_probe');assert.equal(installed?.status,'active',JSON.stringify(catalog));assert(installed.registeredCapabilities.includes('platform_probe:sampling'));
     const bytes=await readFile(resolve(instance,'minecraft-protocol/extensions/packages/platform_probe/extension.json'));assert.equal(installed.contentIdentity,hash(bytes));record.packageIdentity=installed.contentIdentity;
+    assert.equal(catalog.earlyHooks.state,'validated',JSON.stringify(catalog.earlyHooks));
+    assert.equal(catalog.earlyHooks.globalFallbackReplaced,false);
+    assert(catalog.earlyHooks.configs.some(config=>config.packageId==='platform_probe'&&config.registered),JSON.stringify(catalog.earlyHooks));
     const document=await api('GET','/v0/extensions/document?packageId=platform_probe&documentId=overview');assert.equal(hash(Buffer.from(document.text)),document.sha256);assert.equal(document.contentIsData,true);observations.push({catalog,document});
   });
+  if(!server){
   await acquire();await click('menu.singleplayer','Singleplayer');
   let value=await screen(t=>/SelectWorldScreen$|CreateWorldScreen$/.test(t.screenClass));
   if(value.screenClass.endsWith('SelectWorldScreen')){
@@ -91,15 +99,21 @@ try {
     await click('selectWorld.create','Create New World');
   }
   await screen(t=>!t.screenClass);await api('POST','/v0/control/release');lease=undefined;
+  }
   fingerprint=(await api('GET','/v0/world/fingerprint?category=DEBUG')).worldFingerprint;
   await check('registered Provider uses real server owner and DEBUG writes still require Arm and mode',async()=>{
-    const observed=await read();assert.equal(data(observed).running,false);assert.equal(data(observed).samples,0);const body=mutation(observed,'start');
+    const observed=await read();assert.equal(data(observed).running,false);assert.equal(data(observed).samples,0);
+    const early=(await api('GET','/v0/extensions')).earlyHooks;assert(early.configs.some(config=>config.appliedTargets.some(target=>target.includes('MinecraftServer'))),JSON.stringify(early));observations.push({earlyHooks:early});
+    assert(data(observed).passiveNativeHookCalls>0,JSON.stringify(data(observed)));
+    assert(!data(observed).nativeHelperClassLoader.includes('ExtensionClassSpace'),JSON.stringify(data(observed)));
+    assert.equal(data(observed).passiveNativeHookScope,'physical_jvm');const body=mutation(observed,'start');
     await mode('OPERATE');await write(body,'DEBUG_NOT_ARMED');await startArm(60000);await mode('READ');await write(body,'OPERATE_REQUIRED');await mode('OPERATE');
     const started=await write(body);assert.equal(started.gameplayEvidence,false);assert.equal(started.evidenceContaminated,true);
     const sampled=await until(async()=>{const result=await read();return data(result).samples>0?result:false;},'Owner sample did not arrive',6000);assert.match(data(sampled).ownerThread,/Server thread/);assert(data(sampled).sampledAtNanos>0);observations.push({started,sampled});
   });
-  await check('input Lease lifetime remains independent of the Debug sampling grant',async()=>{
-    await acquire();await api('POST','/v0/control/release');lease=undefined;const result=await read();assert.equal(data(result).running,true);assert.equal((await api('GET','/v0/control/mode')).mode,'READ');
+  await check(server?'headless Debug sampling requires no input Lease':'input Lease lifetime remains independent of the Debug sampling grant',async()=>{
+    if(!server){await acquire();await api('POST','/v0/control/release');lease=undefined;assert.equal((await api('GET','/v0/control/mode')).mode,'READ');}
+    const result=await read();assert.equal(data(result).running,true);assert(!(await api('GET','/v0/control/status')).leaseId);
     await mode('OPERATE');await pause(650);const stopped=await write(mutation(await read(),'stop'));assert.equal(stopped.after.running,false);observations.push({stopped});await api('POST','/v0/debug/disarm');arm=undefined;
   });
   await check('MCP lookup and typed start then Arm expiry clean real resources without late publication',async()=>{
@@ -120,12 +134,22 @@ try {
     } finally {await client.close();await transport.close();}
   });
   await api('POST','/v0/debug/disarm');arm=undefined;await mode('READ');
-  const input=await api('GET','/v0/input/state');assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);
+  if(!server){const input=await api('GET','/v0/input/state');assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);}
   assert.deepEqual(await candidateSource(repo,[target]),before,'Source changed while running');
   record.sourceFiles=before;record.status='PASS';record.debugWriteRequests=writeCalls;
 } catch(error) {record.status='FAIL';record.error=String(error);throw error;}
 finally {
-  const result=resolve(repo,'validations/integration-extension_platform/result');await mkdir(result,{recursive:true});
-  record.completedAt=new Date().toISOString();await writeFile(resolve(result,`${target}-client.json`),JSON.stringify(record,null,2)+'\n');
-  await shutdown().catch(error=>{console.error('Owned shutdown request failed',error);});
+  try {
+    if(args['host-shutdown']==='true'&&!server){
+      const state=await api('GET','/v0/control/mode');if(state.mode!=='TAKEOVER')await acquire();
+      let value=await tree();if(!value.screenClass)await key(256);
+      value=await tree();const quit=nodes(value).find(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey));assert(quit);
+      observations.push({worldExit:await finishBaselineWorldExit({api,clickNode,wait:screen,quit})});
+      await api('POST','/v0/control/release');lease=undefined;
+    }else await shutdown();
+  } catch(error){record.status='FAIL';record.cleanupError=String(error);throw error;}
+  finally {
+    const result=resolve(repo,'validations/integration-extension_platform/result');await mkdir(result,{recursive:true});
+    record.completedAt=new Date().toISOString();await writeFile(resolve(result,`${target}-${installed?'installed-':''}${role}.json`),JSON.stringify(record,null,2)+'\n');
+  }
 }

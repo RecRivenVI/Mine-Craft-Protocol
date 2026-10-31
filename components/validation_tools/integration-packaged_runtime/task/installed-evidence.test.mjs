@@ -4,7 +4,7 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
 import {installedProof,collectInstalledProof} from './installed-evidence.mjs';
-import {findJava,copyInstalledWorldFixture,readInstalledWorldBaseline,installedWorldSmoke} from './installed-launcher.mjs';
+import {installedRuntimeScopes,findJava,copyInstalledWorldFixture,readInstalledWorldBaseline,installedWorldSmoke} from './installed-launcher.mjs';
 
 const artifact={target:'1.21.1-neoforge',sha256:'a'.repeat(64)},fingerprint='b'.repeat(64);
 function valid(){return{target:artifact.target,status:'PASS',runtime:'installed_loader_release_jar',artifactSha256:artifact.sha256,sourceFingerprint:fingerprint,sourceChangedDuringRun:false,freshGameDirectory:true,endpointVerified:true,handshake:true,readPassed:true,titleReady:true,cleanShutdown:true,noCrashReports:true,developmentClasspath:false,externalModCount:1,exitCode:0,maximumHeapBytes:4294967296,instanceProfile:'automatic',windowWidth:1920,windowHeight:1080,persistentWriteCalls:0,quitHttpStatus:200,nettyHttpOrigin:'io.netty.handler.codec.http.HttpMessage source: file:/installation/netty-codec-http.jar',transportOrigin:'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source: file:/client/mods/product.jar',readSample:{dataCategory:'USER',available:false},providerRegistryResolved:true,providerCatalog:['safe','client-thread','render-thread','server-thread'].map(id=>({providerId:'product:'+id,threadAffinity:id==='client-thread'?'client_thread':id==='render-thread'?'render_thread':'server_thread',snapshotSchema:'fixture://snapshot',querySchema:'fixture://query'})),providerSpiOrigins:['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>'io.github.fixture.probe.api.'+name+' source: file:/client/mods/product.jar')};}
@@ -29,7 +29,10 @@ test('official installer uses daemon JVM facts while the game retains Target Jav
   assert.match(source,/toolHashes\[daemonFactsPath\]=sha256/);
   assert.match(source,/await run\(installerJava,\['-Djava\.awt\.headless=true','-jar',installer,'--installClient',home\]/);
   assert.match(source,/const child=spawn\(java,args,/);
-  assert.match(source,/MCP_RUNTIME_SCOPES:enterWorld\?'read,ui,input,control,diagnostics':'read,ui,input,control'/,'Only the explicit world smoke grants the diagnostic input-state read scope; Runtime authorization remains unchanged');
+  assert.match(source,/MCP_RUNTIME_SCOPES:installedRuntimeScopes\(\{enterWorld,extensionPlatform\}\)/);
+  assert.equal(installedRuntimeScopes(),'read,ui,input,control');
+  assert.equal(installedRuntimeScopes({enterWorld:true}),'read,ui,input,control,diagnostics');
+  assert.deepEqual(installedRuntimeScopes({extensionPlatform:true}).split(','),['read','ui','input','event','diagnostics','control','command','debug','debug.world.read','debug.write','debug.provider']);
   assert.match(source,/loader==='fabric'\?\{\}:\{installerJavaVersion\}/);
 });
 test('alpha accepts only actual clean-install final-JAR proof, not full gameplay acceptance',()=>{

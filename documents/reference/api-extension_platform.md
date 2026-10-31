@@ -27,3 +27,15 @@ MCP_COMPANION_AUTHORING_ONLY=true 显式启用离线作者模式，不解析端�
 ## 生命周期
 
 PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT、INPUT_LEASE 分别表达资源所有权。Lease 或真人 Esc 只终止输入所有者，不顺带撤销独立 Debug。Arm renew 不更换持续任务身份；撤销、过期或换世界先使相应资源失效。清理失败、拒绝派发、错误线程和超时均保留诊断。
+
+## 早期 hook（预览）
+
+包内 Mixin 由已审批清单选择 Target 与物理运行端，不注册额外的 Loader 模组。停机工具派生 mods/minecraft-protocol-extension-libraries.jar；它是可再生成的本地库，不是需要作者手工修改的包，也不进入本体发行 JAR。
+
+Forge/NeoForge 使用原生 GAMELIBRARY 与 manifest 配置发现。生成配置没有作者 Mixin 类列表，由本体插件核对完整内容身份、依赖、运行端、资源路由与目标尚未加载后提供。Fabric 在固定 Loader 的早期入口添加同一已核验库，并在配置遍历之外提交配置。不替换 Loader 的全局 fallback，也不在普通 mod initializer 中补装晚到 hook。
+
+SDK、Target 桥与作者代码使用分离的 Java 包；私有入口在包类空间中加载，声明 exports 的共享 hook helper 使用原生类身份。包内 refmap 随派生库重命名并校验，不依赖开发 classpath 的映射。代码或审批变化后需要重新暂存并重启，不能在活动 JVM 中撤销已经应用的字节码变换。
+
+目录 earlyHooks 区分 validated、已注册配置和实际 appliedTargets；注册成功不等于目标已经变换或业务成功。错误保留具体状态；缺失库、审批变化或已加载目标不降级为晚装成功。全局 fallback 标记只描述本桥是否替换它，不检测其他模组的实现。
+
+Provider 同步入口仍执行既有预算；异步任务和线程在包初始化阶段准备并登记 owner，获准 start 仅建立 grant 内的调度。预算失败不意味着已经发生的副作用回滚，调用者应重新读取，不盲重放。

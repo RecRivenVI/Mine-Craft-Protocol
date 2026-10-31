@@ -9,6 +9,7 @@ function Retire-InstalledRuntimeInstance {
     $owner=Get-Content -LiteralPath $ownerFile -Raw|ConvertFrom-Json
     if($owner.owner-ne'packaged-runtime-clean-install'-or$owner.target-ne$Target){throw 'Installed instance owner or Target mismatch'}
     Assert-RuntimeInstanceStopped (Join-Path $resolved 'client')
+    if(Test-Path -LiteralPath (Join-Path $resolved 'server')){Assert-RuntimeInstanceStopped (Join-Path $resolved 'server')}
     foreach($item in @((Get-Item -LiteralPath $resolved -Force)) + @(Get-ChildItem -LiteralPath $resolved -Recurse -Force)){
         if(($item.Attributes-band[IO.FileAttributes]::ReparsePoint)-ne0){throw 'Reparse point in installed instance; retained'}
     }

@@ -96,6 +96,12 @@ public final class DedicatedWorldDebug implements ServerWorldDebug.Host {
     }
 
     @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge.hooks();
+    }
+
+    @Override
     public void attachExtensionProviders(
             io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
         this.engine.installExtensionProviders(source);

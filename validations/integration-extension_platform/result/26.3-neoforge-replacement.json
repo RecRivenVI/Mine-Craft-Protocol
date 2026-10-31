@@ -1,0 +1,19 @@
+{
+  "target": "26.3-neoforge",
+  "status": "PASS",
+  "artifactSha256": "820052ae2d4ee364032a563b4e5ce7403625d3b620de28a3e276944d9a6b7a65",
+  "hostJarUnchanged": true,
+  "nativeRestart": true,
+  "before": {
+    "version": "1.0.0",
+    "identity": "0b916360cfe73ff09932e6b8d9c2c0058014228df9deba38d93266db46e39380",
+    "runtime": "6fb4c376-f486-47ff-bb35-f7b734dc574e"
+  },
+  "after": {
+    "version": "1.0.2",
+    "identity": "711b708889f60c551b0ea11ee0704a81732fa7a227e1cf3d880843b9ec7a0454",
+    "runtime": "c2f78782-1b79-4420-87e2-602a16fe4642"
+  },
+  "completedAt": "2026-10-31T11:32:40.828Z",
+  "persistentWriteCalls": 0
+}

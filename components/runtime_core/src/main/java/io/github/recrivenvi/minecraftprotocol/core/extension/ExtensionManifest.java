@@ -43,10 +43,7 @@ public final class ExtensionManifest {
                     "net.fabricmc",
                     "org.spongepowered",
                     "com.google.gson",
-                    "io.github.recrivenvi.minecraftprotocol.core",
-                    "io.github.recrivenvi.minecraftprotocol.safety",
-                    "io.github.recrivenvi.minecraftprotocol.probe.api",
-                    "io.github.recrivenvi.minecraftprotocol.probe.extension");
+                    "io.github.recrivenvi.minecraftprotocol");
 
     public record Hook(String config, String side) {}
 

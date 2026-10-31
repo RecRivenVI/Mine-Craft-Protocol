@@ -59,6 +59,55 @@ public final class DedicatedWorldDebug implements ServerWorldDebug.Host {
     }
 
     @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+            extensionEnvironment(String target) {
+        java.util.Map<String, String> mods = new java.util.LinkedHashMap<>();
+        net.neoforged.fml.ModList.get()
+                .getMods()
+                .forEach(mod -> mods.put(mod.getModId(), mod.getVersion().toString()));
+        return new io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform
+                .Environment(
+                io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID,
+                target,
+                io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext.Side.SERVER,
+                Runtime.version().feature(),
+                mods,
+                getClass().getClassLoader());
+    }
+
+    @Override
+    public java.util.Map<
+                    String,
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                            .ThreadOwner>
+            extensionThreadOwners() {
+        return java.util.Map.of(
+                "server_thread",
+                new io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                        .ThreadOwner(
+                        "server_thread",
+                        action -> {
+                            if (closed.get() || !server.isRunning())
+                                throw new java.util.concurrent.RejectedExecutionException(
+                                        "Server closed");
+                            server.execute(action);
+                        },
+                        server::isSameThread));
+    }
+
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge.hooks();
+    }
+
+    @Override
+    public void attachExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        this.engine.installExtensionProviders(source);
+    }
+
+    @Override
     public JsonObject fingerprint() {
         JsonObject value = new JsonObject();
         value.addProperty("type", "world.fingerprint");

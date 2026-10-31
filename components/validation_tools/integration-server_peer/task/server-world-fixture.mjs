@@ -19,8 +19,9 @@ async function inventory(root,relative=''){
 }
 
 // Caller holds its owned instance lock and has stopped the native server before every copy.
-export async function prepareServerWorld({repo,game,world,target,facts,start,stop}){
-  const root=resolve(repo,'validations/integration-server_peer/instance');
+export async function prepareServerWorld({repo,game,world,target,facts,start,stop,validation='integration-server_peer'}){
+  assert(['integration-server_peer','integration-extension_platform'].includes(validation),'Registered fixture validation required');
+  const root=resolve(repo,'validations',validation,'instance');
   game=resolve(game);
   assert(game.startsWith(root+sep)&&basename(world)===world&&world!=='.'&&world!=='..','Explicit owned world required');
   const actualGame=await realpath(game), actualRoot=await realpath(root);

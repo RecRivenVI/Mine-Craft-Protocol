@@ -115,5 +115,6 @@
     ],
     "injectors": {
         "defaultRequire": 1
-    }
+    },
+    "plugin": "io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge"
 }

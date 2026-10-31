@@ -1,17 +1,17 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
-    [switch]$EnterWorld)
+    [switch]$EnterWorld,[switch]$ExtensionPlatform)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
 . (Join-Path $PSScriptRoot 'InstalledInstanceCleanup.ps1')
-$parent=Join-Path $repo 'validations/integration-packaged_runtime/instance/installed'
+$parent=Join-Path $repo $(if($ExtensionPlatform){'validations/integration-extension_platform/instance/installed'}else{'validations/integration-packaged_runtime/instance/installed'})
 [IO.Directory]::CreateDirectory($parent)|Out-Null
 $root=Join-Path $parent $Target
 $lock=[IO.File]::Open((Join-Path $parent ($Target+'.runner.lock')),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
 try{
     $stage='owned_instance_cleanup'
-    $resultRoot=Join-Path $repo 'validations/integration-packaged_runtime/result'
+    $resultRoot=Join-Path $repo $(if($ExtensionPlatform){'validations/integration-extension_platform/result'}else{'validations/integration-packaged_runtime/result'})
     [IO.Directory]::CreateDirectory($resultRoot)|Out-Null
     [IO.File]::WriteAllText((Join-Path $resultRoot ($Target+'.json')),(@{target=$Target;status='IN_PROGRESS';testedAt=[DateTimeOffset]::UtcNow.ToString('o')}|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
     if(Test-Path -LiteralPath $root){
@@ -22,6 +22,7 @@ try{
     [IO.File]::WriteAllText((Join-Path $root 'owner.json'),(@{owner='packaged-runtime-clean-install';target=$Target}|ConvertTo-Json)+"`n",[Text.UTF8Encoding]::new($false))
     $launcherArgs=@("--target=$Target")
     if($EnterWorld){$launcherArgs+='--enter-world'}
+    if($ExtensionPlatform){$launcherArgs+='--extension-platform'}
     & node (Join-Path $PSScriptRoot 'installed-launcher.mjs') @launcherArgs
     if($LASTEXITCODE-ne0){
         $result=Join-Path $resultRoot ($Target+'.json')

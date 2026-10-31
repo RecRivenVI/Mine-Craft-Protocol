@@ -1,0 +1,7 @@
+{
+  "target": "1.20.1-forge",
+  "class": "net/minecraft/server/MinecraftServer",
+  "namedMethod": "tickServer",
+  "descriptor": "(Ljava/util/function/BooleanSupplier;)V",
+  "runtimeMethod": "m_5705_"
+}

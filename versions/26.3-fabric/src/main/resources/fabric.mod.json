@@ -16,6 +16,9 @@
         ],
         "client": [
             "${mod_group}.probe.FabricClientProbeMod"
+        ],
+        "preLaunch": [
+            "${mod_group}.probe.loader.ExtensionPreLaunch"
         ]
     },
     "mixins": [

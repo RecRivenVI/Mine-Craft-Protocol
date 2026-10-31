@@ -48,7 +48,9 @@ runtime_core 与 runtime_safety 的编译和契约测试使用项目专用 mcp-r
 runtime_safety 的 UI 分类投影以 compileOnly 使用该 API 基线，测试使用同一依赖；
 运行时由 Minecraft 提供 Gson，不嵌入另一份 Gson 或覆盖 Loader 的版本约束。
 
-runtime_core 以 compileOnly 使用 runtime_safety、Gson 和 Netty；独立契约测试使用相应 testImplementation。
+runtime_core 以 compileOnly 使用 runtime_safety、Gson、Netty、Mixin及ASM；独立契约测试使用相应 testImplementation。
+扩展早期桥编译使用版本目录固定的Mixin与ASM API，Mixin来自[Sponge官方仓库](https://github.com/SpongePowered/Mixin)，ASM来自Maven Central；它们不嵌入产品、不覆盖任何Loader实际运行版本。
+ASM编译事实基于固定Forge运行库的9.9.1，游戏继续使用各自Loader提供版本；新版本类文件由其原生ASM解析。
 Netty 编译/测试基线固定为 Forge 1.20.1 已有的 4.1.82.Final，版本目录新增项目专用别名，
 不是游戏运行库升级。五端继续使用本端 Minecraft/Loader 管理的 Netty；只在缺失HTTP模块的1.x端嵌入匹配模块，
 不覆盖4.2系列或打包JUnit等仅测试依赖。

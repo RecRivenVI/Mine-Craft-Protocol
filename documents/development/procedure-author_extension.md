@@ -17,8 +17,9 @@
 3. 为 Provider 定义 snapshot/query/revision/Debug schema，声明实际 owner thread、来源、预算、副作用和完整性。Provider V2 仍是 DEBUG；client_known 不自动变成 USER。
 4. 让 USER UI 操作进入 Runtime 的真实输入队列，不能调用业务 setter 或 performClick 冒充玩家。USER 世界操作保留原生 pick、距离、碰撞与服务器校验。
 5. 为持续资源登记运行实例、包、生命周期、owner executor 与授权失效条件。撤权先禁止发布，再在 owner 上清理；逐项记录失败。关闭注册不代表卸载 Mixin。
-6. 通过离线安装流程把包与审批记录放入实例的 minecraft-protocol/extensions，重启后查询实际目录；不要在运行中替换或远程上传代码。
-7. 编写标准接口场景，分别记录 Arrange、正常 Act、独立 Assert、证据和 Cleanup；调试准备不作为 PLAYTEST 验收。
+6. 为 early hook 声明独立 Mixin 命名空间与 exports；共享状态 helper 不放在 Mixin 类包内。旧 Forge 用相应 Target 的真实映射生成 refmap，不将开发环境的命中作为成品证明。
+7. 通过离线安装流程把包与审批记录放入实例的 minecraft-protocol/extensions，重启后查询实际目录；不要在运行中替换或远程上传代码。
+8. 编写标准接口场景，分别记录 Arrange、正常 Act、独立 Assert、证据和 Cleanup；调试准备不作为 PLAYTEST 验收。
 
 ## 验收
 

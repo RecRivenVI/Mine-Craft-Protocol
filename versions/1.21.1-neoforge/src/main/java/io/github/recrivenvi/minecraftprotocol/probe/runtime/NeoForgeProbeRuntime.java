@@ -522,6 +522,75 @@ public final class NeoForgeProbeRuntime implements ProbeService {
     }
 
     @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+            extensionEnvironment(String target) {
+        java.util.Map<String, String> mods = new java.util.LinkedHashMap<>();
+        net.neoforged.fml.ModList.get()
+                .getMods()
+                .forEach(mod -> mods.put(mod.getModId(), mod.getVersion().toString()));
+        return new io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform
+                .Environment(
+                io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID,
+                target,
+                io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext.Side.CLIENT,
+                Runtime.version().feature(),
+                mods,
+                getClass().getClassLoader());
+    }
+
+    @Override
+    public java.util.Map<
+                    String,
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                            .ThreadOwner>
+            extensionThreadOwners() {
+        var client =
+                new io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                        .ThreadOwner(
+                        "client_thread",
+                        action -> {
+                            var current = this.minecraft;
+                            if (current == null || windowClosing.get())
+                                throw new java.util.concurrent.RejectedExecutionException(
+                                        "Client closed");
+                            current.execute(action);
+                        },
+                        () -> this.minecraft != null && this.minecraft.isSameThread());
+        var server =
+                new io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                        .ThreadOwner(
+                        "server_thread",
+                        action -> {
+                            var current =
+                                    this.minecraft == null
+                                            ? null
+                                            : this.minecraft.getSingleplayerServer();
+                            if (current == null || !current.isRunning())
+                                throw new java.util.concurrent.RejectedExecutionException(
+                                        "No running integrated server");
+                            current.execute(action);
+                        },
+                        () ->
+                                this.minecraft != null
+                                        && this.minecraft.getSingleplayerServer() != null
+                                        && this.minecraft.getSingleplayerServer().isSameThread());
+        return java.util.Map.of(
+                "client_thread", client, "render_thread", client, "server_thread", server);
+    }
+
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge.hooks();
+    }
+
+    @Override
+    public void attachExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        this.phase9a.installExtensionProviders(source);
+    }
+
+    @Override
     public void attachControlSession(AgentControlSession session) {
         this.controlSession = session;
         this.controlPresence = session.snapshot();

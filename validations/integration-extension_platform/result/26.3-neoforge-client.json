@@ -1,11 +1,11 @@
 {
   "target": "26.3-neoforge",
-  "runtimeInstanceId": "0c678cc6-f391-40e7-9510-9ac8903e6711",
+  "runtimeInstanceId": "1fc87d93-53d9-4ecb-9376-f9200808fbb7",
   "developmentClasspath": true,
   "finalJarInstall": false,
   "toolFiles": {
-    "components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1": "0e78fc6d5922e54ff980f31662797bd92dd1b8e833c9c296250d1c31804cd08a",
-    "components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs": "027b25dcf815c09b80b9ac078565d3fb6efe65efb5fcfd6640b29f0098c41494",
+    "components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1": "569b06ba81f39f357f9e953ae4a8c0a0780f6299bb27ffd8f0f2007c7826179d",
+    "components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs": "c2796ef036c4e8998a8376d87ddc1a50ee9c4a7f2471e0bf527b465bf0c43c55",
     "components/validation_tools/integration-extension_platform/task/install-platform-probe.mjs": "0d4079a8ee3916c9a1256bd0c994d1c78c32f259fe21843867d6a514ea6182a6"
   },
   "checks": [
@@ -38,6 +38,24 @@
         "jvmSandbox": false,
         "codeUpdateRequiresRestart": true,
         "closed": false,
+        "earlyHooks": {
+          "state": "validated",
+          "failure": "",
+          "target": "26.3-neoforge",
+          "side": "CLIENT",
+          "libraryAbi": 1,
+          "globalFallbackReplaced": false,
+          "configs": [
+            {
+              "packageId": "platform_probe",
+              "mixinPackage": "io.github.recrivenvi.extensions.platformprobe.hooks.mixin",
+              "registered": true,
+              "appliedTargets": [
+                "io.github.recrivenvi.extensions.platformprobe.hooks.mixin.ServerTickHookMixin -> net.minecraft.server.MinecraftServer"
+              ]
+            }
+          ]
+        },
         "packages": [
           {
             "candidate": "platform_probe",
@@ -45,7 +63,7 @@
             "reason": "",
             "packageId": "platform_probe",
             "version": "1.0.0",
-            "contentIdentity": "07acf4fc5160ead883599d731922c6f79015ad2bc2278f41f65da96cbc48e945",
+            "contentIdentity": "bbc3fd2262656545168c30b11e969444eaa8bfe8cd7d6609d577056062b0ef91",
             "declaredCapabilities": [
               "platform_probe:sampling"
             ],
@@ -53,32 +71,52 @@
               "platform_probe:sampling"
             ],
             "documents": {
-              "overview": "4a91d1976e138f71cfb985c270cee249f0d119eff42bee514d564500414a3561"
+              "overview": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec"
             },
             "tests": {}
           }
         ],
-        "requestId": "53a12324-bc72-4a8b-86e5-063629bafbc2",
+        "requestId": "e434d325-e61f-4128-a76b-9fc0cd37990e",
         "protocolVersion": "v0"
       },
       "document": {
         "type": "extension.document",
         "packageId": "platform_probe",
         "documentId": "overview",
-        "contentIdentity": "07acf4fc5160ead883599d731922c6f79015ad2bc2278f41f65da96cbc48e945",
-        "sha256": "4a91d1976e138f71cfb985c270cee249f0d119eff42bee514d564500414a3561",
-        "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
+        "contentIdentity": "bbc3fd2262656545168c30b11e969444eaa8bfe8cd7d6609d577056062b0ef91",
+        "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
+        "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
         "contentIsData": true,
-        "requestId": "20539848-6ccd-4f81-8fd2-edf421f545eb",
+        "requestId": "fe1b8450-9200-4b7d-8f1e-48671a48c27a",
         "protocolVersion": "v0"
+      }
+    },
+    {
+      "earlyHooks": {
+        "state": "validated",
+        "failure": "",
+        "target": "26.3-neoforge",
+        "side": "CLIENT",
+        "libraryAbi": 1,
+        "globalFallbackReplaced": false,
+        "configs": [
+          {
+            "packageId": "platform_probe",
+            "mixinPackage": "io.github.recrivenvi.extensions.platformprobe.hooks.mixin",
+            "registered": true,
+            "appliedTargets": [
+              "io.github.recrivenvi.extensions.platformprobe.hooks.mixin.ServerTickHookMixin -> net.minecraft.server.MinecraftServer"
+            ]
+          }
+        ]
       }
     },
     {
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "5d91cff6-7548-4a60-ae46-6e9427abbadc",
-        "auditReference": "5d91cff6-7548-4a60-ae46-6e9427abbadc",
+        "debugOperationId": "9cd6cab4-6fe8-4894-897e-0b0b9016fc86",
+        "auditReference": "9cd6cab4-6fe8-4894-897e-0b0b9016fc86",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -90,22 +128,30 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:0c206ce9-1228-38fa-a93b-0b7eb0c915be",
-        "debugArmId": "ab1aa590-2267-477c-8051-80520e367ad9",
+        "principalId": "token:bfb35358-e23b-3053-8d71-5cb707e99b30",
+        "debugArmId": "42d60f54-b7ce-43c2-bd90-df4aa50b39fb",
         "before": {
           "running": false,
           "samples": 0,
           "sampledAtNanos": 0,
-          "ownerThread": ""
+          "ownerThread": "",
+          "passiveNativeHookCalls": 23,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "after": {
           "running": true,
           "samples": 0,
           "sampledAtNanos": 0,
-          "ownerThread": ""
+          "ownerThread": "",
+          "passiveNativeHookCalls": 23,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -115,7 +161,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -124,8 +170,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 73258,
-        "requestId": "5d91cff6-7548-4a60-ae46-6e9427abbadc",
+        "durationMicros": 11854,
+        "requestId": "9cd6cab4-6fe8-4894-897e-0b0b9016fc86",
         "protocolVersion": "v0"
       },
       "sampled": {
@@ -137,19 +183,19 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
-        "capturedAt": 1793441170739,
+        "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
+        "capturedAt": 1793443527881,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "26.3-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "4c28c222-b722-441b-906d-fbf1132b248c",
-          "snapshotSequence": 23,
-          "capturedAtMillis": 1793441170739,
+          "snapshotId": "32f73e72-30e1-4d34-b680-d5093fe37913",
+          "snapshotSequence": 24,
+          "capturedAtMillis": 1793443527880,
           "clientTick": -1,
-          "serverTick": 23,
+          "serverTick": 24,
           "consistency": "server_thread_bounded",
           "perspective": "server_authoritative",
           "acquisition": "public_api_plus_internal_projection",
@@ -172,7 +218,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 45,
+          "ownerThreadCaptureMicros": 50,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -182,28 +228,28 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793441170739,
-          "snapshotId": "09116f9f-c581-419b-81ef-18a0e31d6fcc",
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "capturedAt": 1793443527881,
+          "snapshotId": "ce6ccf42-5d62-458d-ac7b-8d92ba1e9178",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "clientTick": -1,
-          "serverTick": 23,
+          "serverTick": 24,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
-            "entryCount": 28,
+            "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
+            "entryCount": 29,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 52,
+            "generationHighWatermark": 53,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 5,
+          "revisionComputationMicros": 4,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+            "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -279,24 +325,28 @@
             "resolvedPerspective": "server_authoritative",
             "data": {
               "running": true,
-              "samples": 1,
-              "sampledAtNanos": 536578975261300,
-              "ownerThread": "Server thread"
+              "samples": 2,
+              "sampledAtNanos": 538936173213100,
+              "ownerThread": "Server thread",
+              "passiveNativeHookCalls": 25,
+              "passiveNativeHookThread": "Server thread",
+              "passiveNativeHookScope": "physical_jvm",
+              "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
             },
             "providerRevision": 1,
-            "bytes": 174,
-            "entryDurationMicros": 27,
-            "validationDurationMicros": 130,
-            "durationMicros": 10405
+            "bytes": 382,
+            "entryDurationMicros": 22,
+            "validationDurationMicros": 109,
+            "durationMicros": 22911
           }
         ],
-        "responseBytes": 4023,
+        "responseBytes": 4231,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "fbb1a16a-8827-4cb0-90eb-3d05e6476e8f",
+        "requestId": "1db39dd0-15ad-45cb-b2c6-c4969698c090",
         "protocolVersion": "v0"
       }
     },
@@ -304,8 +354,8 @@
       "stopped": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "928fd652-63bf-459b-9770-9d0265c35a23",
-        "auditReference": "928fd652-63bf-459b-9770-9d0265c35a23",
+        "debugOperationId": "e24d5e8b-13f7-49f1-95ac-be03fa1824f5",
+        "auditReference": "e24d5e8b-13f7-49f1-95ac-be03fa1824f5",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -317,22 +367,30 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:0c206ce9-1228-38fa-a93b-0b7eb0c915be",
-        "debugArmId": "ab1aa590-2267-477c-8051-80520e367ad9",
+        "principalId": "token:bfb35358-e23b-3053-8d71-5cb707e99b30",
+        "debugArmId": "42d60f54-b7ce-43c2-bd90-df4aa50b39fb",
         "before": {
           "running": true,
           "samples": 17,
-          "sampledAtNanos": 536579781645600,
-          "ownerThread": "Server thread"
+          "sampledAtNanos": 538936935456900,
+          "ownerThread": "Server thread",
+          "passiveNativeHookCalls": 40,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "after": {
           "running": false,
           "samples": 17,
-          "sampledAtNanos": 536579781645600,
-          "ownerThread": "Server thread"
+          "sampledAtNanos": 538936935456900,
+          "ownerThread": "Server thread",
+          "passiveNativeHookCalls": 40,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -342,7 +400,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -351,8 +409,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 5573,
-        "requestId": "928fd652-63bf-459b-9770-9d0265c35a23",
+        "durationMicros": 6235,
+        "requestId": "e24d5e8b-13f7-49f1-95ac-be03fa1824f5",
         "protocolVersion": "v0"
       }
     },
@@ -360,8 +418,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "3e4b269f-d4b2-4b8e-828b-340c6cb57fc2",
-        "auditReference": "3e4b269f-d4b2-4b8e-828b-340c6cb57fc2",
+        "debugOperationId": "2a2d72f4-00a7-4789-9238-973eec1502fc",
+        "auditReference": "2a2d72f4-00a7-4789-9238-973eec1502fc",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -373,22 +431,30 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:0c206ce9-1228-38fa-a93b-0b7eb0c915be",
-        "debugArmId": "3eeb9427-c3e5-4a70-a4dc-ef655a5b25ff",
+        "principalId": "token:bfb35358-e23b-3053-8d71-5cb707e99b30",
+        "debugArmId": "148f0724-4360-451c-b675-2923679d108c",
         "before": {
           "running": false,
           "samples": 17,
-          "sampledAtNanos": 536579781645600,
-          "ownerThread": "Server thread"
+          "sampledAtNanos": 538936935456900,
+          "ownerThread": "Server thread",
+          "passiveNativeHookCalls": 67,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "after": {
           "running": true,
           "samples": 0,
           "sampledAtNanos": 0,
-          "ownerThread": "Server thread"
+          "ownerThread": "Server thread",
+          "passiveNativeHookCalls": 67,
+          "passiveNativeHookThread": "Server thread",
+          "passiveNativeHookScope": "physical_jvm",
+          "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -398,7 +464,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -407,8 +473,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 4450,
-        "requestId": "3e4b269f-d4b2-4b8e-828b-340c6cb57fc2",
+        "durationMicros": 5269,
+        "requestId": "2a2d72f4-00a7-4789-9238-973eec1502fc",
         "protocolVersion": "v0"
       },
       "stopped": {
@@ -420,19 +486,19 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
-        "capturedAt": 1793441173393,
+        "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
+        "capturedAt": 1793443530368,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "26.3-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "0a2e9680-0585-409f-9374-161ed4e1a2b6",
-          "snapshotSequence": 76,
-          "capturedAtMillis": 1793441173393,
+          "snapshotId": "d66bddfa-03c2-40e9-becd-bc8943835534",
+          "snapshotSequence": 74,
+          "capturedAtMillis": 1793443530368,
           "clientTick": -1,
-          "serverTick": 76,
+          "serverTick": 74,
           "consistency": "server_thread_bounded",
           "perspective": "server_authoritative",
           "acquisition": "public_api_plus_internal_projection",
@@ -455,7 +521,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 29,
+          "ownerThreadCaptureMicros": 38,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -465,28 +531,28 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793441173393,
-          "snapshotId": "ae681342-f390-49c3-ac1b-f3047da386ff",
-          "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+          "capturedAt": 1793443530368,
+          "snapshotId": "d1fa51a5-6713-45c2-aed6-fb4bed1d708d",
+          "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
           "clientTick": -1,
-          "serverTick": 76,
+          "serverTick": 74,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
-            "entryCount": 28,
+            "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
+            "entryCount": 29,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 52,
+            "generationHighWatermark": 53,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 3,
+          "revisionComputationMicros": 5,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "e2855519-c3d8-4b50-95db-c652cdb3b724",
+            "sessionEpoch": "cedb2add-88d4-428f-a326-1722d183d31f",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -563,35 +629,39 @@
             "data": {
               "running": false,
               "samples": 6,
-              "sampledAtNanos": 536581565798900,
-              "ownerThread": "Server thread"
+              "sampledAtNanos": 538938534247000,
+              "ownerThread": "Server thread",
+              "passiveNativeHookCalls": 74,
+              "passiveNativeHookThread": "Server thread",
+              "passiveNativeHookScope": "physical_jvm",
+              "nativeHelperClassLoader": "net.neoforged.fml.classloading.transformation.TransformingClassLoader"
             },
             "providerRevision": 4,
-            "bytes": 176,
-            "entryDurationMicros": 17,
-            "validationDurationMicros": 76,
-            "durationMicros": 8294
+            "bytes": 384,
+            "entryDurationMicros": 25,
+            "validationDurationMicros": 84,
+            "durationMicros": 8195
           }
         ],
-        "responseBytes": 4022,
+        "responseBytes": 4230,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "32ea3632-d9c0-408d-842f-61532ba85042",
+        "requestId": "5667bf33-6fec-4eba-b47b-5686277f8341",
         "protocolVersion": "v0"
       },
       "cleanup": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "0c678cc6-f391-40e7-9510-9ac8903e6711",
-        "activeScopes": 0,
+        "runtimeInstanceId": "1fc87d93-53d9-4ecb-9376-f9200808fbb7",
+        "activeScopes": 1,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "ab1aa590-2267-477c-8051-80520e367ad9",
+            "contextId": "42d60f54-b7ce-43c2-bd90-df4aa50b39fb",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -613,7 +683,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "3eeb9427-c3e5-4a70-a4dc-ef655a5b25ff",
+            "contextId": "148f0724-4360-451c-b675-2923679d108c",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -632,16 +702,16 @@
             ]
           }
         ],
-        "requestId": "8fba22b3-8407-42e3-8af2-7988b3c2367d",
+        "requestId": "57ce667c-aab8-4080-a619-65bbceaecc36",
         "protocolVersion": "v0"
       }
     }
   ],
   "persistentWriteCalls": 0,
-  "packageIdentity": "07acf4fc5160ead883599d731922c6f79015ad2bc2278f41f65da96cbc48e945",
+  "packageIdentity": "bbc3fd2262656545168c30b11e969444eaa8bfe8cd7d6609d577056062b0ef91",
   "sourceFiles": {
     "components/protocol_schema/src/main/openapi/minecraft-control-v0.json": "ceaf87d7ba144e0e937fd9e1fa3eae9445d77a672c6116fdc92a32d64c36040e",
-    "components/runtime_core/build.gradle.kts": "7373dfcac6e1bd80b2b83002ef167dea66fde1946a949e1fee8a986cbf7ee4eb",
+    "components/runtime_core/build.gradle.kts": "314fc81c2f6b3f31f8f11482a5d8057ab36735ce6e95dd8e499435eab6b4e552",
     "components/runtime_core/settings.gradle.kts": "b69f173bf23cbc2863d7bbfec17148189e9541e89cca3d4de30b87a4e2e82fa4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java": "0320201196435ab3d00d4dc9153a591061b47e110ad979e84e49efb4ce33627d",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/BoundedTaskExecutor.java": "2b322b169ec24eb0998b9df00557ab1a5e154bac5df51cc5dd7f0ee97070db5e",
@@ -682,8 +752,8 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandPolicy.java": "7b56e194bb312d314dd111ff0f609891bd724c919f9128d794bd7ecf4a9aaa8a",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerCommandSuggestionRequests.java": "b1f3b1c576201dfc803fb45df19b9dbb03c0ca42cf3757ce234dfe15a5289258",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/PlayerStateStream.java": "fabcf2db9d40ff2a154e224bdb3c8e8ceb05506bc4c77acacfc534730bce5608",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "b453e235158c448e6c5ba797807040c35d7f335bd77ab75b064ef7baea06566b",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "9dbf62cf38cdd97b1ef0355233de83812708c45c04633aee5f761401c436d623",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeService.java": "4a45f3ceeb8c20b66caa29756cd3dd0bb50ca2980697eb6087fee5e2791f3f72",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java": "349a2b6cefa0b9bccf5f9a73f97c72e2a972d159892eb1fe3c517e5bdc0307a9",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java": "1c751e60db6d081d940dc0a446b53cd0b966522afdcd417dc41ccda5c56f85bf",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderExecutionEngine.java": "b458c323b6e89220a198900d0ff1c7027484a9a79167a417436eede0d955fcd4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProviderInspection.java": "8e797b722e23fa5e578ffd127e190a8954636a3a951cfc3e3665b2ff465b9465",
@@ -694,9 +764,9 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ScheduledTickRead.java": "4a7b7b9c446dd88fc18e182ab5fa8cbc6bb8780fb4da8064f39e1e026c8a0b02",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/SecurityGate.java": "8c767e9e28677f7dcc5d734c5785aa3684d28510dae7669d95bfdab453e7dbb6",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerConsole.java": "0fbf38666ce94a019e23fb8f2a0fc170d6be93dbc4abc26bd0428f255bdd219e",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerConsoleService.java": "daa5ddf122989f4a8e0947fb9ec41e2c07f0a095596f1173ef583759bb58597a",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerConsoleService.java": "42806ba409b36d6fec330cdd12f54d7010de78323b95c27e42d38c846352cc73",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerPeerReceiver.java": "302921cb3d2b8cf8edf070cd2ca8122f17b7d0c6f90628b8f4b1cbbe8df400f1",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerWorldDebug.java": "aa803ed44614374702778413bd0a4d5fbc1eddbfb6a8b141de03cf295c395800",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ServerWorldDebug.java": "fd8edd02d0ea57b42e865d4ee730180786457c17c2f9a54223318fd23b32a6ee",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiItemDataGuard.java": "db8a49fb43f522d027ef5a24bcaed77a46064053cb3727b01b72041f50651308",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiMutationSupport.java": "c25151d0d906eca54f7371bb30fb7793b21b0afd0bf784c740f565e6079de052",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/UiTitleLifecycleSource.java": "2bc4e028ecc8d87ea42aba5c62d58d28c5688a0b395ec21e98dba00403db308a",
@@ -705,10 +775,14 @@
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldDebugInspection.java": "90dac6f218410f39303abf58972c7b4c4503758236f6fea6ae24137d1f188cf4",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldHitEvidence.java": "b0058630308963835cc3c35dfa55ead65f488f9865d68e6bdd1f38b7f2681103",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/WorldReadEngine.java": "c3ade92cd9bdc7d046f8b5e34ea1011c9709d5a99e5544528ae2e6b572f31dcc",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionClassSpace.java": "f235828650d39b55c11bab0d55be8bdd7a3d36d798ea1f7406f6c32ff1155e5c",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionClassSpace.java": "f3ad0df09c56dd85d5009c754c49a43852bd7f8d5106883efe07d5bc500dcda0",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionEarlyBootstrap.java": "3304309f8a2cd786b35dcf3543c8d4094ff0f01b21efbfeec2a71104aa9d01e8",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionEarlyStage.java": "9a907a0e513333d8f6c585bb28b610b3303ca16f804c3d5109e924b78867ea31",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionFailure.java": "5009ae765fd863766b9641180f115f860c6f61bbd1976d8d9449f7725ecbba5a",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionManifest.java": "4cfcaf2256b035755c6e3776f0f5223e2fa150309690b1a7b0bc6abf1bb02dcc",
-    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "061ada2d5f057d6aca47a6580e5d8874ebea8dea7b057b4fff871b5d7c1209b9",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionManifest.java": "e55e8db0569d78c4a195d4cd089adb21b5afe950a36012e6c0555c3a9d255d8e",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionMixinGate.java": "cea447f7e802fd73741ea55e64caef92011fdb3461e817bd8281b52d47e29177",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlan.java": "1907f398e902c891d210be661a82bfb1b82052a51d1e829c2a111e266466e9f5",
+    "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionPlatform.java": "5bdfc751223495e22a8dc5554430d7898f24a37ce48e416eea3ad14092c6adb1",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionStore.java": "35781f96cd6b032722e3976b8c7df9ee52dd85b4c047b1a7d37a324c5ba22831",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/extension/ExtensionVersion.java": "55ff7083e13fe47d12279a4754a19ccaebf7efe6926eb5b394381547ba8acbd9",
     "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/providers/ProbeEchoReadProvider.java": "ac78616af18fb6e6c4e7c27b035837e6b10f73960aafac29009b0d7601cd35e6",
@@ -756,11 +830,12 @@
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldRegionPages.java": "2cd0242ef3ed63b9c6c7b62313e770d0b451878211b831d0437e042727969938",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldTargetRegistry.java": "a1ad5c5428c1546b9858e923432ad34dd48f5586dc0bd291104dce3fba252183",
     "gradle.properties": "916fcec0135feb60736f077b5daad1e050f67ba629e72b4843cf45023b2b9fe1",
-    "gradle/libs.versions.toml": "20f05a84f4a90d5b1b7eeaf2a7ddc282b7527eef3e09befb773efa49e356f0b3",
+    "gradle/libs.versions.toml": "0127a8ad8df18621e9d088d6f370aa8c174c818f6be9d9ff6ab7ce9c6c983f0a",
     "settings.gradle.kts": "b35d02d8b3f3ab676db3e029feeeb93c157aa2f1d54e86a6786a31939e165e91",
     "versions/26.3-neoforge/build.gradle.kts": "8f17f21e750d2f5fd5088f59b27e42db59df67b41b140cccb90196bdac90b814",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/NeoForgeProbeMod.java": "cae7fbc13406b41f3995012e0c93a9347b80a208db6a5b612918f0a5f2d262a0",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java": "dfd9a3de92fdc0f3c50b0aadbdfd318e97610f79213a26f43132ff3018736fdd",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/loader/LoaderExtensionBridge.java": "04c36fb8257b64247fec73013166b40b3c08b4ebc2f2fb2ceeafce0ea117fba3",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AbstractContainerScreenMixin.java": "a677f06b81d0c0eb02ebf61ba308cab67ac594c1be3041c97f6555c138695cd6",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementTabUiAccessor.java": "9b11509a692ba26bb21ee3c3055cf501222b00a142a94204deeb4189fcd18ef1",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/AdvancementToastUiAccessor.java": "18904c2ab107584891a74502612d9f1984a78da91d06e6fa3baefafe15f44403",
@@ -863,12 +938,12 @@
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerNetworking.java": "8eaa90d5777020803ac95890c34769622ccb36408ae4386ab0f0dd42e93983d8",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/PeerPayload.java": "c89afa39e0b959f1183fcb742e6fea937d057e94f61b4a22a7906b21354b66b6",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedPeerClient.java": "27ea6c55d83bcf86f86b5c6bad1170a3f9db3e13dde43b8afec7d7e73b48d79d",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedWorldDebug.java": "419e18a323ca34641a25c7437fe7a4ea70da30855f2cf40ae19103aba577c411",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/DedicatedWorldDebug.java": "997ca313feb08415b1b761de1e141a3c03474ca11e01c5817f5d27c4ea4f1545",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandPayloads.java": "583418609021d5c53adbf2b1bc24524d80dbeff65a23db9f9e9022045e2a5470",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeCommandSuggestions.java": "9a81d1b805a7ecfe3a58a35b3b50c1e9d1301300d8c959ddb9b14ddbed7c7e03",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativeInputMapping.java": "96794b84dc8cbcedceee4bf2dbfb16e5e3d1639ac731be4c479fe2f158735d22",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NativePlayerCommands.java": "88c54566015c0392410025e42f6e4c0aa264c0761a69e6b5bb56f81262feb08c",
-    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "8ac8c8400d68bda15c63b0b2c300d474018718e0f008b2c27dec941c8a586f97",
+    "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java": "aad6f94d909ca202d6db05693a56eac5c636f386b3928ae1b70dcb0921f4761f",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java": "89def56aa99ad7e5eddd02e561569cb123dc034930869eca962ef74ac5bf3966",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java": "da095d0adbc0e6f2b225457ba52be68909457000517118b34b33789e5c419077",
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/RenderedUiAdapter.java": "40519b16683f1d9ca73e4be92245f771a6cf605cabade0fe3a8e504b6d02f9d0",
@@ -893,12 +968,12 @@
     "versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/server/DedicatedServerRuntime.java": "750b723e30ea27c14bd51732672dd6b7117cdf3ffb84381b0354425485a68130",
     "versions/26.3-neoforge/src/main/resources/META-INF/accesstransformer.cfg": "5ccad9292bbdb89190dc4f10e939e5727dda875b4efe674b902f27846ba846d1",
     "versions/26.3-neoforge/src/main/resources/META-INF/neoforge.mods.toml": "d53a552e294024e63abbc65019459e7b94b22ee7a83f987ba2d558999fcd6c7b",
-    "versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "8bca32b03ad266ceb2d38adf7e2ff5f3f2e8a9053ab357573a31b1c8a760e283",
-    "versions/26.3-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "6170e561de5fbcff9b790e7fd9d3313dd8bf9f1da3372d07350be250c2d3b6ac",
+    "versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json": "2c0d5733f9702b9c34688425881b49ac590203289f135c45acb436f69a560192",
+    "versions/26.3-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "7773a2d267b8d7e9da7bb8594eefd5b1d821b6d0ce6d425b31f854886ddfc55e",
     "versions/26.3-neoforge/target.properties": "03b209887ff72e166873f192f6faa0bdf775918b0bedb3d7cb151031e45ddff2"
   },
   "status": "PASS",
   "debugWriteRequests": 4,
-  "completedAt": "2026-10-31T10:06:13.98Z",
+  "completedAt": "2026-10-31T10:45:30.926Z",
   "cleanShutdown": true
 }

@@ -32,6 +32,10 @@ final class RuntimeDiscoveryTest {
                         new Class<?>[] {ProbeService.class},
                         (proxy, method, args) -> {
                             if (method.getReturnType() == void.class) return null;
+                            if (method.getName().equals("extensionEarlyHooks"))
+                                return (io.github.recrivenvi.minecraftprotocol.core.extension
+                                                .ExtensionPlatform.EarlyHooks)
+                                        (manifest, env) -> false;
                             if (method.getName().equals("extensionThreadOwners"))
                                 return java.util.Map.of();
                             if (method.getName().equals("extensionEnvironment")) return null;

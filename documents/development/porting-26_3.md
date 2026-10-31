@@ -333,3 +333,13 @@ flying通过既有native mayFly条件与普通abilities更新同步，noAi通过
 1.20.1为MouseHandler.turnPlayer()，其余为handleAccumulatedMovement()；电影相机余量由各版本自身的SmoothDouble处理，强停止清空原生滤波器。
 键与按钮held状态须在原生回调前登记；GUI回调可在同线程重入主循环并卸载世界，返回后不能再次登记已被清理的输入。
 KeyEntry读取实际key/name/changeButton/resetButton，1.20.1的KeyBindsList位于screens.controls，其余位于screens.options.controls；不调用按钮业务回调。
+
+## 扩展包早期装载
+
+公共 Mixin 插件协议和字节码预检在 runtime_core；各 Target 的 LoaderExtensionBridge 只使用早期 Loader 元数据，不链接客户端 singleton。桥所在 probe.loader 与公共 SDK 的 probe.extension 分离，避免开发运行的独立模块形成 split package。
+
+Forge 1.20.1 与 NeoForge 1.21.1 从静态 FMLLoader 读取目录、物理 Dist 与 LoadingModList；26.1.2/26.3 从当前 FMLLoader 实例读取。三者均让原生 GAMELIBRARY 发现惰性配置，不能在 Mixin 插件 onLoad 遍历配置时追加配置。
+
+Fabric 26.3 使用固定 Loader 的 FabricLauncher.addToClassPath 与 PreLaunchEntrypoint，先验证原生资源路由，再在配置遍历之外提交。该 impl 桥保持预览，Loader 升级时必须实际复测；已加载的目标不尝试补变换。
+
+平台探针使用 MinecraftServer.tickServer，不以开发运行父加载器中的共享核心作为变换目标。旧 Forge 成品需要 SRG refmap；从该 Target 的 namedToIntermediate 产物生成，禁止用改输入或直接调用业务方法补偿未命中的 Mixin。

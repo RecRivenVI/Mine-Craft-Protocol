@@ -19,6 +19,11 @@ public interface ProbeService {
         return java.util.Map.of();
     }
 
+    default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        return (manifest, environment) -> false;
+    }
+
     default void attachExtensionProviders(
             io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
         throw new UnsupportedOperationException("Runtime has no extension Provider dispatcher");

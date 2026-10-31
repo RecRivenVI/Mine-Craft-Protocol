@@ -26,7 +26,6 @@ import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.ScheduledTickRead;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.BaseContainerBlockEntityAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.DistanceManagerAccessor;
 import io.github.recrivenvi.minecraftprotocol.probe.mixin.LevelTicksAccessor;
@@ -130,6 +129,11 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         this.storageAdapter = new PersistentStorageAdapter(target);
         this.revisionWorker =
                 new BoundedTaskExecutor("minecraft-protocol-observation-revisions", 1, 8);
+    }
+
+    void installExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        this.providerExecution.installProviders(source);
     }
 
     void installProviderDispatcher(ProviderExecutionEngine.Dispatcher dispatcher) {
@@ -309,7 +313,7 @@ final class Phase9ASpikeEngine implements AutoCloseable {
         }
         json.add("domains", domains);
         JsonArray providers = new JsonArray();
-        for (AgentDataProviderV2 provider : MinecraftProtocolProvidersV2.snapshot()) {
+        for (AgentDataProviderV2 provider : this.providerExecution.providers()) {
             providers.add(providerDescriptor(provider.descriptor()));
         }
         json.add("providers", providers);

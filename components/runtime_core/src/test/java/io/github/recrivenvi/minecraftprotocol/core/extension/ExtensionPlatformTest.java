@@ -44,6 +44,240 @@ class ExtensionPlatformTest {
     }
 
     @Test
+    void derivedLibraryIsReproducibleAndLoaderOnlySeesInertCoreGatedConfigurations()
+            throws Exception {
+        Path game = temporary.resolve("deterministic"),
+                root = game.resolve("minecraft-protocol/extensions");
+        Path directory = hookBundle(root, "deterministic", "extensiontest.deterministic");
+        approve(root, directory, true);
+        var env = environment("26.3-neoforge", PackageContext.Side.CLIENT);
+        Path first = game.resolve("one.jar"), second = game.resolve("two.jar");
+        ExtensionEarlyStage.write(new ExtensionStore(root), env, first);
+        ExtensionEarlyStage.write(new ExtensionStore(root), env, second);
+        assertArrayEquals(Files.readAllBytes(first), Files.readAllBytes(second));
+        try (var jar = new java.util.jar.JarFile(first.toFile())) {
+            String configs = jar.getManifest().getMainAttributes().getValue("MixinConfigs");
+            assertNotNull(configs);
+            for (String config : configs.split(",")) {
+                JsonObject value;
+                try (var input = jar.getInputStream(jar.getJarEntry(config))) {
+                    value = ExtensionManifest.object(input.readAllBytes());
+                }
+                assertEquals(ExtensionEarlyStage.MIXIN_PLUGIN, value.get("plugin").getAsString());
+                assertEquals(
+                        0,
+                        value.getAsJsonArray("mixins").size(),
+                        "No author class name is loaded before the core approval gate");
+            }
+        }
+        assertNull(System.getProperty("extension_test.deterministic"));
+    }
+
+    @Test
+    void earlyStagingChecksNativeBytesWithoutInitializingAnyPackageAndDistinguishesAppliedHooks()
+            throws Exception {
+        Path game = temporary.resolve("early");
+        Path root = game.resolve("minecraft-protocol/extensions");
+        Path directory = hookBundle(root, "early", "extensiontest.early");
+        approve(root, directory, true);
+        Path library = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        ExtensionEarlyStage.write(
+                new ExtensionStore(root),
+                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                library);
+        assertNull(System.getProperty("extension_test.early"));
+        try (var nativeLoader =
+                new java.net.URLClassLoader(
+                        new java.net.URL[] {library.toUri().toURL()},
+                        PackageContext.class.getClassLoader())) {
+            var env =
+                    new ExtensionPlatform.Environment(
+                            "product",
+                            "26.3-neoforge",
+                            PackageContext.Side.CLIENT,
+                            Runtime.version().feature(),
+                            Map.of("upstream", "2.0.0"),
+                            nativeLoader);
+            var early =
+                    ExtensionEarlyBootstrap.boot(
+                            game,
+                            env,
+                            new ExtensionEarlyBootstrap.Loader() {
+                                public void prepare(Path file) {
+                                    assertEquals(library, file);
+                                }
+
+                                public boolean isClassLoaded(String name) {
+                                    return false;
+                                }
+                            });
+            assertEquals(
+                    "validated",
+                    early.diagnostics().get("state").getAsString(),
+                    early.diagnostics().toString());
+            assertNull(System.getProperty("extension_test.early"));
+            assertEquals(1, early.configurationPaths().size());
+            var manifest = ExtensionStore.inspect(directory).manifest();
+            assertFalse(early.prepared(manifest, env));
+            assertFalse(
+                    early.allows(
+                            "extensiontest.early.mixin",
+                            "extensiontest.early.mixin.Probe",
+                            "extensiontest.victim.Target"));
+            assertEquals(List.of("Probe"), early.mixins("extensiontest.early.mixin"));
+            assertTrue(
+                    early.allows(
+                            "extensiontest.early.mixin",
+                            "extensiontest.early.mixin.Probe",
+                            "extensiontest.victim.Target"));
+            assertFalse(
+                    early.allows(
+                            "extensiontest.early.mixin",
+                            "extensiontest.early.mixin.Other",
+                            "extensiontest.victim.Target"));
+            assertFalse(
+                    early.allows(
+                            "extensiontest.early.mixin",
+                            "extensiontest.early.mixin.Probe",
+                            "java.lang.String"));
+            assertFalse(
+                    early.allows(
+                            "unknown",
+                            "extensiontest.early.mixin.Probe",
+                            "extensiontest.victim.Target"));
+            assertTrue(early.prepared(manifest, env));
+            assertEquals(
+                    0,
+                    early.diagnostics()
+                            .getAsJsonArray("configs")
+                            .get(0)
+                            .getAsJsonObject()
+                            .getAsJsonArray("appliedTargets")
+                            .size(),
+                    "Configuration registration must not claim an actual transformation");
+            try (var platform = new ExtensionPlatform(new ExtensionStore(root), env, early)) {
+                assertEquals(1, platform.snapshot().size());
+                assertEquals("initialized", System.getProperty("extension_test.early"));
+            }
+        } finally {
+            System.clearProperty("extension_test.early");
+        }
+    }
+
+    @Test
+    void changedApprovalOrAlreadyLoadedMixinTargetNeverRegistersOrInitializesCode()
+            throws Exception {
+        for (boolean loaded : List.of(false, true)) {
+            Path game = temporary.resolve("reject-early-" + loaded),
+                    root = game.resolve("minecraft-protocol/extensions");
+            String id = loaded ? "loaded" : "changed";
+            Path directory = hookBundle(root, id, "extensiontest." + id);
+            approve(root, directory, true);
+            Path library = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+            ExtensionEarlyStage.write(
+                    new ExtensionStore(root),
+                    environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                    library);
+            if (!loaded)
+                Files.writeString(
+                        root.resolve("approvals.json"), "{\"formatVersion\":1,\"packages\":{}}");
+            try (var nativeLoader =
+                    new java.net.URLClassLoader(
+                            new java.net.URL[] {library.toUri().toURL()},
+                            PackageContext.class.getClassLoader())) {
+                var env =
+                        new ExtensionPlatform.Environment(
+                                "product",
+                                "26.3-neoforge",
+                                PackageContext.Side.CLIENT,
+                                Runtime.version().feature(),
+                                Map.of(),
+                                nativeLoader);
+                var early =
+                        ExtensionEarlyBootstrap.boot(
+                                game,
+                                env,
+                                new ExtensionEarlyBootstrap.Loader() {
+                                    public void prepare(Path file) {}
+
+                                    public boolean isClassLoaded(String name) {
+                                        return loaded;
+                                    }
+                                });
+                assertEquals(
+                        loaded
+                                ? "EXTENSION_MIXIN_TARGET_ALREADY_LOADED"
+                                : "EXTENSION_EARLY_CONTENT_CHANGED",
+                        early.diagnostics().get("state").getAsString(),
+                        early.diagnostics().toString());
+                assertTrue(early.configurationPaths().isEmpty());
+                assertFalse(
+                        early.allows(
+                                "extensiontest." + id + ".mixin",
+                                "extensiontest." + id + ".mixin.Probe",
+                                "extensiontest.victim.Target"));
+                assertNull(System.getProperty("extension_test." + id));
+            }
+        }
+    }
+
+    private Path hookBundle(Path root, String id, String namespace) throws Exception {
+        Path directory = bundle(root, id, namespace, 3, false, null);
+        Path code = directory.resolve("code/adapter.jar");
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (var output = new JarOutputStream(bytes);
+                var input = new java.util.jar.JarInputStream(Files.newInputStream(code))) {
+            for (var entry = input.getNextJarEntry();
+                    entry != null;
+                    entry = input.getNextJarEntry()) {
+                output.putNextEntry(new JarEntry(entry.getName()));
+                input.transferTo(output);
+                output.closeEntry();
+            }
+            var writer = new org.objectweb.asm.ClassWriter(0);
+            writer.visit(
+                    org.objectweb.asm.Opcodes.V17,
+                    org.objectweb.asm.Opcodes.ACC_PUBLIC,
+                    (namespace + ".mixin.Probe").replace('.', '/'),
+                    null,
+                    "java/lang/Object",
+                    null);
+            var annotation = writer.visitAnnotation("Lorg/spongepowered/asm/mixin/Mixin;", false);
+            var targets = annotation.visitArray("targets");
+            targets.visit(null, "extensiontest.victim.Target");
+            targets.visitEnd();
+            annotation.visitEnd();
+            writer.visitEnd();
+            output.putNextEntry(
+                    new JarEntry((namespace + ".mixin.Probe").replace('.', '/') + ".class"));
+            output.write(writer.toByteArray());
+            output.closeEntry();
+        }
+        Files.write(code, bytes.toByteArray());
+        JsonObject manifest =
+                ExtensionManifest.object(Files.readAllBytes(directory.resolve("extension.json")));
+        manifest.getAsJsonObject("files")
+                .addProperty("code/adapter.jar", ExtensionManifest.digest(bytes.toByteArray()));
+        Files.createDirectories(directory.resolve("mixins"));
+        byte[] config =
+                ("{\"package\":\""
+                                + namespace
+                                + ".mixin\",\"mixins\":[\"Probe\"],\"required\":true}")
+                        .getBytes(StandardCharsets.UTF_8);
+        Files.write(directory.resolve("mixins/probe.json"), config);
+        manifest.getAsJsonObject("files")
+                .addProperty("mixins/probe.json", ExtensionManifest.digest(config));
+        manifest.getAsJsonObject("variants")
+                .getAsJsonObject("26.3-neoforge")
+                .add(
+                        "mixins",
+                        json("{\"hooks\":[{\"config\":\"mixins/probe.json\",\"side\":\"client\"}]}")
+                                .getAsJsonArray("hooks"));
+        Files.writeString(directory.resolve("extension.json"), manifest.toString() + "\n");
+        return directory;
+    }
+
+    @Test
     void noCodeRunsWithoutExactContentAndScopeApproval() throws Exception {
         Path root = temporary.resolve("unapproved");
         Path packagePath = bundle(root, "sample", "extensiontest.sample", 7, false, null);
@@ -140,6 +374,9 @@ class ExtensionPlatformTest {
                                         return environment(
                                                 "26.3-neoforge", PackageContext.Side.CLIENT);
                                     if (method.getReturnType() == void.class) return null;
+                                    if (method.getName().equals("extensionEarlyHooks"))
+                                        return (ExtensionPlatform.EarlyHooks)
+                                                (manifest, env) -> false;
                                     if (method.getName().equals("extensionThreadOwners"))
                                         return java.util.Map.of();
                                     if (method.getName().equals("artifactRoot"))

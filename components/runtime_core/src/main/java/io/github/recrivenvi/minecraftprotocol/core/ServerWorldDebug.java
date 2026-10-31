@@ -21,6 +21,11 @@ public final class ServerWorldDebug implements AutoCloseable {
             return java.util.Map.of();
         }
 
+        default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+                extensionEarlyHooks() {
+            return (manifest, environment) -> false;
+        }
+
         default void attachExtensionProviders(
                 io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
             throw new UnsupportedOperationException(
@@ -68,6 +73,12 @@ public final class ServerWorldDebug implements AutoCloseable {
             extensionThreadOwners() {
         requireOpen();
         return host.extensionThreadOwners();
+    }
+
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.EarlyHooks
+            extensionEarlyHooks() {
+        requireOpen();
+        return host.extensionEarlyHooks();
     }
 
     public void attachExtensionProviders(

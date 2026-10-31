@@ -13,6 +13,7 @@ Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的�
 | runtime_core（product） | [共享协议执行与策略](architecture-runtime_core.md)、Provider SPI/注册、资源版本、录制与通用服务接口 |
 | protocol_schema（tool） | 未冻结 V0 OpenAPI 与生成 Java/TypeScript models，生成输出不冒充已接入 Runtime 依赖 |
 | companion（tool） | 独立 MCP stdio surface、协议客户端、有界流读取、static descriptions 与注入隔离；可选本机网页界面工作台复用认证 Native 客户端 |
+| extension_packages（tool） | [独立扩展包作者工程](architecture-extension_platform.md)，SDK 编译、包生成与离线原生库暂存，不进入产品 JAR |
 | validation_tools（tool） | 现有验证驱动、Showcase、报告与迁移 JAR 对照，不合并进产品 |
 
 两个产品组件按模板 product 机制直接合并进每个最终 JAR，开发运行由正规 Loader classpath 接入；
@@ -34,7 +35,7 @@ Interaction Tree 递归读取原生 Screen/container/list children，结合 Menu
 适配形成结构化语义目标；资源包图标、特殊菜单和书本/告示牌用 Target-specific 原生适配。
 没有鼠标文本框的编辑器用 keyboard-only 路由，不虚构几何；页码/选项身份进入 stale guard。
 Widget 与 Slot 不能混为内部 Reflection。私有 Vanilla 嵌套按钮只能用精确具名只读 Accessor/marker，
-Hook 门禁保留封闭的文件/目标白名单，不允许任意字符串或第三方目标。
+本体原版适配的 Hook 门禁保留封闭文件/目标白名单；[本地扩展包](architecture-extension_platform.md)另经清单、内容审批、命名空间与早期预检接入，不接受远程任意目标字符串。
 节点有界、列表边界裁剪、选择器递归；输入前重验实际对象与几何，自绘未知区域报告限制。
 通用交互区域补足滚动条、富文本、建议、进度画布与配方展开层，显式记录原生输入优先级和遮挡。
 文字区域身份绑定页面/文字/样式/几何的摘要，不让同一个 Screen 中的旧链接编号别名到新内容。

@@ -2683,3 +2683,17 @@ Provider复用原执行器与权限/线程/schema/资源版本；原SPI保留。
 
 spotlessApply及各改动组件格式化后，整仓check、Java/Companion、协议生成、文档/控制门禁、五端verifyRelease与verifyCompliance --strict通过，严格模式0失败0警告；Native新读取端点为90项正式目录的一部分。
 内容与类别、权限、Lease、Arm、真人Esc和截图隔离原合同保持不变。此阶段不发布Alpha、不改latest；DP集中真人验收仍待用户安排，Persistent Write调用0。
+
+## 2026-10-31扩展平台五端早期加载桥
+
+EP-2从bd00e454检查点继续。增加纯元数据早期预检、可复现派生库与配置索引；Native入口、SDK和作者命名空间分离。Forge/NeoForge用原生GAMELIBRARY，Fabric用早期classpath/PreLaunch；不替换全局fallback。外部Mixin应用需匹配已验证类和目标，注册与实际postApply分别记录。
+
+本轮先完成五端source-set，再完成[五端当前成品客户端与独立服务器](../../validations/integration-extension_platform/result/bridge-matrix.json)。矩阵核对每个实际JAR、当前源码、包身份、原生helper、MinecraftServer tick、MCP读取/typed采样、Arm到期/无迟到发布及正常退出。独服零玩家且不取得输入Lease；所有Persistent Write调用0。没有运行七模组业务、整合包、性能基准或真人输入。
+
+原生试跑定位并修复桥/SDK split package、Mixin遍历时追加配置的ConcurrentModificationException，以及用开发父加载器核心类作为变换目标不能证明Native的问题。旧Forge成品另验证SRG refmap；其映射成为具名测试输入，有原生映射产物时核对，干净构建不依赖未声明缓存。
+
+样例探针冷启动曾在NeoForge 1.21.1客户端和旧Forge独服触发原有10毫秒同步入口预算。探针1.0.2把准备异步化，在服务器owner重查取消/deadline/版本/有效grant后执行；预算未放宽、失败修改未自动重放。前置同一本体的[1.0.0→1.0.2替包](../../validations/integration-extension_platform/result/26.3-neoforge-replacement.json)保留自己的旧JAR哈希；它不替代新拒绝门禁后的成品矩阵或最终Alpha冻结替包证明。
+
+官方安装器曾有TLS握手失败，复用官方校验缓存后正常安装，未关证书或哈希验证。26.1.2准备服务器曾因游戏端口占用退出；零玩家扩展验证改由Vanilla原子分配端口0，正常通过。测试工具区分保存退出的未确认回执与独立标题页/世代/held清理证明；退休目录前同时检查client和server，前置失败覆盖为非PASS。
+
+完整check、Java/Companion、协议/控制/文档、五端verifyRelease及严格合规通过，严格模式0失败0警告；新增兄弟服务器锁保护另有实际文件锁负控。SDK与早期加载说明已更新，DP集中人工验收继续待办。EP-2检查点不发布Alpha、不更新latest；下一阶段为可见UI投影与逻辑输入。
