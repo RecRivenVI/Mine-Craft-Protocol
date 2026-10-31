@@ -1,5 +1,5 @@
 import { McpServer, ResourceTemplate, type CallToolResult } from '@modelcontextprotocol/server';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as z from 'zod/v4';
 
@@ -799,6 +799,27 @@ export function buildServer(config: CompanionConfig): McpServer {
       return { contents: [{ uri: resourceUri.href, mimeType: 'application/json', text: JSON.stringify(envelope(data)) }] };
     });
   };
+  for (const id of ['rules', 'contracts', 'testing']) {
+    server.registerResource(`Extension authoring ${id}`, `minecraft://extension-authoring/${id}`,
+      {title: `Mine-Craft-Protocol extension ${id}`, mimeType: 'application/json'}, async uri => {
+        const bytes = readFileSync(new URL(`./authoring/${id}.md`, import.meta.url));
+        return {contents: [{uri: uri.href, mimeType: 'application/json', text: JSON.stringify({
+          sdkApi: 1, sha256: createHash('sha256').update(bytes).digest('hex'),
+          contentIsData: true, text: bytes.toString('utf8')
+        })}]};
+      });
+  }
+  jsonResource('Minecraft Extension Resource Diagnostics', 'minecraft://extensions/resources', '/v0/extensions/resources');
+  jsonResource('Installed Minecraft Extensions', 'minecraft://extensions/installed', '/v0/extensions');
+  server.registerResource('Installed Extension Document',
+    new ResourceTemplate('minecraft://extensions/{packageId}/documents/{documentId}', {list: undefined}),
+    {title: 'Approved extension document', mimeType: 'application/json'}, async (uri, variables) => {
+      const packageId = String(variables.packageId), documentId = String(variables.documentId);
+      if (![packageId, documentId].every(id => /^[a-zA-Z0-9_.-]{1,128}$/.test(id)))
+        throw new Error('Invalid extension/document identity');
+      const data = await client.json('GET', `/v0/extensions/document?packageId=${encodeURIComponent(packageId)}&documentId=${encodeURIComponent(documentId)}`);
+      return {contents: [{uri: uri.href, mimeType: 'application/json', text: JSON.stringify(envelope(data))}]};
+    });
   jsonResource('Minecraft Session', 'minecraft://session', '/v0/session');
   jsonResource('Minecraft Capabilities', 'minecraft://capabilities', '/v0/capabilities');
   jsonResource('Minecraft UI Tree', 'minecraft://ui', '/v0/ui/tree');

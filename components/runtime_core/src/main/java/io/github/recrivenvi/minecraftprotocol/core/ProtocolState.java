@@ -66,7 +66,7 @@ public final class ProtocolState implements AutoCloseable {
     private final AtomicLong debugMutationSequence = new AtomicLong();
     private final Map<String, GameplayActWindow> gameplayActs = new ConcurrentHashMap<>();
     private volatile ControlLease lease;
-    private DebugArm debugArm;
+    private volatile DebugArm debugArm;
     private final AgentControlSession controlSession;
     private final AgentTaskLifecycle agentTask = new AgentTaskLifecycle();
     private String leaseTaskId;
@@ -887,6 +887,16 @@ public final class ProtocolState implements AutoCloseable {
                         return this.modeStatus();
                     }
                 });
+    }
+
+    java.util.function.BooleanSupplier debugGrantValidity(String armId) {
+        return () -> {
+            DebugArm current = this.debugArm;
+            return !this.closed
+                    && current != null
+                    && current.id().equals(armId)
+                    && current.expiresAtMillis() > System.currentTimeMillis();
+        };
     }
 
     synchronized JsonObject armDebug(

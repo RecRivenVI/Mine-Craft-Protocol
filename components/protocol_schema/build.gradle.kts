@@ -68,6 +68,9 @@ val test by tasks.registering {
         val tsRoot = layout.buildDirectory.dir("generated/typescript/models").get().asFile
         for (model in
             listOf(
+                "ExtensionCatalog",
+                "InstalledExtension",
+                "ExtensionDocument",
                 "AgentMode",
                 "AgentTaskRequest",
                 "AgentTaskResponse",

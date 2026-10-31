@@ -8,7 +8,7 @@ const config = loadConfig();
 const handle = serveStdio(() => buildServer(config));
 
 console.error('Mine-Craft-Protocol MCP Companion ready on stdio');
-if (config.discovery) console.error(`Runtime instance: ${config.discovery.target} / ${config.discovery.runtimeInstanceId} / ${config.baseUrl.origin}`);
+if (!config.authoringOnly && config.discovery) console.error(`Runtime instance: ${config.discovery.target} / ${config.discovery.runtimeInstanceId} / ${config.baseUrl.origin}`);
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

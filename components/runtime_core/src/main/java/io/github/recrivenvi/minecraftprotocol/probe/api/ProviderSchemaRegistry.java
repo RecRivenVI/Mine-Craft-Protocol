@@ -40,8 +40,16 @@ public final class ProviderSchemaRegistry {
         return schemaId != null && VALIDATORS.containsKey(schemaId);
     }
 
-    public static synchronized ValidationResult validate(String schemaId, JsonObject value) {
-        Validator validator = VALIDATORS.get(schemaId);
+    public static ValidationResult validate(String schemaId, JsonObject value) {
+        Validator validator;
+        synchronized (ProviderSchemaRegistry.class) {
+            validator = VALIDATORS.get(schemaId);
+        }
+        // Package validators are user code: never invoke them under the registration lock.
+        return validateValue(validator, value);
+    }
+
+    public static ValidationResult validateValue(Validator validator, JsonObject value) {
         if (validator == null) return ValidationResult.fail("unknown_schema");
         try {
             ValidationResult result =

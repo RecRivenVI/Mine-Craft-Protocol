@@ -1,15 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { discoveryToken, readRuntimeDiscovery, type RuntimeDiscovery } from './discovery.js';
 
-export interface CompanionConfig {
-  baseUrl: URL;
-  token: string;
+interface CompanionLimits {
   timeoutMs: number;
   maxJsonBytes: number;
   maxArtifactBytes: number;
+}
+
+export interface ConnectedCompanionConfig extends CompanionLimits {
+  authoringOnly?: false;
+  baseUrl: URL;
+  token: string;
   instanceDirectory?: string;
   discovery?: RuntimeDiscovery;
 }
+
+export interface AuthoringCompanionConfig extends CompanionLimits {
+  authoringOnly: true;
+}
+
+export type CompanionConfig = ConnectedCompanionConfig | AuthoringCompanionConfig;
 
 function booleanEnvironment(value: string | undefined): boolean {
   return value === '1' || value?.toLowerCase() === 'true';
@@ -23,6 +33,17 @@ function positiveInteger(value: string | undefined, fallback: number): number {
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): CompanionConfig {
+  const limits: CompanionLimits = {
+    timeoutMs: positiveInteger(environment.MCP_COMPANION_TIMEOUT_MS, 10_000),
+    maxJsonBytes: positiveInteger(environment.MCP_COMPANION_MAX_JSON_BYTES, 16 * 1024 * 1024),
+    maxArtifactBytes: positiveInteger(environment.MCP_COMPANION_MAX_ARTIFACT_BYTES, 256 * 1024 * 1024)
+  };
+  if (booleanEnvironment(environment.MCP_COMPANION_AUTHORING_ONLY)) {
+    if (['MCP_MINECRAFT_INSTANCE_DIR', 'MCP_MINECRAFT_BASE_URL', 'MCP_MINECRAFT_TOKEN',
+      'MCP_MINECRAFT_TOKEN_FILE', 'MCP_MINECRAFT_TARGET', 'MCP_MINECRAFT_ROLE'].some(key => environment[key]))
+      throw new Error('Authoring-only mode cannot include Runtime connection credentials');
+    return { authoringOnly: true, ...limits };
+  }
   const instanceDirectory = environment.MCP_MINECRAFT_INSTANCE_DIR;
   if (instanceDirectory && (environment.MCP_MINECRAFT_BASE_URL || environment.MCP_MINECRAFT_TOKEN || environment.MCP_MINECRAFT_TOKEN_FILE)) {
     throw new Error('Choose instance discovery OR explicit BASE_URL and TOKEN credentials; do not mix connection authorities');
@@ -54,8 +75,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Compan
     ...(instanceDirectory && discovery ? { instanceDirectory, discovery } : {}),
     baseUrl,
     token,
-    timeoutMs: positiveInteger(environment.MCP_COMPANION_TIMEOUT_MS, 10_000),
-    maxJsonBytes: positiveInteger(environment.MCP_COMPANION_MAX_JSON_BYTES, 16 * 1024 * 1024),
-    maxArtifactBytes: positiveInteger(environment.MCP_COMPANION_MAX_ARTIFACT_BYTES, 256 * 1024 * 1024)
+    ...limits
   };
 }

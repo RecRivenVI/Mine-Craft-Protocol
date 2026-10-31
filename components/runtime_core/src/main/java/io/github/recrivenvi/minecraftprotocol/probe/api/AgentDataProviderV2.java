@@ -88,7 +88,39 @@ public interface AgentDataProviderV2 {
             long deadlineMillis,
             int byteBudget,
             String requestId,
-            BooleanSupplier cancellationRequested) {
+            BooleanSupplier cancellationRequested,
+            java.util.function.Supplier<
+                            io.github.recrivenvi.minecraftprotocol.probe.extension
+                                    .ExtensionResources.Scope>
+                    resourceScope) {
+        public DebugContext(
+                JsonObject mutation,
+                JsonObject expectedResourceVersion,
+                String worldFingerprint,
+                long deadlineMillis,
+                int byteBudget,
+                String requestId,
+                BooleanSupplier cancellationRequested) {
+            this(
+                    mutation,
+                    expectedResourceVersion,
+                    worldFingerprint,
+                    deadlineMillis,
+                    byteBudget,
+                    requestId,
+                    cancellationRequested,
+                    null);
+        }
+
+        public io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Scope
+                resources() {
+            if (cancellationRequested.getAsBoolean())
+                throw new java.util.concurrent.CancellationException();
+            if (resourceScope == null)
+                throw new IllegalStateException("Provider has no managed resource owner");
+            return resourceScope.get();
+        }
+
         public DebugContext {
             mutation = mutation == null ? new JsonObject() : mutation.deepCopy();
             expectedResourceVersion =

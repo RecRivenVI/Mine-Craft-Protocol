@@ -7,6 +7,8 @@ const specificationPath = resolve(directory, '../../protocol_schema/src/main/ope
 const specification = JSON.parse(await readFile(specificationPath, 'utf8'));
 
 const requiredPaths = [
+  '/v0/extensions',
+  '/v0/extensions/document',
   '/v0/session',
   '/v0/control/mode',
   '/v0/capabilities',
@@ -26,6 +28,7 @@ const requiredPaths = [
   ,'/v0/debug/batches'
 ];
 const requiredSchemas = [
+  'ExtensionCatalog', 'InstalledExtension', 'ExtensionDocument',
   'WorldDataCategory', 'WorldReadContract', 'WorldUserPlayerResponse', 'WorldSceneResponse', 'RuntimeConnection',
   'CapabilitiesResponse', 'PlayerCommandSubmission',
   'AgentMode', 'AgentModeVersion', 'ControlModeRequest', 'ControlModeResponse',

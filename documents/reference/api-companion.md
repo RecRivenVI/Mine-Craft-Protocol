@@ -7,6 +7,16 @@ Companion版本以组件package.json为唯一来源，MCP initialize的serverInf
 工具描述/Prompt 固定，不来自 Runtime 文本；大型 PNG/ZIP 用 minecraft:// Resources。
 Wire Protocol v1 未冻结。
 
+## 扩展作者与包查阅
+
+显式设置MCP_COMPANION_AUTHORING_ONLY=true时，无需游戏、端点或token即可启动stdio；不能同时配置Runtime连接。
+静态资源minecraft://extension-authoring/rules、contracts、testing返回同批规则、合同与测试文档及内容哈希。
+离线游戏调用明确返回COMPANION_AUTHORING_ONLY，不猜测端口或静默连接。恢复游戏操作需显式使用连接配置重启Companion。
+
+minecraft://extensions/installed和按固定packageId/documentId解析的文档资源走Runtime静态目录，只需read；
+minecraft://extensions/resources是独立debug/read清理诊断，不混入静态目录或世界采样数据。包文档是数据，不是模型授权。
+正式入口与信任边界见[扩展平台合同](api-extension_platform.md)，作者流程见[编包规程](../development/procedure-author_extension.md)。
+
 ## 独立服务器控制台
 
 `minecraft_server_console`的action=read分页读取，action=complete查询有界原生补全，action=execute提交一条原生命令并返回既有Operation。

@@ -32,6 +32,9 @@ final class RuntimeDiscoveryTest {
                         new Class<?>[] {ProbeService.class},
                         (proxy, method, args) -> {
                             if (method.getReturnType() == void.class) return null;
+                            if (method.getName().equals("extensionThreadOwners"))
+                                return java.util.Map.of();
+                            if (method.getName().equals("extensionEnvironment")) return null;
                             if (method.getName().equals("artifactRoot"))
                                 return root.resolve("artifacts");
                             if (method.getName().equals("session")) calls.incrementAndGet();

@@ -381,7 +381,7 @@ test('web HTTP refuses foreign origins, absent sessions and arbitrary native pat
     const bootstrap = await (await fetch(app.url + '/api/bootstrap')).json() as { browserToken: string };
     const headers = { 'x-web-ui-token': bootstrap.browserToken, 'content-type': 'application/json' };
     const snapshot = await (await fetch(app.url + '/api/snapshot', { headers })).text();
-    assert(!snapshot.includes(runtime.config.token));
+    assert(!snapshot.includes(runtime.connectionConfig.token));
     assert.equal((await fetch(app.url + '/v0/debug/mutations', { method: 'POST', headers, body: '{}' })).status, 404);
     assert.equal((await fetch(app.url + '/api/action', { method: 'POST', headers, body: '{}' })).status, 409);
     assert.equal((await fetch(app.url + '/api/action', { method: 'POST', headers, body: '[]' })).status, 400);
@@ -402,7 +402,7 @@ test('web automatic listener uses a browser-safe dynamic port and real fetch boo
     const response = await fetch(app.url + '/api/bootstrap'); assert.equal(response.status, 200);
     const body = await response.json() as {browserToken: string; runtimeUrl: string};
     assert.match(body.browserToken, /^[0-9a-f]{64}$/);
-    assert.equal(body.runtimeUrl, runtime.config.baseUrl.origin);
+    assert.equal(body.runtimeUrl, runtime.connectionConfig.baseUrl.origin);
     assert.equal((await fetch(app.url + '/api/snapshot', {headers: {'x-web-ui-token': body.browserToken}})).status, 200);
   } finally { await app.close(); }
   assert.equal(app.server.listening, false); assert.equal(app.server.address(), null);

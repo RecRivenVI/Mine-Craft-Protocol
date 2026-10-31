@@ -25,4 +25,5 @@ components {
     tool("protocol_schema")
     tool("companion")
     tool("validation_tools")
+    tool("extension_packages")
 }

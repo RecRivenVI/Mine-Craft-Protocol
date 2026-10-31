@@ -8,6 +8,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Dedicated authorization/lifecycle boundary; the Target owns all Minecraft resource semantics. */
 public final class ServerWorldDebug implements AutoCloseable {
     public interface Host extends AutoCloseable {
+        default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+                extensionEnvironment(String target) {
+            return null;
+        }
+
+        default java.util.Map<
+                        String,
+                        io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                                .ThreadOwner>
+                extensionThreadOwners() {
+            return java.util.Map.of();
+        }
+
+        default void attachExtensionProviders(
+                io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+            throw new UnsupportedOperationException(
+                    "World host has no extension Provider dispatcher");
+        }
+
         JsonObject fingerprint();
 
         JsonObject capabilities();
@@ -34,6 +53,27 @@ public final class ServerWorldDebug implements AutoCloseable {
 
     public ServerWorldDebug(Host host) {
         this.host = java.util.Objects.requireNonNull(host);
+    }
+
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+            extensionEnvironment(String target) {
+        requireOpen();
+        return host.extensionEnvironment(target);
+    }
+
+    public java.util.Map<
+                    String,
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                            .ThreadOwner>
+            extensionThreadOwners() {
+        requireOpen();
+        return host.extensionThreadOwners();
+    }
+
+    public void attachExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        requireOpen();
+        host.attachExtensionProviders(source);
     }
 
     public JsonObject fingerprint() {

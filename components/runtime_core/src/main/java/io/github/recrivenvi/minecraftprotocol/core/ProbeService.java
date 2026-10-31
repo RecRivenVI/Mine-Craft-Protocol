@@ -6,6 +6,24 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProbeService {
+    default io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+            extensionEnvironment(String target) {
+        return null;
+    }
+
+    default java.util.Map<
+                    String,
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                            .ThreadOwner>
+            extensionThreadOwners() {
+        return java.util.Map.of();
+    }
+
+    default void attachExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        throw new UnsupportedOperationException("Runtime has no extension Provider dispatcher");
+    }
+
     default void attachControlSession(AgentControlSession session) {}
 
     default void attachPlayerCommandGate(PlayerCommandGate gate) {}

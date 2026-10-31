@@ -14,6 +14,30 @@ import org.junit.jupiter.api.Test;
 
 final class ProtocolStateTest {
     @Test
+    void extensionGrantWitnessIsIndependentOfInputAndTracksRenewRevokeAndReplacement() {
+        try (ProtocolState state = state()) {
+            String id =
+                    state.armDebug("world", "world", "epoch", Set.of("provider"), 1000)
+                            .get("debugArmId")
+                            .getAsString();
+            var witness = state.debugGrantValidity(id);
+            assertTrue(witness.getAsBoolean());
+            state.renewDebug(id, "world", "epoch", 5000);
+            assertTrue(witness.getAsBoolean());
+            state.disarmDebug("test");
+            assertTrue(!witness.getAsBoolean());
+            String replacement =
+                    state.armDebug("world", "world", "epoch", Set.of("provider"), 1000)
+                            .get("debugArmId")
+                            .getAsString();
+            assertTrue(state.debugGrantValidity(replacement).getAsBoolean());
+            assertTrue(!witness.getAsBoolean());
+            state.close();
+            assertTrue(!state.debugGrantValidity(replacement).getAsBoolean());
+        }
+    }
+
+    @Test
     void waitObservesCommittedTerminalState() throws Exception {
         try (ProtocolState state = state()) {
             CompletableFuture<JsonObject> nativeFuture = new CompletableFuture<>();

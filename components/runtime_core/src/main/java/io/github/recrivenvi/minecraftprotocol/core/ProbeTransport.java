@@ -96,6 +96,7 @@ public final class ProbeTransport implements AutoCloseable {
     private final ConditionEngine conditions;
     private final DebugBatchEngine debugBatches;
     private final PeerDelegations peerDelegations;
+    private io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform extensions;
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile CompletableFuture<JsonObject> closingInputRelease =
@@ -121,11 +122,63 @@ public final class ProbeTransport implements AutoCloseable {
                         targetId,
                         (service instanceof HeadlessProbeService) ? "DEDICATED_SERVER" : "CLIENT");
         try {
-            return new ProbeTransport(
-                    service, RuntimeToken.resolve(gameDirectory), port, targetId, endpoint);
+            ProbeTransport transport =
+                    new ProbeTransport(
+                            service, RuntimeToken.resolve(gameDirectory), port, targetId, endpoint);
+            try {
+                transport.installExtensions(gameDirectory, targetId);
+                return transport;
+            } catch (Throwable failure) {
+                transport.close();
+                throw failure;
+            }
         } catch (Throwable failure) {
             endpoint.close();
             throw failure;
+        }
+    }
+
+    private void installExtensions(Path gameDirectory, String targetId) {
+        var environment = service.extensionEnvironment(targetId);
+        if (environment == null) return;
+        var platform =
+                new io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform(
+                        new io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionStore(
+                                gameDirectory.resolve("minecraft-protocol/extensions")),
+                        environment,
+                        (manifest, env) -> false,
+                        this.runtimeInstanceId,
+                        service.extensionThreadOwners());
+        this.extensions = platform;
+        service.attachExtensionProviders(platform);
+    }
+
+    private JsonObject extensionCatalog() {
+        if (this.extensions != null) return this.extensions.catalog();
+        throw new ProtocolState.ProtocolException(
+                "CAPABILITY_UNAVAILABLE", 409, "Runtime has no extension environment");
+    }
+
+    private JsonObject extensionDocument(QueryStringDecoder query) {
+        if (extensions == null)
+            throw new ProtocolState.ProtocolException(
+                    "CAPABILITY_UNAVAILABLE", 409, "Runtime has no extension environment");
+        if (query.parameters().entrySet().stream()
+                        .anyMatch(
+                                entry ->
+                                        !Set.of("packageId", "documentId", "kind")
+                                                        .contains(entry.getKey())
+                                                || entry.getValue().size() != 1)
+                || !Set.of("document", "test").contains(stringQuery(query, "kind", "document")))
+            throw new ProtocolState.ProtocolException(
+                    "INVALID_EXTENSION_DOCUMENT_QUERY", 400, "Use fixed document/test IDs");
+        try {
+            return extensions.document(
+                    stringQuery(query, "packageId", ""),
+                    stringQuery(query, "documentId", ""),
+                    "test".equals(stringQuery(query, "kind", "document")));
+        } catch (io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionFailure failure) {
+            throw new ProtocolState.ProtocolException(failure.code(), 409, failure.getMessage());
         }
     }
 
@@ -572,6 +625,7 @@ public final class ProbeTransport implements AutoCloseable {
             this.automation.close();
             this.commandGate.close();
             this.protocolState.close();
+            if (this.extensions != null) this.extensions.close();
             this.peerDelegations.close();
             this.recording.close();
             if (this.serverChannel != null)
@@ -745,6 +799,9 @@ public final class ProbeTransport implements AutoCloseable {
                                                 "/v0/debug/mutations",
                                                 "/v0/debug/batches",
                                                 "/v0/debug/evidence",
+                                                "/v0/extensions",
+                                                "/v0/extensions/document",
+                                                "/v0/extensions/resources",
                                                 "/v0/providers",
                                                 "/v0/providers/read",
                                                 "/v0/state/frames",
@@ -788,6 +845,36 @@ public final class ProbeTransport implements AutoCloseable {
                         path,
                         "read",
                         () -> connectionSnapshot(service.capabilities(), true));
+            } else if (request.method() == HttpMethod.GET && path.equals("/v0/extensions")) {
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "read",
+                        () -> CompletableFuture.completedFuture(extensionCatalog()));
+            } else if (request.method() == HttpMethod.GET
+                    && path.equals("/v0/extensions/resources")) {
+                protocolState.requireScope("debug");
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "read",
+                        () -> {
+                            if (extensions == null)
+                                throw new ProtocolState.ProtocolException(
+                                        "CAPABILITY_UNAVAILABLE", 409, "No extension environment");
+                            return CompletableFuture.completedFuture(
+                                    extensions.resourceDiagnostics());
+                        });
+            } else if (request.method() == HttpMethod.GET
+                    && path.equals("/v0/extensions/document")) {
+                read(
+                        context,
+                        metadata,
+                        path,
+                        "read",
+                        () -> CompletableFuture.completedFuture(extensionDocument(uri)));
             } else if (path.equals("/v0/server/peer/delegations")
                     || path.startsWith("/v0/server/peer/delegations/")) {
                 protocolState.requireScope("server_peer");
@@ -2315,6 +2402,19 @@ public final class ProbeTransport implements AutoCloseable {
                             if (mode.has(name)) result.add(name, mode.get(name));
                     }
                     if (capabilities) {
+                        JsonObject extensionContract = new JsonObject();
+                        extensionContract.addProperty("available", this.extensions != null);
+                        extensionContract.addProperty("catalogPath", "/v0/extensions");
+                        extensionContract.addProperty("documentPath", "/v0/extensions/document");
+                        extensionContract.addProperty(
+                                "sdkApi",
+                                io.github.recrivenvi.minecraftprotocol.probe.extension
+                                        .PackageContext.SDK_API);
+                        extensionContract.addProperty("trustedLocalCode", true);
+                        extensionContract.addProperty("codeChangesRequireRestart", true);
+                        extensionContract.addProperty("remoteUpload", false);
+                        extensionContract.addProperty("catalogScope", "read");
+                        result.add("extensions", extensionContract);
                         JsonObject streams = new JsonObject();
                         streams.addProperty("path", "/v0/events");
                         streams.addProperty(
@@ -2809,6 +2909,20 @@ public final class ProbeTransport implements AutoCloseable {
     private DebugMutationAuthorization singleDebugAuthorization(
             ProtocolState.RequestMetadata metadata, AgentControlSession.OperateWork work) {
         return new DebugMutationAuthorization() {
+            @Override
+            public io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Scope
+                    resources(String providerId) {
+                if (work.isCancelled() || extensions == null)
+                    throw new java.util.concurrent.CancellationException();
+                protocolState.requireDebugCredential(metadata.debugArmId());
+                var grant = protocolState.debugGrantValidity(metadata.debugArmId());
+                var context = nativeContext;
+                return extensions.providerResources(
+                        providerId,
+                        metadata.debugArmId(),
+                        () -> !closed.get() && grant.getAsBoolean() && context == nativeContext);
+            }
+
             @Override
             public Permit authorize(
                     String currentWorldFingerprint,

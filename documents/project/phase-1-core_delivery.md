@@ -2667,3 +2667,19 @@ spotlessApply后build、check、verifyRelease与verifyCompliance --strict通过�
 NeoForge 1.21.1验收客户端已启动到标题页，Runtime实际窗口为2560×1440；核对启动器实际引用的参数文件为RecRivenVI，主音量50%、音乐0、Custom Skin Loader 15.1及Zume 1.2.2已加载。通过语义Quit退出，原生Stopping、启动器BUILD SUCCESSFUL、进程消失和endpoint删除相互核对；未因临时脚本的间接参数/进程结果采样断言而重放退出或修改产品。现有隔离普通/产品服务器已由当前JAR安装组合验证，留待用户集中协作。
 固定分发采用同批五JAR、清单和手册，显式保留所有旧快照。只有新快照发布成功后才经指定外部脚本代发一次已批准的可行性研究提示，不通知使用方，不实施扩展平台。
 历史三攻击性能目标继续NOT_MET；根因未定的历史异常不删，当前通过不构成其修复证明。Persistent Write调用0，没有新功能或UI美术变更，不宣称两个完整里程碑READY。
+
+## 2026-10-31扩展平台SDK与普通包纵切
+
+用户批准1.0扩展平台主线及研究方案六项默认值，统一测试/探针进入Core，E1只保留远程探索等额外能力；阶段名是内部质量标准，不代表对外发布决定。
+工作树从develop/4346328d干净基线开始，原型只参考；独立包作者工程暂放tool组件extension_packages，产物不进入产品JAR。
+
+新增Java17公共SDK、目录/ZIP与完整内容身份审批、Target/side/依赖/重复类预检、私有包类空间、事务注册和实例级Provider/schema。
+Provider复用原执行器与权限/线程/schema/资源版本；原SPI保留。资源按完整Runtime/包/lifetime/context拥有，先同步失效，再逐项owner清理，失败/拒绝/超时不写成已释放。
+静态目录/固定ID文档只需read，清理诊断独立要求debug；Companion离线作者模式没有虚构端点，标准MCP资源返回同批正式规则/合同/测试说明及SHA-256。
+
+[参考端结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)证明普通独立包在26.3 NeoForge原生source-set中装载、共享SDK类身份、真实服务器线程采样、无Arm/READ修改拒绝、MCP启停、Arm到期清理、输入Lease与Debug独立及正常保存退出。
+这不是最终JAR安装、包内早期Mixin、另外四端装载、七模组业务或人工验收；没有把采样计数当作玩家游戏证据。
+首轮纵切暴露host owner map未传到实例平台，已补齐生产接线；Runner则修正点击需等待Operation、Save & Quit后按实际状态保留仍有效的Lease，不忽略权限错误或重放未知结果。
+
+spotlessApply及各改动组件格式化后，整仓check、Java/Companion、协议生成、文档/控制门禁、五端verifyRelease与verifyCompliance --strict通过，严格模式0失败0警告；Native新读取端点为90项正式目录的一部分。
+内容与类别、权限、Lease、Arm、真人Esc和截图隔离原合同保持不变。此阶段不发布Alpha、不改latest；DP集中真人验收仍待用户安排，Persistent Write调用0。

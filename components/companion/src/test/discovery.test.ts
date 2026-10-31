@@ -41,6 +41,7 @@ test('instance directory discovery pins both the safe initial handshake and ever
   const runtime = await fixture();
   try {
     const config = loadConfig(runtime.env);
+    assert(!config.authoringOnly);
     assert.equal(config.discovery?.runtimeInstanceId, runtime.id);
     const client = new RuntimeClient(config);
     await client.json('POST', '/v0/control/acquire', {}, { headers: { 'x-mcp-runtime-instance': 'cannot-override-pin' } });
@@ -56,7 +57,9 @@ test('explicit deployment role cannot silently connect a server Companion to a c
   try {
     assert.throws(() => loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}), /deployment role/);
     Object.assign(runtime.record, {deploymentRole:'DEDICATED_SERVER'}); runtime.write();
-    assert.equal(loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}).discovery?.deploymentRole,'DEDICATED_SERVER');
+    const serverConfig = loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'});
+    assert(!serverConfig.authoringOnly);
+    assert.equal(serverConfig.discovery?.deploymentRole,'DEDICATED_SERVER');
     assert.throws(() => loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'CLIENT'}), /deployment role/);
     const mismatch = new RuntimeClient(loadConfig({...runtime.env, MCP_MINECRAFT_ROLE:'DEDICATED_SERVER'}));
     await assert.rejects(mismatch.json('POST','/v0/server/console/commands',{command:'list'}), {code:'COMPANION_RUNTIME_INSTANCE_MISMATCH'});
@@ -104,5 +107,6 @@ test('discovery rejects mixed authorities, wrong Target, stale PID, foreign dire
 test('manual endpoint remains explicit; no shared port is silently guessed', () => {
   assert.throws(() => loadConfig({ MCP_MINECRAFT_TOKEN: 'token' }), /INSTANCE_DIR/);
   const config = loadConfig({ MCP_MINECRAFT_BASE_URL: 'http://127.0.0.1:25581', MCP_MINECRAFT_TOKEN: 'token' });
+  assert(!config.authoringOnly);
   assert.equal(config.baseUrl.port, '25581'); assert.equal(config.discovery, undefined);
 });

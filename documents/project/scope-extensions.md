@@ -7,7 +7,7 @@ E1/E2/E3 是独立、非阻塞的 Optional Extensions，不扩大[Core](scope-co
 
 | 扩展 | 目标 | 当前安排 |
 | --- | --- | --- |
-| E1 Development Intelligence & Exploratory Debug | 源码/制品/符号智能、受控探索调试和人类 Inspector | PLANNED，未实现 |
+| E1 Development Intelligence & Exploratory Debug | 远程探索式对象/代码调试、源码/制品/符号智能和人类 Inspector | PLANNED，不进入1.0 |
 | E2 Autonomous Gameplay | 自动寻路、长期自主游玩与游戏策略 | IDEA / RESEARCH，未实现 |
 | E3 Deterministic Graphics Acceptance & Render Forensics | 确定性图形验收、渲染取证、几何/资源/管线诊断 | IDEA / RESEARCH，未实现 |
 
@@ -16,9 +16,9 @@ E1/E2/E3 是独立、非阻塞的 Optional Extensions，不扩大[Core](scope-co
 
 ## 实施边界
 
-- E1 的源码索引、缓存、制品仓库与探索服务不能偷偷成为 Core Runtime 的依赖。
-  Safe Probe 仅考虑显式暴露根上的有界只读投影；不建立隐形反射、文件、网络或进程后门。
-  全权限 Groovy/JVM 研究必须单独 threat model、Debug Arm、审计与人类许可。
+- E1 的远程探索、源码索引、缓存、制品仓库与探索服务不能偷偷成为 Core Runtime 的依赖。
+  本地安装的受信任适配包、明确注册的typed Provider/Debug/探针、统一测试平台与查阅已由用户纳入1.0 Core，不因使用Java/Mixin或名为探针而归入E1。
+  E1额外的远程探索式对象/代码调试仍需单独威胁模型、授权、审计与人类许可，不建立隐形反射、文件、网络或进程后门。
 - E2 的自主路径/计划不能通过直接 mutation 冒充玩家 GAME_ROUTED 行为。
   长期自主性与高权限 Debug 必须分开，仍遵守 Human Override 与控制租约。
 - E3 的几何、资源、材质、管线与时间关系均需实际证据，单有 screenshot/geometry 不足以证明渲染正确。

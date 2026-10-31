@@ -27,6 +27,28 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
         this.worldDebug = worldHost == null ? null : new ServerWorldDebug(worldHost);
     }
 
+    @Override
+    public io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlatform.Environment
+            extensionEnvironment(String target) {
+        return worldDebug == null ? null : worldDebug.extensionEnvironment(target);
+    }
+
+    @Override
+    public java.util.Map<
+                    String,
+                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                            .ThreadOwner>
+            extensionThreadOwners() {
+        return worldDebug == null ? java.util.Map.of() : worldDebug.extensionThreadOwners();
+    }
+
+    @Override
+    public void attachExtensionProviders(
+            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+        if (worldDebug == null) throw new UnsupportedOperationException("No world dispatcher");
+        worldDebug.attachExtensionProviders(source);
+    }
+
     public ServerConsole console() {
         return console;
     }

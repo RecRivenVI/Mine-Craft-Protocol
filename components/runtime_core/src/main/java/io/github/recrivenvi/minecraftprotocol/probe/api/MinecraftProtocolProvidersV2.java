@@ -33,6 +33,17 @@ public final class MinecraftProtocolProvidersV2 {
         Objects.requireNonNull(provider, "provider");
         AgentDataProviderV2.Descriptor descriptor =
                 Objects.requireNonNull(provider.descriptor(), "descriptor");
+        validateDescriptor(descriptor, ProviderSchemaRegistry::contains);
+        String id = descriptor.providerId();
+        if (PROVIDERS.putIfAbsent(id, provider) != null) {
+            throw new IllegalStateException("Duplicate Provider V2: " + id);
+        }
+    }
+
+    public static void validateDescriptor(
+            AgentDataProviderV2.Descriptor descriptor,
+            java.util.function.Predicate<String> schemas) {
+        Objects.requireNonNull(descriptor, "descriptor");
         String id = descriptor.providerId();
         if (id == null || !id.contains(":") || id.startsWith("minecraft:")) {
             throw new IllegalArgumentException(
@@ -42,8 +53,8 @@ public final class MinecraftProtocolProvidersV2 {
                 || !VERSION.matcher(descriptor.schemaVersion()).matches()) {
             throw new IllegalArgumentException("Provider V2 schemaVersion is invalid: " + id);
         }
-        requireSchema(id, "snapshotSchema", descriptor.snapshotSchema());
-        requireSchema(id, "querySchema", descriptor.querySchema());
+        requireSchema(id, "snapshotSchema", descriptor.snapshotSchema(), schemas);
+        requireSchema(id, "querySchema", descriptor.querySchema(), schemas);
         if (!AFFINITIES.contains(descriptor.threadAffinity())) {
             throw new IllegalArgumentException(
                     "Unsupported Provider V2 threadAffinity: " + descriptor.threadAffinity());
@@ -68,7 +79,7 @@ public final class MinecraftProtocolProvidersV2 {
             throw new IllegalArgumentException("Provider V2 revisionScope is invalid: " + id);
         }
         if ("resource".equals(descriptor.revisionScope())) {
-            requireSchema(id, "revisionSchema", descriptor.revisionSchema());
+            requireSchema(id, "revisionSchema", descriptor.revisionSchema(), schemas);
             if (!descriptor.revisionQueryInvariant()) {
                 throw new IllegalArgumentException(
                         "Resource-scoped Provider V2 revision must be query invariant: " + id);
@@ -86,18 +97,16 @@ public final class MinecraftProtocolProvidersV2 {
             throw new IllegalArgumentException("Provider V2 deltaCapability is invalid: " + id);
         }
         validateEffectContract(descriptor);
-        validateDebugContract(descriptor);
-        if (PROVIDERS.putIfAbsent(id, provider) != null) {
-            throw new IllegalStateException("Duplicate Provider V2: " + id);
-        }
+        validateDebugContract(descriptor, schemas);
     }
 
     public static synchronized List<AgentDataProviderV2> snapshot() {
         return new ArrayList<>(PROVIDERS.values());
     }
 
-    private static void requireSchema(String id, String field, String schema) {
-        if (schema == null || schema.isBlank() || !ProviderSchemaRegistry.contains(schema)) {
+    private static void requireSchema(
+            String id, String field, String schema, java.util.function.Predicate<String> schemas) {
+        if (schema == null || schema.isBlank() || !schemas.test(schema)) {
             throw new IllegalArgumentException(
                     "Provider V2 " + field + " is not registered: " + id);
         }
@@ -121,16 +130,18 @@ public final class MinecraftProtocolProvidersV2 {
         }
     }
 
-    private static void validateDebugContract(AgentDataProviderV2.Descriptor descriptor) {
+    private static void validateDebugContract(
+            AgentDataProviderV2.Descriptor descriptor,
+            java.util.function.Predicate<String> schemas) {
         AgentDataProviderV2.DebugDeclaration debug =
                 Objects.requireNonNull(descriptor.debugDeclaration(), "debugDeclaration");
         if (debug.supported()) {
             if (debug.mutationSchema() == null
                     || debug.mutationSchema().isBlank()
-                    || !ProviderSchemaRegistry.contains(debug.mutationSchema())
+                    || !schemas.test(debug.mutationSchema())
                     || debug.resultSchema() == null
                     || debug.resultSchema().isBlank()
-                    || !ProviderSchemaRegistry.contains(debug.resultSchema())
+                    || !schemas.test(debug.resultSchema())
                     || debug.requiredScope() == null
                     || !SCOPE.matcher(debug.requiredScope()).matches()
                     || !debug.requiresArm()

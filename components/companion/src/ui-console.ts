@@ -61,7 +61,7 @@ export class UiConsole {
           throw error;
         })]);
       return {session,control,console,headless:true,ownsLease:false,otherBrowserOwnsLease:false,
-        runtimeUrl:this.client.config.baseUrl.origin,observedAt:Date.now()};
+        runtimeUrl:this.client.connectionConfig.baseUrl.origin,observedAt:Date.now()};
     }
     const [control, tree, input] = await Promise.all([
       this.client.json('GET', '/v0/control/mode'),
@@ -72,7 +72,7 @@ export class UiConsole {
     if (version === this.generation && this.leaseId && (control.mode !== 'TAKEOVER' || control.reconsentRequired === true)) await this.releaseOwned();
     if(version!==this.generation){if(attempt<2)return this.snapshot(browser,attempt+1);failure('WEB_UI_STATE_CHANGED','控制状态持续变化，请稍后刷新；不发布混合身份的快照');}
     return { session, control, tree, input, frameKey: frameKey(tree), observedAt: Date.now(),
-      runtimeUrl: this.client.config.baseUrl.origin, ownsLease: this.owner === browser && !!this.leaseId,
+      runtimeUrl: this.client.connectionConfig.baseUrl.origin, ownsLease: this.owner === browser && !!this.leaseId,
       controllerBusy: this.busy, inputFrameKey: inputFrameKey(tree), inputSequence: this.inputSequence,
       otherBrowserOwnsLease: !!this.owner && this.owner !== browser };
   }

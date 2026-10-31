@@ -20,3 +20,23 @@ dependencies {
 }
 
 tasks.test { workingDir = layout.buildDirectory.get().asFile }
+
+val extensionSdkJar by
+    tasks.registering(Jar::class) {
+        group = "build"
+        description =
+            "Builds the Minecraft-independent extension author SDK without Runtime implementation."
+        archiveClassifier.set("extension-sdk")
+        from(sourceSets.main.get().output) {
+            include("io/github/recrivenvi/minecraftprotocol/probe/api/**")
+            include("io/github/recrivenvi/minecraftprotocol/probe/extension/**")
+        }
+    }
+
+tasks.assemble { dependsOn(extensionSdkJar) }
+
+val extensionSdkElements by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    outgoing.artifact(extensionSdkJar)
+}

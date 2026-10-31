@@ -17,6 +17,7 @@ test('Companion configuration is loopback-first and requires explicit credential
   assert.throws(() => loadConfig({ MCP_MINECRAFT_BASE_URL: 'http://127.0.0.1:25582' }), /TOKEN/);
   assert.throws(() => loadConfig({ MCP_MINECRAFT_BASE_URL: 'http://192.0.2.1:25582', MCP_MINECRAFT_TOKEN: token }), /Non-loopback/);
   const allowed = loadConfig({ MCP_MINECRAFT_BASE_URL: 'http://192.0.2.1:25582', MCP_MINECRAFT_TOKEN: token, MCP_COMPANION_ALLOW_NON_LOOPBACK: 'true' });
+  assert(!allowed.authoringOnly);
   assert.equal(allowed.baseUrl.hostname, '192.0.2.1');
 });
 
@@ -1038,9 +1039,9 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
     assert.equal(JSON.stringify(prompt).includes(maliciousText), false);
 
     const resources = await client.listResources();
-    assert.equal(resources.resources.length, 4);
+    assert.equal(resources.resources.length, 9);
     const templates = await client.listResourceTemplates();
-    assert.equal(templates.resourceTemplates.length, 4);
+    assert.equal(templates.resourceTemplates.length, 5);
     assert.equal(templates.resourceTemplates.filter(template=>template.uriTemplate.includes('/debug/')).length,2);
 
     const samples: number[] = [];

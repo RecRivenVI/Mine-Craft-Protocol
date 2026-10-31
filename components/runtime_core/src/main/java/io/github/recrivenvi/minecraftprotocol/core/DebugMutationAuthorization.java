@@ -32,6 +32,11 @@ public interface DebugMutationAuthorization {
 
     boolean isCancelled();
 
+    default io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Scope
+            resources(String providerId) {
+        throw new UnsupportedOperationException("No installed extension resource owner");
+    }
+
     @FunctionalInterface
     interface Permit extends AutoCloseable {
         @Override

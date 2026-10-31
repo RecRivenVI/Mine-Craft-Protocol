@@ -4,6 +4,7 @@ import { UiConsole } from './ui-console.js';
 import { startUiConsole } from './ui-console-http.js';
 
 const config = loadConfig();
+if (config.authoringOnly) throw new Error('Web console requires explicit Runtime connection credentials');
 if (config.baseUrl.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(config.baseUrl.hostname)
     || config.baseUrl.pathname !== '/') throw new Error('Web console requires a root loopback HTTP Runtime URL');
 const port = Number(process.env.MCP_WEB_UI_PORT ?? 4317);

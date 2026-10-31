@@ -9,7 +9,7 @@
   },
   "scripts": {
     "protocol:check": "node ./scripts/check-protocol.mjs",
-    "build": "npm run protocol:check && tsc -p tsconfig.json",
+    "build": "npm run protocol:check && tsc -p tsconfig.json && node ./scripts/package-authoring.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test dist/test/*.test.js && node --test test/*.test.mjs",
     "web": "npm run build && node ./dist/ui-console-main.js",

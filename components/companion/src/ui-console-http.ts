@@ -51,7 +51,7 @@ export async function startUiConsole(controller: UiConsole, port = 4317) {
         if (browsers.size >= 16) { send(429, { error: 'WEB_UI_BROWSER_LIMIT' }); return; }
         const browser = randomBytes(32).toString('hex');
         browsers.set(browser, Date.now());
-        send(200, { browserToken: browser, runtimeUrl: controller.client.config.baseUrl.origin }); return;
+        send(200, { browserToken: browser, runtimeUrl: controller.client.connectionConfig.baseUrl.origin }); return;
       }
       const browser = request.headers['x-web-ui-token'];
       const known = typeof browser === 'string' && /^[0-9a-f]{64}$/.test(browser) && [...browsers.keys()].find(id =>

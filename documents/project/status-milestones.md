@@ -1,36 +1,48 @@
 # UI 与世界首个里程碑状态
 
 UI、世界与完整Showcase均 **IN PROGRESS**，尚未READY，统一人工验收未执行。
-Developer Preview当前候选的自动冻结已通过；同批分发门禁已具备，实际发布身份以外置latest及快照清单为准，旧快照保留。
-五端完整UI/世界矩阵、45秒连续正确性、当前单JAR安装及服务端/三安装组合均有匹配证明。1.21.1最大生命值别名修复后已重跑该端相关组；不等于人工接受。
+Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI/世界、45秒连续正确性、单JAR及服务端/三安装组合证明仍保留，不等于人工接受。
+当前扩展平台工作区已有新增代码，尚未完成平台冻结；下方双里程碑矩阵记录DP基线，不证明新增平台已通过。实际已发布身份以外置latest及快照清单为准，不用新build文件替换旧快照。
 恢复先读本页及[执行计划](plan-execution.md)，普通开发直接与用户协作；不自动恢复旧Goal或扩展其他批次。
 本轮冻结与复用依据见[自动收尾记录](phase-1-core_delivery.md#2026-10-31开发者预览自动冻结)，既有安装和发布历史见[交付记录](phase-1-core_delivery.md#2026-10-22-e世界单jar与alpha交付)。
 
 ## 当前工作与下三步
 
-本轮由主线程直接推进，不操作Goal、不测性能，Persistent Write=0。用户已授权回归通过后创建SSH签名Update提交、推送并发布固定Alpha，保留旧快照。
-仅在新快照成功发布后，通过用户指定外部发送脚本向可行性线程代发一次扩展平台研究提示；不通知其他使用方，也不在本轮实现该平台。
+当前主线为1.0扩展平台正式实现，基线develop/4346328d及Alpha 20261031-1440-d6f3a89a，开工工作树干净。研究原型不直接合入，既有DP自动证明不作为新平台证明。
+1.0与Developer Preview是内部实现质量标准，不表示决定对外发布；不新增许可证、公开支持矩阵或对外长期兼容承诺。人工验收保留待办，不阻塞本轮开发。
+由主线程连续推进；不操作Goal、不测性能、不做整合包/E1～E3/Persistent Write。允许阶段门禁通过后创建SSH签名Update检查点并推送，中途不发布Alpha；全部实现和五端完整回归通过才发布固定快照，保留旧快照，不通知使用方。
 
-1. 完成：同候选五端完整UI/世界冻结、45秒连续正确性与最终单JAR安装；只复用未受后续改动影响且绑定匹配的证明。真人步骤与性能均未代跑。
-2. 完成：1.21.1既有玩家最大生命值别名及其Native/MCP版本链、当前单JAR服务端与三安装组合；工具的释放等待、限流清理、退出未确认和优化器自然完成竞争均已复测。Windows探针回执改为原子发布并有界等待，五端生产者已重跑，原失败保留。
-3. 下一步：按本次授权完成提交/固定分发及单次研究提示代发，以Git、latest和脚本发送记录核对实际结果；用户回来按[集中合作验收清单](../development/testing-cooperative_acceptance.md)集中验收，不自动实施扩展平台。
+| 阶段 | 当前状态 | 完成门禁 | 当前依据 |
+| --- | --- | --- | --- |
+| EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
+| EP-2 五端早期加载桥 | 进行中 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | 研究仅1.21.1成品259实测，不能复用为本轮通过 |
+| EP-3 深层UI与逻辑输入 | 待办 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | 新门禁待实装 |
+| EP-4 世界适配与七包 | 待办 | 普通目标复用、PartRef与pick/版本守卫；CC、Create、AE2、EMI、Exposure、Modern UI、LittleTiles逐项正常Act+独立Assert；Create/LittleTiles/AE2因果诊断，做不通明确缺口 | 研究闭环与未确定项分别保留，不作当前产品PASS |
+| EP-5 统一测试与作者交付 | 待办 | 登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则、MCP文档/包目录/场景查阅、独立构建与安装；跨两个包故障/恢复 | 主机授权独立，CLI先行，不开放任意路径/shell |
+| EP-6 冻结与Alpha | 待办 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 全部通过前不刷新latest |
+
+下三步：打通EP-2的参考端、Fabric与旧Forge风险路径并补齐五端；深入UI逻辑输入；随后推进世界部件和七包并按实际依赖逐包验证，不无限追加第三方业务。
+适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
+六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
+
+以下部署与双里程碑矩阵保留DP基线4346328d的既有结论；不表示新增平台或当前build产物已通过这些运行组。
 
 合作客户端NeoForge 1.21.1已启动至标题页确认：实际2560×1440、RecRivenVI、主音量50%、音乐关闭，加载Custom Skin Loader/Zume后正常退出。两类隔离服务器的当前JAR启动证明保留；不把环境准备记作真人验收。
 
 服务端READ日志/OPERATE原生命令需独立server_console授权；不持玩家Lease，TAKEOVER不适用。
 目录和限制见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)，
 五端当前单JAR控制台及世界目录证据见[服务端验证](../../validations/integration-server_peer/validation.md)的result/<target>-server-debug.json。
-服务器目录证据为同项result/<target>-server-debug.json，绑定当前发行JAR；后续构建改变哈希时必须重新核对，不能沿用不匹配证据。
+服务器目录证据为同项result/<target>-server-debug.json，绑定原DP候选JAR；后续构建改变哈希时必须重新核对，不能沿用不匹配证据。
 读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮具名运行组不替代五端全部组合的穷尽验收。
 修改回执需要DEBUG读取scope，在执行前检查，不借server_console；旧版本/原值/非法原生属性及未加载拒绝、批次恢复和disarm均已实测。
 服务器适用目录复用原生引擎，显式维度/真实玩家；当前实测包含环境、实体创建/移除、容器物品恢复、State Frame和Persistent Read。
 Peer已实测未委托/非OP拒绝、所有者issue/attach、原生读写/恢复、错误连接/旧版本/撤销/deop拒绝，不取得输入Lease。
 共享生产引擎测试覆盖排队撤销、发布时权限重查与无迟到修改；不冒充真人Esc、全部资源分支或第三方组合验收。
-build/check/verifyRelease、协议/文档及严格合规通过；本地发行JAR与冻结证明一致，分发不改写旧固定快照。
+DP基线的build/check/verifyRelease、协议/文档及严格合规已通过；原固定快照与冻结证明一致，不被新构建改写。
 本轮四项审查回归另由真实HTTP与MCP验证：expected保留递归JSON，数组完整比较；控制台支持USER，内部Provider要求显式DEBUG。
 本地UI目录不借服务器委托；worldDiscovery明确保留远端失败原因，取消/shutdown/未知异常不伪装成部分成功。
 
-可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果已逐哈希核对当前本轮发行JAR，
+可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果已逐哈希核对原DP候选发行JAR，
 包含真实入服、USER读取/背包输入、无Peer拒绝、双端委托/版本/撤权与断线清理；有限具名组不代表穷尽全部资源与并发组合。
 默认未授予服务端控制台权限，TAKEOVER在独立服务器明确不适用；安装不授予OP、scope或Arm。
 产品客户端及服务器正常退出；真正原版客户端无Runtime退出入口，在服务器正常保存关闭后终止自有已断线进程，未记作正常客户端退出。

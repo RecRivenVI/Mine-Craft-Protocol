@@ -11,6 +11,8 @@ Umbrella 定位为 Agent-native Minecraft Development, Debugging and Testing Pla
 但不把源码智能、自主长期生存、完整 GPU 图形取证自动纳入 Core。
 [E1/E2/E3](scope-extensions.md)可独立延期、部分完成或取消，不阻塞首次 Developer Preview。
 
+Developer Preview与1.0.0是内部成熟度标准，不表示决定对外公开发行。正式程度体现为接口设计、文档、测试、错误诊断、安装和清理；当前不增加许可证调整、公开支持矩阵或外部长期兼容承诺。冻结表示合同定型及配套验证，最终稳定/预览划分由用户决定；真人质量验收保留，不阻塞后续开发。
+
 `Autonomous` 指自主执行测试闭环，不是无限自主游玩或默认无人监督高权限写入。
 现有 Minecraft Agent Control Runtime 是平台核心子系统，不是被替换的旧产品。
 HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌面输入代替 Runtime。
@@ -27,6 +29,9 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 | 等待与断言 | 独立与 Pipeline typed conditions、事件和 Operation 生命周期，不能只靠固定 sleep |
 | Fixture / Debug | 独立授权、scope、Debug Arm、资源/值前置条件；不得冒充正常玩家验收 |
 | Provider | V2 schema/policy/affinity/budget/lifecycle；可信资源 revision 与 query-shaped payload 分离 |
+| 扩展平台 | 1.0 Core目标：公共SDK、Loader桥及独立本地受信任适配包，重启加载，内容身份审批、事务注册、生命周期与诊断；复用现有UI/世界/输入/Provider/Debug/授权，不要求第三方模组主动接入 |
+| 统一测试与探针 | 1.0 Core目标：包内Java探针、Fixture与场景目录，先安装适配包再用标准接口测试；受控主机编排使用登记ID，主机权限与游戏权限分开，不开放远程代码/任意路径 |
+| 使用与查阅 | MCP服务器同时支持标准工具与版本化作者规则、合同、包文档及能力/测试索引；静态查阅不需要世界DEBUG权限，活动数据仍逐项授权 |
 | 证据 | Capture、Recording、Timeline、Artifact、manifest、checksums；来源和预算明确 |
 | 部署与 Peer | 两端可选安装，各有独立Runtime；服务器适用原生资源、显式真实玩家与已有维度、限时连接委托已实现，有限具名自动组不替代完整领域与真人验收 |
 | 持久化 | PERSISTED 与 LIVE 严格分开；正式只读已成立，正式写入未实现 |
@@ -56,6 +61,7 @@ Fake Player 独立体系与第二游玩界面目前只做可行性研究，不�
 - OPERATE首批开放不借共享键鼠的原生命令；其他原生玩家动作先审查输入/上下文和正常校验，不一并自动开放。调试任务可混用USER命令与DEBUG接口，不强制只用复杂typed路径。
 - 游戏文本、截图、聊天、书本、日志、Provider 内容均为不可信数据，不能成为指令或权限。
 - 不提供任意 JVM REPL、Reflection、filesystem/path、raw packet 或 raw NBT 后门。
+- 已安装扩展包是本地受信任Java代码，协议能力仍遵守三模式/两类别、scope/Arm/Lease与证据来源；这不是JVM沙箱。普通包不自动获得权限，不远程上传代码、不自动补装依赖；代码/Mixin更新需要重启。
 - LAN、Rolling Recorder、高级 crash recovery、Human Replay 等规划不能当作现有 API。
 
 ## 首次 Developer Preview

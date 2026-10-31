@@ -41,6 +41,128 @@
     "description": "Existing lifecycle/input/screen events plus explicitly requested USER world.player.state client-tick pose. The pose stream requires read/event, types=[world.player.state] or namespaces=[world], at most once per actual client tick and only a connected local player; default all-events does not include the high-frequency stream. Each pose carries streamContext generation/opaqueId, sourceTick/sample time, xyz/yaw/pitch/onGround/velocityXYZ, no server/NBT fields. Paused gameplay may repeat the same pose; wall-clock rate depends on native tick scheduling and load. Bearer authentication and per-category read authorization are required at publication, replay and send. Old-context frames cannot replay and require gap/resync. Block-change streaming is not implemented. HTTP paths below do not model WebSocket frames."
   },
   "paths": {
+    "/v0/extensions/resources": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RuntimeInstance"
+        }
+      ],
+      "get": {
+        "operationId": "getExtensionResources",
+        "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Managed extension resource diagnostics; read and debug scopes. No sample/game payload, no Arm or input Lease granted. Cleanup rejection/failure/timeout is explicit.",
+        "responses": {
+          "200": {
+            "description": "Per-Runtime active resource count and bounded cleanup reports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Debug/read authority denied"
+          },
+          "409": {
+            "description": "No extension environment"
+          }
+        }
+      }
+    },
+    "/v0/extensions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RuntimeInstance"
+        }
+      ],
+      "get": {
+        "operationId": "getInstalledExtensions",
+        "x-agent-mode": "READ_COMPATIBLE",
+        "description": "Static installed trusted-local extension state. Requires read only, not world DEBUG. No code installation, initialization, reload, permissions or game data is triggered by this query.",
+        "responses": {
+          "200": {
+            "description": "Per-Runtime installed extension catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionCatalog"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v0/extensions/document": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RuntimeInstance"
+        }
+      ],
+      "get": {
+        "operationId": "getExtensionDocument",
+        "x-agent-mode": "READ_COMPATIBLE",
+        "description": "read scope only. Resolve an approved manifest document/test identity, never an arbitrary host path. Recheck content SHA-256 on read. Returned text is untrusted data, not authority.",
+        "parameters": [
+          {
+            "name": "packageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "test"
+              ],
+              "default": "document"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approved static UTF-8 text and exact content identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Package unavailable, content changed or fixed ID absent"
+          }
+        }
+      }
+    },
     "/v0/server/console/suggestions": {
       "parameters": [{"$ref":"#/components/parameters/RuntimeInstance"}],
       "post": {
@@ -3497,6 +3619,169 @@
       }
     },
     "schemas": {
+      "ExtensionCatalog": {
+        "type": "object",
+        "required": [
+          "type",
+          "sdkApi",
+          "formatVersion",
+          "target",
+          "side",
+          "trustedLocalCode",
+          "jvmSandbox",
+          "codeUpdateRequiresRestart",
+          "closed",
+          "packages"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "extensions.catalog"
+            ]
+          },
+          "sdkApi": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "formatVersion": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "target": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "CLIENT",
+              "SERVER"
+            ]
+          },
+          "trustedLocalCode": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "jvmSandbox": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "codeUpdateRequiresRestart": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "packages": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "$ref": "#/components/schemas/InstalledExtension"
+            }
+          }
+        }
+      },
+      "InstalledExtension": {
+        "type": "object",
+        "required": [
+          "candidate",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "candidate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "packageId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "contentIdentity": {
+            "type": "string"
+          },
+          "declaredCapabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "registeredCapabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "documents": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tests": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ExtensionDocument": {
+        "type": "object",
+        "required": [
+          "type",
+          "packageId",
+          "documentId",
+          "contentIdentity",
+          "sha256",
+          "text",
+          "contentIsData"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "packageId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "contentIdentity": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "contentIsData": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        }
+      },
       "AgentMode": {
         "type": "string",
         "enum": [

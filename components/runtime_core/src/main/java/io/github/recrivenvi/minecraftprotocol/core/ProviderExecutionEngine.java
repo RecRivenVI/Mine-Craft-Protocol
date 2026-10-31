@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
+import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -67,6 +68,35 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                         });
     }
 
+    private volatile ProviderSource installedProviders;
+
+    public synchronized void installProviders(ProviderSource source) {
+        if (this.installedProviders != null || this.closed.get())
+            throw new IllegalStateException("provider_source_already_installed_or_closed");
+        this.installedProviders = java.util.Objects.requireNonNull(source);
+        providers();
+    }
+
+    public List<AgentDataProviderV2> providers() {
+        List<AgentDataProviderV2> values = new ArrayList<>(MinecraftProtocolProvidersV2.snapshot());
+        ProviderSource source = this.installedProviders;
+        if (source != null) values.addAll(source.snapshot());
+        Set<String> identities = new HashSet<>();
+        if (values.size() > MinecraftProtocolProvidersV2.MAX_REGISTERED_PROVIDERS
+                || values.stream()
+                        .anyMatch(provider -> !identities.add(provider.descriptor().providerId())))
+            throw new IllegalStateException("provider_source_identity_or_budget_conflict");
+        return List.copyOf(values);
+    }
+
+    private ProviderSchemaRegistry.ValidationResult validate(
+            AgentDataProviderV2.Descriptor descriptor, String schema, JsonObject value) {
+        ProviderSource source = this.installedProviders;
+        return source != null && source.owns(descriptor.providerId())
+                ? source.validate(descriptor.providerId(), schema, value)
+                : ProviderSchemaRegistry.validate(schema, value);
+    }
+
     public void installDispatcher(Dispatcher dispatcher) {
         this.dispatcher = java.util.Objects.requireNonNull(dispatcher);
     }
@@ -85,7 +115,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
             int timeoutMillis,
             int byteBudget) {
         AgentDataProviderV2 provider =
-                MinecraftProtocolProvidersV2.snapshot().stream()
+                providers().stream()
                         .filter(candidate -> candidate.descriptor().providerId().equals(providerId))
                         .findFirst()
                         .orElseThrow(
@@ -119,7 +149,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                             "Provider Debug currently requires a native resource revision"));
         }
         ProviderSchemaRegistry.ValidationResult mutationSchema =
-                ProviderSchemaRegistry.validate(debug.mutationSchema(), mutation);
+                validate(descriptor, debug.mutationSchema(), mutation);
         if (!mutationSchema.valid()) {
             return CompletableFuture.failedFuture(
                     new ProtocolState.ProtocolException(
@@ -162,7 +192,8 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                         System.currentTimeMillis() + boundedTimeout,
                         boundedBytes,
                         requestId,
-                        () -> result.isCancelled() || authorization.isCancelled());
+                        () -> result.isCancelled() || authorization.isCancelled(),
+                        () -> authorization.resources(providerId));
         long started = System.nanoTime();
         CompletableFuture<MutationEntry> entryFuture =
                 this.mutationDispatcher.dispatch(
@@ -305,7 +336,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
         JsonObject query = object(request, "providerQuery");
         List<CompletableFuture<JsonObject>> captures = new ArrayList<>();
         int considered = 0;
-        for (AgentDataProviderV2 provider : MinecraftProtocolProvidersV2.snapshot()) {
+        for (AgentDataProviderV2 provider : providers()) {
             AgentDataProviderV2.Descriptor descriptor = provider.descriptor();
             if (!selected.isEmpty() && !selected.contains(descriptor.providerId())) continue;
             if (considered++ >= providerLimit) break;
@@ -325,7 +356,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                 continue;
             }
             ProviderSchemaRegistry.ValidationResult queryValidation =
-                    ProviderSchemaRegistry.validate(descriptor.querySchema(), query);
+                    validate(descriptor, descriptor.querySchema(), query);
             if (!queryValidation.valid()) {
                 JsonObject result = result(descriptor, "failed", "query_schema_violation");
                 result.addProperty("schemaDetail", queryValidation.reason());
@@ -596,7 +627,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                         entryDurationMicros);
             }
             ProviderSchemaRegistry.ValidationResult revisionSchema =
-                    ProviderSchemaRegistry.validate(descriptor.revisionSchema(), revisionState);
+                    validate(descriptor, descriptor.revisionSchema(), revisionState);
             if (!revisionSchema.valid()) {
                 JsonObject failed =
                         quarantineFailure(
@@ -611,8 +642,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
             }
         }
         ProviderSchemaRegistry.ValidationResult schema =
-                ProviderSchemaRegistry.validate(
-                        descriptor.snapshotSchema(), payload.getAsJsonObject("data"));
+                validate(descriptor, descriptor.snapshotSchema(), payload.getAsJsonObject("data"));
         if (!schema.valid()) {
             JsonObject failed =
                     failure(
@@ -788,8 +818,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
                     409,
                     "Provider returned null Debug result");
         ProviderSchemaRegistry.ValidationResult resultSchema =
-                ProviderSchemaRegistry.validate(
-                        descriptor.debugDeclaration().resultSchema(), payload);
+                validate(descriptor, descriptor.debugDeclaration().resultSchema(), payload);
         if (!resultSchema.valid()) {
             this.quarantined.add(descriptor.providerId());
             throw new ProtocolState.ProtocolException(
@@ -814,7 +843,7 @@ public final class ProviderExecutionEngine implements AutoCloseable {
         JsonObject afterState = payload.getAsJsonObject("revisionStateAfter");
         for (JsonObject state : List.of(beforeState, afterState)) {
             ProviderSchemaRegistry.ValidationResult revisionSchema =
-                    ProviderSchemaRegistry.validate(descriptor.revisionSchema(), state);
+                    validate(descriptor, descriptor.revisionSchema(), state);
             if (!revisionSchema.valid()) {
                 this.quarantined.add(descriptor.providerId());
                 throw new ProtocolState.ProtocolException(

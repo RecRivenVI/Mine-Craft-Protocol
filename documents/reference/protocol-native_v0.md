@@ -1,6 +1,12 @@
 # Native V0 协议
 
-当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 87 formal HTTP operations`。主体候选已有具名集中验证；审查修复及完整领域验收状态见[状态页](../project/status-milestones.md)。
+当前 OpenAPI 文档版本 `0.0.1-ui-m1`；`All 90 formal HTTP operations`。主体候选已有具名集中验证；审查修复及完整领域验收状态见[状态页](../project/status-milestones.md)。
+
+## 本地扩展包
+
+静态包目录、已批准文档与资源清理诊断由[扩展平台合同](api-extension_platform.md)定义。
+GET /v0/extensions 与 document 只要求read，查询不执行包代码、不需要世界DEBUG读取权；resources另外需要debug scope。
+普通Provider和typed Debug仍经过原有读取、schema、owner、scope、Arm、版本和证据路径。开发者预览已有证明不替代新增平台的运行门禁。
 
 ## 独立服务器控制台
 

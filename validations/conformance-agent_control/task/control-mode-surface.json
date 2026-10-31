@@ -10,6 +10,9 @@
     "owner-thread generation / Arm / resource and value preconditions"
   ],
   "formalHttp": [
+    {"method":"GET","path":"/v0/extensions","operationId":"getInstalledExtensions","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"GET","path":"/v0/extensions/document","operationId":"getExtensionDocument","modeRequirement":"READ_COMPATIBLE"},
+    {"method":"GET","path":"/v0/extensions/resources","operationId":"getExtensionResources","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/server/console/suggestions","operationId":"completeServerConsole","modeRequirement":"READ_COMPATIBLE"},
     {"method":"GET","path":"/v0/server/peer/delegations","operationId":"listServerPeerDelegations","modeRequirement":"READ_COMPATIBLE"},
     {"method":"POST","path":"/v0/server/peer/delegations","operationId":"issueServerPeerDelegation","modeRequirement":"MODE_INDEPENDENT"},

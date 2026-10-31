@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { CompanionConfig } from './config.js';
+import type { CompanionConfig, ConnectedCompanionConfig } from './config.js';
 import { readRuntimeDiscovery } from './discovery.js';
 import type { JsonObject, JsonValue, RuntimeBinary, RuntimeRequestOptions } from './types.js';
 
@@ -178,6 +178,12 @@ export class RuntimeClient {
     return result;
   }
 
+  get connectionConfig(): ConnectedCompanionConfig {
+    if (this.config.authoringOnly) throw new RuntimeError('COMPANION_AUTHORING_ONLY', 409,
+      'Authoring-only mode exposes static documents. Explicitly restart with Runtime credentials for game tools.');
+    return this.config;
+  }
+
   private responseError(response: Response, parsed: JsonObject): RuntimeError {
     const code = typeof parsed.error === 'string' ? parsed.error : 'RUNTIME_HTTP_ERROR';
     const message = typeof parsed.message === 'string' ? parsed.message : `Runtime request failed with HTTP ${response.status}`;
@@ -191,13 +197,14 @@ export class RuntimeClient {
     body: JsonValue | undefined,
     options: RuntimeRequestOptions
   ): Promise<Response> {
+    const connection = this.connectionConfig;
     validatePath(path);
-    if (this.config.discovery) {
+    if (connection.discovery) {
       try {
-        const current = readRuntimeDiscovery(this.config.instanceDirectory!, this.config.discovery.target);
-        if (current.runtimeInstanceId !== this.config.discovery.runtimeInstanceId || current.baseUrl !== this.config.discovery.baseUrl
-            || current.pid !== this.config.discovery.pid || current.processStartedAt !== this.config.discovery.processStartedAt
-            || (current.deploymentRole ?? 'CLIENT') !== (this.config.discovery.deploymentRole ?? 'CLIENT')) {
+        const current = readRuntimeDiscovery(connection.instanceDirectory!, connection.discovery.target);
+        if (current.runtimeInstanceId !== connection.discovery.runtimeInstanceId || current.baseUrl !== connection.discovery.baseUrl
+            || current.pid !== connection.discovery.pid || current.processStartedAt !== connection.discovery.processStartedAt
+            || (current.deploymentRole ?? 'CLIENT') !== (connection.discovery.deploymentRole ?? 'CLIENT')) {
           throw new Error('Runtime instance changed; explicitly reconnect');
         }
       } catch (error) {
@@ -208,16 +215,16 @@ export class RuntimeClient {
         await this.verification;
       }
     }
-    const basePath = this.config.baseUrl.pathname === '/' ? '' : this.config.baseUrl.pathname.replace(/\/$/, '');
-    const url = new URL(`${basePath}${path}`, this.config.baseUrl.origin);
+    const basePath = connection.baseUrl.pathname === '/' ? '' : connection.baseUrl.pathname.replace(/\/$/, '');
+    const url = new URL(`${basePath}${path}`, connection.baseUrl.origin);
     const headers = new Headers({
-      authorization: `Bearer ${this.config.token}`,
+      authorization: `Bearer ${connection.token}`,
       accept: 'application/json',
       'x-mcp-request-id': randomUUID(),
       'x-mcp-protocol-version': 'v0'
     });
     for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
-    if (this.config.discovery) headers.set('x-mcp-runtime-instance', this.config.discovery.runtimeInstanceId);
+    if (connection.discovery) headers.set('x-mcp-runtime-instance', connection.discovery.runtimeInstanceId);
     const init: RequestInit = {
       method,
       headers,
@@ -231,7 +238,7 @@ export class RuntimeClient {
     }
     try {
       const response = await fetch(url, { ...init, redirect: 'error' });
-      if (this.config.discovery && response.headers.get('x-mcp-runtime-instance') !== this.config.discovery.runtimeInstanceId) {
+      if (connection.discovery && response.headers.get('x-mcp-runtime-instance') !== connection.discovery.runtimeInstanceId) {
         await response.body?.cancel().catch(() => undefined);
         throw new RuntimeError('COMPANION_RUNTIME_INSTANCE_MISMATCH', 409, 'Runtime response identity mismatch; refusing this connection');
       }
@@ -246,10 +253,11 @@ export class RuntimeClient {
   }
 
   private async verifyInstance(): Promise<void> {
+    const connection = this.connectionConfig;
     // Safe read before the first action. Discovery never grants a scope, Lease or consent.
-    const discovery = this.config.discovery!;
-    const response = await fetch(new URL('/v0/session', this.config.baseUrl), {
-      headers: { authorization: `Bearer ${this.config.token}`, 'x-mcp-runtime-instance': discovery.runtimeInstanceId },
+    const discovery = connection.discovery!;
+    const response = await fetch(new URL('/v0/session', connection.baseUrl), {
+      headers: { authorization: `Bearer ${connection.token}`, 'x-mcp-runtime-instance': discovery.runtimeInstanceId },
       signal: AbortSignal.timeout(this.config.timeoutMs), redirect: 'error'
     });
     const bytes = await this.readBounded(response, this.config.maxJsonBytes, 'Runtime identity response exceeded limit');
