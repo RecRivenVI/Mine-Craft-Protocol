@@ -6,10 +6,10 @@
 
 | 项 | 值 |
 | --- | --- |
-| 产品显示名 | Minecraft Protocol Probe |
-| 模组 ID | `minecraft_protocol_probe` |
+| 产品显示名 | Mine Craft Protocol |
+| 模组 ID | `mine_craft_protocol` |
 | Java 包 | `io.github.recrivenvi.minecraftprotocol` |
-| 入口类 | `NeoForgeProbeMod`、`ForgeProbeMod`、`FabricProbeMod`、`FabricClientProbeMod` |
+| 入口类 | `NeoForgeProtocolMod`、`ForgeProtocolMod`、`FabricProtocolMod`、`FabricClientProtocolMod` |
 | 业务 | Agent-native Minecraft Autonomous Testing Platform Runtime |
 | 文档主语言 | 简体中文 |
 | 首页语言 | 简体中文 |

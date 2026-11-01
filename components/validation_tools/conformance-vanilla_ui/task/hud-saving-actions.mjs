@@ -117,7 +117,7 @@ export async function hudSavingActions({target, repo, processId, api, key, tree,
       const before = await tree(); assert.equal(before.dataCategory, 'USER'); assert.equal(before.screenClass, ''); assert.equal(before.overlayIdentity, 0);
       const inputBefore = await clean();
       await openFixture(); fixtureOpened = true;
-      await page(value => value.screenClass.endsWith('AutomationProbeScreen'), 'owned pause-save probe menu');
+      await page(value => value.screenClass.endsWith('AutomationDiagnosticScreen'), 'owned pause-save probe menu');
       const prepared = await observedProof('ready', value => value.readyForArm && !value.armed);
       if (target === '1.20.1-forge') {
         const applicability = verifyNativePauseSaveProof(prepared, expected, 'not_applicable');
@@ -195,7 +195,7 @@ export async function hudSavingActions({target, repo, processId, api, key, tree,
           if (current.screenClass === NATIVE_PAUSE && pauseAttempted && !resumeAttempted) {
             resumeAttempted = true; await key(256);
             await page(value => !value.screenClass, 'owned failed pause-save returns safely to gameplay');
-          } else if (current.screenClass.endsWith('AutomationProbeScreen') && fixtureOpened && !closeProbeAttempted) {
+          } else if (current.screenClass.endsWith('AutomationDiagnosticScreen') && fixtureOpened && !closeProbeAttempted) {
             closeProbeAttempted = true; await button('Close Probe');
             await page(value => !value.screenClass, 'owned unarmed save fixture closes safely');
           } else assert.equal(current.screenClass, '', 'Do not dismiss an unrelated or unconfirmed Screen');

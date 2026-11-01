@@ -9,7 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 const repo = resolve(import.meta.dirname, '../../..');
 const target = '26.3-fabric';
 const instance = resolve(repo, 'validations/feature-runtime_probe/instance', target, 'client');
-assert.equal(resolve(process.env.MCP_MINECRAFT_TOKEN_FILE ?? ''), resolve(instance, 'minecraft-protocol/token'));
+assert.equal(resolve(process.env.MCP_MINECRAFT_TOKEN_FILE ?? ''), resolve(instance, 'mine_craft_protocol/token'));
 const webUrl = 'http://127.0.0.1:4317';
 const client = new Client({ name:'vanilla-ui-consumer-conformance', version:'1.0.0' });
 const transport = new StdioClientTransport({command:process.execPath,args:[resolve(repo,'components/companion/dist/index.js')],

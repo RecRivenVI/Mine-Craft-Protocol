@@ -105,13 +105,13 @@ $providers = Invoke-Json -Method GET -Path '/v0/providers'
 Assert-True ($providers.dataSource -eq 'LIVE') 'Provider SPI must be LIVE-only'
 Assert-True (-not [bool]$providers.persistentStorageAvailable) 'Provider SPI must not expose persistent storage'
 Assert-True ($null -ne ($providers.providers | Where-Object id -eq 'minecraft:server/player')) 'server player provider must exist'
-$echoDescriptor = $providers.providers | Where-Object id -eq 'minecraft_protocol_probe:echo'
+$echoDescriptor = $providers.providers | Where-Object id -eq 'mine_craft_protocol:echo'
 Assert-True ($null -ne $echoDescriptor) 'registered Mod provider must be discoverable'
 Assert-True ([bool]$echoDescriptor.thirdParty) 'registered Mod provider must be marked third-party'
 Assert-True ($echoDescriptor.trust -eq 'untrusted_mod_provider') 'registered Mod provider must be untrusted data'
 
 $echo = Invoke-Json -Method POST -Path '/v0/providers/read' -Body @{
-    providerId = 'minecraft_protocol_probe:echo'
+    providerId = 'mine_craft_protocol:echo'
     query = @{ message = 'phase4-provider' }
 }
 Assert-True ($echo.data.echo.message -eq 'phase4-provider') 'registered provider read must execute'
@@ -127,7 +127,7 @@ $titleFrame = Invoke-Json -Method POST -Path '/v0/state/frames' -Body @{
     reads = @(
         @{ providerId = 'minecraft:client/player' },
         @{ providerId = 'minecraft:capture/info' },
-        @{ providerId = 'minecraft_protocol_probe:echo'; query = @{ frame = 'title' } }
+        @{ providerId = 'mine_craft_protocol:echo'; query = @{ frame = 'title' } }
     )
 }
 Assert-True ($titleFrame.consistency -eq 'coordinated_best_effort') 'State Frame consistency must be explicit'

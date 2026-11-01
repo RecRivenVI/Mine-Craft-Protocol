@@ -32,8 +32,8 @@ public interface DebugMutationAuthorization {
 
     boolean isCancelled();
 
-    default io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Scope
-            resources(String providerId) {
+    default io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.Scope resources(
+            String providerId) {
         throw new UnsupportedOperationException("No installed extension resource owner");
     }
 

@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext;
 import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -60,7 +60,7 @@ public final class ExtensionManifest {
             mods = Map.copyOf(mods);
         }
 
-        public List<String> entrypoints(PackageContext.Side side) {
+        public List<String> entrypoints(ExtensionContext.Side side) {
             List<String> result = new ArrayList<>(entries.getOrDefault("common", List.of()));
             result.addAll(
                     entries.getOrDefault(
@@ -84,6 +84,14 @@ public final class ExtensionManifest {
     private final Map<String, String> documents;
     private final Map<String, String> tests;
 
+    public String title() {
+        return source.has("title") ? string(source, "title") : id;
+    }
+
+    public String description() {
+        return source.has("description") ? string(source, "description") : "";
+    }
+
     public ExtensionManifest(byte[] bytes) {
         source = object(bytes);
         keys(
@@ -101,9 +109,11 @@ public final class ExtensionManifest {
                         "requestedScopes",
                         "exports",
                         "documents",
-                        "tests"));
+                        "tests",
+                        "title",
+                        "description"));
         if (integer(source, "formatVersion") != FORMAT
-                || integer(source, "sdkApi") != PackageContext.SDK_API)
+                || integer(source, "sdkApi") != ExtensionContext.SDK_API)
             throw failure("EXTENSION_FORMAT_UNSUPPORTED", "Unsupported package format or SDK API");
         id = string(source, "id");
         version = string(source, "version");
@@ -117,7 +127,9 @@ public final class ExtensionManifest {
                         .anyMatch(
                                 prefix ->
                                         namespace.equals(prefix)
-                                                || namespace.startsWith(prefix + ".")))
+                                                || (namespace.startsWith(prefix + ".")
+                                                        && !namespace.startsWith(
+                                                                "io.github.recrivenvi.minecraftprotocol.extensions."))))
             throw invalid("Private Java namespace is invalid or reserved");
         files = stringMap(source.getAsJsonObject("files"));
         if (files.isEmpty() || files.size() > 4096)
@@ -125,7 +137,7 @@ public final class ExtensionManifest {
         files.forEach(
                 (path, hash) -> {
                     path(path);
-                    if (path.equals("extension.json") || !hash.matches("[0-9a-f]{64}"))
+                    if (path.equals("extensionpack.json") || !hash.matches("[0-9a-f]{64}"))
                         throw invalid("Invalid file digest: " + path);
                 });
         Set<String> folded = new LinkedHashSet<>();

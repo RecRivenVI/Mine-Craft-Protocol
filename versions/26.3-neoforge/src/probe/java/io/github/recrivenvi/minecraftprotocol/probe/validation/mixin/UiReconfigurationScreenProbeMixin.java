@@ -13,13 +13,12 @@ public abstract class UiReconfigurationScreenProbeMixin {
     @Inject(
             method = {"init", "tick"},
             at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeNativeDisconnectDelay(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeDisconnectDelay(CallbackInfo callback) {
         UiReconfigurationFixture.observeNativeScreen((ServerReconfigScreen) (Object) this);
     }
 
     @Inject(method = "lambda$init$0", at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeNativeDisconnect(
-            Button button, CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeDisconnect(Button button, CallbackInfo callback) {
         UiReconfigurationFixture.observeNativeDisconnect((ServerReconfigScreen) (Object) this);
     }
 }

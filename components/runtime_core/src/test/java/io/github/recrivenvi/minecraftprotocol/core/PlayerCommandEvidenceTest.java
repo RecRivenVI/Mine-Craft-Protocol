@@ -24,11 +24,11 @@ class PlayerCommandEvidenceTest {
 
         ReceiptFixture() {
             var reference = new java.util.concurrent.atomic.AtomicReference<AutomationEngine>();
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("releaseAllInput"))
@@ -196,11 +196,11 @@ class PlayerCommandEvidenceTest {
     @Test
     void rawKeyReleaseAndUiCleanupDoNotEraseAnEarlierCommandReceipt() throws Exception {
         var engineRef = new java.util.concurrent.atomic.AtomicReference<AutomationEngine>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("key") && (int) args[2] == 1) {
@@ -248,11 +248,11 @@ class PlayerCommandEvidenceTest {
         var submitted = new AtomicInteger();
         var firstSubmitted = new CountDownLatch(1);
         var firstResult = new CompletableFuture<JsonObject>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("playerCommand")) {
@@ -292,11 +292,11 @@ class PlayerCommandEvidenceTest {
     @Test
     void failureBeforeSubmissionDoesNotPretendThereWasAPacket() throws Exception {
         var submitted = new AtomicInteger();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("playerCommand"))

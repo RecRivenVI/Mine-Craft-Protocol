@@ -8,5 +8,5 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(ClientPacketListener.class)
 public interface UiNavigationDialogProbeAccessor {
     @Invoker("createDialogAccess")
-    DialogConnectionAccess minecraftProtocolProbe$dialogAccess();
+    DialogConnectionAccess mineCraftProtocol$dialogAccess();
 }

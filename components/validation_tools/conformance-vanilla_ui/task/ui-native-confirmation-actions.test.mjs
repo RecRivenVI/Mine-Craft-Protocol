@@ -51,7 +51,7 @@ function controlledAdapter({target='26.3-neoforge',waitingDelay=6,waitingNeverAc
   const samples=[],actions=[],checks=[],waitingFrames=[],waitLabels=[],callbackInvocations=[];
   const fixtureScreen='io.github.recrivenvi.minecraftprotocol.probe.validation.UiNativeConfirmationFixtureScreen';
   const navigationScreen='io.github.recrivenvi.minecraftprotocol.probe.validation.UiNavigationFixtureScreen';
-  const probeScreen='io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen';
+  const probeScreen='io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen';
   let probe;
   function freshProbe() {
     probe={...fixture(),target,fixtureId:'current-native-fixture-'+(++fixtureIdentity),case:'',sequence:0,nativeClass:'',

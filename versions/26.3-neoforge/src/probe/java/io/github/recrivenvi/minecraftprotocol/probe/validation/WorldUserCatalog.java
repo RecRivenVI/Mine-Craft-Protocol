@@ -93,9 +93,9 @@ public final class WorldUserCatalog {
             JsonArray bindings = new JsonArray();
             for (var mapping : client.options.keyMappings) {
                 var key =
-                        ((io.github.recrivenvi.minecraftprotocol.probe.mixin.KeyBindingUiAccessor)
+                        ((io.github.recrivenvi.minecraftprotocol.mixin.KeyBindingUiAccessor)
                                         mapping)
-                                .minecraftProtocolProbe$key();
+                                .mineCraftProtocol$key();
                 JsonObject entry = new JsonObject();
                 entry.addProperty("action", mapping.getName());
                 entry.addProperty("binding", key.getName());

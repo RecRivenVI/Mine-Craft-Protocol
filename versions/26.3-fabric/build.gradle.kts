@@ -1,6 +1,6 @@
 plugins { id("net.fabricmc.fabric-loom") }
 
-loom { accessWidenerPath = file("src/main/resources/minecraft_protocol_probe.accesswidener") }
+loom { accessWidenerPath = file("src/main/resources/mine_craft_protocol.accesswidener") }
 
 dependencies {
     testImplementation(libs.mcp.junit)
@@ -27,3 +27,11 @@ dependencies {
     implementation(target.module("net.fabricmc.fabric-api:fabric-api", "fabric_api_version"))
     include(target.module("net.fabricmc.fabric-api:fabric-api", "fabric_api_version"))
 }
+
+repositories {
+    maven("https://api.modrinth.com/maven") {
+        content { includeModule("maven.modrinth", "modmenu") }
+    }
+}
+
+dependencies { "clientCompileOnly"(target.module("maven.modrinth:modmenu", "modmenu_version")) }

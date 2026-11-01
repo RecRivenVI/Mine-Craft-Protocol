@@ -58,9 +58,9 @@ try {
     Assert-True ($null -ne $schema.paths.'/v0/debug/world/block') 'typed Debug block path must exist'
 
     foreach ($targetPath in @(
-        'versions\1.20.1-forge\src\main\java\io\github\recrivenvi\minecraftprotocol\probe\runtime',
-        'versions\26.3-neoforge\src\main\java\io\github\recrivenvi\minecraftprotocol\probe\runtime',
-        'versions\26.3-fabric\src\client\java\io\github\recrivenvi\minecraftprotocol\probe\runtime'
+        'versions\1.20.1-forge\src\main\java\io\github\recrivenvi\minecraftprotocol\runtime',
+        'versions\26.3-neoforge\src\main\java\io\github\recrivenvi\minecraftprotocol\runtime',
+        'versions\26.3-fabric\src\client\java\io\github\recrivenvi\minecraftprotocol\runtime'
     )) {
         $runtime = Join-Path $repositoryRoot $targetPath
         Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java')) "$targetPath must contain ProtocolState"

@@ -10,12 +10,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Hud.class)
 public abstract class UiSavingHudScopeProbeMixin {
     @Inject(method = "extractSavingIndicator", at = @At("HEAD"))
-    private void minecraftProtocolProbe$beginNativeSavingDraw(CallbackInfo callback) {
+    private void mineCraftProtocol$beginNativeSavingDraw(CallbackInfo callback) {
         UiSavingIndicatorFixture.beginSavingExtraction();
     }
 
     @Inject(method = "extractSavingIndicator", at = @At("RETURN"))
-    private void minecraftProtocolProbe$endNativeSavingDraw(CallbackInfo callback) {
+    private void mineCraftProtocol$endNativeSavingDraw(CallbackInfo callback) {
         UiSavingIndicatorFixture.endSavingExtraction();
     }
 }

@@ -7,5 +7,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(IntegratedServer.class)
 public interface UiSavingServerPauseProbeAccessor {
     @Accessor("paused")
-    boolean minecraftProtocolProbe$paused();
+    boolean mineCraftProtocol$paused();
 }

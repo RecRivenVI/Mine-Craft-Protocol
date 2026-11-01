@@ -18,7 +18,7 @@ try {
     Assert-True ($static.Result -eq 'PASS' -and $static.Targets -eq 5) 'five-target static safety gate failed'
     $javaArgs = @(
         ':version:26.3-neoforge:test',
-        '--tests', 'io.github.recrivenvi.minecraftprotocol.probe.runtime.PersistentWriteSafetyFoundationTest',
+        '--tests', 'io.github.recrivenvi.minecraftprotocol.runtime.PersistentWriteSafetyFoundationTest',
         '--no-daemon'
     )
     if ($Offline) { $javaArgs += '--offline' }

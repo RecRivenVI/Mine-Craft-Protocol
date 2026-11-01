@@ -19,10 +19,10 @@ import java.util.jar.Manifest;
 /** Offline, derived native-library staging. No extension class is defined or initialized here. */
 public final class ExtensionEarlyStage {
     public static final int ABI = 1;
-    public static final String FILE_NAME = "minecraft-protocol-extension-libraries.jar";
-    public static final String INDEX = "META-INF/minecraft-protocol-extensions/stage.json";
+    public static final String FILE_NAME = "mine_craft_protocol-extension-libraries.jar";
+    public static final String INDEX = "META-INF/mine_craft_protocol-extensions/stage.json";
     public static final String MIXIN_PLUGIN =
-            "io.github.recrivenvi.minecraftprotocol.probe.loader.LoaderExtensionBridge";
+            "io.github.recrivenvi.minecraftprotocol.loader.LoaderExtensionBridge";
     private static final Set<String> CONFIG_FIELDS =
             Set.of(
                     "required",
@@ -69,6 +69,30 @@ public final class ExtensionEarlyStage {
         result.addProperty(
                 "librarySha256", ExtensionManifest.digest(Files.readAllBytes(destination)));
         return result;
+    }
+
+    public static Path library(Path game) {
+        return game.resolve("mine_craft_protocol/extensions/native").resolve(FILE_NAME);
+    }
+
+    /** Called by Loader discovery before module/class transformation starts. */
+    public static Path refresh(Path game, ExtensionPlatform.Environment environment)
+            throws IOException {
+        var store = new ExtensionStore(game);
+        ExtensionPackSelection.startup(store, environment);
+        Path destination = library(game);
+        Files.createDirectories(destination.getParent());
+        // A new temporary name prevents a partial JAR from becoming a Loader candidate.
+        Path pending =
+                destination.resolveSibling(
+                        FILE_NAME + "." + java.util.UUID.randomUUID() + ".pending");
+        JsonObject result = write(store, environment, pending);
+        Files.move(
+                pending,
+                destination,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        return result.get("packageCount").getAsInt() == 0 ? null : destination;
     }
 
     record Built(Map<String, byte[]> entries, JsonObject index, Manifest manifest) {}
@@ -149,7 +173,7 @@ public final class ExtensionEarlyStage {
                     throw new ExtensionFailure(
                             "EXTENSION_MIXIN_CONFIG_INVALID", "No selected Mixins");
                 String generated =
-                        "minecraft-protocol-extensions/"
+                        "mine_craft_protocol-extensions/"
                                 + manifest.id()
                                 + "/"
                                 + manifest.contentIdentity().substring(0, 16)

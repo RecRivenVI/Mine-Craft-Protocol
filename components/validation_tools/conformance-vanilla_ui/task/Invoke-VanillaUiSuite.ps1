@@ -157,7 +157,7 @@ function Start-Client {
     $deadline=[DateTime]::UtcNow.AddMinutes(9)
     do{
         if($p.HasExited){throw "Client launcher exited: $($p.ExitCode)"}
-        $token=Join-Path $client 'minecraft-protocol/token'
+        $token=Join-Path $client 'mine_craft_protocol/token'
         if(Test-Path -LiteralPath $token){try{$connection=Get-RuntimeConnection $client $Target -NotBefore $p.StartTime.ToUniversalTime();$headers=$connection.Headers;$tree=Invoke-RestMethod "$($connection.BaseUri)/v0/ui/tree" -Headers $headers -TimeoutSec 2;if($tree.target-eq$Target-and$tree.screenClass-like'*TitleScreen'-and-not$tree.overlayIdentity){$script:RuntimePort=$connection.Port;return $p}}catch{}}
         Start-Sleep -Milliseconds 250
     }while([DateTime]::UtcNow-lt$deadline)
@@ -220,7 +220,7 @@ try{
                 if(Test-UiReceiptOwner $report $RuntimePort $java.ProcessId $process.StartTime){
                     $report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue (-not$cleanupError) -Force
                     $report|Add-Member -NotePropertyName processExitCode -NotePropertyValue $process.ExitCode -Force
-                    $report|Add-Member -NotePropertyName endpointRemoved -NotePropertyValue (-not(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json'))) -Force
+                    $report|Add-Member -NotePropertyName endpointRemoved -NotePropertyValue (-not(Test-Path (Join-Path $client 'mine_craft_protocol/endpoint.json'))) -Force
                     if($cleanupError){$report.status='FAIL';$report|Add-Member -NotePropertyName shutdownError -NotePropertyValue ([string]$cleanupError) -Force}
                     [IO.File]::WriteAllText($receipt,($report|ConvertTo-Json -Depth 40)+"`n",[Text.UTF8Encoding]::new($false))
                 }

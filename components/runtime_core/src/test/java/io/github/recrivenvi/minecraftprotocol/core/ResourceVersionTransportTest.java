@@ -25,7 +25,7 @@ class ResourceVersionTransportTest {
         final ObservationRevisionTracker tracker = new ObservationRevisionTracker();
         final HttpClient client = HttpClient.newHttpClient();
         final AtomicInteger mutationEntries = new AtomicInteger();
-        final ProbeTransport transport;
+        final RuntimeTransport transport;
         final int port;
         final String oldScopes = System.getProperty("minecraft.protocol.scopes");
         final String fingerprint = "resource-version-world";
@@ -44,11 +44,11 @@ class ResourceVersionTransportTest {
                     "minecraft.protocol.scopes",
                     "read,control,debug,debug.write,debug.world.read"
                             + (mutationScope ? ",debug.world" : ""));
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
@@ -118,7 +118,7 @@ class ResourceVersionTransportTest {
                                         }
                                         return CompletableFuture.completedFuture(value);
                                     });
-            transport = new ProbeTransport(service, "resource-version-test", 0, "test-target");
+            transport = new RuntimeTransport(service, "resource-version-test", 0, "test-target");
             transport.startAsync();
             port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
             for (int i = 0; i < 100; i++) {

@@ -8,9 +8,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Dedicated authorization/lifecycle boundary; the Target owns all Minecraft resource semantics. */
 public final class ServerWorldDebug implements AutoCloseable {
     public interface Host extends AutoCloseable {
-        default io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+        default io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts
                 extensionLifetimeContexts() {
-            return io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty();
+            return io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts.empty();
         }
 
         default java.util.Map<String, java.util.function.Supplier<Object>>
@@ -25,7 +25,7 @@ public final class ServerWorldDebug implements AutoCloseable {
 
         default java.util.Map<
                         String,
-                        io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                        io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources
                                 .ThreadOwner>
                 extensionThreadOwners() {
             return java.util.Map.of();
@@ -37,7 +37,7 @@ public final class ServerWorldDebug implements AutoCloseable {
         }
 
         default void attachExtensionProviders(
-                io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+                io.github.recrivenvi.minecraftprotocol.api.ProviderSource source) {
             throw new UnsupportedOperationException(
                     "World host has no extension Provider dispatcher");
         }
@@ -70,10 +70,10 @@ public final class ServerWorldDebug implements AutoCloseable {
         this.host = java.util.Objects.requireNonNull(host);
     }
 
-    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+    public io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts
             extensionLifetimeContexts() {
         return closed.get()
-                ? io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty()
+                ? io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts.empty()
                 : host.extensionLifetimeContexts();
     }
 
@@ -85,7 +85,7 @@ public final class ServerWorldDebug implements AutoCloseable {
 
     public java.util.Map<
                     String,
-                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                    io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources
                             .ThreadOwner>
             extensionThreadOwners() {
         requireOpen();
@@ -104,7 +104,7 @@ public final class ServerWorldDebug implements AutoCloseable {
     }
 
     public void attachExtensionProviders(
-            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+            io.github.recrivenvi.minecraftprotocol.api.ProviderSource source) {
         requireOpen();
         host.attachExtensionProviders(source);
     }

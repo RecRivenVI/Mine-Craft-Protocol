@@ -15,7 +15,7 @@ $matrix=foreach($target in $targets){
         if((Get-FileHash (Join-Path $repo $source.Name) -Algorithm SHA256).Hash.ToLowerInvariant()-ne$source.Value){throw "Native smoke source became stale: $($source.Name)"}
     }
     $loaded=Get-Content (Join-Path $validation "instance/$target/runtime-core-class-loader.log") -Raw
-    if($loaded-notmatch'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport/'){throw "Actual shared transport loading was not observed: $target"}
+    if($loaded-notmatch'io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport/'){throw "Actual shared transport loading was not observed: $target"}
     $client=Join-Path $validation "instance/$target/client"
     $launch=Get-Content (Join-Path $validation "instance/$target/launch-out.log") -Raw
     if($launch-notmatch'BUILD SUCCESSFUL'-or$launch-match'NoClassDefFoundError|LinkageError'){throw "Runtime launcher/class linking failed: $target"}
@@ -24,7 +24,7 @@ $matrix=foreach($target in $targets){
 }
 $server=Get-Content (Join-Path $validation 'instance/26.3-neoforge/server/logs/latest.log') -Raw
 if($server-notmatch'Done \('-or$server-notmatch'Runtime loaded'-or$server-notmatch'Stopping server'-or$server-notmatch'Closing FML Loader'-or$server-match'NoClassDefFoundError|LinkageError'){throw 'Reference dedicated server startup/shutdown not confirmed'}
-foreach($target in $targets){if(Test-Path (Join-Path $validation "instance/$target/client/minecraft-protocol/endpoint.json")){throw "Owned discovery record remains: $target"}}
+foreach($target in $targets){if(Test-Path (Join-Path $validation "instance/$target/client/mine_craft_protocol/endpoint.json")){throw "Owned discovery record remains: $target"}}
 $games=@(Get-CimInstance Win32_Process -Filter "Name='java.exe'"|Where-Object {$_.CommandLine-like('*'+$repo+'*')-and$_.CommandLine-match'devlaunch.Main|devlaunchinjector.Main'})
 if($games.Count){throw 'Repository game process still running'}
 $suites=foreach($suite in @('components/runtime_core','components/runtime_safety')+@($targets|ForEach-Object {"versions/$_"})){

@@ -14,7 +14,7 @@ function Invoke-Provider([string]$Id,[string]$Probe) {
         perspective='server_authoritative'
         domains=@('providers')
         includeProviderData=$true
-        providerIds=@("minecraft_protocol_probe:$Id")
+        providerIds=@("mine_craft_protocol:$Id")
         providerQuery=@{probe=$Probe}
         budgets=@{
             maxProviders=1
@@ -26,12 +26,12 @@ function Invoke-Provider([string]$Id,[string]$Probe) {
     }|ConvertTo-Json -Depth 20 -Compress)
 }
 function Get-Provider($Response,[string]$Id) {
-    @($Response.providers|Where-Object -Property providerId -eq "minecraft_protocol_probe:$Id")[0]
+    @($Response.providers|Where-Object -Property providerId -eq "mine_craft_protocol:$Id")[0]
 }
 function Get-Revision($Response,[string]$Id) {
     @($Response.resourceRevisionRefs|
         Where-Object -Property resourceType -eq 'provider'|
-        Where-Object {$_.resourceKey.StartsWith("minecraft_protocol_probe:$Id")})[0]
+        Where-Object {$_.resourceKey.StartsWith("mine_craft_protocol:$Id")})[0]
 }
 $fallbackA=Invoke-Provider 'fallback-query' 'health-only'
 $fallbackB=Invoke-Provider 'fallback-query' 'inventory-only'

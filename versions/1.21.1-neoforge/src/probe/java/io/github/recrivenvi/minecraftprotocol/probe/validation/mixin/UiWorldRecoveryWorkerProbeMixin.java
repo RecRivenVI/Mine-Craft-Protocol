@@ -11,11 +11,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WorldUpgrader.class)
 public abstract class UiWorldRecoveryWorkerProbeMixin
         implements UiWorldRecoveryFixtureScreen.NativeWorkerEvidence {
-    @Unique private boolean minecraftProtocolProbe$savedDataSaveReturned;
+    @Unique private boolean mineCraftProtocol$savedDataSaveReturned;
 
     @Override
-    public boolean minecraftProtocolProbe$savedDataSaveReturned() {
-        return minecraftProtocolProbe$savedDataSaveReturned;
+    public boolean mineCraftProtocol$savedDataSaveReturned() {
+        return mineCraftProtocol$savedDataSaveReturned;
     }
 
     @Inject(
@@ -26,17 +26,17 @@ public abstract class UiWorldRecoveryWorkerProbeMixin
                             target =
                                     "Lnet/minecraft/world/level/storage/DimensionDataStorage;save()V",
                             shift = At.Shift.AFTER))
-    private void minecraftProtocolProbe$observeNativeSaveReturned(CallbackInfo callback) {
-        minecraftProtocolProbe$savedDataSaveReturned = true;
+    private void mineCraftProtocol$observeNativeSaveReturned(CallbackInfo callback) {
+        mineCraftProtocol$savedDataSaveReturned = true;
     }
 
     @Inject(method = "cancel", at = @At("HEAD"))
-    private void minecraftProtocolProbe$observeNativeWorkerBeforeCancel(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeWorkerBeforeCancel(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeNativeCancelStarting((WorldUpgrader) (Object) this);
     }
 
     @Inject(method = "cancel", at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeNativeWorkerCancel(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeWorkerCancel(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeNativeCancel((WorldUpgrader) (Object) this);
     }
 }

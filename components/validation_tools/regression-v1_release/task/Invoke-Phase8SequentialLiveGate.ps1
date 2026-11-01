@@ -45,7 +45,7 @@ try {
             -RedirectStandardOutput (Join-Path $directory 'phase8-sequential-live-stdout.log') `
             -RedirectStandardError (Join-Path $directory 'phase8-sequential-live-stderr.log') `
             -PassThru -WindowStyle Hidden
-        $tokenFile = Join-Path $directory 'minecraft-protocol\token'
+        $tokenFile = Join-Path $directory 'mine_craft_protocol\token'
         $deadline = [DateTime]::UtcNow.AddMinutes(3)
         $session = $null
         $connection=Wait-RuntimeConnection $directory $run.Target $process.StartTime.ToUniversalTime() $process

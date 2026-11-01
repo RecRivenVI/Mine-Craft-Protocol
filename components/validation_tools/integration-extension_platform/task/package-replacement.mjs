@@ -10,11 +10,11 @@ assert([...settings.matchAll(/register\("([0-9.]+-(?:forge|neoforge|fabric))"\)/
 const root=resolve(repo,'validations/integration-extension_platform/result');
 await mkdir(root,{recursive:true});
 if(action==='stage-before'){
-  await cp(resolve(repo,'components/extension_packages/build/replacement-packages/platform_probe'),resolve(repo,'components/extension_packages/build/packages/platform_probe'),{recursive:true});
+  await cp(resolve(repo,'components/extensionpacks/build/replacement-fixtures/platform_probe'),resolve(repo,'components/extensionpacks/build/fixtures/platform_probe'),{recursive:true});
   console.log('Prepared independently compiled before-package 1.0.3; native installation/restart still required');process.exit(0);
 }
 if(action==='stage-after'){
-  execFileSync('pwsh',['-NoProfile','-Command',"& './gradlew.bat' ':extension_packages:packagePlatformProbe' '--offline' '--console=plain'; exit $LASTEXITCODE"],{cwd:repo,stdio:'inherit'});
+  execFileSync('pwsh',['-NoProfile','-Command',"& './gradlew.bat' ':extensionpacks:packagePlatformProbe' '--offline' '--console=plain'; exit $LASTEXITCODE"],{cwd:repo,stdio:'inherit'});
   process.exit(0);
 }
 const current=resolve(root,target+'-installed-client.json'),lifecycle=resolve(root,target+'.json');

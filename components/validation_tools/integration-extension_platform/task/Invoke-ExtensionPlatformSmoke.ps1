@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
-    [ValidateSet('platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles')][string]$Adapter='platform_probe',[switch]$LifetimeFaults)
+    [ValidateSet('platform_probe','computercraft','modernui','emi','ae2','create','exposure','littletiles')][string]$Adapter='platform_probe',[switch]$LifetimeFaults,[switch]$Settings,[ValidateSet('initial','disabled-restart','enabled-restart')][string]$SettingsPhase='initial')
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
@@ -14,25 +14,28 @@ try {
     if(Test-Path $owner){$owned=Get-Content $owner -Raw|ConvertFrom-Json;if($owned.target-ne$Target-or$owned.owner-ne'extension-platform'){throw 'Unknown extension instance owner'}}
     elseif(@(Get-ChildItem $client -Force).Count){throw 'Refuse unowned instance'}
     else{[IO.File]::WriteAllText($owner,(@{owner='extension-platform';target=$Target}|ConvertTo-Json)+"`n")}
-    & (Join-Path $repo 'gradlew.bat') ':extension_packages:packagePlatformProbe' ':extension_packages:packageAdapters' ':extension_packages:packageLifecycleFixtures' '--offline' '--console=plain'
+    & (Join-Path $repo 'gradlew.bat') ':extensionpacks:packagePlatformProbe' ':extensionpacks:packageAdapters' ':extensionpacks:packageLifecycleFixtures' '--offline' '--console=plain'
     if($LASTEXITCODE-ne0){throw 'Probe package build failed'}
-    & node (Join-Path $PSScriptRoot 'install-platform-probe.mjs') "--target=$Target" "--lifetimes=$($LifetimeFaults.ToString().ToLowerInvariant())"
+    if(-not$Settings-or$SettingsPhase-eq'initial'){
+    & node (Join-Path $PSScriptRoot 'install-platform-probe.mjs') "--target=$Target" "--lifetimes=$($LifetimeFaults.ToString().ToLowerInvariant())" "--settings=$($Settings.ToString().ToLowerInvariant())"
     if($LASTEXITCODE-ne0){throw 'Package installation failed'}
     & {
-        & python -B (Join-Path $PSScriptRoot 'install-adapter.py') "--target=$Target" "--adapter=$Adapter"
+        & python -B (Join-Path $PSScriptRoot 'install-adapter.py') "--target=$Target" "--adapter=$Adapter" @($(if($Settings){'--settings'}))
         if($LASTEXITCODE-ne0){throw 'Declared adapter/input installation failed'}
     }
-    & (Join-Path $repo 'gradlew.bat') ':extension_packages:stageValidationLibrary' "-PextensionTarget=$Target" '--offline' '--console=plain'
-    if($LASTEXITCODE-ne0){throw 'Offline native-library staging failed'}
-    $stage=Join-Path $client 'mods/minecraft-protocol-extension-libraries.jar'
-    $candidate=$stage+'.pending'
-    if(Test-Path -LiteralPath $stage){
-        $resolved=[IO.Path]::GetFullPath($stage)
-        if(-not$resolved.StartsWith([IO.Path]::GetFullPath($client)+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Stage path escapes owned instance'}
-        Add-Type -AssemblyName Microsoft.VisualBasic
-        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($resolved,[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin)
     }
-    Move-Item -LiteralPath $candidate -Destination $stage
+    # Obsolete derived libraries are this validation's own files; the Loader now regenerates its cache.
+    foreach($name in @('minecraft-protocol-extension-libraries.jar','mine_craft_protocol-extension-libraries.jar','mine_craft_protocol-extension-discovery.jar')) {
+        $old=[IO.Path]::GetFullPath((Join-Path $client ('mods/'+$name)))
+        if(-not$old.StartsWith([IO.Path]::GetFullPath($client)+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Unsafe owned native-library path'}
+        if(Test-Path -LiteralPath $old){Add-Type -AssemblyName Microsoft.VisualBasic;[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($old,[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin)}
+    }
+    & (Join-Path $repo 'gradlew.bat') ':extensionpacks:stageValidationLibrary' "-PextensionTarget=$Target" '--offline' '--console=plain'
+    if($LASTEXITCODE-ne0){throw 'Development source-set native staging failed'}
+    $stage=Join-Path $client 'mine_craft_protocol/extensions/native/mine_craft_protocol-extension-libraries.jar'
+    if(Test-Path $stage){Add-Type -AssemblyName Microsoft.VisualBasic;[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile([IO.Path]::GetFullPath($stage),[Microsoft.VisualBasic.FileIO.UIOption]::OnlyErrorDialogs,[Microsoft.VisualBasic.FileIO.RecycleOption]::SendToRecycleBin)}
+    Move-Item -LiteralPath ($stage+'.pending') -Destination $stage
+    Copy-Item -LiteralPath $stage -Destination (Join-Path $client 'mods/mine_craft_protocol-extension-libraries.jar')
     $options=Join-Path $client 'options.txt'
     $original=if(Test-Path $options){[IO.File]::ReadAllText($options)}else{''}
     [IO.File]::WriteAllText($options,(Get-InstanceProfileOptions $original),[Text.UTF8Encoding]::new($false))
@@ -48,15 +51,15 @@ try {
     $connection=$null;$failure=$null
     try {
         $connection=Wait-RuntimeConnection $client $Target -NotBefore $process.StartTime.ToUniversalTime() -Launcher $process
-        & node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter" "--lifetime-faults=$($LifetimeFaults.ToString().ToLowerInvariant())"
+        if($Settings){& node (Join-Path $PSScriptRoot 'extension-settings-smoke.mjs') "--target=$Target" "--phase=$SettingsPhase"}else{& node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter" "--lifetime-faults=$($LifetimeFaults.ToString().ToLowerInvariant())"}
         if($LASTEXITCODE-ne0){throw 'Extension platform assertions failed'}
     } catch {$failure=$_}
     finally {
         if(-not$process.WaitForExit(5000)-and$connection){& node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" '--shutdown-only=true'}
         $stopped=$process.WaitForExit(60000)
-        $clean=$stopped-and$process.ExitCode-eq0-and-not(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json'))
+        $clean=$stopped-and$process.ExitCode-eq0-and-not(Test-Path (Join-Path $client 'mine_craft_protocol/endpoint.json'))
         if($clean-and$connection-and(Get-NetTCPConnection -State Listen -LocalPort $connection.Port -ErrorAction SilentlyContinue)){$clean=$false}
-        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter})$(if($LifetimeFaults){'-lifetimes'}).json"
+        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter})$(if($LifetimeFaults){'-lifetimes'})$(if($Settings){'-settings'+$(if($SettingsPhase-ne'initial'){'-'+$SettingsPhase})}).json"
         if(Test-Path $result){$report=Get-Content $result -Raw|ConvertFrom-Json;if($connection-and$report.runtimeInstanceId-eq$connection.RuntimeInstanceId){$report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue $clean -Force;if(-not$clean){$report.status='FAIL'};[IO.File]::WriteAllText($result,($report|ConvertTo-Json -Depth 40)+"`n",[Text.UTF8Encoding]::new($false))}}
         if(-not$connection){
             [IO.Directory]::CreateDirectory((Split-Path $result))|Out-Null

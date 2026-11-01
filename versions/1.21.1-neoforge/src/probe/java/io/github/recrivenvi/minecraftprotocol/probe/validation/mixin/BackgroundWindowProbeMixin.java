@@ -18,7 +18,7 @@ public abstract class BackgroundWindowProbeMixin {
                             target =
                                     "Lnet/neoforged/fml/loading/ImmediateWindowHandler;setupMinecraftWindow(Ljava/util/function/IntSupplier;Ljava/util/function/IntSupplier;Ljava/util/function/Supplier;Ljava/util/function/LongSupplier;)J",
                             remap = false))
-    private void minecraftProtocolProbe$backgroundCreation(CallbackInfo callback) {
+    private void mineCraftProtocol$backgroundCreation(CallbackInfo callback) {
         if (!"true".equals(System.getenv("MCP_VALIDATION_BACKGROUND_WINDOW"))) return;
         GLFW.glfwWindowHint(GLFW.GLFW_FOCUSED, GLFW.GLFW_FALSE);
         GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);

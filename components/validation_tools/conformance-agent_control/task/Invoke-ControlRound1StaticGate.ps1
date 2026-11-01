@@ -22,13 +22,13 @@ $settings=Get-Content (Join-Path $root 'settings.gradle.kts') -Raw
 Require ($settings-match'product\("runtime_core"\)') 'shared protocol component must be a product'
 foreach($target in $targets){
     $source=if($target-eq'26.3-fabric'){'client'}else{'main'}
-    $runtime=if($target-eq'1.20.1-forge'){'ForgeProbeRuntime'}elseif($target-eq'26.3-fabric'){'FabricProbeRuntime'}else{'NeoForgeProbeRuntime'}
-    $directory=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe/runtime"
-    $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $runtime=if($target-eq'1.20.1-forge'){'ForgeRuntime'}elseif($target-eq'26.3-fabric'){'FabricRuntime'}else{'NeoForgeRuntime'}
+    $directory=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/runtime"
+    $transport=Get-Content (Join-Path $runtimeCore 'RuntimeTransport.java') -Raw
     $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
     $adapter=Get-Content (Join-Path $directory "$runtime.java") -Raw
-    Require (-not(Test-Path (Join-Path $directory 'ProbeTransport.java'))-and-not(Test-Path (Join-Path $directory 'ProtocolState.java'))) "$target must not retain duplicate protocol implementations"
-    Require (($adapter-replace'\s','').Contains('ProbeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+$target+'")')-and$adapter.Contains('import io.github.recrivenvi.minecraftprotocol.core.ProbeTransport;')) "$target shared transport instance identity/adapter binding missing"
+    Require (-not(Test-Path (Join-Path $directory 'RuntimeTransport.java'))-and-not(Test-Path (Join-Path $directory 'ProtocolState.java'))) "$target must not retain duplicate protocol implementations"
+    Require (($adapter-replace'\s','').Contains('RuntimeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+$target+'")')-and$adapter.Contains('import io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport;')) "$target shared transport instance identity/adapter binding missing"
     $experimental=$target-in@('1.20.1-forge','26.3-neoforge','26.3-fabric')
     Require (($adapter-match'implements Phase9AExperimentalService')-eq$experimental) "$target experimental route surface changed"
     Require ($transport-match'attachControlSession'-and$transport-match'/v0/control/mode') "$target mode session is not connected"

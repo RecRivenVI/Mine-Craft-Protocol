@@ -35,7 +35,7 @@ class UiAsyncReadIsolationTest {
         final CountDownLatch uiStarted = new CountDownLatch(1);
         final CountDownLatch sampleStarted = new CountDownLatch(1);
         final CompletableFuture<JsonObject> deferredUi;
-        final ProbeTransport transport;
+        final RuntimeTransport transport;
         final int port;
         String arm = "";
         String recordingId = "";
@@ -46,11 +46,11 @@ class UiAsyncReadIsolationTest {
                     "minecraft.protocol.scopes",
                     "read,control,capture,event,debug,debug.world.read,debug.write,debug.ui"
                             + uiScopes);
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
@@ -76,7 +76,7 @@ class UiAsyncReadIsolationTest {
                                             sampleStarted.countDown();
                                         return CompletableFuture.completedFuture(value);
                                     });
-            transport = new ProbeTransport(service, "ui-async-test", 0, "isolated-http-test");
+            transport = new RuntimeTransport(service, "ui-async-test", 0, "isolated-http-test");
             transport.startAsync();
             port = transport.boundPort().get(10, TimeUnit.SECONDS);
         }

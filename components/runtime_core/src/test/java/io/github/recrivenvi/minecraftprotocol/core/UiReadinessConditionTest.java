@@ -16,11 +16,11 @@ class UiReadinessConditionTest {
     }
 
     private static ConditionEngine conditions(ProtocolState state, JsonObject tree) {
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     assertEquals("uiTree", method.getName());
                                     return CompletableFuture.completedFuture(tree.deepCopy());

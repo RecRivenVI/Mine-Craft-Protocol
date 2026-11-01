@@ -3,9 +3,9 @@ package io.github.recrivenvi.minecraftprotocol.core;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProvidersV2;
 import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeEchoReadProvider;
 import io.github.recrivenvi.minecraftprotocol.core.providers.ProbeV2Providers;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
 import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,9 +34,8 @@ final class RuntimeCoreBoundaryTest {
                 ClassNotFoundException.class,
                 () -> Class.forName("net.minecraft.client.Minecraft"));
         assertEquals(
-                "io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2",
-                io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2.class
-                        .getName());
+                "io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2",
+                io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2.class.getName());
     }
 
     @Test
@@ -61,18 +60,18 @@ final class RuntimeCoreBoundaryTest {
     @Test
     void optionalSpikeRoutesRemainAbsentWithoutTheExplicitAdapter(@TempDir Path artifacts)
             throws Exception {
-        verifySpikeRoutes(ProbeService.class, artifacts, false);
+        verifySpikeRoutes(RuntimeService.class, artifacts, false);
         verifySpikeRoutes(Phase9AExperimentalService.class, artifacts, true);
     }
 
     @Test
     void formalStorageReadIsIndependentOfExperimentalAdaptersButStillRequiresItsScope(
             @TempDir Path artifacts) throws Exception {
-        for (var type : new Class<?>[] {ProbeService.class, Phase9AExperimentalService.class}) {
+        for (var type : new Class<?>[] {RuntimeService.class, Phase9AExperimentalService.class}) {
             for (boolean authorized : new boolean[] {false, true}) {
                 var calls = new AtomicInteger();
-                ProbeService service =
-                        (ProbeService)
+                RuntimeService service =
+                        (RuntimeService)
                                 Proxy.newProxyInstance(
                                         type.getClassLoader(),
                                         new Class<?>[] {type},
@@ -100,7 +99,7 @@ final class RuntimeCoreBoundaryTest {
                         "minecraft.protocol.scopes",
                         authorized ? "storage.read" : "read,debug,debug.world.read");
                 try (var transport =
-                        new ProbeTransport(service, "storage-token", 0, "boundary-target")) {
+                        new RuntimeTransport(service, "storage-token", 0, "boundary-target")) {
                     transport.startAsync();
                     int port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
                     var client = HttpClient.newHttpClient();
@@ -155,11 +154,11 @@ final class RuntimeCoreBoundaryTest {
     }
 
     private static void verifySpikeRoutes(
-            Class<? extends ProbeService> type, Path artifacts, boolean experimental)
+            Class<? extends RuntimeService> type, Path artifacts, boolean experimental)
             throws Exception {
         var calls = new AtomicInteger();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
                                 type.getClassLoader(),
                                 new Class<?>[] {type},
@@ -173,7 +172,8 @@ final class RuntimeCoreBoundaryTest {
                                 });
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.setProperty("minecraft.protocol.scopes", "read,debug,debug.world.read");
-        try (var transport = new ProbeTransport(service, "boundary-token", 0, "boundary-target")) {
+        try (var transport =
+                new RuntimeTransport(service, "boundary-token", 0, "boundary-target")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
             var client = HttpClient.newHttpClient();

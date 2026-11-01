@@ -12,7 +12,7 @@
       "variables": {
         "port": {
           "default": "0",
-          "description": "Placeholder only. Read the OS-assigned actual port from the intended instance's minecraft-protocol/endpoint.json; never connect to port 0."
+          "description": "Placeholder only. Read the OS-assigned actual port from the intended instance's mine_craft_protocol/endpoint.json; never connect to port 0."
         }
       }
     }
@@ -8620,6 +8620,22 @@
           },
           "packId": {
             "type": "string"
+          },
+          "agentOperable": {
+            "type": "boolean",
+            "description": "Whether this local extensionpack control permits Agent activation; physical first approval and filesystem controls do not. This does not grant a scope or Lease."
+          },
+          "approvalRequired": {
+            "type": "boolean",
+            "description": "This extensionpack content identity still requires physical human approval."
+          },
+          "restartRequired": {
+            "type": "boolean",
+            "description": "The visible extensionpack selection differs from this process startup selection."
+          },
+          "dependencyCompatible": {
+            "type": "boolean",
+            "description": "The extensionpack target, side, Java and required mod versions match this process."
           },
           "translationKey": {
             "type": "string"

@@ -1,3 +1,4 @@
+import { listenFetch } from './listen-fetch.js';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
@@ -12,7 +13,7 @@ const token = 'stream-budget-token';
 test('Native hit errors retain only bounded client pick facts through RuntimeClient and MCP results',async()=>{
   const hit={kind:'block',source:'native_interaction_pick',dataCategory:'USER',authority:'CLIENT_KNOWN',distance:2.5,position:{x:.5,y:81.5,z:2,private:'secret'},block:{x:0,y:81,z:2},face:'north',guard:'secret'};
   let requests=0;const server=createServer((_request,response)=>{requests++;response.writeHead(409,{'content-type':'application/json'});response.end(JSON.stringify({error:'WORLD_TARGET_NOT_HIT',message:'Native pick was blocked',requestId:'native-hit',actualHit:hit}));});
-  server.listen(0,'127.0.0.1');await once(server,'listening');const address=server.address();if(!address||typeof address==='string')throw Error('Hit fixture did not bind');
+  await listenFetch(server);const address=server.address();if(!address||typeof address==='string')throw Error('Hit fixture did not bind');
   const client=new RuntimeClient(loadConfig({MCP_MINECRAFT_BASE_URL:`http://127.0.0.1:${address.port}`,MCP_MINECRAFT_TOKEN:token}));
   try {const value=await asToolResult(()=>client.json('POST','/v0/test-hit',{}));assert.equal(value.isError,true);const error=(value.structuredContent as {error:{code:string;actualHit:Record<string,unknown>}}).error;assert.equal(error.code,'WORLD_TARGET_NOT_HIT');assert.equal(error.actualHit.kind,'block');assert.equal(error.actualHit.face,'north');assert(!JSON.stringify(value).includes('secret'));assert.equal(requests,1);}
   finally {server.close();await once(server,'close');}
@@ -32,7 +33,7 @@ for (const transport of ['json', 'binary']) {
         retryAfterMillis: 251, rateLimit: { ...budget, unexpected: 'discard' }
       }));
     });
-    server.listen(0, '127.0.0.1'); await once(server, 'listening');
+    await listenFetch(server);
     const address = server.address(); if (!address || typeof address === 'string') throw new Error('test did not bind');
     try {
       const client = new RuntimeClient(loadConfig({ MCP_MINECRAFT_BASE_URL: `http://127.0.0.1:${address.port}`, MCP_MINECRAFT_TOKEN: token }));
@@ -68,8 +69,7 @@ test('Native cancellation retains unconfirmed outcome in MCP without claiming sa
       executionOutcome: 'not_confirmed', retrySafe: false
     }));
   });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
+  await listenFetch(server);
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('test server did not bind');
   try {
@@ -115,8 +115,7 @@ test('RuntimeClient enforces declared and chunked response budgets while streami
     for (let index = 0; index < 8; index++) response.write(Buffer.alloc(256, index));
     response.end();
   });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
+  await listenFetch(server);
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('test server did not bind');
   const client = new RuntimeClient(loadConfig({

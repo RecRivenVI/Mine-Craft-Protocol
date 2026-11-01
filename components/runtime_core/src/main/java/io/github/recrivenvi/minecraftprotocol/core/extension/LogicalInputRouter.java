@@ -1,6 +1,6 @@
 package io.github.recrivenvi.minecraftprotocol.core.extension;
 
-import io.github.recrivenvi.minecraftprotocol.probe.extension.LogicalInput;
+import io.github.recrivenvi.minecraftprotocol.api.extension.LogicalInput;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentInputContext;
 import java.util.ArrayList;
 import java.util.List;

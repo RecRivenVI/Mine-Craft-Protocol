@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(UnsupportedGraphicsWarningScreen.class)
 public interface UiRecoveryGraphicsProbeInvoker {
     @Invoker("<init>")
-    static UnsupportedGraphicsWarningScreen minecraftProtocolProbe$create(
+    static UnsupportedGraphicsWarningScreen mineCraftProtocol$create(
             Component title,
             List<Component> message,
             ImmutableList<UnsupportedGraphicsWarningScreen.ButtonOption> buttons) {

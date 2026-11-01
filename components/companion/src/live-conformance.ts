@@ -18,7 +18,7 @@ async function main(): Promise<void> {
     stderr: 'pipe',
     env: environment()
   });
-  const client = new Client({ name: 'minecraft-phase8-live-conformance', version: '0.0.1-phase8' });
+  const client = new Client({ name: 'minecraft-phase8-live-conformance', version: '1.0.0-alpha' });
   const call = async (name: string, args: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
     const result = await client.callTool({ name, arguments: args });
     if (result.isError) throw new Error(`${name} failed: ${JSON.stringify(result.structuredContent)}`);

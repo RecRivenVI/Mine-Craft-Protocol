@@ -32,7 +32,7 @@ final class ExtensionClassSpace extends ClassLoader {
 
     ExtensionClassSpace(
             ClassLoader parent,
-            ExtensionStore.VerifiedPackage source,
+            ExtensionStore.VerifiedExtensionPack source,
             ExtensionManifest.Variant variant) {
         super(parent);
         manifest = source.manifest();

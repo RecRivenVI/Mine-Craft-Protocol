@@ -216,11 +216,11 @@ class UiActionAliasTest {
             return tree;
         }
 
-        private ProbeService service() {
-            return (ProbeService)
+        private RuntimeService service() {
+            return (RuntimeService)
                     Proxy.newProxyInstance(
-                            ProbeService.class.getClassLoader(),
-                            new Class<?>[] {ProbeService.class},
+                            RuntimeService.class.getClassLoader(),
+                            new Class<?>[] {RuntimeService.class},
                             (proxy, method, args) -> {
                                 switch (method.getName()) {
                                     case "gestureEvent", "attachControlSession" -> {

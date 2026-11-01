@@ -3,7 +3,7 @@ import test from 'node:test';
 import {closeItemFixtureUi} from './world-debug-items-actions.mjs';
 
 test('item cleanup follows the actual older parent Pause and modern direct close without blind extra Esc', async () => {
-  for(const screens of [['AutomationProbeScreen','PauseScreen',''],['AutomationProbeScreen',''],['PauseScreen',''],['']]) {
+  for(const screens of [['AutomationDiagnosticScreen','PauseScreen',''],['AutomationDiagnosticScreen',''],['PauseScreen',''],['']]) {
     let index = 0;
     await closeItemFixtureUi({read:async () => ({screenClass:screens[index]}),
       escape:async () => {index++;assert(index < screens.length);},

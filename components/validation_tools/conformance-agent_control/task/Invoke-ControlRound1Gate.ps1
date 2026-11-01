@@ -25,7 +25,7 @@ foreach($target in $expected){
     }
     Require ($row.humanProof.result-eq'PASS'-and$row.humanProof.operationState-eq'cancelled'-and$row.humanProof.heldKeys-eq0-and$row.humanProof.heldButtons-eq0-and$row.humanProof.postRevokeInput-eq0) "$target physical Esc / cleanup evidence incomplete"
     Require ($row.shutdownProof.ProcessExitCode-eq0-and$row.shutdownProof.RecordingStatus-eq'completed'-and$row.shutdownProof.WriterErrors-eq0) "$target finalization / process shutdown failed"
-    $jar=Join-Path $root "versions/$target/build/libs/minecraft_protocol_probe-$target-0.0.1-phase8.jar"
+    $jar=Join-Path $root "versions/$target/build/libs/mine_craft_protocol-$target-1.0.0-alpha.jar"
     Require ((Get-FileHash -LiteralPath $jar -Algorithm SHA256).Hash.ToLowerInvariant()-eq$row.artifactSha256) "$target artifact changed after evidence capture"
 }
 foreach($file in $evidence.sourceHashes.PSObject.Properties){

@@ -34,7 +34,7 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
 $port=$null
 $script:instance=Join-Path $repo "validations/feature-control_ui_showcase/instance/$Target/$role"
-$tokenFile=Join-Path $instance 'minecraft-protocol/token'
+$tokenFile=Join-Path $instance 'mine_craft_protocol/token'
 $runnerLock=$null;$clientProcess=$null;$launcher=$null;$connected=$false;$instanceOwned=$false
 $results=[Collections.Generic.List[object]]::new()
 $sourcesBefore=Get-ShowcaseSourceHashes $repo $Target

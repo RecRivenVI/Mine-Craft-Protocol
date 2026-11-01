@@ -99,7 +99,7 @@ try {
   if(!server)await screen(value=>value.screenClass.endsWith('TitleScreen'));
   await check(server?'approved independent SDK package and static catalog/documents work without client classes':'approved independent SDK package loads and static catalog/documents work at title',async()=>{
     const catalog=await api('GET','/v0/extensions');const installed=catalog.packages.find(item=>item.packageId==='platform_probe');assert.equal(installed?.status,'active',JSON.stringify(catalog));assert(installed.registeredCapabilities.includes('platform_probe:sampling'));
-    const bytes=await readFile(resolve(instance,'minecraft-protocol/extensions/packages/platform_probe/extension.json'));assert.equal(installed.contentIdentity,hash(bytes));record.packageIdentity=installed.contentIdentity;
+    const bytes=await readFile(resolve(instance,'extensionpacks/platform_probe/extensionpack.json'));assert.equal(installed.contentIdentity,hash(bytes));record.packageIdentity=installed.contentIdentity;
     assert.equal(catalog.earlyHooks.state,'validated',JSON.stringify(catalog.earlyHooks));
     assert.equal(catalog.earlyHooks.globalFallbackReplaced,false);
     assert(catalog.earlyHooks.configs.some(config=>config.packageId==='platform_probe'&&config.registered),JSON.stringify(catalog.earlyHooks));

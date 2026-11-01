@@ -193,16 +193,16 @@ final class PlayerStateStreamTransportTest {
         private final AtomicInteger inputCalls = new AtomicInteger();
         private final AtomicInteger playerReads = new AtomicInteger();
         private InputContextEpoch.Snapshot context;
-        private final ProbeTransport transport;
+        private final RuntimeTransport transport;
         private final int port;
 
         Fixture(String scopes) throws Exception {
             System.setProperty("minecraft.protocol.scopes", scopes);
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, arguments) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
@@ -231,7 +231,7 @@ final class PlayerStateStreamTransportTest {
                                         }
                                         return CompletableFuture.completedFuture(result);
                                     });
-            transport = new ProbeTransport(service, "state-stream-test", 0, "state-stream-test");
+            transport = new RuntimeTransport(service, "state-stream-test", 0, "state-stream-test");
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             replaceContext(true);

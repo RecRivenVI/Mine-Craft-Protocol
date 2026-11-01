@@ -2,19 +2,19 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSchemaRegistry;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSource;
+import io.github.recrivenvi.minecraftprotocol.api.extension.Extension;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources;
+import io.github.recrivenvi.minecraftprotocol.api.extension.LogicalInputAdapter;
+import io.github.recrivenvi.minecraftprotocol.api.extension.Registration;
+import io.github.recrivenvi.minecraftprotocol.api.extension.UiAdapter;
+import io.github.recrivenvi.minecraftprotocol.api.extension.WorldAdapter;
 import io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlan.Candidate;
 import io.github.recrivenvi.minecraftprotocol.core.extension.ExtensionPlan.Status;
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.LogicalInputAdapter;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageExtension;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.Registration;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +32,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
     public record Environment(
             String productId,
             String target,
-            PackageContext.Side side,
+            ExtensionContext.Side side,
             int javaVersion,
             Map<String, String> mods,
             ClassLoader parent) {
@@ -81,7 +81,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
     private final Map<String, ExtensionResources.ThreadOwner> threadOwners;
     private final Map<String, java.util.function.Supplier<Object>> nativeContexts;
     private final java.util.function.Supplier<
-                    io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts>
+                    io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts>
             lifetimeContexts;
     private final java.util.function.Supplier<
                     io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession.Snapshot>
@@ -163,7 +163,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                 threadOwners,
                 controlState,
                 nativeContexts,
-                io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts::empty);
+                io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts::empty);
     }
 
     public ExtensionPlatform(
@@ -178,7 +178,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                     controlState,
             Map<String, java.util.function.Supplier<Object>> nativeContexts,
             java.util.function.Supplier<
-                            io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts>
+                            io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts>
                     lifetimeContexts) {
         this.environment = environment;
         this.controlState = controlState;
@@ -192,13 +192,14 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                 java.util.concurrent.Executors.newSingleThreadScheduledExecutor(
                         action -> {
                             Thread thread =
-                                    new Thread(action, "minecraft-protocol-extension-resources");
+                                    new Thread(action, "mine_craft_protocol-extension-resources");
                             thread.setDaemon(true);
                             return thread;
                         });
         this.resourceExpiry.scheduleWithFixedDelay(
                 resources::expireInvalidGrants, 50, 50, java.util.concurrent.TimeUnit.MILLISECONDS);
         ExtensionPlan plan = new ExtensionPlan(store, environment, true);
+        ExtensionPackSelection.startup(store, environment);
         statuses.addAll(plan.statuses);
         candidates.putAll(plan.candidates);
         for (Candidate candidate : plan.order) {
@@ -246,11 +247,11 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                             .entrypoints(environment.side())) {
                 Class<?> type = Class.forName(entry, false, candidate.loader);
                 if (type.getClassLoader() != candidate.loader
-                        || !PackageExtension.class.isAssignableFrom(type))
+                        || !Extension.class.isAssignableFrom(type))
                     throw new ExtensionFailure(
                             "EXTENSION_ENTRYPOINT_INVALID",
                             "Entry must implement the shared SDK, without embedding another copy");
-                ((PackageExtension) type.getConstructor().newInstance()).initialize(transaction);
+                ((Extension) type.getConstructor().newInstance()).initialize(transaction);
             }
             transaction.commit();
             active.add(transaction);
@@ -344,7 +345,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
     public synchronized JsonObject catalog() {
         JsonObject result = new JsonObject();
         result.addProperty("type", "extensions.catalog");
-        result.addProperty("sdkApi", PackageContext.SDK_API);
+        result.addProperty("sdkApi", ExtensionContext.SDK_API);
         result.addProperty("formatVersion", ExtensionManifest.FORMAT);
         result.addProperty("target", environment.target());
         result.addProperty("side", environment.side().name());
@@ -536,7 +537,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         closing.forEach(Transaction::close);
     }
 
-    private final class Transaction implements PackageContext, AutoCloseable {
+    private final class Transaction implements ExtensionContext, AutoCloseable {
         private final Candidate candidate;
         private final Map<String, ProviderSchemaRegistry.Validator> schemas = new LinkedHashMap<>();
         private final Map<String, AgentDataProviderV2> providers = new LinkedHashMap<>();
@@ -623,7 +624,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
         }
 
         @Override
-        public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+        public io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts
                 lifetimeContexts() {
             var values =
                     new java.util.EnumMap<ExtensionResources.Lifetime, String>(
@@ -643,7 +644,7 @@ public final class ExtensionPlatform implements ProviderSource, AutoCloseable {
                                     + values.getOrDefault(
                                             ExtensionResources.Lifetime.CONNECTION, ""));
             }
-            return new io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts(
+            return new io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts(
                     values);
         }
 

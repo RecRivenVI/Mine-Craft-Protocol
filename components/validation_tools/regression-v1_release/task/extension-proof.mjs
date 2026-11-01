@@ -16,13 +16,13 @@ export async function currentHashes(repo,hashes){
 }
 export async function currentPackageIdentity(repo,id){
   assert.match(id,/^[a-z][a-z0-9_]*$/);
-  const root=resolve(repo,'components/extension_packages/build/packages',id);
-  const bytes=await readFile(resolve(root,'extension.json')),manifest=JSON.parse(bytes);
+  const root=resolve(repo,'components/extensionpacks/build',id==='platform_probe'?'fixtures':'extensionpacks',id);
+  const bytes=await readFile(resolve(root,'extensionpack.json')),manifest=JSON.parse(bytes);
   assert.equal(manifest.id,id);
   const entries=await readdir(root,{recursive:true,withFileTypes:true});
   assert(entries.every(item=>!item.isSymbolicLink()),'Distributed package cannot contain links');
   const files=entries.filter(item=>item.isFile()).map(item=>relative(root,resolve(item.parentPath,item.name)).replaceAll('\\','/')).sort();
-  assert.deepEqual(files,['extension.json',...Object.keys(manifest.files)].sort(),'Distributed package file index must be complete');
+  assert.deepEqual(files,['extensionpack.json',...Object.keys(manifest.files)].sort(),'Distributed package file index must be complete');
   await currentHashes(root,manifest.files);
   return sha256(bytes);
 }
@@ -58,6 +58,16 @@ export async function collectExtensionProof(repo,artifacts){
   }
   for(const artifact of artifacts){
     const target=artifact.target;
+    for(const phase of ['initial','disabled-restart','enabled-restart']){
+      const {value,proof}=await read(base+target+'-client-settings'+(phase==='initial'?'':'-'+phase)+'.json');
+      assert.equal(value.status,'PASS');assert.equal(value.target,target);assert.equal(value.phase,phase);
+      assert.equal(value.cleanShutdown,true);assert.equal(value.sourceChangedDuringRun,false);assert.equal(value.persistentWriteCalls,0);
+      assert.deepEqual(value.sourceHashes,await candidateSource(repo,[target]));
+      await currentHashes(repo,{'components/validation_tools/integration-extension_platform/task/extension-settings-smoke.mjs':value.toolSha256});
+      assert(value.checks.length>=5&&value.checks.every(item=>item.status==='PASS'));
+      assert.equal(value.finalInput.pressedKeyCount,0);assert.equal(value.finalInput.pressedButtonCount,0);
+      rows.push({...proof,target,scope:'extensionpack_settings_'+phase,checks:value.checks.length});
+    }
     await platform(target,'-client',['platform_probe']);
     await platform(target,'-installed-client',['platform_probe'],true);
     await installedExit(target,'');
@@ -89,9 +99,9 @@ export async function collectExtensionProof(repo,artifacts){
   assert.equal(replacement.value.artifactSha256,artifacts.find(item=>item.target==='26.3-neoforge').sha256);
   rows.push({...replacement.proof,scope:'same_final_host_package_replacement'});
   const adapters=[],limitations=[];
-  const ids=JSON.parse(await readFile(resolve(repo,'components/extension_packages/packages/index.json'),'utf8'));
+  const ids=JSON.parse(await readFile(resolve(repo,'components/extensionpacks/extensionpacks/index.json'),'utf8'));
   for(const id of ids){
-    const spec=JSON.parse(await readFile(resolve(repo,'components/extension_packages/packages',id,'package.json'),'utf8'));
+    const spec=JSON.parse(await readFile(resolve(repo,'components/extensionpacks/extensionpacks',id,'package.json'),'utf8'));
     for(const target of spec.targets){
       if(id==='computercraft'&&target==='26.3-neoforge'){
         limitations.push({packageId:id,target,status:'UPSTREAM_BLOCKED',reason:'Pinned CC 1.120.3 references removed ModConfig.Type.SERVER before Runtime startup; no platform business PASS.'});continue;
@@ -123,7 +133,8 @@ export async function verifyExtensionPublication(report,repo){
   assert.deepEqual(report.extensionPlatform,await collectExtensionProof(repo,report.artifacts));
   for(const file of report.additionalArtifacts??[]){assert.match(file.fileName,/^(?:extensions|companion)\/[A-Za-z0-9_./-]+$/);assert(!file.fileName.split('/').includes('..'));assert.equal(sha256(await readFile(resolve(repo,file.path))),file.sha256);}
   assert(report.additionalArtifacts.some(file=>file.fileName.endsWith('-extension-sdk.jar')));
-  for(const id of ['computercraft','create','ae2','emi','exposure','modern_ui','littletiles'])assert(report.additionalArtifacts.some(file=>file.fileName===`extensions/packages/${id}/extension.json`));
+  for(const id of ['computercraft','create','ae2','emi','exposure','modernui','littletiles'])assert(report.additionalArtifacts.some(file=>file.fileName===`extensions/extensionpacks/${id}/extensionpack.json`));
   assert(report.additionalArtifacts.some(file=>file.fileName==='companion/dist/index.js'));
+  assert(!report.additionalArtifacts.some(file=>file.fileName.startsWith('companion/web/')||file.fileName.startsWith('companion/dist/ui-console')),'The experience website is a repository test tool, not a delivered Companion surface');
   return {performanceAcceptance:{status:'NOT_PERFORMED'}};
 }

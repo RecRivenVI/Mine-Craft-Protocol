@@ -3,7 +3,7 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.WorldAdapter;
+import io.github.recrivenvi.minecraftprotocol.api.extension.WorldAdapter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;

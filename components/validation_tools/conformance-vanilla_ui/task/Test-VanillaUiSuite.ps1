@@ -40,7 +40,7 @@ foreach($required in @('async function rejectUiMutation','after.resourceVersion,
     if(-not$nativeRunner.Contains($required)){throw "UI Debug proof must bind actual state, native input counts and explicit mode: $required"}
 }
 $configuration=Get-Content (Join-Path $repo 'validations/conformance-vanilla_ui/validation.toml') -Raw
-if($configuration-notmatch 'memory-max = "4G"'-or$configuration-match 'minecraft.protocol.probe.port'){throw 'UI launch memory/port isolation contract is inconsistent'}
+if($configuration-notmatch 'memory-max = "4G"'-or$configuration-match 'mine_craft_protocol.port'){throw 'UI launch memory/port isolation contract is inconsistent'}
 [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Read-VanillaUiCatalog.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
 if ($errors.Count) { throw ($errors | Out-String) }
 & node --check (Join-Path $PSScriptRoot 'run-vanilla-ui.mjs')

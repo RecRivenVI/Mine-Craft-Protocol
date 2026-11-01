@@ -17,7 +17,7 @@ $body=@{
     domains=@('player','entities','chunks','providers')
     selector=@{chunkRadius=2;entityRadius=64}
     includeProviderData=$true
-    providerIds=@('minecraft_protocol_probe:safe')
+    providerIds=@('mine_craft_protocol:safe')
     providerQuery=@{probe='concurrent'}
     budgets=@{maxEntities=128;maxProviders=1;maxResponseBytes=524288}
 }|ConvertTo-Json -Depth 20 -Compress

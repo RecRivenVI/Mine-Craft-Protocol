@@ -336,7 +336,7 @@ KeyEntry读取实际key/name/changeButton/resetButton，1.20.1的KeyBindsList位
 
 ## 扩展包早期装载
 
-公共 Mixin 插件协议和字节码预检在 runtime_core；各 Target 的 LoaderExtensionBridge 只使用早期 Loader 元数据，不链接客户端 singleton。桥所在 probe.loader 与公共 SDK 的 probe.extension 分离，避免开发运行的独立模块形成 split package。
+公共 Mixin 插件协议和字节码预检在 runtime_core；各 Target 的 LoaderExtensionBridge 只使用早期 Loader 元数据，不链接客户端 singleton。桥所在 probe.loader 与公共 SDK 的 api.extension 分离，避免开发运行的独立模块形成 split package。
 
 Forge 1.20.1 与 NeoForge 1.21.1 从静态 FMLLoader 读取目录、物理 Dist 与 LoadingModList；26.1.2/26.3 从当前 FMLLoader 实例读取。三者均让原生 GAMELIBRARY 发现惰性配置，不能在 Mixin 插件 onLoad 遍历配置时追加配置。
 
@@ -352,7 +352,7 @@ Forge 1.20.1 的第三方发行 JAR 使用 SRG 成员名，不能直接放进 na
 
 Modern UI 3.12 重写 Forge 经验值绘制，原版 HUD 的两个只读捕获点允许未命中；没有取得实际绘制时不生成相应 USER 文本。没有第三方重写时，仍须观察真实经验等级绘制。该限制不影响原生输入与第三方界面绘制。
 
-Modern UI 3.12 的 Arc3D 异步编译任务需要其原生 Supplier 类加载器作为线程上下文。Forge 适配包仅在这一次原生编译回调中临时设置并恢复上下文；不替换 Loader fallback，不修改公共线程池的永久状态，也不更改编译内容。较新 Modern UI 变体不注册这个 Forge 专用 hook。
+Modern UI 3.12 的 Arc3D 异步编译任务需要其原生 Supplier 类加载器作为线程上下文。Forge 扩展包仅在这一次原生编译回调中临时设置并恢复上下文；不替换 Loader fallback，不修改公共线程池的永久状态，也不更改编译内容。较新 Modern UI 变体不注册这个 Forge 专用 hook。
 
 Modern UI 的 View 在框架 UI 线程采样和消费事件。布局展开动画期间仍会改变目标几何，调用者须重新观察稳定目标；不能放宽守卫让旧位置点击成功。异步文本消费还重查实际焦点，框架排队确认前 Operation 不报告完成。
 

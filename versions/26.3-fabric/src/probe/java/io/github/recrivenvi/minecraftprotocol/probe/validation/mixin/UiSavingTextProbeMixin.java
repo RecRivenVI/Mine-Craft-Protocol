@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class UiSavingTextProbeMixin {
     @Inject(method = "textWithBackdrop", at = @At("RETURN"))
-    private void minecraftProtocolProbe$observeActualSavingText(
+    private void mineCraftProtocol$observeActualSavingText(
             Font font, Component text, int x, int y, int width, int color, CallbackInfo callback) {
         UiSavingIndicatorFixture.observeNativeText(text, color, x, y, width);
     }

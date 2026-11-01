@@ -36,7 +36,7 @@ try {
     }
 
     $routes = @(
-        'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java'
+        'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java'
     )
     foreach ($route in $routes) {
         $source = Get-Content -LiteralPath (Join-Path $root $route) -Raw

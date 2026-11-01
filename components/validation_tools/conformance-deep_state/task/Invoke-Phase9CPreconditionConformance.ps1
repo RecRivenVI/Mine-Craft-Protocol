@@ -5,8 +5,8 @@ Push-Location $root
 try {
     $arguments=@(
         ':version:26.3-neoforge:test',
-        '--tests','io.github.recrivenvi.minecraftprotocol.probe.runtime.Phase9CDebugAuthorizationTest',
-        '--tests','io.github.recrivenvi.minecraftprotocol.probe.runtime.ObservationRevisionTrackerTest',
+        '--tests','io.github.recrivenvi.minecraftprotocol.runtime.Phase9CDebugAuthorizationTest',
+        '--tests','io.github.recrivenvi.minecraftprotocol.runtime.ObservationRevisionTrackerTest',
         '--no-daemon')
     if($Offline) { $arguments+='--offline' }
     & '.\gradlew.bat' @arguments

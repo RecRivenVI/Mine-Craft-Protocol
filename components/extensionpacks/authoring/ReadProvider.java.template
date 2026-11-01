@@ -1,0 +1,40 @@
+package @NAMESPACE@.bridge;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.api.*;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+/** A detached read adapter; the Runtime supplies authority, owner dispatch and output budgets. */
+public final class ReadProvider {
+    private ReadProvider() {}
+    public static void register(ExtensionContext context, String name, String owner,
+            Predicate<JsonObject> query, Function<JsonObject, JsonObject> capture) {
+        String root = "minecraft-extension://" + context.packageId() + "/schemas/" + name;
+        context.schema(root + "/query", value -> query.test(value) ? ProviderSchemaRegistry.ValidationResult.pass()
+                : ProviderSchemaRegistry.ValidationResult.fail("Explicit bounded query required"));
+        context.schema(root + "/snapshot", value -> value.has("available") && value.get("available").isJsonPrimitive()
+                && value.getAsJsonPrimitive("available").isBoolean() ? ProviderSchemaRegistry.ValidationResult.pass()
+                : ProviderSchemaRegistry.ValidationResult.fail("Available state required"));
+        var tasks = new OwnerTasks(context, "read-" + name);
+        context.provider(new AgentDataProviderV2() {
+            public Descriptor descriptor() {
+                return new Descriptor(context.packageId() + ":" + name, "1", List.of("snapshot"), root + "/snapshot", root + "/query",
+                        owner, List.of(owner.equals("server_thread") ? "server_authoritative" : "client_known"),
+                        "none", "bounded", true, false, false, false, false,
+                        "snapshot_change_sequence", "query_view", null, false, "snapshot_diff_delta",
+                        new DebugDeclaration(false, null, null, null, false, false, "none", "none"), List.of("debug.world.read"));
+            }
+            public CompletableFuture<JsonObject> capture(ReadContext request) {
+                return tasks.submit(owner, request.deadlineMillis(), () -> {
+                    JsonObject result = new JsonObject(); result.addProperty("schemaVersion", "1");
+                    result.add("data", capture.apply(request.query()).deepCopy());
+                    return result;
+                });
+            }
+        });
+    }
+}

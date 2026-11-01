@@ -3,8 +3,8 @@ package io.github.recrivenvi.minecraftprotocol.core;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProviders;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ReadProvider;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProviders;
+import io.github.recrivenvi.minecraftprotocol.api.ReadProvider;
 import io.github.recrivenvi.minecraftprotocol.safety.CancellableWork;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.function.Function;
 final class ObservationEngine {
     private static final int MAX_FRAME_READS = 32;
 
-    private final ProbeService service;
+    private final RuntimeService service;
     private final WorldReadEngine worldReads;
     private final Map<String, BuiltinProvider> builtins = new LinkedHashMap<>();
     private final AtomicLong providerRevision = new AtomicLong();
@@ -25,7 +25,7 @@ final class ObservationEngine {
     private final AtomicLong stateFrameSequence = new AtomicLong();
     private final AtomicLong userStateFrameSequence = new AtomicLong();
 
-    ObservationEngine(ProbeService service, WorldReadEngine worldReads) {
+    ObservationEngine(RuntimeService service, WorldReadEngine worldReads) {
         this.service = service;
         this.worldReads = worldReads;
         if (service instanceof ServerConsoleService console) {

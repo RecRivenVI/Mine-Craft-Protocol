@@ -2,7 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.recrivenvi.minecraftprotocol.probe.extension.LogicalInput;
+import io.github.recrivenvi.minecraftprotocol.api.extension.LogicalInput;
 import io.github.recrivenvi.minecraftprotocol.safety.AgentInputContext;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,7 +16,7 @@ class LogicalInputRouterTest {
         var guard =
                 com.google.gson.JsonParser.parseString(
                                 """
-                {"textFocusRequired":true,"node":{"capabilitySource":"modern_ui:visible_views",
+                {"textFocusRequired":true,"node":{"capabilitySource":"modernui:visible_views",
                 "semanticState":{"extensionTargetKey":"view:4","extensionTargetRevision":"editor"},
                 "x":12.125,"y":8.75,"width":30.5,"height":9.25}}
                 """)
@@ -53,7 +53,7 @@ class LogicalInputRouterTest {
         var extension =
                 com.google.gson.JsonParser.parseString(
                                 """
-                {"node":{"capabilitySource":"modern_ui:visible_views",
+                {"node":{"capabilitySource":"modernui:visible_views",
                 "semanticState":{"extensionTargetKey":"view:4","extensionTargetRevision":"editor"},
                 "x":12.125,"y":8.75,"width":30.5,"height":9.25}}
                 """)

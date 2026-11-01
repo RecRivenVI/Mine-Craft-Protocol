@@ -54,7 +54,7 @@ async function controlledNative(options = {}) {
     if (screen === native + 'worldselection.OptimizeWorldScreen' && options.finishOnNextTree && ++optimizeTreeReads === 2)
       complete('optimize', 'optimize_finished');
     let children = [];
-    if (screen.endsWith('AutomationProbeScreen')) children = target === '26.3-neoforge'
+    if (screen.endsWith('AutomationDiagnosticScreen')) children = target === '26.3-neoforge'
       ? [button('navigation', 'UI Navigation Fixtures')] : [button('world-recovery', 'World Recovery (Fixture)')];
     else if (screen.endsWith('UiNavigationFixtureScreen')) children = [button('world-recovery', 'World Recovery (Fixture)')];
     else if (screen.endsWith('UiWorldRecoveryFixtureScreen')) children = [button('recover', 'Healthy Recovery (Fixture)', undefined, target !== '1.20.1-forge'), button('optimize', 'Optimize Aux World (Fixture)')];
@@ -78,7 +78,7 @@ async function controlledNative(options = {}) {
     assert.equal(path, '/v0/input/state'); return {pressedKeyCount: 0, pressedButtonCount: 0, inputCleanupPending: false, inputCleanupFailed: false,
       inputDispatchSequence: dispatch, agentPointer: {x: 42.5, y: 54.25}};
   }, repo, instance, target, tree, nodes: value => value.children, samples,
-  title: async () => {change(native + 'TitleScreen');}, openFixture: async () => {change(probe + 'AutomationProbeScreen');},
+  title: async () => {change(native + 'TitleScreen');}, openFixture: async () => {change(probe + 'AutomationDiagnosticScreen');},
   wait: async (predicate, label) => {const value = await tree(); assert(predicate(value), label); return value;},
   readFixtureProof: async () => ({...structuredClone(proof), ...options.proofChange}),
   check: async (name, run) => {assert(name.startsWith('UI world recovery:')); await run(); checks.push(name);},

@@ -11,11 +11,11 @@ function Assert-True([bool]$Condition, [string]$Message) {
 Push-Location $root
 try {
     $targets = @(
-        @{ Id = '1.20.1-forge'; Runtime = 'versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/ForgeProbeRuntime.java'; Engine = 'versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java' },
-        @{ Id = '1.21.1-neoforge'; Runtime = 'versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java'; Engine = 'versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java' },
-        @{ Id = '26.1.2-neoforge'; Runtime = 'versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java'; Engine = 'versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java' },
-        @{ Id = '26.3-neoforge'; Runtime = 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java'; Engine = 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java' },
-        @{ Id = '26.3-fabric'; Runtime = 'versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/FabricProbeRuntime.java'; Engine = 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java' }
+        @{ Id = '1.20.1-forge'; Runtime = 'versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/ForgeRuntime.java'; Engine = 'versions/1.20.1-forge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java' },
+        @{ Id = '1.21.1-neoforge'; Runtime = 'versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java'; Engine = 'versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java' },
+        @{ Id = '26.1.2-neoforge'; Runtime = 'versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java'; Engine = 'versions/26.1.2-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java' },
+        @{ Id = '26.3-neoforge'; Runtime = 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java'; Engine = 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java' },
+        @{ Id = '26.3-fabric'; Runtime = 'versions/26.3-fabric/src/client/java/io/github/recrivenvi/minecraftprotocol/runtime/FabricRuntime.java'; Engine = 'versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java'; Transport = 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java' }
     )
     $foundation = Get-Content -LiteralPath (Join-Path $root 'components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.java') -Raw
     Assert-True ($foundation.Contains('identityBasis=root_directory_lineage')) 'Storage identity must use stable root lineage'
@@ -29,9 +29,9 @@ try {
         $runtime = Get-Content -LiteralPath (Join-Path $root $target.Runtime) -Raw
         $transport = Get-Content -LiteralPath (Join-Path $root $target.Transport) -Raw
         $adapterPath = if ($target.Id -eq '26.3-fabric') {
-            "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java"
+            "versions/26.3-fabric/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentStorageAdapter.java"
         } else {
-            "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java"
+            "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentStorageAdapter.java"
         }
         $adapter = Get-Content -LiteralPath (Join-Path $root $adapterPath) -Raw
         Assert-True ($adapter.Contains('PersistentWriteSafetyFoundation.StorageIdentity')) "$($target.Id) storage read must use the canonical Storage Identity"
@@ -44,7 +44,7 @@ try {
         Assert-True ($transport -notmatch 'storage\.write|storage\.world\.write') "$($target.Id) must not expose storage.write"
     }
     Assert-True ($openApi -notmatch 'storage\.write|storage\.world\.write') 'OpenAPI must not expose storage.write'
-    $test = Get-Content -LiteralPath (Join-Path $root 'versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentWriteSafetyFoundationTest.java') -Raw
+    $test = Get-Content -LiteralPath (Join-Path $root 'versions/26.3-neoforge/src/test/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentWriteSafetyFoundationTest.java') -Raw
     foreach ($marker in @('legal-level-update', 'BACKUP_COPY', 'PRECOMMIT', 'externalSessionLockCompetition', 'CANCELLED_BEFORE_COMMIT')) {
         Assert-True ($test.Contains($marker)) "deterministic test missing $marker"
     }

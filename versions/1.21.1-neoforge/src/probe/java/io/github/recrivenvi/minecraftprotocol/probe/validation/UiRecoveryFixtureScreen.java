@@ -65,7 +65,7 @@ public final class UiRecoveryFixtureScreen extends Screen {
                                         () -> complete("datapack_cancelled"),
                                         () -> complete("unexpected_datapack_safe_mode")),
                         () ->
-                                UiRecoveryGraphicsProbeInvoker.minecraftProtocolProbe$create(
+                                UiRecoveryGraphicsProbeInvoker.mineCraftProtocol$create(
                                         Component.literal("Graphics Warning (Fixture)"),
                                         List.of(
                                                 Component.literal(

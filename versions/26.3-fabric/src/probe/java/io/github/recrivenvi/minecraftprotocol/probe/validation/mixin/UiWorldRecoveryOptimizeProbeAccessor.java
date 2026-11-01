@@ -8,5 +8,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(OptimizeWorldScreen.class)
 public interface UiWorldRecoveryOptimizeProbeAccessor {
     @Accessor("upgrader")
-    WorldUpgrader minecraftProtocolProbe$upgrader();
+    WorldUpgrader mineCraftProtocol$upgrader();
 }

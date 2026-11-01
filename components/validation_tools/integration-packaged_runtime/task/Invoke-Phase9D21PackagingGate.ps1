@@ -23,10 +23,10 @@ foreach($target in $targets){
  try{
   $shared='io/github/recrivenvi/minecraftprotocol/safety/PersistentWriteSafetyFoundation.class'
   Assert-True (@($zip.Entries|Where-Object FullName -EQ $shared).Count-eq1) "$target must contain exactly one flattened safety class"
-  foreach($coreClass in @('core/ProbeTransport','core/ProtocolState','core/providers/ProbeV2Providers','probe/api/AgentDataProviderV2')){
+  foreach($coreClass in @('core/RuntimeTransport','core/ProtocolState','core/providers/ProbeV2Providers','probe/api/AgentDataProviderV2')){
    Assert-True (@($zip.Entries|Where-Object FullName -EQ ('io/github/recrivenvi/minecraftprotocol/'+$coreClass+'.class')).Count-eq1) "$target core product class missing/duplicated: $coreClass"
   }
-  Assert-True (@($zip.Entries|Where-Object {$_.FullName-match '^io/github/recrivenvi/minecraftprotocol/probe/runtime/(ProbeTransport|ProtocolState)\.class$|(?i)runtime[-_]core.*\.jar$'}).Count-eq0) "$target must not retain old core classes or embed a second core JAR"
+  Assert-True (@($zip.Entries|Where-Object {$_.FullName-match '^io/github/recrivenvi/minecraftprotocol/runtime/(RuntimeTransport|ProtocolState)\.class$|(?i)runtime[-_]core.*\.jar$'}).Count-eq0) "$target must not retain old core classes or embed a second core JAR"
   Assert-True (@($zip.Entries|Where-Object {$_.FullName-match '(?i)runtime[-_]safety.*\.jar$'}).Count-eq0) "$target must not duplicate safety in a nested JAR"
   foreach($license in Get-ChildItem (Join-Path $root 'licenses') -File){
    Assert-True ($null-ne$zip.GetEntry('META-INF/licenses/'+$license.Name)) "$target third-party license missing"
@@ -52,7 +52,7 @@ foreach($target in $targets){
   if($target-eq'1.20.1-forge'){
    $reader=[IO.StreamReader]::new($zip.GetEntry("$modId.refmap.json").Open())
    try{$refmap=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-   $effect=$refmap.mappings.'io/github/recrivenvi/minecraftprotocol/probe/mixin/EffectIconRenderMixin'
+   $effect=$refmap.mappings.'io/github/recrivenvi/minecraftprotocol/mixin/EffectIconRenderMixin'
    Assert-True ($effect.'lambda$renderEffects$0'-match'^Lnet/minecraft/client/gui/Gui;m_\d+_\(') 'Forge effect lambda must have production SRG mapping'
   }
  }finally{$zip.Dispose()}

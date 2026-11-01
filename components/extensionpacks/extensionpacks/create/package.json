@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.minecraftprotocol.extensions.create",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge"
+  ],
+  "mods": {},
+  "inputPrefix": "create",
+  "support": true,
+  "entrySides": [
+    "common"
+  ],
+  "capabilities": [
+    "create:machine",
+    "create:parts"
+  ],
+  "requestedScopes": [
+    "read",
+    "debug.world.read"
+  ],
+  "targetMods": {
+    "1.20.1-forge": {
+      "create": "6.0.8"
+    },
+    "1.21.1-neoforge": {
+      "create": "6.0.10"
+    }
+  },
+  "exports": [
+    "io.github.recrivenvi.minecraftprotocol.extensions.create.bridge"
+  ],
+  "resources": {
+    "mixins/create-1.20.1-forge.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.create.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "BearingUseMixin1_20_1Forge"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/create-1.21.1-neoforge.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.create.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "BearingUseMixin1_21_1NeoForge"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    }
+  },
+  "targetMixins": {
+    "1.20.1-forge": [
+      {
+        "config": "mixins/create-1.20.1-forge.mixins.json",
+        "side": "common"
+      }
+    ],
+    "1.21.1-neoforge": [
+      {
+        "config": "mixins/create-1.21.1-neoforge.mixins.json",
+        "side": "common"
+      }
+    ]
+  },
+  "entrypoint": "CreateExtension",
+  "title": "Create",
+  "description": "动力机械与装配状态读取。"
+}

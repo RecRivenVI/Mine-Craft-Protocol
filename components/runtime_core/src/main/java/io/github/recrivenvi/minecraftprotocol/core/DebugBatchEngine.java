@@ -24,14 +24,14 @@ final class DebugBatchEngine implements AutoCloseable {
     static final long MAX_TOTAL_DURATION_MILLIS = 30_000L;
     private static final Gson GSON = new Gson();
 
-    private final ProbeService service;
+    private final RuntimeService service;
     private final ProtocolState protocolState;
     private final Consumer<JsonObject> mutationObserver;
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean closed = new AtomicBoolean();
 
     DebugBatchEngine(
-            ProbeService service,
+            RuntimeService service,
             ProtocolState protocolState,
             Consumer<JsonObject> mutationObserver) {
         this.service = service;
@@ -40,7 +40,7 @@ final class DebugBatchEngine implements AutoCloseable {
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
-                            Thread thread = new Thread(runnable, "minecraft-protocol-debug-batch");
+                            Thread thread = new Thread(runnable, "mine_craft_protocol-debug-batch");
                             thread.setDaemon(true);
                             return thread;
                         });
@@ -243,7 +243,7 @@ final class DebugBatchEngine implements AutoCloseable {
 
         private void acceptFailure(
                 int itemIndex, JsonObject item, Throwable throwable, long itemStarted) {
-            Throwable cause = ProbeTransport.unwrapForInternalUse(throwable);
+            Throwable cause = RuntimeTransport.unwrapForInternalUse(throwable);
             JsonObject itemResult = itemResult(itemIndex, "failed", item, itemStarted);
             if (cause instanceof ProtocolState.ProtocolException protocolException) {
                 itemResult.addProperty("error", protocolException.code());

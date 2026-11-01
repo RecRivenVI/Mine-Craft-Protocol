@@ -10,12 +10,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WorldUpgrader.class)
 public abstract class UiWorldRecoveryWorkerProbeMixin {
     @Inject(method = "cancel", at = @At("HEAD"))
-    private void minecraftProtocolProbe$observeNativeWorkerBeforeCancel(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeWorkerBeforeCancel(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeNativeCancelStarting((WorldUpgrader) (Object) this);
     }
 
     @Inject(method = "cancel", at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeNativeWorkerCancel(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeWorkerCancel(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeNativeCancel((WorldUpgrader) (Object) this);
     }
 }

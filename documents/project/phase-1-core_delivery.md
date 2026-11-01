@@ -1942,9 +1942,9 @@ CF-017/018/072归为一个待验证的输入生命周期问题簇，**尚未证�
 五端当前 `allowHostMouseGrab` 都在窗口active或Agent routed上下文才发出逻辑capture；`routedMouseGrabbed`又依赖 `gameCaptured`。
 TAKEOVER若在标题页建立，首次后台入世界可能没有补上该状态；`mouseDeltaNow`只检查无Screen/Overlay并调用原生输入，没有因此明确拒绝。
 这与三例“移动有效、gameCaptured=false、暂停返回后新动作有效”吻合，优先调查本项目逻辑capture生命周期，而不是要求抢宿主焦点、自动暂停返回、重放输入或直接写yaw/pitch。
-使用方原文及当前[1.21.1输入路径](../../versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)、[26.3输入路径](../../versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)支持此假设，未作运行因果证明。
+使用方原文及当前[1.21.1输入路径](https://github.com/RecRivenVI/Mine-Craft-Protocol/blob/ac12a43abf7029b6d64b9a4301b09b0b8c9fe30a/versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)、[26.3输入路径](https://github.com/RecRivenVI/Mine-Craft-Protocol/blob/ac12a43abf7029b6d64b9a4301b09b0b8c9fe30a/versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java)支持此假设，未作运行因果证明。
 
-CF-056责任初判是 **Radiance移植渲染兼容层为主，双方接入合同待协作**：其GUI scope在GameRenderer返回时关闭，本项目[末帧hook](../../versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java)在其后、present前绘制，因而落入OUTSIDE。
+CF-056责任初判是 **Radiance移植渲染兼容层为主，双方接入合同待协作**：其GUI scope在GameRenderer返回时关闭，本项目[末帧hook](https://github.com/RecRivenVI/Mine-Craft-Protocol/blob/ac12a43abf7029b6d64b9a4301b09b0b8c9fe30a/versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/MinecraftMixin.java)在其后、present前绘制，因而落入OUTSIDE。
 原版允许的晚期GuiGraphics绘制不因Radiance私有scope未覆盖就自动成为本项目非法绘制；但本项目也未实现其显式阶段适配，所以接收组合兼容缺口，不把责任推给调用方、驱动或GPU工具。
 0914两原样JAR、仅GET READ、未acquire仍崩溃的证据有效；不是已修复后的复发，不证明Radiance单独运行失败，亦不证明当前0422组合结果。
 后续需明确末帧UI接入并保留截图排除/最高UI层合同，再联合复验；不能关闭控制提示、放宽拒绝策略或用单JAR安装通过替代。按安排本轮不转发Radiance线程。
@@ -2735,3 +2735,13 @@ EP-4/5阶段检查点a17f51b9已SSH签名推送：19个有匹配上游包的业�
 完整check、Java/Companion、协议/文档/严格合规0失败0警告及五端verifyRelease通过；作者资料分发保留相对目录并包含所引用的SDK示例源码，发布前拒绝缺失链接。固定快照交付SDK、七包、Companion和五端本体，不含第三方原包。CC26.3 NeoForge上游阻断、LittleTiles运动关闭及Forge AE2首次读超预算限制保留，真实IME/宿主输入/体验仍待集中人工验收。未运行整合包、性能基准、Persistent Write或E1～E3。
 
 固定分发首次在独立CLI复核中因ESM顶层await环而被拒绝，未创建快照或修改latest。发布入口改为先完成模块求值再异步派发，默认失败退出且只有完整复核成功才置成功码；没有跳过任何证据。真实CLI缺证负控及当前105份证据的正控通过，游戏源码与JAR未改变，已有运行结果保持有效。
+
+## 2026-11-01命名与原生扩展包配置检查点
+
+产品身份改为Mine Craft Protocol、mine_craft_protocol、1.0.0-alpha；本体Java根包不变，产品源码去掉probe层，验证源码集保留。公共SDK迁到api/api.extension，Java API版本2，七包改用目标mod_id和统一extensions子包；旧快照不改写。网页仅保留为源码环境的接口体验工具，后续固定快照不交付网页。
+
+用户先后否决两版提示框预览，决定本轮保留既有正式样式；预览材料外置保留，临时probe与Runner送回收站，生产ControlChrome绘制没有改动。原生扩展包界面复用Vanilla资源包页面，按实际内容哈希和权限批准，Agent语义及原始点击都不能首次批准；依赖不匹配红底、待重启黄底，状态进入真实语义树。
+
+早期自动加载在成品试跑中发现并修复Forge原生提示绘制位置差异、无元数据库文件进入依赖扫描，以及服务模块和本体导出同包的冲突。派生发现服务使用独立包，ASM完整重定位lambda和自身引用；生产生成器有实际JAR及类加载负控。当前Forge最终JAR已通过首次正常启动、重启自动装载、真实hook/Provider/输入及正常关闭，不以开发source-set代替。发现桥变化时采用停机退休派生缓存再生成的可撤回做法，不覆盖使用中的JAR。
+
+完整spotlessApply/check/verifyRelease和严格合规0失败0警告通过；参考端与Fabric的配置选择经过三个真实进程验证，禁用与重新启用均在重启生效。其他Target和受影响原功能冻结仍继续，不发布Alpha。Companion测试曾分配到Fetch禁止的6566端口而失败；夹具复用禁止端口集合后有界重新申请，不修改产品权限或网络策略。旧Forge官方安装器采用其离线选项并继续校验缓存，不禁用证书或使用开发classpath。

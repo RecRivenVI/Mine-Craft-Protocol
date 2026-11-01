@@ -34,10 +34,10 @@ test('publication reads the bound file bytes and rejects stale, missing and esca
 
 test('published package identity checks the actual indexed code and rejects unindexed files',async()=>{
   const repo=await mkdtemp(join(tmpdir(),'minecraft-extension-package-proof-'));
-  const root=join(repo,'components/extension_packages/build/packages/example');await mkdir(root,{recursive:true});
+  const root=join(repo,'components/extensionpacks/build/extensionpacks/example');await mkdir(root,{recursive:true});
   await writeFile(join(root,'code.jar'),'compiled adapter bytes');
   const manifest=JSON.stringify({id:'example',files:{'code.jar':sha256('compiled adapter bytes')}})+'\n';
-  await writeFile(join(root,'extension.json'),manifest);
+  await writeFile(join(root,'extensionpack.json'),manifest);
   assert.equal(await currentPackageIdentity(repo,'example'),sha256(manifest));
   await writeFile(join(root,'code.jar'),'different untested adapter');
   await assert.rejects(currentPackageIdentity(repo,'example'),/Stale executed/);

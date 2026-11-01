@@ -46,14 +46,14 @@ export function installedProof(result,artifact,sourceFingerprint,options={}){
   assert.equal(result.maximumHeapBytes,4294967296);assert.equal(result.persistentWriteCalls,0);
   assert.equal(result.instanceProfile,'automatic');assert.equal(result.windowWidth,1920);assert.equal(result.windowHeight,1080);
   assert(result.nettyHttpOrigin?.includes('io.netty.handler.codec.http.HttpMessage source:'));
-  assert(result.transportOrigin?.includes('io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source:'));
+  assert(result.transportOrigin?.includes('io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport source:'));
   assert(!/[/\\]components[/\\]|[/\\]versions[/\\][^/\\]+[/\\]build[/\\]|\.gradle/i.test(result.transportOrigin));
   assert.equal(result.readSample?.dataCategory,'USER');assert.equal(result.readSample?.available,false);
   assert.equal(result.providerRegistryResolved,true);assert.equal(result.providerCatalog?.length,4);assert.equal(result.providerSpiOrigins?.length,3);
   assert.deepEqual(result.providerCatalog.map(p=>p.providerId.split(':').at(-1)).sort(),['client-thread','render-thread','safe','server-thread']);
   for(const p of result.providerCatalog){const name=p.providerId.split(':').at(-1);assert.equal(p.threadAffinity,name==='client-thread'?'client_thread':name==='render-thread'?'render_thread':'server_thread');assert.equal(typeof p.snapshotSchema,'string');assert.equal(typeof p.querySchema,'string');}
   for(const origin of result.providerSpiOrigins){assert.equal(typeof origin,'string');assert(origin.includes(' source:'));assert(!/[/\\]components[/\\]|[/\\]versions[/\\][^/\\]+[/\\]build[/\\]|\.gradle/i.test(origin));}
-  for(const name of ['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'])assert(result.providerSpiOrigins.some(origin=>origin.includes('.probe.api.'+name+' source:')));
+  for(const name of ['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'])assert(result.providerSpiOrigins.some(origin=>origin.includes('.api.'+name+' source:')));
   if(result.quitHttpStatus!==undefined){
     assert(result.quitHttpStatus>=200&&result.quitHttpStatus<300||result.quitHttpStatus===503,'Quit cannot report internal HTTP 500');
     if(result.quitHttpStatus===503){assert.equal(result.quitError?.error,'RUNTIME_SHUTTING_DOWN');assert.equal(result.quitError.executionOutcome,'not_confirmed');assert.equal(result.quitError.retrySafe,false);}

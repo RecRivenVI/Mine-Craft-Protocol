@@ -25,15 +25,15 @@ import org.junit.jupiter.api.io.TempDir;
 final class RuntimeDiscoveryTest {
     @TempDir Path root;
 
-    private ProbeService service(AtomicInteger calls) {
-        return (ProbeService)
+    private RuntimeService service(AtomicInteger calls) {
+        return (RuntimeService)
                 Proxy.newProxyInstance(
-                        ProbeService.class.getClassLoader(),
-                        new Class<?>[] {ProbeService.class},
+                        RuntimeService.class.getClassLoader(),
+                        new Class<?>[] {RuntimeService.class},
                         (proxy, method, args) -> {
                             if (method.getReturnType() == void.class) return null;
                             if (method.getName().equals("extensionLifetimeContexts"))
-                                return io.github.recrivenvi.minecraftprotocol.probe.extension
+                                return io.github.recrivenvi.minecraftprotocol.api.extension
                                         .LifetimeContexts.empty();
                             if (method.getName().equals("extensionEarlyHooks"))
                                 return (io.github.recrivenvi.minecraftprotocol.core.extension
@@ -54,7 +54,7 @@ final class RuntimeDiscoveryTest {
 
     private JsonObject record(Path directory) throws Exception {
         return JsonParser.parseString(
-                        Files.readString(directory.resolve("minecraft-protocol/endpoint.json")))
+                        Files.readString(directory.resolve("mine_craft_protocol/endpoint.json")))
                 .getAsJsonObject();
     }
 
@@ -73,14 +73,14 @@ final class RuntimeDiscoveryTest {
 
     @Test
     void fiveConcurrentInstancesUseOsAssignedPortsAndSeparateIdentities() throws Exception {
-        var transports = new ArrayList<ProbeTransport>();
+        var transports = new ArrayList<RuntimeTransport>();
         var ports = new HashSet<Integer>();
         var identities = new HashSet<String>();
         try {
             for (int i = 0; i < 5; i++) {
                 Path directory = Files.createDirectory(root.resolve("instance" + i));
-                ProbeTransport transport =
-                        ProbeTransport.forInstance(
+                RuntimeTransport transport =
+                        RuntimeTransport.forInstance(
                                 service(new AtomicInteger()), directory, "test-target");
                 transports.add(transport);
                 transport.startAsync();
@@ -96,7 +96,7 @@ final class RuntimeDiscoveryTest {
                 assertFalse(record.has("token"));
                 String token =
                         Files.readString(
-                                root.resolve("instance" + i + "/minecraft-protocol/token"));
+                                root.resolve("instance" + i + "/mine_craft_protocol/token"));
                 var response = request(port, token, id, "/v0/session", "GET");
                 assertEquals(200, response.statusCode());
                 assertEquals(
@@ -113,21 +113,21 @@ final class RuntimeDiscoveryTest {
                                 .getAsString());
             }
         } finally {
-            transports.forEach(ProbeTransport::close);
+            transports.forEach(RuntimeTransport::close);
         }
     }
 
     @Test
     void sameDirectoryRefusesSecondOwnerBeforeTokenIsOverwritten() throws Exception {
         try (var first =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
-            String token = Files.readString(root.resolve("minecraft-protocol/token"));
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+            String token = Files.readString(root.resolve("mine_craft_protocol/token"));
             assertThrows(
                     IllegalStateException.class,
                     () ->
-                            ProbeTransport.forInstance(
+                            RuntimeTransport.forInstance(
                                     service(new AtomicInteger()), root, "other-target"));
-            assertEquals(token, Files.readString(root.resolve("minecraft-protocol/token")));
+            assertEquals(token, Files.readString(root.resolve("mine_craft_protocol/token")));
             first.startAsync();
             first.boundPort().get(5, TimeUnit.SECONDS);
             assertEquals("test-target", record(root).get("target").getAsString());
@@ -137,10 +137,10 @@ final class RuntimeDiscoveryTest {
     @Test
     void staleIdentityFailsBeforeDispatchEvenWithCorrectTokenIncludingWebSocket() throws Exception {
         var calls = new AtomicInteger();
-        try (var transport = ProbeTransport.forInstance(service(calls), root, "test-target")) {
+        try (var transport = RuntimeTransport.forInstance(service(calls), root, "test-target")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
-            String token = Files.readString(root.resolve("minecraft-protocol/token"));
+            String token = Files.readString(root.resolve("mine_craft_protocol/token"));
             for (String path :
                     new String[] {
                         "/v0/session", "/v0/events", "/v0/capture/composite", "/v0/control/acquire"
@@ -176,7 +176,7 @@ final class RuntimeDiscoveryTest {
         for (int i = 0; i < 12; i++) {
             Path directory = Files.createDirectory(root.resolve("race" + i));
             var transport =
-                    ProbeTransport.forInstance(
+                    RuntimeTransport.forInstance(
                             service(new AtomicInteger()), directory, "test-target");
             transport.startAsync();
             transport.close();
@@ -190,12 +190,12 @@ final class RuntimeDiscoveryTest {
     @Test
     void closeWithdrawsDiscoveryWithoutWaitingForTheNettyEventLoop() throws Exception {
         var transport =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target");
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target");
         var release = new java.util.concurrent.CountDownLatch(1);
         try {
             transport.startAsync();
             transport.boundPort().get(5, TimeUnit.SECONDS);
-            var field = ProbeTransport.class.getDeclaredField("serverChannel");
+            var field = RuntimeTransport.class.getDeclaredField("serverChannel");
             field.setAccessible(true);
             var channel = (io.netty.channel.Channel) field.get(transport);
             var entered = new java.util.concurrent.CountDownLatch(1);
@@ -211,7 +211,7 @@ final class RuntimeDiscoveryTest {
                             });
             assertTrue(entered.await(2, TimeUnit.SECONDS));
             transport.close();
-            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+            assertFalse(Files.exists(root.resolve("mine_craft_protocol/endpoint.json")));
             try (var next = RuntimeEndpoint.acquire(root, "test-target")) {
                 next.publish(43123);
                 release.countDown();
@@ -228,10 +228,10 @@ final class RuntimeDiscoveryTest {
     @Test
     void actualInputStateRouteExplainsSequenceQueueRecoveryPolicy() throws Exception {
         try (var transport =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
-            String token = Files.readString(root.resolve("minecraft-protocol/token")).trim();
+            String token = Files.readString(root.resolve("mine_craft_protocol/token")).trim();
             var reply =
                     request(
                             port,
@@ -251,14 +251,14 @@ final class RuntimeDiscoveryTest {
 
     @Test
     void crashResidueIsReplacedWithFreshIdentityAndShutdownRemovesOnlyOwnRecord() throws Exception {
-        Files.createDirectories(root.resolve("minecraft-protocol"));
+        Files.createDirectories(root.resolve("mine_craft_protocol"));
         Files.writeString(
-                root.resolve("minecraft-protocol/endpoint.json"),
+                root.resolve("mine_craft_protocol/endpoint.json"),
                 "{\"runtimeInstanceId\":\"crashed\"}");
         String firstId;
         try (var transport =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
-            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+            assertFalse(Files.exists(root.resolve("mine_craft_protocol/endpoint.json")));
             transport.startAsync();
             transport.boundPort().get(5, TimeUnit.SECONDS);
             firstId = record(root).get("runtimeInstanceId").getAsString();
@@ -266,7 +266,7 @@ final class RuntimeDiscoveryTest {
         }
         awaitNoEndpoint(root);
         try (var next =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
             next.startAsync();
             next.boundPort().get(5, TimeUnit.SECONDS);
             assertNotEquals(firstId, record(root).get("runtimeInstanceId").getAsString());
@@ -276,16 +276,16 @@ final class RuntimeDiscoveryTest {
     @Test
     void explicitOccupiedPortFailsWithoutFallbackOrPublishedRecord() throws Exception {
         try (var socket = compatibleOccupiedSocket()) {
-            System.setProperty(
-                    "minecraft.protocol.probe.port", Integer.toString(socket.getLocalPort()));
+            System.setProperty("mine_craft_protocol.port", Integer.toString(socket.getLocalPort()));
             try (var transport =
-                    ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+                    RuntimeTransport.forInstance(
+                            service(new AtomicInteger()), root, "test-target")) {
                 transport.startAsync();
                 assertThrows(
                         java.util.concurrent.ExecutionException.class,
                         () -> transport.boundPort().get(5, TimeUnit.SECONDS));
             } finally {
-                System.clearProperty("minecraft.protocol.probe.port");
+                System.clearProperty("mine_craft_protocol.port");
             }
             awaitNoEndpoint(root);
         }
@@ -308,7 +308,7 @@ final class RuntimeDiscoveryTest {
         var active = new AtomicInteger();
         try (var endpoint = RuntimeEndpoint.acquire(root, "test-target")) {
             assertThrows(java.io.IOException.class, () -> endpoint.publish(6679));
-            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+            assertFalse(Files.exists(root.resolve("mine_craft_protocol/endpoint.json")));
             int port =
                     RuntimeEndpoint.bindHttpCompatiblePort(
                             0,
@@ -319,7 +319,7 @@ final class RuntimeDiscoveryTest {
                                         "The previous candidate must be closed first");
                                 assertFalse(
                                         Files.exists(
-                                                root.resolve("minecraft-protocol/endpoint.json")));
+                                                root.resolve("mine_craft_protocol/endpoint.json")));
                                 int candidate = candidates.get(binds.getAndIncrement());
                                 active.set(candidate);
                                 return candidate;
@@ -393,19 +393,19 @@ final class RuntimeDiscoveryTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
-                        new ProbeTransport(
+                        new RuntimeTransport(
                                 service(new AtomicInteger()), "test-token", 6679, "test-target"));
         try {
-            System.setProperty("minecraft.protocol.probe.port", "6679");
+            System.setProperty("mine_craft_protocol.port", "6679");
             assertThrows(
                     IllegalArgumentException.class,
                     () ->
-                            ProbeTransport.forInstance(
+                            RuntimeTransport.forInstance(
                                     service(new AtomicInteger()), root, "test-target"));
-            assertFalse(Files.exists(root.resolve("minecraft-protocol/token")));
-            assertFalse(Files.exists(root.resolve("minecraft-protocol/endpoint.json")));
+            assertFalse(Files.exists(root.resolve("mine_craft_protocol/token")));
+            assertFalse(Files.exists(root.resolve("mine_craft_protocol/endpoint.json")));
         } finally {
-            System.clearProperty("minecraft.protocol.probe.port");
+            System.clearProperty("mine_craft_protocol.port");
         }
     }
 
@@ -414,26 +414,26 @@ final class RuntimeDiscoveryTest {
         try {
             assertEquals(0, RuntimeEndpoint.configuredPort());
             for (String invalid : new String[] {"bad", "-1", "65536", "", "6679", "10080"}) {
-                System.setProperty("minecraft.protocol.probe.port", invalid);
+                System.setProperty("mine_craft_protocol.port", invalid);
                 assertThrows(IllegalArgumentException.class, RuntimeEndpoint::configuredPort);
             }
-            System.setProperty("minecraft.protocol.probe.port", "25581");
+            System.setProperty("mine_craft_protocol.port", "25581");
             assertEquals(25581, RuntimeEndpoint.configuredPort());
         } finally {
-            System.clearProperty("minecraft.protocol.probe.port");
+            System.clearProperty("mine_craft_protocol.port");
         }
     }
 
     private void awaitNoEndpoint(Path directory) throws Exception {
         long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (Files.exists(directory.resolve("minecraft-protocol/endpoint.json"))
+        while (Files.exists(directory.resolve("mine_craft_protocol/endpoint.json"))
                 && System.nanoTime() < until) Thread.sleep(10);
-        assertFalse(Files.exists(directory.resolve("minecraft-protocol/endpoint.json")));
+        assertFalse(Files.exists(directory.resolve("mine_craft_protocol/endpoint.json")));
     }
 
     @Test
     void externalProcessDirectoryLockRejectsStartupAndReleasesAfterProcessCrash() throws Exception {
-        Path directory = Files.createDirectories(root.resolve("external/minecraft-protocol"));
+        Path directory = Files.createDirectories(root.resolve("external/mine_craft_protocol"));
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         String classes =
                 Path.of(
@@ -466,7 +466,7 @@ final class RuntimeDiscoveryTest {
             assertThrows(
                     IllegalStateException.class,
                     () ->
-                            ProbeTransport.forInstance(
+                            RuntimeTransport.forInstance(
                                     service(new AtomicInteger()),
                                     directory.getParent(),
                                     "test-target"));
@@ -498,10 +498,10 @@ final class RuntimeDiscoveryTest {
     @Test
     void realWebSocketUpgradeUsesTheSameIdentityBoundary() throws Exception {
         try (var transport =
-                ProbeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
+                RuntimeTransport.forInstance(service(new AtomicInteger()), root, "test-target")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
-            String token = Files.readString(root.resolve("minecraft-protocol/token"));
+            String token = Files.readString(root.resolve("mine_craft_protocol/token"));
             String id = record(root).get("runtimeInstanceId").getAsString();
             var client = HttpClient.newHttpClient();
             URI uri = URI.create("ws://127.0.0.1:" + port + "/v0/events");

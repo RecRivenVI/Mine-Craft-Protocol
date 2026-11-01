@@ -135,7 +135,7 @@ export async function nativeConfirmationActions({api,repo,target,tree,wait,nodes
       actualFaultInduced:false,worldGenerationWithExperimentsTested:false});
     await button(['gui.done']);
     if(target==='26.3-neoforge'){await page('UiNavigationFixtureScreen');await button(['gui.done']);}
-    await page('AutomationProbeScreen');
+    await page('AutomationDiagnosticScreen');
     await button([],'Close Probe');await page('TitleScreen');await clean();
   });
 }

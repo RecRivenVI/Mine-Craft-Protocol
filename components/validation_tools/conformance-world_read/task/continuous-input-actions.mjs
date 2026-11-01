@@ -271,7 +271,7 @@ export async function continuousInputActions({api, connection, repo, instance, t
       try {
         await client.connect(transport, {timeout: remaining(12000)});
         const serverInfo = client.getServerVersion();
-        assert.equal(serverInfo?.name, 'minecraft-protocol-companion'); assert.equal(serverInfo.version, pkg.version);
+        assert.equal(serverInfo?.name, 'mine-craft-protocol-companion'); assert.equal(serverInfo.version, pkg.version);
         const cached = await call('minecraft_control', {action: 'renew', leaseId: acquired.leaseId, ttlMs: 60000});
         assert.equal(cached.leaseId, acquired.leaseId);
         await pacePipeline();

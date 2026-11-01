@@ -3,7 +3,7 @@ package io.github.recrivenvi.minecraftprotocol.probe.validation;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.authlib.properties.PropertyMap;
-import io.github.recrivenvi.minecraftprotocol.probe.mixin.PlayerListUiAccessor;
+import io.github.recrivenvi.minecraftprotocol.mixin.PlayerListUiAccessor;
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -88,8 +88,8 @@ public final class UiPlayerListFixtureScreen extends Screen {
         this.previous = previous;
         originalObjective = client.level.getScoreboard().getDisplayObjective(DisplaySlot.LIST);
         var tab = (PlayerListUiAccessor) client.gui.getTabList();
-        originalHeader = tab.minecraftProtocolProbe$header();
-        originalFooter = tab.minecraftProtocolProbe$footer();
+        originalHeader = tab.mineCraftProtocol$header();
+        originalFooter = tab.mineCraftProtocol$footer();
         report();
     }
 
@@ -257,8 +257,8 @@ public final class UiPlayerListFixtureScreen extends Screen {
             connection.handleAddObjective(new ClientboundSetObjectivePacket(ownedObjective, 1));
         }
         var tab = (PlayerListUiAccessor) minecraft.gui.getTabList();
-        if (tab.minecraftProtocolProbe$header() != ownedHeader
-                || tab.minecraftProtocolProbe$footer() != ownedFooter)
+        if (tab.mineCraftProtocol$header() != ownedHeader
+                || tab.mineCraftProtocol$footer() != ownedFooter)
             throw new IllegalStateException("Do not overwrite externally changed header/footer");
         connection.handleTabListCustomisation(
                 new ClientboundTabListPacket(

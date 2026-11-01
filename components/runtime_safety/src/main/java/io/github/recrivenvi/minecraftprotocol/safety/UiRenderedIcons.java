@@ -7,7 +7,7 @@ import java.util.List;
 /** Bounded observations of completed native icon draws; never predicts a renderer's alpha. */
 public final class UiRenderedIcons {
     public interface Source {
-        UiRenderedIcons minecraftProtocolProbe$effectIcons();
+        UiRenderedIcons mineCraftProtocol$effectIcons();
     }
 
     public record Icon(String sprite, int x, int y, int width, int height, float opacity) {}

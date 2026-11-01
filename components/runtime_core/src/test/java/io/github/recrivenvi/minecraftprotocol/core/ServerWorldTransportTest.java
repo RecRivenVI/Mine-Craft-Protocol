@@ -23,7 +23,7 @@ final class ServerWorldTransportTest {
                 "read,event,control,debug,debug.world.read,debug.write,debug.world");
         var host = new ServerWorldDebugTest.World();
         try (var service = service(host);
-                var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             assertEquals(403, call("GET", "/v0/server/console", null, null).statusCode());
@@ -124,7 +124,7 @@ final class ServerWorldTransportTest {
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.clearProperty("minecraft.protocol.scopes");
         try (var service = service(new ServerWorldDebugTest.World());
-                var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             assertEquals(
@@ -147,7 +147,7 @@ final class ServerWorldTransportTest {
                 "minecraft.protocol.scopes", "read,control,debug,debug.write,debug.world");
         var host = new ServerWorldDebugTest.World();
         try (var service = service(host);
-                var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             JsonObject arm =

@@ -16,6 +16,7 @@ dependencies {
     compileOnly(libs.mixin.processor)
     compileOnly(libs.mcp.asm)
     compileOnly(libs.mcp.asm.tree)
+    compileOnly(libs.mcp.asm.commons)
     compileOnly(libs.mcp.runtime.gson)
     compileOnly(libs.mcp.netty.http)
     compileOnly(libs.mcp.netty.handler)
@@ -24,6 +25,7 @@ dependencies {
     testImplementation(libs.mixin.processor)
     testImplementation(libs.mcp.asm)
     testImplementation(libs.mcp.asm.tree)
+    testImplementation(libs.mcp.asm.commons)
     testImplementation(libs.mcp.runtime.gson)
     testImplementation(libs.mcp.netty.http)
     testImplementation(libs.mcp.netty.handler)
@@ -41,8 +43,8 @@ val extensionSdkJar by
             "Builds the Minecraft-independent extension author SDK without Runtime implementation."
         archiveClassifier.set("extension-sdk")
         from(sourceSets.main.get().output) {
-            include("io/github/recrivenvi/minecraftprotocol/probe/api/**")
-            include("io/github/recrivenvi/minecraftprotocol/probe/extension/**")
+            include("io/github/recrivenvi/minecraftprotocol/api/**")
+            include("io/github/recrivenvi/minecraftprotocol/api/extension/**")
         }
     }
 

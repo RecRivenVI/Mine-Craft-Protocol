@@ -18,19 +18,19 @@ class WorldConsumerLifecycleTest {
         return JsonParser.parseString(value).getAsJsonObject();
     }
 
-    private static ProbeService service(
+    private static RuntimeService service(
             java.util.function.Supplier<CompletableFuture<JsonObject>> read) {
-        return (ProbeService)
+        return (RuntimeService)
                 Proxy.newProxyInstance(
-                        ProbeService.class.getClassLoader(),
-                        new Class<?>[] {ProbeService.class},
+                        RuntimeService.class.getClassLoader(),
+                        new Class<?>[] {RuntimeService.class},
                         (proxy, method, args) -> read.get());
     }
 
     @Test
     void framePreflightsAllSourcesAndMixedCategoriesBeforeAnyCapture() {
         AtomicInteger captures = new AtomicInteger();
-        ProbeService service =
+        RuntimeService service =
                 service(
                         () -> {
                             captures.incrementAndGet();
@@ -58,7 +58,7 @@ class WorldConsumerLifecycleTest {
     @Test
     void cancellingFrameCancelsEveryNativeChildNotOnlyTheJoinStage() {
         var children = new java.util.ArrayList<CompletableFuture<JsonObject>>();
-        ProbeService service =
+        RuntimeService service =
                 service(
                         () -> {
                             var future = new CompletableFuture<JsonObject>();
@@ -80,7 +80,7 @@ class WorldConsumerLifecycleTest {
     @Test
     void authorizedInternalProviderSurvivesTakeoverAndReturnToRead() {
         var source = new CompletableFuture<JsonObject>();
-        ProbeService service = service(() -> source);
+        RuntimeService service = service(() -> source);
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {})) {
             var observation = new ObservationEngine(service, new WorldReadEngine(service, state));
             var result =
@@ -96,7 +96,7 @@ class WorldConsumerLifecycleTest {
 
     @Test
     void publicationTicketSurvivesModeRoundTripButRejectsShutdown() {
-        ProbeService service = service(() -> CompletableFuture.completedFuture(new JsonObject()));
+        RuntimeService service = service(() -> CompletableFuture.completedFuture(new JsonObject()));
         var state = new ProtocolState(SCOPES, "test", ignored -> {});
         var reads = new WorldReadEngine(service, state);
         Runnable ticket = reads.publicationGuard("DEBUG");
@@ -111,7 +111,7 @@ class WorldConsumerLifecycleTest {
     @Test
     void internalFailureMessageCannotLeakAfterAuthorityWasLost() {
         var source = new CompletableFuture<JsonObject>();
-        ProbeService service = service(() -> source);
+        RuntimeService service = service(() -> source);
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {})) {
             var reads = new WorldReadEngine(service, state);
             var result = reads.read("DEBUG", "client/player", new JsonObject(), () -> source);
@@ -142,7 +142,7 @@ class WorldConsumerLifecycleTest {
     @Test
     void waitRemainsAuthorizedAcrossModeChanges() throws Exception {
         var ready = new java.util.concurrent.atomic.AtomicBoolean();
-        ProbeService service =
+        RuntimeService service =
                 service(
                         () ->
                                 CompletableFuture.completedFuture(
@@ -178,7 +178,7 @@ class WorldConsumerLifecycleTest {
     @Test
     void cancellingSceneWaitCancelsItsNativeRead() {
         var source = new CompletableFuture<JsonObject>();
-        ProbeService service = service(() -> source);
+        RuntimeService service = service(() -> source);
         try (var state = new ProtocolState(SCOPES, "test", ignored -> {});
                 var userEvents = new EventHub("test", () -> source);
                 var debugEvents = new EventHub("test", () -> source);

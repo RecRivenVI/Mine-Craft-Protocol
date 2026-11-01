@@ -11,7 +11,7 @@
     "environment": "${fabric_environment}",
     "mixins": [
         {
-            "config": "minecraft_protocol_probe.validation.mixins.json",
+            "config": "mine_craft_protocol.validation.mixins.json",
             "environment": "client"
         }
     ],

@@ -18,7 +18,7 @@ export interface RuntimeDiscovery {
 
 export function readRuntimeDiscovery(instanceDirectory: string, expectedTarget?: string): RuntimeDiscovery {
   const directory = realpathSync(instanceDirectory);
-  const file = join(directory, 'minecraft-protocol', 'endpoint.json');
+  const file = join(directory, 'mine_craft_protocol', 'endpoint.json');
   if (statSync(file).size > 16384) throw new Error('Runtime discovery record exceeds 16 KiB');
   const record = JSON.parse(readFileSync(file, 'utf8')) as RuntimeDiscovery;
   if (record.schemaVersion !== 1 || record.state !== 'RUNNING'
@@ -38,7 +38,7 @@ export function readRuntimeDiscovery(instanceDirectory: string, expectedTarget?:
 }
 
 export function discoveryToken(instanceDirectory: string): string {
-  const path = resolve(instanceDirectory, 'minecraft-protocol', 'token');
+  const path = resolve(instanceDirectory, 'mine_craft_protocol', 'token');
   if (statSync(path).size > 16384) throw new Error('Runtime token exceeds 16 KiB');
   const token = readFileSync(path, 'utf8').trim();
   if (!token) throw new Error('Runtime discovery token is empty');

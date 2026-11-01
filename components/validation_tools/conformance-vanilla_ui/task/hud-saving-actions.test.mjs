@@ -6,7 +6,7 @@ import {hudSavingActions, verifyNativePauseSaveProof} from './hud-saving-actions
 const TARGET = '26.3-neoforge';
 const PID = 7;
 const PAUSE = 'net.minecraft.client.gui.screens.PauseScreen';
-const PROBE = 'io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen';
+const PROBE = 'io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen';
 
 test('every actual saving probe publishes complete same-directory records by atomic replacement without a non-atomic fallback', async () => {
   for (const target of ['1.20.1-forge', '1.21.1-neoforge', '26.1.2-neoforge', '26.3-neoforge', '26.3-fabric']) {

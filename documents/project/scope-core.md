@@ -29,8 +29,8 @@ HTTP/WebSocket 原生协议与独立 MCP Companion 分离；禁止用宿主桌�
 | 等待与断言 | 独立与 Pipeline typed conditions、事件和 Operation 生命周期，不能只靠固定 sleep |
 | Fixture / Debug | 独立授权、scope、Debug Arm、资源/值前置条件；不得冒充正常玩家验收 |
 | Provider | V2 schema/policy/affinity/budget/lifecycle；可信资源 revision 与 query-shaped payload 分离 |
-| 扩展平台 | 1.0 Core目标：公共SDK、Loader桥及独立本地受信任适配包，重启加载，内容身份审批、事务注册、生命周期与诊断；复用现有UI/世界/输入/Provider/Debug/授权，不要求第三方模组主动接入 |
-| 统一测试与探针 | 1.0 Core目标：包内Java探针、Fixture与场景目录，先安装适配包再用标准接口测试；受控主机编排使用登记ID，主机权限与游戏权限分开，不开放远程代码/任意路径 |
+| 扩展平台 | 1.0 Core目标：公共SDK、Loader桥及独立本地受信任扩展包，重启加载，内容身份审批、事务注册、生命周期与诊断；复用现有UI/世界/输入/Provider/Debug/授权，不要求第三方模组主动接入 |
+| 统一测试与探针 | 1.0 Core目标：包内Java探针、Fixture与场景目录，先安装扩展包再用标准接口测试；受控主机编排使用登记ID，主机权限与游戏权限分开，不开放远程代码/任意路径 |
 | 使用与查阅 | MCP服务器同时支持标准工具与版本化作者规则、合同、包文档及能力/测试索引；静态查阅不需要世界DEBUG权限，活动数据仍逐项授权 |
 | 证据 | Capture、Recording、Timeline、Artifact、manifest、checksums；来源和预算明确 |
 | 部署与 Peer | 两端可选安装，各有独立Runtime；服务器适用原生资源、显式真实玩家与已有维度、限时连接委托已实现，有限具名自动组不替代完整领域与真人验收 |

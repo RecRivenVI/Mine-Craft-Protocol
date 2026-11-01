@@ -233,7 +233,7 @@ public final class UiWorldRecoveryFixtureScreen extends Screen {
                             "Native optimizer creation failed; no optimizer success is inferred");
                 upgrader =
                         ((UiWorldRecoveryOptimizeProbeAccessor) nativeScreen)
-                                .minecraftProtocolProbe$upgrader();
+                                .mineCraftProtocol$upgrader();
             }
             nativeClass = nativeScreen.getClass().getName();
             report();
@@ -296,9 +296,7 @@ public final class UiWorldRecoveryFixtureScreen extends Screen {
         owner.nativeCancelCalls++;
         owner.nativeCancelReturned = true;
         owner.workerJoined =
-                !((UiWorldRecoveryWorkerProbeAccessor) worker)
-                        .minecraftProtocolProbe$thread()
-                        .isAlive();
+                !((UiWorldRecoveryWorkerProbeAccessor) worker).mineCraftProtocol$thread().isAlive();
     }
 
     public static void observeNativeRemoved(OptimizeWorldScreen screen) {
@@ -309,8 +307,8 @@ public final class UiWorldRecoveryFixtureScreen extends Screen {
         owner.savedDataClosed =
                 ((UiWorldRecoverySavedDataProbeAccessor)
                                 ((UiWorldRecoveryWorkerProbeAccessor) owner.upgrader)
-                                        .minecraftProtocolProbe$savedData())
-                        .minecraftProtocolProbe$closed();
+                                        .mineCraftProtocol$savedData())
+                        .mineCraftProtocol$closed();
     }
 
     private void closeAuxiliaryAccess() {
@@ -322,7 +320,7 @@ public final class UiWorldRecoveryFixtureScreen extends Screen {
                             || !workerJoined
                             || !savedDataClosed
                             || ((UiWorldRecoveryWorkerProbeAccessor) upgrader)
-                                    .minecraftProtocolProbe$thread()
+                                    .mineCraftProtocol$thread()
                                     .isAlive())) {
                 throw new IllegalStateException(
                         "The native optimizer worker or saved-data storage is not closed");
@@ -523,7 +521,7 @@ public final class UiWorldRecoveryFixtureScreen extends Screen {
                 "workerTerminated",
                 upgrader != null
                         && !((UiWorldRecoveryWorkerProbeAccessor) upgrader)
-                                .minecraftProtocolProbe$thread()
+                                .mineCraftProtocol$thread()
                                 .isAlive());
         value.addProperty("nativeRemovedCompleted", nativeRemovedCompleted);
         value.addProperty("savedDataStorageClosed", savedDataClosed);

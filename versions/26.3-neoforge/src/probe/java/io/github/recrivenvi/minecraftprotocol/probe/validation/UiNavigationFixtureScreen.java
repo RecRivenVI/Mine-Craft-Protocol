@@ -70,8 +70,7 @@ public final class UiNavigationFixtureScreen extends Screen {
             return;
         }
         DialogConnectionAccess access =
-                ((UiNavigationDialogProbeAccessor) connection)
-                        .minecraftProtocolProbe$dialogAccess();
+                ((UiNavigationDialogProbeAccessor) connection).mineCraftProtocol$dialogAccess();
         NoticeDialog destination =
                 new NoticeDialog(
                         common(

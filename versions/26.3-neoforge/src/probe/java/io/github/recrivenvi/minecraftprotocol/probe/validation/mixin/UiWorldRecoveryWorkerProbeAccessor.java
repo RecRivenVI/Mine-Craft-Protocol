@@ -8,8 +8,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(WorldUpgrader.class)
 public interface UiWorldRecoveryWorkerProbeAccessor {
     @Accessor("thread")
-    Thread minecraftProtocolProbe$thread();
+    Thread mineCraftProtocol$thread();
 
     @Accessor("overworldSavedDataStorage")
-    SavedDataStorage minecraftProtocolProbe$savedData();
+    SavedDataStorage mineCraftProtocol$savedData();
 }

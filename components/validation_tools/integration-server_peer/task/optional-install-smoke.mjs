@@ -85,11 +85,11 @@ async function until(read, valid, label, processRecord, timeout = 30000) {
 }
 async function logOf(record) { return exists(join(record.game, 'logs/latest.log')).then(yes => yes ? readFile(join(record.game, 'logs/latest.log'), 'utf8') : ''); }
 async function apiFor(record) {
-  const path = join(record.game, 'minecraft-protocol/endpoint.json');
+  const path = join(record.game, 'mine_craft_protocol/endpoint.json');
   const endpoint = await until(async () => await exists(path) ? JSON.parse(await readFile(path, 'utf8')) : null,
     value => value?.pid === record.child.pid && value?.target === target, 'Runtime endpoint', record, 180000);
   assert.equal(endpoint.target, target); assert.equal(endpoint.pid, record.child.pid);
-  const token = (await readFile(join(record.game, 'minecraft-protocol/token'), 'utf8')).trim();
+  const token = (await readFile(join(record.game, 'mine_craft_protocol/token'), 'utf8')).trim();
   const call = async (method, path, body, expected = 200, headers = {}) => {
     const response = await fetch(endpoint.baseUrl + path, {method, headers: {Authorization: 'Bearer ' + token, 'X-MCP-Runtime-Instance': endpoint.runtimeInstanceId,
       ...(body ? {'Content-Type': 'application/json'} : {}), ...headers}, ...(body ? {body: JSON.stringify(body)} : {}), signal: AbortSignal.timeout(15000)});
@@ -101,7 +101,7 @@ async function apiFor(record) {
 async function gameDirectory(name) {
   const game = join(root, name); await mkdir(game, {recursive: true});
   // Only this runner's directories may be reused, never a live Runtime or arbitrary mods.
-  const endpoint = join(game, 'minecraft-protocol/endpoint.json');
+  const endpoint = join(game, 'mine_craft_protocol/endpoint.json');
   if (await exists(endpoint)) assert(!alive(JSON.parse(await readFile(endpoint, 'utf8')).pid), 'Live Runtime directory');
   await mkdir(join(game, 'mods'), {recursive: true});
   assert((await readdir(join(game, 'mods'))).every(file => file === jarName), 'Unexpected installed mods');
@@ -186,7 +186,7 @@ async function stopServer(record) {
   if (record.exited) return;
   record.child.stdin.write('stop\n');
   assert.equal(await deadline(record.exit, 45000, 'Owned server normal stop deadline'), 0);
-  assert(!await exists(join(record.game, 'minecraft-protocol/endpoint.json')));
+  assert(!await exists(join(record.game, 'mine_craft_protocol/endpoint.json')));
 }
 async function operation(call, path, body, headers) {
   const started = await call('POST', path, body, 200, headers);
@@ -249,7 +249,7 @@ async function exerciseAndQuit(record, api, peerExpected, sample) {
   try { await call('POST', '/v0/ui/action', {action: 'click', selector: {translationKey: 'menu.quit'}}, 200, {'X-MCP-Control-Lease': renewed.leaseId}); }
   catch (error) { assert(/RUNTIME_SHUTTING_DOWN|fetch failed|socket|terminated/.test(error.message), error.message); }
   assert.equal(await deadline(record.exit, 60000, 'Client quit deadline'), 0);
-  assert(!await exists(join(record.game, 'minecraft-protocol/endpoint.json'))); sample.cleanClientShutdown = true;
+  assert(!await exists(join(record.game, 'mine_craft_protocol/endpoint.json'))); sample.cleanClientShutdown = true;
   assert(title.windowWidth === 1920 && title.windowHeight === 1080);
 }
 try {
@@ -262,7 +262,7 @@ try {
     await until(async () => s.output, text => /OptionalTest joined the game/.test(text), 'native player joined', s, 180000);
     sample.joined = true;
     if (kind === 'server_only') {
-      assert(!await exists(join(c.game, 'minecraft-protocol/endpoint.json')), 'Vanilla client must not load Runtime');
+      assert(!await exists(join(c.game, 'mine_craft_protocol/endpoint.json')), 'Vanilla client must not load Runtime');
       const api = await apiFor(s); sample.serverSession = await api.call('GET', '/v0/session');
       assert.equal(sample.serverSession.deploymentRole, 'DEDICATED_SERVER'); assert.equal(sample.serverSession.inputSurfaceAvailable, false);
       sample.consoleDenied = await api.call('GET', '/v0/server/console?after=0&limit=1', undefined, 403);

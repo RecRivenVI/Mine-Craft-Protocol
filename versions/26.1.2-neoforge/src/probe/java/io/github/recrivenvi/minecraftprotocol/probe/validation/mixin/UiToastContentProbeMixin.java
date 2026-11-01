@@ -6,9 +6,9 @@ import io.github.recrivenvi.minecraftprotocol.core.ProtocolState;
 import io.github.recrivenvi.minecraftprotocol.core.ResourceVersionVerifier;
 import io.github.recrivenvi.minecraftprotocol.core.UiItemDataGuard;
 import io.github.recrivenvi.minecraftprotocol.core.UiToastResetSource;
-import io.github.recrivenvi.minecraftprotocol.probe.mixin.SystemToastUiAccessor;
-import io.github.recrivenvi.minecraftprotocol.probe.mixin.ToastInstanceUiAccessor;
-import io.github.recrivenvi.minecraftprotocol.probe.mixin.ToastManagerUiAccessor;
+import io.github.recrivenvi.minecraftprotocol.mixin.SystemToastUiAccessor;
+import io.github.recrivenvi.minecraftprotocol.mixin.ToastInstanceUiAccessor;
+import io.github.recrivenvi.minecraftprotocol.mixin.ToastManagerUiAccessor;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,9 +28,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Runs against the actual transformed production encoder and native Toast classes. */
-@Mixin(targets = "io.github.recrivenvi.minecraftprotocol.probe.runtime.UiToastDebug", remap = false)
+@Mixin(targets = "io.github.recrivenvi.minecraftprotocol.runtime.UiToastDebug", remap = false)
 public abstract class UiToastContentProbeMixin {
-    @Unique private static boolean minecraftProtocolProbe$verified;
+    @Unique private static boolean mineCraftProtocol$verified;
 
     @Shadow
     static UiItemDataGuard.Content content(
@@ -51,10 +51,10 @@ public abstract class UiToastContentProbeMixin {
     }
 
     @Inject(method = "describe", at = @At("HEAD"))
-    private static void minecraftProtocolProbe$verify(CallbackInfo callback) {
-        if (minecraftProtocolProbe$verified
+    private static void mineCraftProtocol$verify(CallbackInfo callback) {
+        if (mineCraftProtocol$verified
                 || !"conformance-vanilla_ui".equals(System.getProperty("validation.name"))) return;
-        minecraftProtocolProbe$verified = true;
+        mineCraftProtocol$verified = true;
         JsonObject result = new JsonObject();
         result.addProperty("probeOnly", true);
         result.addProperty("processId", ProcessHandle.current().pid());
@@ -77,9 +77,9 @@ public abstract class UiToastContentProbeMixin {
                             Component.literal("message"));
             var a = content(guard, new UiItemDataGuard.Budget(), red);
             var b = content(guard, new UiItemDataGuard.Budget(), blue);
-            minecraftProtocolProbe$require(a.available(), "Red native content must encode");
-            minecraftProtocolProbe$require(b.available(), "Blue native content must encode");
-            minecraftProtocolProbe$require(
+            mineCraftProtocol$require(a.available(), "Red native content must encode");
+            mineCraftProtocol$require(b.available(), "Blue native content must encode");
+            mineCraftProtocol$require(
                     !a.fingerprint().equals(b.fingerprint()), "Native style must be guarded");
             String prefix = "x".repeat(2048);
             var first =
@@ -90,12 +90,12 @@ public abstract class UiToastContentProbeMixin {
                             kind, Component.literal("title"), Component.literal(prefix + "B"));
             a = content(guard, new UiItemDataGuard.Budget(), first);
             b = content(guard, new UiItemDataGuard.Budget(), second);
-            minecraftProtocolProbe$require(a.available(), "Full first content must encode");
-            minecraftProtocolProbe$require(b.available(), "Full second content must encode");
-            minecraftProtocolProbe$require(
+            mineCraftProtocol$require(a.available(), "Full first content must encode");
+            mineCraftProtocol$require(b.available(), "Full second content must encode");
+            mineCraftProtocol$require(
                     !a.fingerprint().equals(b.fingerprint()),
                     "Unpublished native tail must be guarded");
-            minecraftProtocolProbe$require(
+            mineCraftProtocol$require(
                     !content(guard, new UiItemDataGuard.Budget(8), first).available(),
                     "Capture budget must fail closed");
             var generation = (UiToastResetSource) red;
@@ -105,40 +105,40 @@ public abstract class UiToastContentProbeMixin {
             nativeManager.update();
             Object nativeInstance =
                     ((ToastManagerUiAccessor) nativeManager)
-                            .minecraftProtocolProbe$visible().stream()
+                            .mineCraftProtocol$visible().stream()
                                     .filter(
                                             instance ->
                                                     ((ToastInstanceUiAccessor) instance)
-                                                                    .minecraftProtocolProbe$toast()
+                                                                    .mineCraftProtocol$toast()
                                                             == red)
                                     .findFirst()
                                     .orElseThrow(
                                             () ->
                                                     new AssertionError(
                                                             "Probe-owned native Toast instance missing"));
-            long beforeReset = generation.minecraftProtocolProbe$resetGeneration();
+            long beforeReset = generation.mineCraftProtocol$resetGeneration();
             red.reset(Component.literal("reset generation"), Component.literal("same message"));
             var tracker = new ObservationRevisionTracker();
             JsonObject resetState =
-                    minecraftProtocolProbe$resetState(guard, nativeManager, nativeInstance, red);
+                    mineCraftProtocol$resetState(guard, nativeManager, nativeInstance, red);
             JsonObject receipt = tracker.revision("ui_node", "probe_owned_toast", resetState);
             var nativeFields = (SystemToastUiAccessor) red;
-            boolean pending = nativeFields.minecraftProtocolProbe$changed();
+            boolean pending = nativeFields.mineCraftProtocol$changed();
             red.update(nativeManager, 1234L);
             JsonObject consumedState =
-                    minecraftProtocolProbe$resetState(guard, nativeManager, nativeInstance, red);
+                    mineCraftProtocol$resetState(guard, nativeManager, nativeInstance, red);
             JsonObject consumed = tracker.revision("ui_node", "probe_owned_toast", consumedState);
-            minecraftProtocolProbe$require(
-                    generation.minecraftProtocolProbe$resetGeneration() == beforeReset + 1
+            mineCraftProtocol$require(
+                    generation.mineCraftProtocol$resetGeneration() == beforeReset + 1
                             && pending
-                            && !nativeFields.minecraftProtocolProbe$changed()
-                            && nativeFields.minecraftProtocolProbe$lastChanged() == 1234L
+                            && !nativeFields.mineCraftProtocol$changed()
+                            && nativeFields.mineCraftProtocol$lastChanged() == 1234L
                             && receipt.equals(consumed),
                     "One passive reset generation must survive actual native lifetime consumption");
             result.addProperty("nativeTickVersionStable", true);
             red.reset(Component.literal("reset generation"), Component.literal("same message"));
             JsonObject sameValueState =
-                    minecraftProtocolProbe$resetState(guard, nativeManager, nativeInstance, red);
+                    mineCraftProtocol$resetState(guard, nativeManager, nativeInstance, red);
             JsonObject sameValue = tracker.revision("ui_node", "probe_owned_toast", sameValueState);
             boolean staleRejected = false;
             try {
@@ -146,8 +146,8 @@ public abstract class UiToastContentProbeMixin {
             } catch (ProtocolState.ProtocolException failure) {
                 staleRejected = "STALE_RESOURCE_REVISION".equals(failure.code());
             }
-            minecraftProtocolProbe$require(
-                    generation.minecraftProtocolProbe$resetGeneration() == beforeReset + 2
+            mineCraftProtocol$require(
+                    generation.mineCraftProtocol$resetGeneration() == beforeReset + 2
                             && resetState.get("content").equals(sameValueState.get("content"))
                             && !receipt.equals(sameValue)
                             && staleRejected,
@@ -177,7 +177,7 @@ public abstract class UiToastContentProbeMixin {
     }
 
     @Unique
-    private static JsonObject minecraftProtocolProbe$resetState(
+    private static JsonObject mineCraftProtocol$resetState(
             UiItemDataGuard guard, ToastManager manager, Object instance, SystemToast toast) {
         JsonObject tree = new JsonObject();
         var window = Minecraft.getInstance().getWindow();
@@ -197,7 +197,7 @@ public abstract class UiToastContentProbeMixin {
     }
 
     @Unique
-    private static void minecraftProtocolProbe$require(boolean value, String message) {
+    private static void mineCraftProtocol$require(boolean value, String message) {
         if (!value) throw new AssertionError(message);
     }
 }

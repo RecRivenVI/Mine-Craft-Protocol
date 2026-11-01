@@ -4,13 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSchemaRegistry;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext;
 import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
 import io.github.recrivenvi.minecraftprotocol.core.ObservationRevisionTracker;
 import io.github.recrivenvi.minecraftprotocol.core.ProviderExecutionEngine;
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -57,7 +57,7 @@ class ExtensionPlatformTest {
                     }
                 });
                 """);
-        Path manifest = directory.resolve("extension.json");
+        Path manifest = directory.resolve("extensionpack.json");
         JsonObject declaration = json(Files.readString(manifest));
         declaration.getAsJsonArray("capabilities").add("native_owner:native");
         Files.writeString(manifest, declaration.toString());
@@ -66,12 +66,12 @@ class ExtensionPlatformTest {
         var available = new java.util.concurrent.atomic.AtomicBoolean(true);
         var reads = new java.util.concurrent.atomic.AtomicInteger();
         var owner =
-                new io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                new io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources
                         .ThreadOwner("client_thread", Runnable::run, ownerActive::get);
         var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> true,
                         "native-owner-runtime",
                         Map.of("client_thread", owner),
@@ -135,14 +135,14 @@ class ExtensionPlatformTest {
     }
 
     private static ExtensionPlatform.Environment environment(
-            String target, PackageContext.Side side) {
+            String target, ExtensionContext.Side side) {
         return new ExtensionPlatform.Environment(
                 "product",
                 target,
                 side,
                 Runtime.version().feature(),
                 Map.of("upstream", "2.0.0"),
-                PackageContext.class.getClassLoader());
+                ExtensionContext.class.getClassLoader());
     }
 
     private static JsonObject json(String text) {
@@ -170,7 +170,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             assertEquals(2, platform.snapshot().size());
             for (String id : List.of("left", "right")) {
@@ -242,7 +242,7 @@ class ExtensionPlatformTest {
             try (var platform =
                     new ExtensionPlatform(
                             new ExtensionStore(root),
-                            environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                            environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                             (m, e) -> false)) {
                 var catalog = platform.catalog();
                 assertEquals(fail ? 0 : 1, platform.snapshot().size());
@@ -255,7 +255,7 @@ class ExtensionPlatformTest {
         Path root = temporary.resolve("missing_ui_scope");
         Path directory =
                 bundle(root, "ui_package", "extensiontest.uipackage", 1, false, null, registration);
-        Path file = directory.resolve("extension.json");
+        Path file = directory.resolve("extensionpack.json");
         JsonObject manifest = json(Files.readString(file));
         manifest.add("requestedScopes", array("read", "debug.world.read"));
         Files.writeString(file, manifest.toString());
@@ -263,7 +263,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             assertTrue(platform.catalog().toString().contains("EXTENSION_UI_UNDECLARED"));
             assertTrue(platform.snapshot().isEmpty());
@@ -274,11 +274,10 @@ class ExtensionPlatformTest {
     @Test
     void derivedLibraryIsReproducibleAndLoaderOnlySeesInertCoreGatedConfigurations()
             throws Exception {
-        Path game = temporary.resolve("deterministic"),
-                root = game.resolve("minecraft-protocol/extensions");
+        Path game = temporary.resolve("deterministic"), root = game;
         Path directory = hookBundle(root, "deterministic", "extensiontest.deterministic");
         approve(root, directory, true);
-        var env = environment("26.3-neoforge", PackageContext.Side.CLIENT);
+        var env = environment("26.3-neoforge", ExtensionContext.Side.CLIENT);
         Path first = game.resolve("one.jar"), second = game.resolve("two.jar");
         ExtensionEarlyStage.write(new ExtensionStore(root), env, first);
         ExtensionEarlyStage.write(new ExtensionStore(root), env, second);
@@ -304,16 +303,16 @@ class ExtensionPlatformTest {
     @Test
     void stoppedStagingLibraryWorksInAnotherDirectoryWithTheSameApprovedContent() throws Exception {
         Path staging = temporary.resolve("offline-stage");
-        Path source = staging.resolve("minecraft-protocol/extensions");
+        Path source = staging;
         Path directory = hookBundle(source, "portable", "extensiontest.portable");
         approve(source, directory, true);
-        Path library = staging.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        Path library = ExtensionEarlyStage.library(staging);
         ExtensionEarlyStage.write(
                 new ExtensionStore(source),
-                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                 library);
         Path game = temporary.resolve("ordinary-install");
-        Path destination = game.resolve("minecraft-protocol/extensions");
+        Path destination = game;
         try (var paths = Files.walk(source)) {
             for (Path path : paths.toList()) {
                 Path target = destination.resolve(source.relativize(path));
@@ -321,19 +320,19 @@ class ExtensionPlatformTest {
                 else Files.copy(path, target);
             }
         }
-        Path installed = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        Path installed = ExtensionEarlyStage.library(game);
         Files.createDirectories(installed.getParent());
-        Files.copy(library, installed);
+        if (!Files.exists(installed)) Files.copy(library, installed);
         assertArrayEquals(Files.readAllBytes(library), Files.readAllBytes(installed));
         try (var loader =
                 new java.net.URLClassLoader(
                         new java.net.URL[] {installed.toUri().toURL()},
-                        PackageContext.class.getClassLoader())) {
+                        ExtensionContext.class.getClassLoader())) {
             var env =
                     new ExtensionPlatform.Environment(
                             "product",
                             "26.3-neoforge",
-                            PackageContext.Side.CLIENT,
+                            ExtensionContext.Side.CLIENT,
                             Runtime.version().feature(),
                             Map.of("upstream", "2.0.0"),
                             loader);
@@ -363,24 +362,24 @@ class ExtensionPlatformTest {
     void earlyStagingChecksNativeBytesWithoutInitializingAnyPackageAndDistinguishesAppliedHooks()
             throws Exception {
         Path game = temporary.resolve("early");
-        Path root = game.resolve("minecraft-protocol/extensions");
+        Path root = game;
         Path directory = hookBundle(root, "early", "extensiontest.early");
         approve(root, directory, true);
-        Path library = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        Path library = ExtensionEarlyStage.library(game);
         ExtensionEarlyStage.write(
                 new ExtensionStore(root),
-                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                 library);
         assertNull(System.getProperty("extension_test.early"));
         try (var nativeLoader =
                 new java.net.URLClassLoader(
                         new java.net.URL[] {library.toUri().toURL()},
-                        PackageContext.class.getClassLoader())) {
+                        ExtensionContext.class.getClassLoader())) {
             var env =
                     new ExtensionPlatform.Environment(
                             "product",
                             "26.3-neoforge",
-                            PackageContext.Side.CLIENT,
+                            ExtensionContext.Side.CLIENT,
                             Runtime.version().feature(),
                             Map.of("upstream", "2.0.0"),
                             nativeLoader);
@@ -454,28 +453,28 @@ class ExtensionPlatformTest {
     void changedApprovalOrAlreadyLoadedMixinTargetNeverRegistersOrInitializesCode()
             throws Exception {
         for (boolean loaded : List.of(false, true)) {
-            Path game = temporary.resolve("reject-early-" + loaded),
-                    root = game.resolve("minecraft-protocol/extensions");
+            Path game = temporary.resolve("reject-early-" + loaded), root = game;
             String id = loaded ? "loaded" : "changed";
             Path directory = hookBundle(root, id, "extensiontest." + id);
             approve(root, directory, true);
-            Path library = game.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+            Path library = ExtensionEarlyStage.library(game);
             ExtensionEarlyStage.write(
                     new ExtensionStore(root),
-                    environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                    environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                     library);
             if (!loaded)
                 Files.writeString(
-                        root.resolve("approvals.json"), "{\"formatVersion\":1,\"packages\":{}}");
+                        root.resolve("mine_craft_protocol/extensions/approvals.json"),
+                        "{\"formatVersion\":1,\"packages\":{}}");
             try (var nativeLoader =
                     new java.net.URLClassLoader(
                             new java.net.URL[] {library.toUri().toURL()},
-                            PackageContext.class.getClassLoader())) {
+                            ExtensionContext.class.getClassLoader())) {
                 var env =
                         new ExtensionPlatform.Environment(
                                 "product",
                                 "26.3-neoforge",
-                                PackageContext.Side.CLIENT,
+                                ExtensionContext.Side.CLIENT,
                                 Runtime.version().feature(),
                                 Map.of(),
                                 nativeLoader);
@@ -541,7 +540,8 @@ class ExtensionPlatformTest {
         }
         Files.write(code, bytes.toByteArray());
         JsonObject manifest =
-                ExtensionManifest.object(Files.readAllBytes(directory.resolve("extension.json")));
+                ExtensionManifest.object(
+                        Files.readAllBytes(directory.resolve("extensionpack.json")));
         manifest.getAsJsonObject("files")
                 .addProperty("code/adapter.jar", ExtensionManifest.digest(bytes.toByteArray()));
         Files.createDirectories(directory.resolve("mixins"));
@@ -559,7 +559,7 @@ class ExtensionPlatformTest {
                         "mixins",
                         json("{\"hooks\":[{\"config\":\"mixins/probe.json\",\"side\":\"client\"}]}")
                                 .getAsJsonArray("hooks"));
-        Files.writeString(directory.resolve("extension.json"), manifest.toString() + "\n");
+        Files.writeString(directory.resolve("extensionpack.json"), manifest.toString() + "\n");
         return directory;
     }
 
@@ -571,7 +571,7 @@ class ExtensionPlatformTest {
         var unapproved =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (manifest, env) -> false);
         assertEquals(0, unapproved.snapshot().size());
         assertTrue(unapproved.catalog().toString().contains("EXTENSION_APPROVAL_REQUIRED"));
@@ -579,7 +579,7 @@ class ExtensionPlatformTest {
         var ungranted =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (manifest, env) -> false);
         assertTrue(ungranted.catalog().toString().contains("EXTENSION_APPROVAL_SCOPE_MISSING"));
         assertNull(System.getProperty("extension_test.sample"));
@@ -587,7 +587,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (manifest, env) -> false)) {
             assertEquals("initialized", System.getProperty("extension_test.sample"));
             assertEquals(7, capture(platform).get("value").getAsInt());
@@ -620,12 +620,12 @@ class ExtensionPlatformTest {
         try (var left =
                         new ExtensionPlatform(
                                 new ExtensionStore(a),
-                                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                                environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                                 (m, e) -> false);
                 var right =
                         new ExtensionPlatform(
                                 new ExtensionStore(b),
-                                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                                environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                                 (m, e) -> false)) {
             assertEquals(1, capture(left).get("value").getAsInt());
             assertEquals(2, capture(right).get("value").getAsInt());
@@ -643,26 +643,26 @@ class ExtensionPlatformTest {
     void staticCatalogAndDocumentsUseActualAuthenticatedTransportWithoutWorldDebugPermission()
             throws Exception {
         Path game = temporary.resolve("http");
-        Path root = game.resolve("minecraft-protocol/extensions");
+        Path root = game;
         Path source = bundle(root, "catalog", "extensiontest.catalog", 12, false, null);
         approve(root, source, true);
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.setProperty("minecraft.protocol.scopes", "read");
         var service =
-                (io.github.recrivenvi.minecraftprotocol.core.ProbeService)
+                (io.github.recrivenvi.minecraftprotocol.core.RuntimeService)
                         java.lang.reflect.Proxy.newProxyInstance(
                                 getClass().getClassLoader(),
                                 new Class<?>[] {
-                                    io.github.recrivenvi.minecraftprotocol.core.ProbeService.class
+                                    io.github.recrivenvi.minecraftprotocol.core.RuntimeService.class
                                 },
                                 (proxy, method, args) -> {
                                     if (method.getName().equals("extensionEnvironment"))
                                         return environment(
-                                                "26.3-neoforge", PackageContext.Side.CLIENT);
+                                                "26.3-neoforge", ExtensionContext.Side.CLIENT);
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("extensionLifetimeContexts"))
-                                        return io.github.recrivenvi.minecraftprotocol.probe
-                                                .extension.LifetimeContexts.empty();
+                                        return io.github.recrivenvi.minecraftprotocol.api.extension
+                                                .LifetimeContexts.empty();
                                     if (method.getName().equals("extensionEarlyHooks"))
                                         return (ExtensionPlatform.EarlyHooks)
                                                 (manifest, env) -> false;
@@ -675,11 +675,11 @@ class ExtensionPlatformTest {
                                             new JsonObject());
                                 });
         try (var transport =
-                io.github.recrivenvi.minecraftprotocol.core.ProbeTransport.forInstance(
+                io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport.forInstance(
                         service, game, "26.3-neoforge")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, java.util.concurrent.TimeUnit.SECONDS);
-            String token = Files.readString(game.resolve("minecraft-protocol/token")).trim();
+            String token = Files.readString(game.resolve("mine_craft_protocol/token")).trim();
             var client =
                     java.net.http.HttpClient.newBuilder()
                             .proxy(
@@ -749,7 +749,7 @@ class ExtensionPlatformTest {
         try (var platform =
                         new ExtensionPlatform(
                                 new ExtensionStore(root),
-                                environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                                environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                                 (m, e) -> false);
                 var engine = new ProviderExecutionEngine(new ObservationRevisionTracker())) {
             engine.installProviders(platform);
@@ -803,7 +803,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             assertEquals(1, platform.snapshot().size());
             assertEquals("healthy:state", platform.snapshot().get(0).descriptor().providerId());
@@ -823,8 +823,8 @@ class ExtensionPlatformTest {
         approve(root, candidate, true);
         for (var env :
                 List.of(
-                        environment("26.3-neoforge", PackageContext.Side.SERVER),
-                        environment("1.21.1-neoforge", PackageContext.Side.CLIENT))) {
+                        environment("26.3-neoforge", ExtensionContext.Side.SERVER),
+                        environment("1.21.1-neoforge", ExtensionContext.Side.CLIENT))) {
             try (var platform =
                     new ExtensionPlatform(new ExtensionStore(root), env, (m, e) -> false)) {
                 assertTrue(platform.catalog().toString().contains("not_applicable"));
@@ -844,7 +844,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             assertTrue(platform.catalog().toString().contains("EXTENSION_DEPENDENCY_CYCLE"));
             assertTrue(platform.snapshot().isEmpty());
@@ -859,7 +859,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(duplicate),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             assertTrue(platform.catalog().toString().contains("EXTENSION_DUPLICATE_CLASS"));
             assertTrue(platform.snapshot().isEmpty());
@@ -889,7 +889,7 @@ class ExtensionPlatformTest {
         try (var platform =
                 new ExtensionPlatform(
                         new ExtensionStore(root),
-                        environment("26.3-neoforge", PackageContext.Side.CLIENT),
+                        environment("26.3-neoforge", ExtensionContext.Side.CLIENT),
                         (m, e) -> false)) {
             Files.writeString(directory.resolve("docs/overview.md"), "changed after approval");
             var failure =
@@ -960,11 +960,11 @@ class ExtensionPlatformTest {
                 import com.google.gson.JsonObject;
                 import java.util.List;
                 import java.util.concurrent.CompletableFuture;
-                import io.github.recrivenvi.minecraftprotocol.probe.api.*;
-                import io.github.recrivenvi.minecraftprotocol.probe.extension.*;
-                public final class Entry implements PackageExtension {
+                import io.github.recrivenvi.minecraftprotocol.api.*;
+                import io.github.recrivenvi.minecraftprotocol.api.extension.*;
+                public final class Entry implements Extension {
                     static { System.setProperty("extension_test.%s", "initialized"); }
-                    public void initialize(PackageContext context) {
+                    public void initialize(ExtensionContext context) {
                         context.schema("%s", data -> data.has("value") && data.get("value").getAsInt() == %d
                             ? ProviderSchemaRegistry.ValidationResult.pass() : ProviderSchemaRegistry.ValidationResult.fail("wrong value"));
                         context.schema("%s/query", data -> ProviderSchemaRegistry.ValidationResult.pass());
@@ -997,7 +997,7 @@ class ExtensionPlatformTest {
         Files.writeString(javaSource, source);
         String classpath =
                 Path.of(
-                                PackageContext.class
+                                ExtensionContext.class
                                         .getProtectionDomain()
                                         .getCodeSource()
                                         .getLocation()
@@ -1033,14 +1033,16 @@ class ExtensionPlatformTest {
                 output.closeEntry();
             }
         }
-        Path directory = root.resolve("packages").resolve(id);
+        Path directory = root.resolve("extensionpacks").resolve(id);
         Files.createDirectories(directory.resolve("code"));
         Files.createDirectories(directory.resolve("docs"));
         Files.write(directory.resolve("code/adapter.jar"), bytes.toByteArray());
         Files.writeString(directory.resolve("docs/overview.md"), "# Package\n");
         JsonObject manifest = new JsonObject();
         manifest.addProperty("formatVersion", 1);
-        manifest.addProperty("sdkApi", 1);
+        manifest.addProperty(
+                "sdkApi",
+                io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext.SDK_API);
         manifest.addProperty("id", id);
         manifest.addProperty("version", "1.0.0");
         manifest.addProperty("javaNamespace", namespace);
@@ -1076,7 +1078,7 @@ class ExtensionPlatformTest {
             deps.add("packages", packages);
             manifest.add("dependencies", deps);
         }
-        Files.writeString(directory.resolve("extension.json"), manifest + "\n");
+        Files.writeString(directory.resolve("extensionpack.json"), manifest + "\n");
         return directory;
     }
 
@@ -1086,8 +1088,30 @@ class ExtensionPlatformTest {
         return array;
     }
 
+    @Test
+    void selectionRequiresPhysicalFirstApprovalAndPreservesDisabledApproval() throws Exception {
+        Path root = temporary.resolve("settings");
+        Path bundle = bundle(root, "settings", "extensiontest.settings", 1, false, null);
+        var store = new ExtensionStore(root);
+        var source = ExtensionStore.inspect(bundle);
+        assertEquals("EXTENSION_APPROVAL_REQUIRED", store.inspect().get(0).status());
+        assertEquals(
+                "EXTENSION_HUMAN_APPROVAL_REQUIRED",
+                assertThrows(ExtensionFailure.class, () -> store.select(source, true, false))
+                        .code());
+        store.select(source, true, true);
+        assertEquals("verified", store.inspect().get(0).status());
+        store.select(source, false, false);
+        assertEquals("disabled", store.inspect().get(0).status());
+        store.select(source, true, false);
+        assertEquals("verified", store.inspect().get(0).status());
+        Files.writeString(bundle.resolve("docs/overview.md"), "changed");
+        assertEquals("EXTENSION_CONTENT_MISMATCH", store.inspect().get(0).status());
+    }
+
     private static void approve(Path root, Path directory, boolean scopes) throws Exception {
-        Path file = root.resolve("approvals.json");
+        Path file = root.resolve("mine_craft_protocol/extensions/approvals.json");
+        Files.createDirectories(file.getParent());
         JsonObject approvals =
                 Files.exists(file)
                         ? ExtensionManifest.object(Files.readAllBytes(file))

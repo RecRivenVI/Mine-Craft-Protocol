@@ -73,7 +73,7 @@ try{
     while(-not$process.HasExited-and[DateTime]::UtcNow-lt$exitDeadline){Start-Sleep -Milliseconds 100;$process.Refresh()}
     Require ($process.HasExited-and$process.ExitCode-eq0) 'client must terminate normally, not only close its HTTP port'
     Require (-not(Test-Path -LiteralPath (Join-Path $instance "hs_err_pid$($process.Id).log"))) 'native JVM crash report present'
-    $directory=Join-Path $instance "minecraft-protocol/artifacts/$($recording.recordingId)"
+    $directory=Join-Path $instance "mine_craft_protocol/artifacts/$($recording.recordingId)"
     $manifest=Get-Content -LiteralPath (Join-Path $directory 'manifest.json') -Raw|ConvertFrom-Json
     Require ($manifest.status-eq'completed'-and$manifest.stopReason-eq'transport_close'-and$manifest.writerErrors-eq0) 'active recording must finalize on transport close'
     foreach($name in @('bundle.zip','checksums.json','frame-index.json')){Require (Test-Path -LiteralPath (Join-Path $directory $name)) "$name missing"}

@@ -25,6 +25,35 @@ export function runNodeScenario(script,args,{cwd,timeout=240000}={}) {
   });
 }
 
+async function warmupExtensionDiscovery({java,args,game,target,root,scopes}) {
+  const output=createWriteStream(join(root,'extension-discovery-first-start.log'));
+  const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:scopes},windowsHide:true,stdio:['ignore','pipe','pipe']});
+  child.stdout.pipe(output,{end:false});child.stderr.pipe(output,{end:false});
+  let exited=false;const exit=new Promise((done,fail)=>{child.once('error',fail);child.once('exit',code=>{exited=true;output.end();done(code);});});
+  try{
+  const until=Date.now()+240000;let connection,tree;
+  while(Date.now()<until){
+    assert(!exited,'Discovery first startup exited before title');
+    try{connection=await connectRuntime(game,target);const r=await connection.fetch('/v0/ui/tree');tree=await r.json();
+      if(r.status>=500)throw Object.assign(Error('Discovery startup interface failed: '+JSON.stringify(tree)),{fatalReadiness:true});
+      if(tree.screenClass.endsWith('TitleScreen')&&!tree.overlayIdentity&&tree.children?.length)break;
+    }catch(error){if(error.fatalReadiness)throw error;}
+    await new Promise(done=>setTimeout(done,250));
+  }
+  assert(tree?.screenClass.endsWith('TitleScreen')&&!tree.overlayIdentity,'Discovery first startup title readiness');
+  const state=await connection.fetch('/v0/control/mode').then(r=>r.json());
+  const grant=await connection.fetch('/v0/control/acquire',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(automaticTakeoverRequest(state,{ttlMs:15000}))}).then(r=>r.json());
+  assert(grant.leaseId);const nodes=n=>[n,...(n.children??[]).flatMap(nodes)],quit=nodes(tree).find(n=>n.translationKey==='menu.quit');assert(quit);
+  try{const reply=await connection.fetch('/v0/ui/action',{method:'POST',headers:{'content-type':'application/json','x-mcp-control-lease':grant.leaseId},body:JSON.stringify({selector:{nodeId:quit.nodeId},action:'click'})});
+    if(!reply.ok)assert.equal((await reply.json()).error,'RUNTIME_SHUTTING_DOWN');
+  }catch(error){if(error.name==='AssertionError')throw error;}
+  let timer;assert.equal(await Promise.race([exit,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Discovery first startup normal exit timeout')),60000);})]).finally(()=>clearTimeout(timer)),0);
+  assert(!await access(join(game,'mine_craft_protocol/endpoint.json')).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}));
+  const file=join(game,'mods/mine_craft_protocol-extension-discovery.jar');assert(await access(file).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;}));
+  return {firstStartup:true,titleReady:true,cleanShutdown:true,discoveryLibrarySha256:sha256(await readFile(file))};
+  }finally{if(!exited){child.kill();await exit.catch(()=>{});}}
+}
+
 export async function findJava(version,jdks=join(homedir(),'.gradle/jdks')){
   assert.match(String(version),/^[1-9]\d*$/,'An explicit Java major version is required');
   for(const entry of await readdir(jdks,{withFileTypes:true})){
@@ -138,7 +167,7 @@ const target=process.argv.find(v=>v.startsWith('--target='))?.slice(9);
 const enterWorld=process.argv.includes('--enter-world');
 const extensionPlatform=process.argv.includes('--extension-platform');
 const extensionAdapter=process.argv.find(value=>value.startsWith('--extension-adapter='))?.slice('--extension-adapter='.length)??'platform_probe';
-assert(['platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
+assert(['platform_probe','computercraft','modernui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
 assert(extensionPlatform||extensionAdapter==='platform_probe');
 const resultName=target+(extensionAdapter==='platform_probe'?'':'-'+extensionAdapter)+'.json';
 assert(!(extensionPlatform&&enterWorld),'Separate installed acceptance scenarios');
@@ -226,9 +255,10 @@ if(loader==='fabric'){
   const installer=join(cache,loader+'-'+coordinate+'-installer.jar');
   const checksum=(await download(url+'.sha1',join(cache,loader+'-'+coordinate+'-installer.jar.sha1'))).toString('utf8').trim().split(/\s/)[0];assert.match(checksum,/^[a-f0-9]{40}$/i);
   await download(url,installer,checksum);
-  if(extensionPlatform){
-    const cached=resolve(repo,'validations/integration-packaged_runtime/instance/installed',target,'installation/libraries');
-    if(await exists(cached))await cp(cached,join(home,'libraries'),{recursive:true,force:false});
+  let seededOfficialCache=false;
+  if(extensionPlatform||loader==='forge'){
+    const cached=resolve(repo,extensionPlatform?'validations/integration-packaged_runtime/instance/installed':'validations/integration-extension_platform/instance/installed',target,'installation/libraries');
+    if(await exists(cached)){await cp(cached,join(home,'libraries'),{recursive:true,force:false});seededOfficialCache=true;}
     // The official installer still validates library/output checksums and executes processors.
     // Only its download cache is reused, never a game directory or development classpath.
   }
@@ -248,7 +278,11 @@ if(loader==='fabric'){
     await mkdir(join(home,'versions',names[0]),{recursive:true});await writeFile(join(home,'versions',names[0],names[0]+'.json'),bytes);
     officialInstallation={source:'verified_official_loader_cache',installerExecuted:false,profileSha256:sha256(bytes),productProofReused:false};
   }else{
-    await run(installerJava,['-Djava.awt.headless=true','-jar',installer,'--installClient',home],home,join(root,'installer.log'));
+    const offline=loader==='forge'&&seededOfficialCache;
+    // Forge's documented installer option still verifies all required cache entries. It never
+    // disables TLS verification or admits a development classpath when the online precheck fails.
+    await run(installerJava,['-Djava.awt.headless=true','-jar',installer,...(offline?['--offline']:[]),'--installClient',home],home,join(root,'installer.log'));
+    if(offline)officialInstallation.offlineCache=true;
     const profiles=(await readdir(join(home,'versions'))).filter(name=>name!==minecraft);
     assert.equal(profiles.length,1,'One official Loader profile');profile=JSON.parse(await readFile(join(home,'versions',profiles[0],profiles[0]+'.json'),'utf8'));
   }
@@ -292,7 +326,8 @@ const expand=value=>value.replace(/\$\{([^}]+)\}/g,(_,key)=>{assert(Object.hasOw
 function argumentsFor(values){return values.flatMap(value=>typeof value==='string'?[expand(value)]:permitted(value.rules)?(Array.isArray(value.value)?value.value:[value.value]).map(expand):[]);}
 const jvm=argumentsFor([...(vanilla.arguments?.jvm??[]),...(profile.arguments?.jvm??[])]);
 const gameArgs=argumentsFor([...(vanilla.arguments?.game??[]),...(profile.arguments?.game??[])]);
-const args=['-Xmx4G','-Xms512M','-Xlog:class+load=info:file=class-load.log','-Dminecraft.protocol.probe.port=0',...jvm,profile.mainClass,...gameArgs,'--width',String(width),'--height',String(height)];
+const args=['-Xmx4G','-Xms512M','-Xlog:class+load=info:file=class-load.log','-Dmine_craft_protocol.port=0',...jvm,profile.mainClass,...gameArgs,'--width',String(width),'--height',String(height)];
+const discoveryWarmup=extensionPlatform&&loader!=='fabric'?await warmupExtensionDiscovery({java,args,game,target,root,scopes:installedRuntimeScopes({extensionPlatform})}):undefined;
 const output=createWriteStream(join(root,'client-console.log'));
 const child=spawn(java,args,{cwd:game,env:{...process.env,MCP_RUNTIME_SCOPES:installedRuntimeScopes({enterWorld,extensionPlatform})},windowsHide:true,stdio:['ignore','pipe','pipe']});
 child.stdout.pipe(output,{end:false});child.stderr.pipe(output,{end:false});
@@ -332,9 +367,9 @@ try{
   for(const p of report.providerCatalog){assert.equal(typeof p.snapshotSchema,'string');assert.equal(typeof p.querySchema,'string');assert(['server_thread','client_thread','render_thread'].includes(p.threadAffinity));}
   const classes=await readFile(join(game,'class-load.log'),'utf8');
   report.nettyHttpOrigin=classes.split(/\r?\n/).find(l=>l.includes('io.netty.handler.codec.http.HttpMessage source:'));
-  report.transportOrigin=classes.split(/\r?\n/).find(l=>l.includes('io.github.recrivenvi.minecraftprotocol.core.ProbeTransport source:'));
+  report.transportOrigin=classes.split(/\r?\n/).find(l=>l.includes('io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport source:'));
   assert(report.nettyHttpOrigin&&report.transportOrigin,'Real product and HTTP classes must be loaded');
-  report.providerSpiOrigins=['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>classes.split(/\r?\n/).find(line=>line.includes(`${product.mod_group}.probe.api.${name} source:`)));
+  report.providerSpiOrigins=['AgentDataProviderV2','MinecraftProtocolProvidersV2','ProviderSchemaRegistry'].map(name=>classes.split(/\r?\n/).find(line=>line.includes(`${product.mod_group}.api.${name} source:`)));
   assert(report.providerSpiOrigins.every(Boolean),'Actual public SPI classes must be loaded in the independent Loader');
   report.providerRegistryResolved=true;
   if(enterWorld){
@@ -349,7 +384,7 @@ try{
   }
   if(extensionPlatform){
     await runNodeScenario(resolve(repo,'components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs'),['--target='+target,'--installed=true','--host-shutdown=true','--adapter='+extensionAdapter],{cwd:repo,timeout:240000});
-    report.extensionStage=extensionStage;report.extensionPlatform=true;
+    report.extensionStage=extensionStage;report.discoveryWarmup=discoveryWarmup;report.extensionPlatform=true;
     const current=await connection.fetch('/v0/ui/tree');assert(current.ok);title=await current.json();assert(title.screenClass.endsWith('TitleScreen'));
   }
   const walk=node=>[node,...(node.children??[]).flatMap(walk)];const quit=walk(title).find(n=>n.translationKey==='menu.quit');assert(quit);
@@ -368,12 +403,12 @@ try{
     report.quitTransportError=error.message;
   }
   let exitTimer;const code=await Promise.race([exit,new Promise((_,no)=>{exitTimer=setTimeout(()=>no(Error('Installed clean exit timeout')),60000);})]).finally(()=>clearTimeout(exitTimer));assert.equal(code,0);
-  report.cleanShutdown=true;report.exitCode=code;assert(!await exists(join(game,'minecraft-protocol/endpoint.json')),'Endpoint removed');
+  report.cleanShutdown=true;report.exitCode=code;assert(!await exists(join(game,'mine_craft_protocol/endpoint.json')),'Endpoint removed');
   const log=await readFile(join(game,'logs/latest.log'),'utf8');assert(/Stopping!/.test(log),'Vanilla normal stopping log');
   const modFiles=await readdir(join(game,'mods'));
-  const spec=extensionAdapter==='platform_probe'?null:JSON.parse(await readFile(resolve(repo,'components/extension_packages/packages',extensionAdapter,'package.json'),'utf8'));
-  const prefixes=spec?[spec.inputPrefix??(extensionAdapter==='modern_ui'?'modernui':extensionAdapter),...(spec.dependencyPrefixes??[])]:[];
-  const expectedMods=[name,...(extensionPlatform?['minecraft-protocol-extension-libraries.jar']:[]),...prefixes.map(prefix=>'extension-input-'+prefix+'-'+target.replaceAll('.','-')+'.jar')].sort();
+  const spec=extensionAdapter==='platform_probe'?null:JSON.parse(await readFile(resolve(repo,'components/extensionpacks/extensionpacks',extensionAdapter,'package.json'),'utf8'));
+  const prefixes=spec?[spec.inputPrefix??(extensionAdapter==='modernui'?'modernui':extensionAdapter),...(spec.dependencyPrefixes??[])]:[];
+  const expectedMods=[name,...(loader!=='fabric'?['mine_craft_protocol-extension-discovery.jar']:[]),...prefixes.map(prefix=>'extension-input-'+prefix+'-'+target.replaceAll('.','-')+'.jar')].sort();
   assert.deepEqual(modFiles.sort(),expectedMods,'Only explicitly installed product/library/pinned adapter inputs');
   report.externalModCount=1+prefixes.length;report.modArtifacts={};for(const file of modFiles)report.modArtifacts[file]=sha256(await readFile(join(game,'mods',file)));
   report.singleProductJarOnly=extensionAdapter==='platform_probe';

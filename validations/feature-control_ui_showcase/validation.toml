@@ -6,7 +6,7 @@ memory-max = "4G"
 player-name = "RecRivenVI"
 width = 2560
 height = 1440
-jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]
+jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dmine_craft_protocol.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]
 
 [instances.client.options]
 soundCategory_master = 0.5
@@ -18,4 +18,4 @@ memory-max = "4G"
 player-name = "ShowcaseTest"
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dminecraft.protocol.probe.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]
+jvm-args = ["-Dminecraft.protocol.showcaseFixture=true", "-Dmine_craft_protocol.disablePauseOnLostFocus=true", "-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,fixture,debug,debug.world.read,debug.write,debug.world,debug.menu,storage.read"]

@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.minecraftprotocol.extensions.littletiles",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge"
+  ],
+  "mods": {},
+  "inputPrefix": "littletiles",
+  "support": true,
+  "entrySides": [
+    "common"
+  ],
+  "capabilities": [
+    "littletiles:machine",
+    "littletiles:parts",
+    "littletiles:example_fixture"
+  ],
+  "requestedScopes": [
+    "read",
+    "debug.world.read",
+    "debug.provider"
+  ],
+  "dependencyPrefixes": [
+    "creativecore"
+  ],
+  "targetMods": {
+    "1.20.1-forge": {
+      "littletiles": "1.6.0-pre161",
+      "creativecore": "2.12.40"
+    },
+    "1.21.1-neoforge": {
+      "littletiles": "1.6.0-pre235",
+      "creativecore": "2.13.52"
+    }
+  },
+  "exports": [
+    "io.github.recrivenvi.minecraftprotocol.extensions.littletiles.bridge"
+  ],
+  "mixins": [
+    {
+      "config": "mixins/littletiles.mixins.json",
+      "side": "common"
+    }
+  ],
+  "resources": {
+    "mixins/littletiles-1.20.1-forge.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.littletiles.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "DoorUseMixin1_20_1Forge"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/littletiles.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.littletiles.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "mixins": [
+        "DoorUseMixin1_21_1NeoForge"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    }
+  },
+  "targetMixins": {
+    "1.20.1-forge": [
+      {
+        "config": "mixins/littletiles-1.20.1-forge.mixins.json",
+        "side": "common"
+      }
+    ]
+  },
+  "entrypoint": "LittleTilesExtension",
+  "title": "LittleTiles",
+  "description": "微型结构与交互状态读取。"
+}

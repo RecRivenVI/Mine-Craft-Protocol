@@ -5,12 +5,12 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 /** Dedicated operator surfaces; graphical/player input capabilities remain explicitly absent. */
-public final class ServerConsoleService extends HeadlessProbeService implements AutoCloseable {
+public final class ServerConsoleService extends HeadlessRuntimeService implements AutoCloseable {
     @Override
-    public io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts
+    public io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts
             extensionLifetimeContexts() {
         return worldDebug == null
-                ? io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts.empty()
+                ? io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts.empty()
                 : worldDebug.extensionLifetimeContexts();
     }
 
@@ -44,7 +44,7 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
     @Override
     public java.util.Map<
                     String,
-                    io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources
+                    io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources
                             .ThreadOwner>
             extensionThreadOwners() {
         return worldDebug == null ? java.util.Map.of() : worldDebug.extensionThreadOwners();
@@ -65,7 +65,7 @@ public final class ServerConsoleService extends HeadlessProbeService implements 
 
     @Override
     public void attachExtensionProviders(
-            io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource source) {
+            io.github.recrivenvi.minecraftprotocol.api.ProviderSource source) {
         if (worldDebug == null) throw new UnsupportedOperationException("No world dispatcher");
         worldDebug.attachExtensionProviders(source);
     }

@@ -7,7 +7,7 @@ import java.util.function.LongSupplier;
 /** Text submitted while a resident native Toast instance is actually being drawn. */
 public final class UiToastDraw {
     public interface Source {
-        UiToastDraw minecraftProtocolProbe$toastDraw();
+        UiToastDraw mineCraftProtocol$toastDraw();
     }
 
     public record Sample(

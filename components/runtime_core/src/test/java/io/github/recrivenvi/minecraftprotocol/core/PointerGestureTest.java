@@ -101,11 +101,11 @@ final class PointerGestureTest {
             return tree;
         }
 
-        ProbeService service() {
-            return (ProbeService)
+        RuntimeService service() {
+            return (RuntimeService)
                     Proxy.newProxyInstance(
-                            ProbeService.class.getClassLoader(),
-                            new Class<?>[] {ProbeService.class},
+                            RuntimeService.class.getClassLoader(),
+                            new Class<?>[] {RuntimeService.class},
                             (proxy, method, args) -> {
                                 if (method.getName().equals("gestureEvent")
                                         || method.getName().equals("attachControlSession"))

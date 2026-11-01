@@ -60,7 +60,7 @@ public final class ExtensionEarlyBootstrap implements ExtensionPlatform.EarlyHoo
     private ExtensionEarlyBootstrap(
             Path gameDirectory, ExtensionPlatform.Environment environment, Loader loader) {
         this.environment = environment;
-        Path library = gameDirectory.resolve("mods").resolve(ExtensionEarlyStage.FILE_NAME);
+        Path library = ExtensionEarlyStage.library(gameDirectory);
         if (!Files.exists(library, LinkOption.NOFOLLOW_LINKS)) {
             state = "no_staged_library";
             return;
@@ -71,7 +71,7 @@ public final class ExtensionEarlyBootstrap implements ExtensionPlatform.EarlyHoo
                 throw new ExtensionFailure(
                         "EXTENSION_EARLY_STORAGE_INVALID",
                         "Staged library must be a regular local file");
-            var store = new ExtensionStore(gameDirectory.resolve("minecraft-protocol/extensions"));
+            var store = new ExtensionStore(gameDirectory);
             var expected = ExtensionEarlyStage.build(store, environment);
             JsonObject index;
             try (JarFile jar = new JarFile(library.toFile(), true)) {

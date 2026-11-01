@@ -305,7 +305,7 @@ data modify 的 from/string 来源值无法在该客户端合同下可信解析�
 input scope → TAKEOVER → Control Lease → 队列/截止时间 → 原生上下文/生命周期/命中复验全部仍有效。
 短按使用真实映射与 GAME_ROUTED 输入；effectConfirmed=false，效果必须另行观察。具体字段以 OpenAPI 为准。
 
-五端 Runtime 默认端口为 0，由操作系统 bind 时分配。实际地址在本实例 minecraft-protocol/endpoint.json，
+五端 Runtime 默认端口为 0，由操作系统 bind 时分配。实际地址在本实例 mine_craft_protocol/endpoint.json，
 只发布 loopback URL、Target、目录、进程/启动身份及相对 token 文件名，不含 token。
 同一目录的 OS lock 在写入 token 前取得，重复 Runtime 拒绝；正常关闭移除记录，崩溃残留不构成有效连接。
 Session/capabilities 的 runtimeConnection 是实际连接状态；transportContract 描述自动端口/发现/固定端口支持。

@@ -18,19 +18,19 @@ foreach($name in @(
     Assert-True ($null-ne$schema.components.schemas.$name) "missing schema $name"
 }
 $targets=@(
-    @{Id='1.20.1-forge';Src='src\main\java';Mixin='src\main\resources\minecraft_protocol_probe.mixins.json'},
-    @{Id='1.21.1-neoforge';Src='src\main\java';Mixin='src\main\resources\minecraft_protocol_probe.mixins.json'},
-    @{Id='26.1.2-neoforge';Src='src\main\java';Mixin='src\main\resources\minecraft_protocol_probe.mixins.json'},
-    @{Id='26.3-neoforge';Src='src\main\java';Mixin='src\main\resources\minecraft_protocol_probe.mixins.json'},
-    @{Id='26.3-fabric';Src='src\client\java';Mixin='src\client\resources\minecraft_protocol_probe.client.mixins.json'})
+    @{Id='1.20.1-forge';Src='src\main\java';Mixin='src\main\resources\mine_craft_protocol.mixins.json'},
+    @{Id='1.21.1-neoforge';Src='src\main\java';Mixin='src\main\resources\mine_craft_protocol.mixins.json'},
+    @{Id='26.1.2-neoforge';Src='src\main\java';Mixin='src\main\resources\mine_craft_protocol.mixins.json'},
+    @{Id='26.3-neoforge';Src='src\main\java';Mixin='src\main\resources\mine_craft_protocol.mixins.json'},
+    @{Id='26.3-fabric';Src='src\client\java';Mixin='src\client\resources\mine_craft_protocol.client.mixins.json'})
 foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
-    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
-    $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java") -Raw
+    $transport=Get-Content (Join-Path $runtimeCore 'RuntimeTransport.java') -Raw
     $batch=Get-Content (Join-Path $runtimeCore 'DebugBatchEngine.java') -Raw
     $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
     $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
-    $providerApi=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/AgentDataProviderV2.java') -Raw
+    $providerApi=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/api/AgentDataProviderV2.java') -Raw
     $mixin=Get-Content (Join-Path $root "versions\$($target.Id)\$($target.Mixin)") -Raw
     foreach($marker in @(
         'player.health.set','player.attribute.set','entity.no_gravity.set','world.block.set',

@@ -1,7 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.core.providers;
 
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ReadProvider;
+import io.github.recrivenvi.minecraftprotocol.api.ReadProvider;
 import java.util.concurrent.CompletableFuture;
 
 public final class ProbeEchoReadProvider implements ReadProvider {

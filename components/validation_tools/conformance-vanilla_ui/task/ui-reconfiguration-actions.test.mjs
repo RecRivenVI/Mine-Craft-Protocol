@@ -26,14 +26,14 @@ function controlledNative({target = '26.3-neoforge', epochCancelled = false, can
   const button = (nodeId, label, translationKey, active = true) => ({nodeId, label, translationKey, visible: true, active, actions: active ? ['click'] : []});
   const change = value => {screen = value; identity++;};
   const tree = async () => ({screenClass: screen, dataCategory: 'USER', treeTruncated: false, screenIdentity: identity, screenRevision: identity,
-    children: screen.endsWith('AutomationProbeScreen') ? (target === '26.3-neoforge'
+    children: screen.endsWith('AutomationDiagnosticScreen') ? (target === '26.3-neoforge'
       ? [button('nav', 'UI Navigation Fixtures')] : [button('reconfigure', 'Native Reconfigure (Fixture)')])
       : screen.endsWith('UiNavigationFixtureScreen') ? [button('reconfigure', 'Native Reconfigure (Fixture)')]
       : screen === native ? [button('disconnect', 'Disconnect', 'menu.disconnect', ticks >= readyTicks)]
       : screen.endsWith('DisconnectedScreen') ? [button('return', 'Back', 'gui.toTitle')] : []});
   const ctx = {repo: '.', target, samples, tree, nodes: value => value.children,
     readFixtureProof: async () => structuredClone(actual), title: async () => {change('net.minecraft.client.gui.screens.TitleScreen');},
-    enterWorld: async () => {change('');}, openFixture: async () => {change('io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen');},
+    enterWorld: async () => {change('');}, openFixture: async () => {change('io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen');},
     api: async (method, path) => {assert.equal(method, 'GET'); assert.equal(path, '/v0/input/state'); return {pressedKeyCount: 0, pressedButtonCount: 0,
       inputCleanupPending: false, inputCleanupFailed: false, inputDispatchSequence: dispatch};},
     check: async (name, run) => {assert(name.startsWith('UI reconfiguration:')); await run(); checks.push(name);},

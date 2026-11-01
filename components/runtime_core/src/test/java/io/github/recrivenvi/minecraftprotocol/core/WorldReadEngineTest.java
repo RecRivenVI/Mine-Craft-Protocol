@@ -22,11 +22,11 @@ class WorldReadEngineTest {
                 ignored -> {});
     }
 
-    private static ProbeService service(CompletableFuture<JsonObject> ui) {
-        return (ProbeService)
+    private static RuntimeService service(CompletableFuture<JsonObject> ui) {
+        return (RuntimeService)
                 Proxy.newProxyInstance(
-                        ProbeService.class.getClassLoader(),
-                        new Class<?>[] {ProbeService.class},
+                        RuntimeService.class.getClassLoader(),
+                        new Class<?>[] {RuntimeService.class},
                         (proxy, method, args) -> {
                             if (method.getName().equals("clientWorldRead")) {
                                 return io.github.recrivenvi.minecraftprotocol.safety.CancellableWork

@@ -8,7 +8,7 @@ authors="${mod_authors}"
 description="${mod_description}"
 
 [[mixins]]
-config="minecraft_protocol_probe.mixins.json"
+config="mine_craft_protocol.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId="neoforge"

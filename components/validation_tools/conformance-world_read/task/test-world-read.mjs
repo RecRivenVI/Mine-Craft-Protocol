@@ -76,7 +76,9 @@ const installedSource=await readFile(resolve(import.meta.dirname,'../../integrat
 assert(installedSource.includes('async function acquire(ttlMs=15000)'),'Title-only acquisition keeps its existing TTL default');
 assert(installedSource.includes('automaticTakeoverRequest(await status.json(),{ttlMs})'),'Every requested TTL still passes the manual-revocation policy check');
 assert(installedSource.includes('const acquired=await acquire(60000)'),'Installed world entry explicitly requests the existing longer TTL rather than reacquiring around expiry');
-assert.equal((installedSource.match(/connection\.fetch\('\/v0\/control\/acquire'/g)??[]).length,1,'Every installed-loader acquisition uses the checked helper');
+assert.equal((installedSource.match(/connection\.fetch\('\/v0\/control\/acquire'/g)??[]).length,2,'Only the guarded initial discovery startup and checked test helper acquire control');
+const warmupSource=installedSource.slice(installedSource.indexOf('async function warmupExtensionDiscovery'),installedSource.indexOf('async function main'));
+assert(warmupSource.includes('JSON.stringify(automaticTakeoverRequest(state,{ttlMs:15000}))'),'Initial discovery startup also checks manual revocation before acquiring control');
 
 const repo=resolve(import.meta.dirname,'../../../..');
 const schema=JSON.parse(await readFile(resolve(repo,'components/protocol_schema/src/main/openapi/minecraft-control-v0.json'),'utf8'));
@@ -107,21 +109,21 @@ for(const model of ['PlayerStateResponse','BlockStateResponse','EntityQueryRespo
 assert.equal(schema.components.schemas.WorldReadContract.properties.consumerIsolationComplete.enum[0],false);
 for(const target of ['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric']){
   const main=target.endsWith('fabric')?'client':'main';
-  const base=resolve(repo,'versions',target,'src',main,'java/io/github/recrivenvi/minecraftprotocol/probe/runtime');
-  const transport=await readFile(resolve(repo,'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java'),'utf8');
+  const base=resolve(repo,'versions',target,'src',main,'java/io/github/recrivenvi/minecraftprotocol/runtime');
+  const transport=await readFile(resolve(repo,'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java'),'utf8');
   assert(transport.includes('new WorldReadEngine(service, this.protocolState)'),target+' missing production boundary');
   assert.equal((transport.match(/\n\s*worldRead\(/g)??[]).length,6,target+' basic route bypass');
-  const adapter=await readFile(resolve(base,target.endsWith('fabric')?'FabricProbeRuntime.java':target.startsWith('1.20.1')?'ForgeProbeRuntime.java':'NeoForgeProbeRuntime.java'),'utf8');
+  const adapter=await readFile(resolve(base,target.endsWith('fabric')?'FabricRuntime.java':target.startsWith('1.20.1')?'ForgeRuntime.java':'NeoForgeRuntime.java'),'utf8');
   const compactAdapter=adapter.replace(/\s/g,'');
   assert(compactAdapter.includes('attachPlayerCommandGate')&&compactAdapter.includes('InputDispatchContext.capture()')&&compactAdapter.includes('commandGate.enter(accepted,permit)')&&compactAdapter.includes('dispatch.receipt()'),target+' missing active input-origin and guarded submission receipt');
   assert(compactAdapter.includes('permit.beforeInput(this::checkInputPreconditions)')&&compactAdapter.includes('this.onControlledClient(supplier,true)')&&compactAdapter.includes('worldTargeting.progress(ref,guard,released),false'),target+' missing first-event original revision binding or a read consumes it early');
   const ownerCheck=adapter.match(/private void checkInputPreconditions\(Long expectedScreenRevision, Long expectedMenuRevision\)\s*\{([\s\S]*?)\n    \}/)?.[1];
   assert(ownerCheck?.includes('this.refreshScreen(client)')&&ownerCheck.includes('this.refreshMenu(client)')&&ownerCheck.includes('expectedScreenRevision != this.screenRevision')&&ownerCheck.includes('expectedMenuRevision != this.menuRevision'),target+' final check must refresh and compare the exact caller values on the native owner thread');
-  assert(adapter.replace(/\s/g,'').includes('ProbeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+target+'")'),target+' shared transport instance identity not bound');
+  assert(adapter.replace(/\s/g,'').includes('RuntimeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+target+'")'),target+' shared transport instance identity not bound');
   assert(adapter.includes('WorldClientSnapshot.capture(kind, detached, this.worldTargeting)'),target+' missing client world adapter');
   const targeting=await readFile(resolve(base,'WorldTargeting.java'),'utf8');
   assert(targeting.includes('WorldTargetRegistry<Target>'),target+' missing bounded target registry');
-  assert(targeting.includes('WorldAim.delta')&&targeting.includes('minecraftProtocolProbe$pick'),target+' missing native aim/pick');
+  assert(targeting.includes('WorldAim.delta')&&targeting.includes('mineCraftProtocol$pick'),target+' missing native aim/pick');
   assert(targeting.includes('target.state.getShape')&&targeting.includes('ClipContext.Block.OUTLINE')&&targeting.includes('shape.forAllBoxes')&&targeting.includes('points.size() < 64'),target+' missing bounded native shape targeting');
   assert(targeting.includes('chunk != target.chunk.get()')&&targeting.includes('chunk.getBlockState(target.block) != target.state'),target+' missing chunk-instance or current block-state check');
   assert(targeting.includes('BLOCK_CHANGES.snapshot()')&&targeting.includes('BLOCK_CHANGES.changed(chunk, pos.asLong())')&&targeting.includes('BLOCK_CHANGES.unchanged(chunk, target.block.asLong(), target.revision)'),target+' missing position-specific bounded native change history');

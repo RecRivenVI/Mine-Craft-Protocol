@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public abstract class UiRecoveryTickProbeMixin {
     @Inject(method = "tick", at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeRecoveryCancellation(CallbackInfo callback) {
+    private void mineCraftProtocol$observeRecoveryCancellation(CallbackInfo callback) {
         if (UiRecoveryFixtureScreen.enabled()) UiRecoveryFixtureScreen.observeNativeTick();
     }
 }

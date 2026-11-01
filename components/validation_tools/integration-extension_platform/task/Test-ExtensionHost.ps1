@@ -17,7 +17,7 @@ MustReject {Get-ExtensionHostPlan $repo '../escape' 'platform_probe' 'native-cli
 MustReject {Get-ExtensionHostPlan $repo '26.3-fabric' '../escape' 'native-client'}
 MustReject {Get-ExtensionHostPlan $repo '26.3-fabric' 'create' 'native-client'}
 MustReject {Get-ExtensionHostPlan $repo '26.3-fabric' 'platform_probe' 'arbitrary-shell'}
-$temporary=[IO.Path]::Combine([IO.Path]::GetTempPath(),'minecraft-protocol-extension-host-'+[Guid]::NewGuid().ToString('N'))
+$temporary=[IO.Path]::Combine([IO.Path]::GetTempPath(),'mine_craft_protocol-extension-host-'+[Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($temporary)|Out-Null
 try{
     MustReject {Assert-ExtensionHostPath $temporary (Join-Path $temporary '../outside')}
@@ -27,7 +27,7 @@ try{
     $sample=[pscustomobject]@{Base=$temporary;Game=$game;World=$world}
     if($IsWindows){
     Assert-ExtensionHostStopped $sample;$checks++
-    $protocol=Join-Path $game 'minecraft-protocol';[IO.Directory]::CreateDirectory($protocol)|Out-Null
+    $protocol=Join-Path $game 'mine_craft_protocol';[IO.Directory]::CreateDirectory($protocol)|Out-Null
     $endpoint=Join-Path $protocol 'endpoint.json';[IO.File]::WriteAllText($endpoint,'{}')
     MustReject {Assert-ExtensionHostStopped $sample}
     [IO.File]::Move($endpoint,(Join-Path $protocol 'retired-test-endpoint.json'))

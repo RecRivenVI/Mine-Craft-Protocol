@@ -39,7 +39,7 @@ final class ServerConsoleTransportTest {
                                         feedback.accept("native " + command);
                                     }
                                 });
-                var transport = new ProbeTransport(service, "test-token", 0, "test")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "test")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
             var client = HttpClient.newHttpClient();
@@ -118,7 +118,8 @@ final class ServerConsoleTransportTest {
                                             fail("unauthorized dispatch");
                                         }
                                     });
-                    var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                    var transport =
+                            new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
                 transport.startAsync();
                 int port = transport.boundPort().get(5, TimeUnit.SECONDS);
                 service.console().publish("INFO", "fixture", "server", "owner-only-text", null);

@@ -37,11 +37,11 @@ class InputReleasedConditionTest {
 
     private static ConditionEngine engine(
             ProtocolState state, Supplier<CompletableFuture<JsonObject>> input) {
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     assertEquals("inputState", method.getName());
                                     return input.get();

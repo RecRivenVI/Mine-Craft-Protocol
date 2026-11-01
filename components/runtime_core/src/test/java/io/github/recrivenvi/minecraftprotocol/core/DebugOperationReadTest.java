@@ -21,7 +21,7 @@ class DebugOperationReadTest {
 
     private final class Fixture implements AutoCloseable {
         final HttpClient client = HttpClient.newHttpClient();
-        final ProbeTransport transport;
+        final RuntimeTransport transport;
         final int port;
         final String oldScopes = System.getProperty("minecraft.protocol.scopes");
         final CompletableFuture<JsonObject> dispatched = new CompletableFuture<>();
@@ -32,11 +32,11 @@ class DebugOperationReadTest {
             System.setProperty(
                     "minecraft.protocol.scopes",
                     "read,ui,control,debug,debug.write,debug.ui,debug.world" + readScopes);
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
@@ -53,7 +53,7 @@ class DebugOperationReadTest {
                                         }
                                         return CompletableFuture.completedFuture(value);
                                     });
-            transport = new ProbeTransport(service, "debug-operation-test", 0, "test-target");
+            transport = new RuntimeTransport(service, "debug-operation-test", 0, "test-target");
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;

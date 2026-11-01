@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(PopupScreen.class)
 public interface UiNativePopupProbeAccessor {
     @Invoker("<init>")
-    static PopupScreen minecraftProtocolProbe$create(
+    static PopupScreen mineCraftProtocol$create(
             Component title,
             List<Component> message,
             ImmutableList<PopupScreen.ButtonOption> buttons) {

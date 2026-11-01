@@ -3,8 +3,8 @@ package io.github.recrivenvi.minecraftprotocol.core;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.*;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProviders;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ReadProvider;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProviders;
+import io.github.recrivenvi.minecraftprotocol.api.ReadProvider;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,10 +58,8 @@ class SurfaceContractCatalogueTest {
             String sourceSet = target.endsWith("-fabric") ? "client" : "main";
             String runtime =
                     target.endsWith("-fabric")
-                            ? "FabricProbeRuntime"
-                            : target.endsWith("-forge")
-                                    ? "ForgeProbeRuntime"
-                                    : "NeoForgeProbeRuntime";
+                            ? "FabricRuntime"
+                            : target.endsWith("-forge") ? "ForgeRuntime" : "NeoForgeRuntime";
             String source =
                     Files.readString(
                             root.resolve(
@@ -69,7 +67,7 @@ class SurfaceContractCatalogueTest {
                                             + target
                                             + "/src/"
                                             + sourceSet
-                                            + "/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/"
+                                            + "/java/io/github/recrivenvi/minecraftprotocol/runtime/"
                                             + runtime
                                             + ".java"));
             if (source.contains("implements Phase9AExperimentalService")) experimental.add(target);
@@ -79,7 +77,7 @@ class SurfaceContractCatalogueTest {
         String transport =
                 Files.readString(
                         root.resolve(
-                                "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java"));
+                                "components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java"));
         for (var item :
                 repositoryJson(
                                 "validations/conformance-agent_control/task/control-mode-surface.json")
@@ -131,11 +129,11 @@ class SurfaceContractCatalogueTest {
                         return CompletableFuture.completedFuture(value);
                     }
                 };
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, arguments) -> {
                                     throw new AssertionError(
                                             "Unexpected native service read: " + method.getName());
@@ -331,11 +329,11 @@ class SurfaceContractCatalogueTest {
         covered.add("input.released");
         assertEquals(covered, types, "New condition kinds require an explicit domain review");
         assertEquals(13, types.size());
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, arguments) -> {
                                     throw new AssertionError(
                                             "Authorization called service: " + method.getName());

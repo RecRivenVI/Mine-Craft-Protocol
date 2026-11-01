@@ -301,7 +301,7 @@ function recordingId(value: string): string {
 export function buildServer(config: CompanionConfig): McpServer {
   const client = new RuntimeClient(config);
   const state = new CompanionSessionState();
-  const server = new McpServer({ name: 'minecraft-protocol-companion', version: companionVersion });
+  const server = new McpServer({ name: 'mine-craft-protocol-companion', version: companionVersion });
   const endOwnedTask = async () => {
     const taskId = state.taskId;
     state.taskId = undefined;

@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 
 export async function closeItemFixtureUi({read, escape, wait}) {
   let tree = await read();
-  if(tree.screenClass.endsWith('AutomationProbeScreen')) {
+  if(tree.screenClass.endsWith('AutomationDiagnosticScreen')) {
     await escape(); tree = await wait(t => !t.screenClass || t.screenClass.endsWith('PauseScreen'),'fixture native parent',5000);
   }
   if(tree.screenClass.endsWith('PauseScreen')) {
@@ -159,7 +159,7 @@ export async function worldDebugItemsActions({api, target, repo, instance, fixtu
     await check('unopened native loot container is rejected before getItem and remains unresolved', async () => {
       const opened = await api('POST','/v0/diagnostics/ui/test-screen',{});
       assert.equal(opened.evidenceContaminated,true);
-      await wait(t => t.screenClass.endsWith('AutomationProbeScreen'),'explicit loot fixture Screen');
+      await wait(t => t.screenClass.endsWith('AutomationDiagnosticScreen'),'explicit loot fixture Screen');
       async function fixtureButton(label, completed) {
         await acquire(); held = true;
         const tree = await api('GET','/v0/ui/tree'), controls = nodes(tree).filter(n => n.label === label);

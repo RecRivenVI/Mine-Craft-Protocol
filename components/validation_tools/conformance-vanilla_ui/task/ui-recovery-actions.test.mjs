@@ -44,7 +44,7 @@ async function controlledRecovery(options = {}) {
   const button = (nodeId, label, translationKey) => ({nodeId, label, translationKey, role: 'button', visible: true, active: true, actions: ['click']});
   const tree = async () => {
     let children;
-    if (screen.endsWith('AutomationProbeScreen')) children = [target === '26.3-neoforge'
+    if (screen.endsWith('AutomationDiagnosticScreen')) children = [target === '26.3-neoforge'
       ? button('navigation', 'UI Navigation Fixtures') : button('recovery', 'Recovery UI (Fixture)'), button('close-probe', 'Close Probe')];
     else if (screen.endsWith('UiNavigationFixtureScreen')) children = [button('recovery', 'Recovery UI (Fixture)'), button('navigation-done', 'Done', 'gui.done')];
     else if (screen.endsWith('UiRecoveryFixtureScreen')) children = [...variants.filter(value => available.includes(value[0]) || options.exposeAbsentButtons)
@@ -54,7 +54,7 @@ async function controlledRecovery(options = {}) {
   };
   await recoveryUiActions({repo: '.', target, samples, tree, nodes: value => value.children,
     title: async () => {screen = 'net.minecraft.client.gui.screens.TitleScreen';},
-    openFixture: async () => {screen = 'io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen';},
+    openFixture: async () => {screen = 'io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen';},
     readFixtureProof: async () => ({...structuredClone(actual), ...options.proofChange}),
     api: async (method, path) => {
       assert.equal(method, 'GET'); if (path === '/v0/player?category=USER') return {available: false};
@@ -67,8 +67,8 @@ async function controlledRecovery(options = {}) {
       else if (selector.nodeId === 'recovery') screen = 'io.github.recrivenvi.minecraftprotocol.probe.validation.UiRecoveryFixtureScreen';
       else if (selector.nodeId === 'recovery-done') screen = target === '26.3-neoforge'
         ? 'io.github.recrivenvi.minecraftprotocol.probe.validation.UiNavigationFixtureScreen'
-        : 'io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen';
-      else if (selector.nodeId === 'navigation-done') screen = 'io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen';
+        : 'io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen';
+      else if (selector.nodeId === 'navigation-done') screen = 'io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen';
       else if (selector.nodeId === 'close-probe') {screen = 'net.minecraft.client.gui.screens.TitleScreen'; closeProbe = true;}
       else if (selector.nodeId === 'safe-native-return') {
         const nativeTitle = (current[0] === 'disconnected' && options.disconnectedToTitle)

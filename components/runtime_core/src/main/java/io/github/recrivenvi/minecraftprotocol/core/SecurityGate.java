@@ -10,7 +10,7 @@ import java.util.function.LongSupplier;
 
 final class SecurityGate {
     static final AttributeKey<String> CONNECTION_ID =
-            AttributeKey.valueOf("minecraft-protocol-connection-id");
+            AttributeKey.valueOf("mine_craft_protocol-connection-id");
     private static final int MAX_CONNECTIONS = 32;
     private final String principalId;
     private final LongSupplier nanoTime;

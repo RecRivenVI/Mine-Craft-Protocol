@@ -40,7 +40,7 @@ public final class RuntimeEndpoint implements AutoCloseable {
 
     private RuntimeEndpoint(Path gameDirectory, String target, String role) throws IOException {
         Path game = gameDirectory.toRealPath();
-        this.directory = game.resolve("minecraft-protocol");
+        this.directory = game.resolve("mine_craft_protocol");
         Files.createDirectories(this.directory);
         this.endpoint = this.directory.resolve("endpoint.json");
         this.channel =
@@ -100,20 +100,20 @@ public final class RuntimeEndpoint implements AutoCloseable {
 
     public static int configuredPort() {
         String value =
-                System.getProperty("minecraft.protocol.probe.port", Integer.toString(DEFAULT_PORT));
+                System.getProperty("mine_craft_protocol.port", Integer.toString(DEFAULT_PORT));
         try {
             int port = Integer.parseInt(value);
             return requireHttpBindPort(port);
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(
-                    "minecraft.protocol.probe.port must be 0 (automatic) or 1..65535");
+                    "mine_craft_protocol.port must be 0 (automatic) or 1..65535");
         }
     }
 
     static int requireHttpBindPort(int port) {
         if (port < 0 || port > 65535)
             throw new IllegalArgumentException(
-                    "minecraft.protocol.probe.port must be 0 (automatic) or 1..65535");
+                    "mine_craft_protocol.port must be 0 (automatic) or 1..65535");
         if (port != 0 && !httpCompatiblePort(port))
             throw new IllegalArgumentException(
                     "Runtime fixed port " + port + " is blocked by the HTTP Fetch standard");

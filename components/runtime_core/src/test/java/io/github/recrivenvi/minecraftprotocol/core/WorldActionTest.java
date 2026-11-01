@@ -22,11 +22,11 @@ final class WorldActionTest {
         volatile int doneAfter = Integer.MAX_VALUE;
         volatile JsonObject options;
 
-        ProbeService service() {
-            return (ProbeService)
+        RuntimeService service() {
+            return (RuntimeService)
                     Proxy.newProxyInstance(
-                            ProbeService.class.getClassLoader(),
-                            new Class<?>[] {ProbeService.class},
+                            RuntimeService.class.getClassLoader(),
+                            new Class<?>[] {RuntimeService.class},
                             (p, m, a) -> {
                                 if (m.getName().equals("gestureEvent")) return null;
                                 JsonObject result = new JsonObject();

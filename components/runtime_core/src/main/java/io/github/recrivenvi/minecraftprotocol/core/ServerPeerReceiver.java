@@ -15,16 +15,16 @@ public final class ServerPeerReceiver {
                 io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession.OperateWork work);
     }
 
-    private static final Map<Object, ProbeTransport> OWNERS = new WeakHashMap<>();
+    private static final Map<Object, RuntimeTransport> OWNERS = new WeakHashMap<>();
 
     private ServerPeerReceiver() {}
 
-    public static synchronized void attach(Object server, ProbeTransport runtime) {
+    public static synchronized void attach(Object server, RuntimeTransport runtime) {
         if (OWNERS.putIfAbsent(server, runtime) != null)
             throw new IllegalStateException("Server owner Runtime already attached");
     }
 
-    public static synchronized void detach(Object server, ProbeTransport runtime) {
+    public static synchronized void detach(Object server, RuntimeTransport runtime) {
         OWNERS.remove(server, runtime);
     }
 
@@ -36,7 +36,7 @@ public final class ServerPeerReceiver {
             String operation,
             JsonObject params,
             NativeAction nativeRead) {
-        ProbeTransport owner;
+        RuntimeTransport owner;
         synchronized (ServerPeerReceiver.class) {
             owner = OWNERS.get(server);
         }
@@ -55,7 +55,7 @@ public final class ServerPeerReceiver {
             String connection,
             BooleanSupplier operator,
             JsonObject params) {
-        ProbeTransport owner;
+        RuntimeTransport owner;
         synchronized (ServerPeerReceiver.class) {
             owner = OWNERS.get(server);
         }

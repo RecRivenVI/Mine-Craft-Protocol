@@ -61,7 +61,7 @@ final class RecordingEngine implements AutoCloseable {
     private static final long MAX_RECORDING_BYTES = 536_870_912L;
     private static final long MAX_BUNDLE_SOURCE_BYTES = 805_306_368L;
 
-    private final ProbeService service;
+    private final RuntimeService service;
     private final ObservationEngine observation;
     private final ProtocolState protocolState;
     private final Map<String, RecordingSession> sessions = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ final class RecordingEngine implements AutoCloseable {
     private final ExecutorService finalizer;
 
     RecordingEngine(
-            ProbeService service, ObservationEngine observation, ProtocolState protocolState) {
+            RuntimeService service, ObservationEngine observation, ProtocolState protocolState) {
         this.service = service;
         this.observation = observation;
         this.protocolState = protocolState;
@@ -78,7 +78,7 @@ final class RecordingEngine implements AutoCloseable {
                 Executors.newScheduledThreadPool(
                         2,
                         runnable -> {
-                            Thread thread = new Thread(runnable, "minecraft-protocol-recorder");
+                            Thread thread = new Thread(runnable, "mine_craft_protocol-recorder");
                             thread.setDaemon(true);
                             return thread;
                         });
@@ -91,7 +91,7 @@ final class RecordingEngine implements AutoCloseable {
                         new ArrayBlockingQueue<>(WRITER_QUEUE_CAPACITY),
                         runnable -> {
                             Thread thread =
-                                    new Thread(runnable, "minecraft-protocol-recording-writer");
+                                    new Thread(runnable, "mine_craft_protocol-recording-writer");
                             thread.setDaemon(true);
                             return thread;
                         },
@@ -100,7 +100,7 @@ final class RecordingEngine implements AutoCloseable {
                 Executors.newSingleThreadExecutor(
                         runnable -> {
                             Thread thread =
-                                    new Thread(runnable, "minecraft-protocol-artifact-finalizer");
+                                    new Thread(runnable, "mine_craft_protocol-artifact-finalizer");
                             thread.setDaemon(true);
                             return thread;
                         });
@@ -108,7 +108,7 @@ final class RecordingEngine implements AutoCloseable {
 
     JsonObject start(JsonObject request) {
         request = request.deepCopy();
-        if (service instanceof HeadlessProbeService) {
+        if (service instanceof HeadlessRuntimeService) {
             if (request.has("contactSheet")
                     && request.getAsJsonObject("contactSheet").has("enabled")
                     && request.getAsJsonObject("contactSheet").get("enabled").getAsBoolean())
@@ -403,7 +403,7 @@ final class RecordingEngine implements AutoCloseable {
             try {
                 uiPublication = protocolState.uiReadGuard("USER");
                 tree =
-                        service instanceof HeadlessProbeService
+                        service instanceof HeadlessRuntimeService
                                 ? CompletableFuture.completedFuture(absentClientSurface())
                                 : this.service.uiTree();
             } catch (ProtocolState.ProtocolException denied) {
@@ -418,7 +418,7 @@ final class RecordingEngine implements AutoCloseable {
             final var uiGuard = uiPublication;
             owned.add(tree);
             CompletableFuture<JsonObject> input =
-                    service instanceof HeadlessProbeService
+                    service instanceof HeadlessRuntimeService
                             ? CompletableFuture.completedFuture(absentClientSurface())
                             : this.service.inputState();
             owned.add(input);
@@ -1199,7 +1199,7 @@ final class RecordingEngine implements AutoCloseable {
     }
 
     private void deploymentMetadata(JsonObject json) {
-        boolean dedicated = service instanceof HeadlessProbeService;
+        boolean dedicated = service instanceof HeadlessRuntimeService;
         json.addProperty("deploymentRole", dedicated ? "DEDICATED_SERVER" : "CLIENT");
         json.addProperty("graphicalSurfaceAvailable", !dedicated);
         json.addProperty("actor", dedicated ? "server_operator" : "client_player");

@@ -28,6 +28,8 @@ Loom1.19.1要求的Java25与Gradle9.8 API由现有daemon/Wrapper满足，不为�
 
 ## 运行库与测试库
 
+早期扩展发现桥使用Minecraft/Loader已提供的ASM、asm-tree与asm-commons；共享核心仅compileOnly引用，单元测试提供同一编译基线，不嵌入第二份ASM。asm-commons负责完整重定位派生服务类及其lambda句柄，使服务模块与产品模块没有重复包导出。
+
 独立服务端日志采集以 Minecraft 自带 Log4j2 为运行时来源；runtime_core 对 log4j-core 仅 compileOnly，
 使用版本目录中的兼容编译基线，并在单元测试中提供该库。发行 JAR 不再嵌入第二份 Log4j，
 不覆盖各 Target 的游戏日志实现；具体兼容性由对应 Loader 的独立安装验证确认。
@@ -97,3 +99,7 @@ Spotless、ktfmt、Java 格式器和 rumdl 由版本目录固定。Java 格式�
 升级后执行 `spotlessApply`、`build check verifyRelease` 和 Companion 测试/审计；
 改变 Loader 或 Minecraft 时补对应的真实 Runtime 验证。自动启动与接口检查不代替真人输入或视觉验收。
 升级阶段与当时结果保留在[阶段记录](../project/phase-1-core_delivery.md)，当前交付状态见[状态页](../project/status-milestones.md)。
+
+## 可选配置界面
+
+26.3 Fabric 的 Mod Menu 编译版本由 Target 的 `modmenu_version` 定义，使用上游 [21.0.0](https://modrinth.com/mod/modmenu/version/kyy7dbrZ)。仅 compileOnly，不嵌入产品；未安装时不加载其专用入口、不影响 Runtime。界面验证所需原始 JAR 按 inputs.toml 的 modmenu 登记，安装到自有验证实例。Forge/NeoForge 使用 Loader 原生配置入口。

@@ -19,7 +19,7 @@ test('actual Runner completes the real movement tutorial before later gameplay o
 function validateProbeEntrances(sources) {
   const rectangles = [];
   for (const {name, source} of sources) {
-    if (!source.includes('AutomationProbeScreen.class')) continue;
+    if (!source.includes('AutomationDiagnosticScreen.class')) continue;
     for (const match of source.matchAll(/\.bounds\(\s*8\s*,\s*(\d+)\s*,\s*128\s*,\s*20\s*\)/g))
       rectangles.push({name, x: 8, y: Number(match[1]), width: 128, height: 20});
   }
@@ -85,7 +85,7 @@ test('the actual Native full text phase is retained and opaque owner, clipping a
 });
 
 function nativeFixture(options = {}) {
-  const calls = [], samples = [], checks = [], phaseFrames = []; let screen = 'AutomationProbeScreen', tick = 1, nextOwner = 1;
+  const calls = [], samples = [], checks = [], phaseFrames = []; let screen = 'AutomationDiagnosticScreen', tick = 1, nextOwner = 1;
   let current = options.initialUnrelatedToast ? {kind: 'Tutorial', phase: 'fully_shown', owner: 99} : undefined;
   let blockers = [], queued = false, queueSeen = false;
   const labels = ['System Lifecycle', 'Tutorial Lifecycle', 'Advancement Lifecycle', 'Recipe Lifecycle',
@@ -128,10 +128,10 @@ function nativeFixture(options = {}) {
       return {pressedKeyCount: 0, pressedButtonCount: 0, inputCleanupPending: false, inputCleanupFailed: false};
     },
     tree: async () => makeView(), nodes: value => value.children,
-    openFixture: async () => {calls.push({openFixture: true}); assert.equal(screen, 'AutomationProbeScreen');},
+    openFixture: async () => {calls.push({openFixture: true}); assert.equal(screen, 'AutomationDiagnosticScreen');},
     ui: async selector => {
       assert.deepEqual(Object.keys(selector), ['nodeId']); const label = selector.nodeId; calls.push({button: label});
-      if (label === 'Toast Lifecycle Fixture') {assert.equal(screen, 'AutomationProbeScreen'); screen = 'Lifecycle'; return;}
+      if (label === 'Toast Lifecycle Fixture') {assert.equal(screen, 'AutomationDiagnosticScreen'); screen = 'Lifecycle'; return;}
       assert.equal(screen, 'Lifecycle'); assert(labels.includes(label));
       if (label.endsWith(' Lifecycle') && !label.startsWith('Clear')) {
         const kind = label.split(' ')[0]; assert(legacyToastKinds.includes(kind));
@@ -141,7 +141,7 @@ function nativeFixture(options = {}) {
       else if (label === 'Queue Recipe') {assert.equal(blockers.length, 5); queued = true;}
       else if (label === 'Release Blockers') {assert.equal(queueSeen, true, 'Must observe the actual queue before releasing it'); blockers = []; queued = false; current = {kind: 'Recipe', phase: 'entering', owner: nextOwner++, enterFullRemaining: options.firstEnterStillFull ? 1 : 0};}
       else if (label === 'Clear Lifecycle Toasts') {blockers = []; current = undefined; queued = false;}
-      else if (label === 'Done') {assert.equal(current, undefined); assert.equal(blockers.length, 0); screen = 'AutomationProbeScreen';}
+      else if (label === 'Done') {assert.equal(current, undefined); assert.equal(blockers.length, 0); screen = 'AutomationDiagnosticScreen';}
     },
     wait: async (predicate, description) => {
       for (let i = 0; i < 12; i++) {
@@ -170,7 +170,7 @@ test('the real helper drives all four Native lifecycles and the blocked queue on
     assert(queue.observations.every(row => row.recipeNodes === 0 && row.visibleBlockers === 5 && !row.forbiddenTextPresent));
     assert.equal(queue.queuedRecipe.entering.contextKey, queue.queuedRecipe.full.contextKey);
     assert.equal(queue.queuedRecipe.full.contextKey, queue.queuedRecipe.exiting.contextKey);
-    assert.equal(fixture.screen(), 'AutomationProbeScreen');
+    assert.equal(fixture.screen(), 'AutomationDiagnosticScreen');
     assert.deepEqual(fixture.calls.filter(call => call.method).map(call => call.path),
       fixture.calls.filter(call => call.method).map(() => '/v0/input/state'));
   }
@@ -179,7 +179,7 @@ test('the real helper drives all four Native lifecycles and the blocked queue on
 test('missing entry, replacement owner and private partial text fail and still reset only the owned fixture', async () => {
   for (const option of [{noEntering: true}, {changedOwner: true}, {partialLeak: true}]) {
     const fixture = nativeFixture(option); await assert.rejects(uiToastLifecycleActions(fixture.ctx));
-    assert.equal(fixture.screen(), 'AutomationProbeScreen');
+    assert.equal(fixture.screen(), 'AutomationDiagnosticScreen');
     assert.equal(fixture.calls.filter(call => call.button === 'Clear Lifecycle Toasts').length, 2);
   }
 });
@@ -189,14 +189,14 @@ test('queued Recipe visibility cannot pass and is not retried or inferred from q
   assert.equal(fixture.calls.filter(call => call.button === 'Queue Recipe').length, 1);
   assert.equal(fixture.calls.filter(call => call.button === 'Release Blockers').length, 0);
   assert.equal(fixture.samples.filter(row => row.case === 'native_toast_queue_boundary').length, 0);
-  assert.equal(fixture.screen(), 'AutomationProbeScreen');
+  assert.equal(fixture.screen(), 'AutomationDiagnosticScreen');
 });
 
 test('filtered-out checks do not open, clear or observe a fixture as an unrecorded side effect', async () => {
   const fixture = nativeFixture(); fixture.ctx.check = async () => {};
   await uiToastLifecycleActions(fixture.ctx);
   assert.deepEqual(fixture.calls, []); assert.deepEqual(fixture.samples, []);
-  assert.equal(fixture.screen(), 'AutomationProbeScreen');
+  assert.equal(fixture.screen(), 'AutomationDiagnosticScreen');
 });
 
 test('a pre-existing movement tutorial is reset only inside the owned fixture and is not called gameplay completion', async () => {
@@ -212,7 +212,7 @@ test('a pre-existing movement tutorial is reset only inside the owned fixture an
     assert.equal(sample.fixtureReset, true); assert.equal(sample.gameplayTutorialCompletionClaimed, false);
     assert.equal(sample.gameplayUnlockChanged, false);
   }
-  assert.equal(fixture.screen(), 'AutomationProbeScreen');
+  assert.equal(fixture.screen(), 'AutomationDiagnosticScreen');
 });
 
 test('Native direction changes can still fully display text before actual clipped entry and exit frames', async () => {

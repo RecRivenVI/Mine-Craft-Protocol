@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "minecraft-protocol": {
+    "mine_craft_protocol": {
       "command": "node",
       "args": ["<repository>/components/companion/dist/index.js"],
       "env": {

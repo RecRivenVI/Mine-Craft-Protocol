@@ -33,12 +33,12 @@ try {
     $cancelCurrent=ObserveBlocks $positions;$cancelRestore=Build-Items $cancelCurrent $cancelOriginal $fingerprint.worldFingerprint '';if($cancelRestore.Count){$cleanup=Wait-Operation (Start-Batch $debug $cancelRestore 4).operationId;Assert-True($cleanup.result.failedItems-eq0)'cancel cleanup'}
 
     Start-Sleep -Seconds 3
-    $provider=Invoke-Json POST '/v0/observe/deep' $auth @{perspective='server_authoritative';domains=@('providers');includeProviderData=$true;providerIds=@('minecraft_protocol_probe:safe');providerQuery=@{probe='phase9c-cancel'};budgets=@{maxProviders=1;maxResponseBytes=131072}}
-    $providerRef=@($provider.resourceRevisionRefs|Where-Object{$_.resourceType-eq'provider'-and$_.resourceKey-eq'minecraft_protocol_probe:safe'})[0]
-    $providerStart=Start-Batch $debug @(@{operation='provider.mutate';worldFingerprint=$fingerprint.worldFingerprint;expectedResourceVersion=$providerRef;providerId='minecraft_protocol_probe:safe';mutation=@{operation='temperature.delayed_set';value=99.0;delayMs=500}}) 1
+    $provider=Invoke-Json POST '/v0/observe/deep' $auth @{perspective='server_authoritative';domains=@('providers');includeProviderData=$true;providerIds=@('mine_craft_protocol:safe');providerQuery=@{probe='phase9c-cancel'};budgets=@{maxProviders=1;maxResponseBytes=131072}}
+    $providerRef=@($provider.resourceRevisionRefs|Where-Object{$_.resourceType-eq'provider'-and$_.resourceKey-eq'mine_craft_protocol:safe'})[0]
+    $providerStart=Start-Batch $debug @(@{operation='provider.mutate';worldFingerprint=$fingerprint.worldFingerprint;expectedResourceVersion=$providerRef;providerId='mine_craft_protocol:safe';mutation=@{operation='temperature.delayed_set';value=99.0;delayMs=500}}) 1
     Start-Sleep -Milliseconds 50;[void](Invoke-Json DELETE "/v0/operations/$($providerStart.operationId)" $auth $null);Start-Sleep -Milliseconds 700
-    $providerAfter=Invoke-Json POST '/v0/observe/deep' $auth @{perspective='server_authoritative';domains=@('providers');includeProviderData=$true;providerIds=@('minecraft_protocol_probe:safe');providerQuery=@{probe='phase9c-cancel-after'};budgets=@{maxProviders=1;maxResponseBytes=131072}}
-    $providerAfterRef=@($providerAfter.resourceRevisionRefs|Where-Object{$_.resourceType-eq'provider'-and$_.resourceKey-eq'minecraft_protocol_probe:safe'})[0]
+    $providerAfter=Invoke-Json POST '/v0/observe/deep' $auth @{perspective='server_authoritative';domains=@('providers');includeProviderData=$true;providerIds=@('mine_craft_protocol:safe');providerQuery=@{probe='phase9c-cancel-after'};budgets=@{maxProviders=1;maxResponseBytes=131072}}
+    $providerAfterRef=@($providerAfter.resourceRevisionRefs|Where-Object{$_.resourceType-eq'provider'-and$_.resourceKey-eq'mine_craft_protocol:safe'})[0]
     Assert-True ([long]$providerAfterRef.revision -eq [long]$providerRef.revision) 'cancelled Provider mutated after cancellation'
 
     $cleanStart=Invoke-Json POST '/v0/debug/evidence/act/start' $auth $null;$cleanAct=Invoke-Json POST '/v0/debug/evidence/act/finish' $auth @{actId=$cleanStart.actId};Assert-True (-not $cleanAct.contaminated -and $cleanAct.gameplayEvidence -eq 'gameplay') 'clean Act evidence'

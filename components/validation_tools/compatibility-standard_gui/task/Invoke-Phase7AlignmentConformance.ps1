@@ -84,7 +84,7 @@ $leaseHeaders = Acquire-Lease
 Assert-True ([bool]$fixture.evidenceContaminated -and $fixture.mechanism -eq 'DIRECT') 'compatibility fixture must be contaminated Arrange evidence'
 
 $tree = Invoke-Json -Method GET -Path '/v0/ui/tree'
-Assert-True ($tree.screenClass -match 'AutomationProbeScreen') 'compatibility Screen must be active'
+Assert-True ($tree.screenClass -match 'AutomationDiagnosticScreen') 'compatibility Screen must be active'
 $textField = @($tree.children | Where-Object label -eq 'Compatibility Text')
 Assert-True ($textField.Count -eq 1 -and $textField[0].role -eq 'text_field') 'standard EditBox must be semantic text_field'
 Assert-True ($textField[0].actions -contains 'click') 'standard EditBox must expose routed click'

@@ -17,7 +17,7 @@ try{
   $dir=(Resolve-Path $run.Dir).Path
   if($runtimeRunnerLock){$runtimeRunnerLock.Dispose()};$runtimeRunnerLock=Enter-RuntimeRunner $dir
   $process=Start-Process '.\gradlew.bat' -ArgumentList $run.Task,'--no-daemon','--offline' -WorkingDirectory $root -RedirectStandardOutput (Join-Path $dir 'phase9b-live-stdout.log') -RedirectStandardError (Join-Path $dir 'phase9b-live-stderr.log') -PassThru -WindowStyle Hidden
-  $tokenFile=Join-Path $dir 'minecraft-protocol\token';$deadline=[DateTime]::UtcNow.AddMinutes(6);$session=$null
+  $tokenFile=Join-Path $dir 'mine_craft_protocol\token';$deadline=[DateTime]::UtcNow.AddMinutes(6);$session=$null
   $connection=Wait-RuntimeConnection $dir $run.Target $process.StartTime.ToUniversalTime() $process
   $run.Port=$connection.Port;$auth=$connection.Headers;$token=(Get-Content $connection.TokenFile -Raw).Trim()
   $session=Invoke-RestMethod "$($connection.BaseUri)/v0/session" -Headers $auth -TimeoutSec 3

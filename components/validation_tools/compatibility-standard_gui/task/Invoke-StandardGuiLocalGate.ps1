@@ -44,12 +44,12 @@ try {
     $facts = Get-Content (Join-Path $repositoryRoot 'gradle.properties') -Raw | ConvertFrom-StringData
     Assert-True (-not [string]::IsNullOrWhiteSpace($facts.mod_id) -and -not [string]::IsNullOrWhiteSpace($facts.mod_version)) 'Project artifact identity/version must be present'
     $artifacts = foreach ($target in $targets) {
-        $runtimePath = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Runtime)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
-        $runtimeText = Get-Content -LiteralPath (Join-Path $runtimePath ($(if ($target.Name -eq '1.20.1-forge') { 'ForgeProbeRuntime.java' } elseif ($target.Name -eq '26.3-fabric') { 'FabricProbeRuntime.java' } else { 'NeoForgeProbeRuntime.java' }))) -Raw
+        $runtimePath = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Runtime)\io\github\recrivenvi\minecraftprotocol\runtime"
+        $runtimeText = Get-Content -LiteralPath (Join-Path $runtimePath ($(if ($target.Name -eq '1.20.1-forge') { 'ForgeRuntime.java' } elseif ($target.Name -eq '26.3-fabric') { 'FabricRuntime.java' } else { 'NeoForgeRuntime.java' }))) -Raw
         Assert-True ($runtimeText -match 'hookManifest\s*\(') "$($target.Name) must implement Hook manifest"
         Assert-True ($runtimeText -match 'ui\.standard_mod_gui_extended') "$($target.Name) must publish extended GUI capability"
 
-        $screenPath = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Screen)\io\github\recrivenvi\minecraftprotocol\probe\gui\AutomationProbeScreen.java"
+        $screenPath = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.Screen)\io\github\recrivenvi\minecraftprotocol\probe\gui\AutomationDiagnosticScreen.java"
         $screen = Get-Content -LiteralPath $screenPath -Raw
         foreach ($marker in @('Compatibility Text', 'Disabled Action', 'Duplicate Action', 'Dynamic Control')) {
             Assert-True ($screen.Contains($marker)) "$($target.Name) compatibility Screen must contain $marker"

@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Commands.class)
 public abstract class CommandsReplayMixin {
     @Inject(method = "performCommand", at = @At("RETURN"))
-    private void minecraftProtocolProbe$replay(
+    private void mineCraftProtocol$replay(
             ParseResults<CommandSourceStack> parsed, String command, CallbackInfo callbackInfo) {
         ChunkPacketReplay.command(parsed.getContext().getSource(), command);
         CommandConfigurationProbe.command(parsed.getContext().getSource(), command);

@@ -132,11 +132,11 @@ class PlayerCommandChatTest {
     @Test
     void engineOwnsAllPhasesAndAllowsPacketOnlyAtSubmit() throws Exception {
         var phases = new ArrayList<String>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     JsonObject result = new JsonObject();
@@ -179,11 +179,11 @@ class PlayerCommandChatTest {
         var pending = new CompletableFuture<JsonObject>();
         var permit = new AtomicReference<InputDispatchContext.Permit>();
         var cleanups = new java.util.concurrent.atomic.AtomicInteger();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("releaseAllInput"))
@@ -235,11 +235,11 @@ class PlayerCommandChatTest {
         pending.whenComplete((value, error) -> childCancelled.countDown());
         var phases = java.util.Collections.synchronizedList(new ArrayList<String>());
         var permit = new AtomicReference<InputDispatchContext.Permit>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getReturnType() == void.class) return null;
                                     if (method.getName().equals("playerCommand")) {

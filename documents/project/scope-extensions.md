@@ -17,7 +17,7 @@ E1/E2/E3 是独立、非阻塞的 Optional Extensions，不扩大[Core](scope-co
 ## 实施边界
 
 - E1 的远程探索、源码索引、缓存、制品仓库与探索服务不能偷偷成为 Core Runtime 的依赖。
-  本地安装的受信任适配包、明确注册的typed Provider/Debug/探针、统一测试平台与查阅已由用户纳入1.0 Core，不因使用Java/Mixin或名为探针而归入E1。
+  本地安装的受信任扩展包、明确注册的typed Provider/Debug/探针、统一测试平台与查阅已由用户纳入1.0 Core，不因使用Java/Mixin或名为探针而归入E1。
   E1额外的远程探索式对象/代码调试仍需单独威胁模型、授权、审计与人类许可，不建立隐形反射、文件、网络或进程后门。
 - E2 的自主路径/计划不能通过直接 mutation 冒充玩家 GAME_ROUTED 行为。
   长期自主性与高权限 Debug 必须分开，仍遵守 Human Override 与控制租约。

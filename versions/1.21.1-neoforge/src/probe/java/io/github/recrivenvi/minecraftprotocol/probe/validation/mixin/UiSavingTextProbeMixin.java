@@ -15,7 +15,7 @@ public abstract class UiSavingTextProbeMixin {
             method =
                     "drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)I",
             at = @At("RETURN"))
-    private void minecraftProtocolProbe$observeActualSavingText(
+    private void mineCraftProtocol$observeActualSavingText(
             Font font,
             Component text,
             int x,

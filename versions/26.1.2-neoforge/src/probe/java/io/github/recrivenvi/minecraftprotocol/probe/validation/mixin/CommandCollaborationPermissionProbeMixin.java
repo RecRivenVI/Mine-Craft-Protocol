@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(MinecraftServer.class)
 public abstract class CommandCollaborationPermissionProbeMixin {
     @Inject(method = "getProfilePermissions", at = @At("HEAD"), cancellable = true)
-    private void minecraftProtocolProbe$commandPermissions(
+    private void mineCraftProtocol$commandPermissions(
             NameAndId profile, CallbackInfoReturnable<LevelBasedPermissionSet> ci) {
         LevelBasedPermissionSet permissions =
                 CommandCollaborationFixture.permissions((MinecraftServer) (Object) this, profile);

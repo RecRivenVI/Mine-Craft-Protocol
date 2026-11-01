@@ -9,11 +9,11 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(ServerReconfigScreen.class)
 public interface UiReconfigurationScreenProbeAccessor {
     @Accessor("connection")
-    Connection minecraftProtocolProbe$connection();
+    Connection mineCraftProtocol$connection();
 
     @Accessor("delayTicker")
-    int minecraftProtocolProbe$delayTicker();
+    int mineCraftProtocol$delayTicker();
 
     @Accessor("disconnectButton")
-    Button minecraftProtocolProbe$disconnectButton();
+    Button mineCraftProtocol$disconnectButton();
 }

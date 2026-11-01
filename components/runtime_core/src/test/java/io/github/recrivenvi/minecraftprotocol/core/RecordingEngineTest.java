@@ -96,11 +96,11 @@ final class RecordingEngineTest {
     void diagnosticRecordingRetainsAuthorizedEventsDuringTakeover(@TempDir Path artifactRoot)
             throws Exception {
         CountDownLatch sampleStarted = new CountDownLatch(1);
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getName().equals("artifactRoot"))
                                         return artifactRoot;
@@ -177,11 +177,11 @@ final class RecordingEngineTest {
 
     private static JsonObject assertFinalizationFailure(Path artifactRoot, byte[] frame)
             throws Exception {
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, arguments) -> {
                                     if (method.getName().equals("artifactRoot"))
                                         return artifactRoot;
@@ -235,11 +235,11 @@ final class RecordingEngineTest {
     void closeCancelsStalledCaptureAndFinalizesBundle(@TempDir Path artifactRoot) throws Exception {
         CountDownLatch captureStarted = new CountDownLatch(1);
         AtomicReference<CompletableFuture<byte[]>> stalledCapture = new AtomicReference<>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, arguments) -> {
                                     if (method.getName().equals("artifactRoot"))
                                         return artifactRoot;

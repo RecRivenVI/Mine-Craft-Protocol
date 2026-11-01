@@ -26,7 +26,7 @@ class InputPreconditionTransportTest {
         volatile CompletableFuture<JsonObject> blockedPreflight;
         volatile JsonObject uiReadyTree;
         final HttpClient client = HttpClient.newHttpClient();
-        final ProbeTransport transport;
+        final RuntimeTransport transport;
         final int port;
         final String oldScopes = System.getProperty("minecraft.protocol.scopes");
         String lease;
@@ -41,12 +41,12 @@ class InputPreconditionTransportTest {
 
         Fixture(String scopes, boolean acquire) throws Exception {
             System.setProperty("minecraft.protocol.scopes", scopes);
-            ProbeService delegate = world.service();
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService delegate = world.service();
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getName().equals("artifactRoot"))
                                             return artifacts;
@@ -83,7 +83,7 @@ class InputPreconditionTransportTest {
                                             throw error.getCause();
                                         }
                                     });
-            transport = new ProbeTransport(service, "input-precondition-http", 0, "test-target");
+            transport = new RuntimeTransport(service, "input-precondition-http", 0, "test-target");
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;

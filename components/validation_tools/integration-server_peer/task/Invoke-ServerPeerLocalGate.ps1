@@ -49,9 +49,9 @@ try {
     Assert-True (-not [string]::IsNullOrWhiteSpace($facts.mod_id) -and -not [string]::IsNullOrWhiteSpace($facts.mod_version)) 'Project artifact identity/version must be present'
     Assert-True ($facts.mod_client_side -eq 'optional' -and $facts.mod_server_side -eq 'optional') 'Both installation sides must retain the optional contract'
     $artifacts = foreach ($target in $targets) {
-        $runtime = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.RuntimeSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
-        $peerClient = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.PeerClientSource)\io\github\recrivenvi\minecraftprotocol\probe\runtime\DedicatedPeerClient.java"
-        $peerServer = Join-Path $repositoryRoot "versions\$($target.Name)\src\main\java\io\github\recrivenvi\minecraftprotocol\probe\peer\DedicatedPeerServer.java"
+        $runtime = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.RuntimeSource)\io\github\recrivenvi\minecraftprotocol\runtime"
+        $peerClient = Join-Path $repositoryRoot "versions\$($target.Name)\$($target.PeerClientSource)\io\github\recrivenvi\minecraftprotocol\runtime\DedicatedPeerClient.java"
+        $peerServer = Join-Path $repositoryRoot "versions\$($target.Name)\src\main\java\io\github\recrivenvi\minecraftprotocol\peer\DedicatedPeerServer.java"
         Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java')) "$($target.Name) must have full ProtocolState"
         Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'AutomationEngine.java')) "$($target.Name) must have full AutomationEngine"
         Assert-True (Test-Path -LiteralPath (Join-Path $runtimeCore 'ObservationEngine.java')) "$($target.Name) must have full ObservationEngine"

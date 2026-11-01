@@ -10,11 +10,11 @@ function Assert-True([bool]$Condition, [string]$Message) {
 }
 
 $targets = @(
-    @{ Id='1.20.1-forge'; Source='src\main\java'; Runtime='ForgeProbeRuntime.java' },
-    @{ Id='1.21.1-neoforge'; Source='src\main\java'; Runtime='NeoForgeProbeRuntime.java' },
-    @{ Id='26.1.2-neoforge'; Source='src\main\java'; Runtime='NeoForgeProbeRuntime.java' },
-    @{ Id='26.3-neoforge'; Source='src\main\java'; Runtime='NeoForgeProbeRuntime.java' },
-    @{ Id='26.3-fabric'; Source='src\client\java'; Runtime='FabricProbeRuntime.java' }
+    @{ Id='1.20.1-forge'; Source='src\main\java'; Runtime='ForgeRuntime.java' },
+    @{ Id='1.21.1-neoforge'; Source='src\main\java'; Runtime='NeoForgeRuntime.java' },
+    @{ Id='26.1.2-neoforge'; Source='src\main\java'; Runtime='NeoForgeRuntime.java' },
+    @{ Id='26.3-neoforge'; Source='src\main\java'; Runtime='NeoForgeRuntime.java' },
+    @{ Id='26.3-fabric'; Source='src\client\java'; Runtime='FabricRuntime.java' }
 )
 
 $openApi = Get-Content -LiteralPath (Join-Path $root 'components\protocol_schema\src\main\openapi\minecraft-control-v0.json') -Raw
@@ -26,10 +26,10 @@ Assert-True ($openApi.Contains('/v0/diagnostics/phase9a/storage/read') `
 
 foreach ($target in $targets) {
     $targetRoot = Join-Path $root "versions\$($target.Id)"
-    $runtimeRoot = Join-Path $targetRoot "$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
-    $engine = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
-    $adapter = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java") -Raw
-    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $runtimeRoot = Join-Path $targetRoot "$($target.Source)\io\github\recrivenvi\minecraftprotocol\runtime"
+    $engine = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java") -Raw
+    $adapter = Get-Content -LiteralPath (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentStorageAdapter.java") -Raw
+    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'RuntimeTransport.java') -Raw
     $runtime = Get-Content -LiteralPath (Join-Path $runtimeRoot $target.Runtime) -Raw
 
     foreach ($marker in @(

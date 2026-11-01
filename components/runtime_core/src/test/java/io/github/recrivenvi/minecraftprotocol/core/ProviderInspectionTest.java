@@ -2,7 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

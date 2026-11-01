@@ -45,7 +45,7 @@ final class PeerDelegationsTest {
                                     }
                                 },
                                 world);
-                var transport = new ProbeTransport(service, "server-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "server-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             JsonObject grantRequest =

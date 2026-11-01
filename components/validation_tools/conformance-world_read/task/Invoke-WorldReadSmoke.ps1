@@ -78,7 +78,7 @@ try{
     $deadline=[DateTime]::UtcNow.AddMinutes(8)
     do{
         if($process.HasExited){throw "Launcher exited before Runtime readiness: $($process.ExitCode)"}
-        $token=Join-Path $client 'minecraft-protocol/token'
+        $token=Join-Path $client 'mine_craft_protocol/token'
         if(Test-Path $token){try{
             $connection=Get-RuntimeConnection -InstanceDirectory $client -ExpectedTarget $Target -NotBefore $launchStarted
             $headers=$connection.Headers
@@ -108,8 +108,8 @@ try{
     $flags=& $jcmd $java.ProcessId VM.flags 2>&1|Out-String
     if($LASTEXITCODE-ne0-or$flags-notmatch '(?:^|\s)-XX:MaxHeapSize=4294967296(?:\s|$)'){throw 'Actual client maximum heap is not 4 GiB'}
     if($Validation-eq'migration-runtime_core'){
-        $classes=& $jcmd $java.ProcessId VM.class_hierarchy io.github.recrivenvi.minecraftprotocol.core.ProbeTransport 2>&1|Out-String
-        if($LASTEXITCODE-ne0-or$classes-notmatch'io.github.recrivenvi.minecraftprotocol.core.ProbeTransport'){throw 'Shared product transport not loaded by actual game Runtime'}
+        $classes=& $jcmd $java.ProcessId VM.class_hierarchy io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport 2>&1|Out-String
+        if($LASTEXITCODE-ne0-or$classes-notmatch'io.github.recrivenvi.minecraftprotocol.core.RuntimeTransport'){throw 'Shared product transport not loaded by actual game Runtime'}
         [IO.File]::WriteAllText((Join-Path $root 'runtime-core-class-loader.log'),$classes,[Text.UTF8Encoding]::new($false))
     }
     if($Scenario-eq'world-seats'){
@@ -147,7 +147,7 @@ finally{
         if(-not$partnerProcess.WaitForExit(60000)){$shutdownError='Owned seat partner still running; retained for diagnosis'}
         elseif($partnerProcess.ExitCode-ne0){$shutdownError="Seat partner launcher exit code $($partnerProcess.ExitCode)"}
         elseif($partnerConnection-and(Get-NetTCPConnection -State Listen -LocalPort $partnerConnection.Port -ErrorAction SilentlyContinue)){$shutdownError='Seat partner Runtime port remains'}
-        elseif(Test-Path (Join-Path $root 'client-multiplayer/minecraft-protocol/endpoint.json')){$shutdownError='Seat partner endpoint remains'}
+        elseif(Test-Path (Join-Path $root 'client-multiplayer/mine_craft_protocol/endpoint.json')){$shutdownError='Seat partner endpoint remains'}
     }
     if(-not$process.WaitForExit(60000)){
         # Ask the project Runtime to exit; do not kill another Java process or automate the desktop.
@@ -156,7 +156,7 @@ finally{
     if(-not$process.WaitForExit(30000)){$shutdownError="Owned launcher still running: $($process.Id); retained for safe diagnosis"}
     elseif($process.ExitCode-ne0){$shutdownError="Owned launcher exit code $($process.ExitCode)"}
     elseif($port-and(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)){$shutdownError='Owned Runtime port not released'}
-    elseif(Test-Path (Join-Path $client 'minecraft-protocol/endpoint.json')){$shutdownError='Owned discovery record remains after shutdown'}
+    elseif(Test-Path (Join-Path $client 'mine_craft_protocol/endpoint.json')){$shutdownError='Owned discovery record remains after shutdown'}
     if($shutdownError){$failure=$shutdownError}
     if($backgroundFmlPath-and-not$shutdownError){
         if($backgroundFmlExisted){[IO.File]::WriteAllText($backgroundFmlPath,$backgroundFmlOriginal,[Text.UTF8Encoding]::new($false))}

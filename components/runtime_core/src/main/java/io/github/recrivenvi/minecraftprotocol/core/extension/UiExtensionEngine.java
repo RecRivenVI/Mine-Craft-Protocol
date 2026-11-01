@@ -3,7 +3,7 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter;
+import io.github.recrivenvi.minecraftprotocol.api.extension.UiAdapter;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;

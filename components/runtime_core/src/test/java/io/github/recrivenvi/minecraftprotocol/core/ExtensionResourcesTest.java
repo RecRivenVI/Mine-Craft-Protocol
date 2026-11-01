@@ -2,10 +2,10 @@ package io.github.recrivenvi.minecraftprotocol.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Lifetime;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Owner;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.ThreadOwner;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.Lifetime;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.Owner;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.ThreadOwner;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.RejectedExecutionException;

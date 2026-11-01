@@ -4,7 +4,7 @@ package io.github.recrivenvi.minecraftprotocol.safety;
 public record UiRenderedText(
         String label, String phase, long capturedAtNanos, int width, int height) {
     public interface Source {
-        UiRenderedText minecraftProtocolProbe$renderedText();
+        UiRenderedText mineCraftProtocol$renderedText();
     }
 
     public UiRenderedText {

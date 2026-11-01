@@ -98,7 +98,7 @@ export async function reconfigurationUiActions({api, repo, target, tree, wait, n
     if (target === '26.3-neoforge') {
       await button(null, 'UI Navigation Fixtures'); await page('UiNavigationFixtureScreen');
     } else {
-      await page('AutomationProbeScreen');
+      await page('AutomationDiagnosticScreen');
     }
     const initial = await proof();
     assert(typeof initial.fixtureId === 'string' && initial.fixtureId.length >= 16); assert(Number.isSafeInteger(initial.processId) && initial.processId > 0);

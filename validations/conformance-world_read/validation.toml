@@ -7,8 +7,8 @@ memory-max = "4G"
 player-name = "WorldReadTest"
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
-game-args = ["--mixin", "minecraft_protocol_probe.validation.mixins.json"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
+game-args = ["--mixin", "mine_craft_protocol.validation.mixins.json"]
 
 [instances.client-multiplayer]
 memory-min = "1G"
@@ -16,5 +16,5 @@ memory-max = "4G"
 player-name = "WorldSeatPartner"
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
-game-args = ["--mixin", "minecraft_protocol_probe.validation.mixins.json"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
+game-args = ["--mixin", "mine_craft_protocol.validation.mixins.json"]

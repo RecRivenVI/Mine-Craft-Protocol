@@ -11,8 +11,9 @@ import tomllib
 parser = argparse.ArgumentParser()
 parser.add_argument("--target", required=True)
 parser.add_argument("--installed", action="store_true")
+parser.add_argument("--settings", action="store_true")
 parser.add_argument("--role", choices=("client", "server"), default="client")
-parser.add_argument("--adapter", choices=("platform_probe", "computercraft", "modern_ui", "emi", "ae2", "create", "exposure", "littletiles"), required=True)
+parser.add_argument("--adapter", choices=("platform_probe", "computercraft", "modernui", "emi", "ae2", "create", "exposure", "littletiles"), required=True)
 args = parser.parse_args()
 repo = pathlib.Path(__file__).resolve().parents[4]
 client = repo / "validations/integration-extension_platform/instance"
@@ -22,7 +23,7 @@ client = client / args.target / args.role
 owner = json.loads((client / "extension-platform-owner.json").read_text())
 if owner != {"owner": "extension-platform", "target": args.target}:
     raise RuntimeError("Owned validation client required")
-if (client / "minecraft-protocol/endpoint.json").exists():
+if (client / "mine_craft_protocol/endpoint.json").exists():
     raise RuntimeError("Stop the client before installing")
 declared_inputs = tomllib.loads((repo / "inputs.toml").read_text(encoding="utf-8"))
 registered_targets = ("1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric")
@@ -30,15 +31,22 @@ if args.target not in registered_targets:
     raise RuntimeError("Registered Target required")
 selection = {(target, adapter): prefix + "-" + target.replace(".", "-")
              for target in registered_targets
-             for adapter, prefix in (("computercraft", "computercraft"), ("modern_ui", "modernui"), ("emi", "emi"), ("ae2", "ae2"), ("create", "create"), ("exposure", "exposure"), ("littletiles", "littletiles"))
+             for adapter, prefix in (("computercraft", "computercraft"), ("modernui", "modernui"), ("emi", "emi"), ("ae2", "ae2"), ("create", "create"), ("exposure", "exposure"), ("littletiles", "littletiles"))
              if prefix + "-" + target.replace(".", "-") in declared_inputs}
 
 key = selection.get((args.target, args.adapter))
 sources = {}
+if args.settings and args.target == "26.3-fabric":
+    local = tomllib.loads((repo / "local.toml").read_text(encoding="utf-8"))["inputs"]
+    source = pathlib.Path(local["modmenu"])
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    if digest not in declared_inputs["modmenu"]["sha256"]:raise RuntimeError("Mod Menu hash mismatch")
+    sources["modmenu"]=(source,digest)
+
 if args.adapter != "platform_probe":
     if key is None:
         raise RuntimeError("No pinned upstream input for this adapter/Target yet")
-    spec = json.loads((repo / "components/extension_packages/packages" / args.adapter / "package.json").read_text())
+    spec = json.loads((repo / "components/extensionpacks/extensionpacks" / args.adapter / "package.json").read_text())
     keys = [key] + [prefix + "-" + args.target.replace(".", "-") for prefix in spec.get("dependencyPrefixes", [])]
     local = tomllib.loads((repo / "local.toml").read_text(encoding="utf-8"))["inputs"]
     for selected in keys:
@@ -72,23 +80,24 @@ def recycle(path):
 
 mods = client / "mods"
 mods.mkdir(exist_ok=True)
+recycle(mods / "extension-input-modmenu.jar")
 for known in set(selection.values()) | {key for key in declared_inputs if key.startswith(("guideme-", "creativecore-"))}:
     recycle(mods / f"extension-input-{known}.jar")
 for selected, (source, digest) in sources.items():
     shutil.copyfile(source, mods / f"extension-input-{selected}.jar")
-root = client / "minecraft-protocol/extensions"
+root = client / "mine_craft_protocol/extensions"
 approvals_file = root / "approvals.json"
 approvals = json.loads(approvals_file.read_text(encoding="utf-8"))
-for known in json.loads((repo / "components/extension_packages/packages/index.json").read_text()):
-    recycle(root / "packages" / known)
+for known in json.loads((repo / "components/extensionpacks/extensionpacks/index.json").read_text()):
+    recycle(client / "extensionpacks" / known)
     approvals["packages"].pop(known, None)
-if sources:
-    package = repo / "components/extension_packages/build/packages" / args.adapter
-    manifest_bytes = (package / "extension.json").read_bytes()
+if args.adapter != "platform_probe":
+    package = repo / "components/extensionpacks/build/extensionpacks" / args.adapter
+    manifest_bytes = (package / "extensionpack.json").read_bytes()
     manifest = json.loads(manifest_bytes)
     if args.target not in manifest["variants"]:
         raise RuntimeError("Package does not declare the selected Target")
-    shutil.copytree(package, root / "packages" / args.adapter)
+    shutil.copytree(package, client / "extensionpacks" / args.adapter)
     approvals["packages"][args.adapter] = {
         "contentIdentity": hashlib.sha256(manifest_bytes).hexdigest(),
         "scopes": manifest["requestedScopes"],

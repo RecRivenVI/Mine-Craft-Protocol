@@ -33,7 +33,7 @@ function fixture(options = {}) {
   }
   const client = {
     async connect() {milliseconds += 47; if (options.connectFailure) throw new Error('connect failed');},
-    getServerVersion() {return {name: 'minecraft-protocol-companion', version: options.version ?? pkg.version};},
+    getServerVersion() {return {name: 'mine-craft-protocol-companion', version: options.version ?? pkg.version};},
     async callTool(request) {
       calls.push(structuredClone(request)); const {name, arguments: args} = request; let result;
       if (name === 'minecraft_get_session') result = {target: options.target ?? target, inWorld: true};

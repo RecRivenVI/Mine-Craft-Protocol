@@ -20,8 +20,8 @@ pwsh -File components/validation_tools/compatibility-standard_gui/task/Invoke-St
 当前原版语义 UI 专项（标题页起点，不使用日常实例）：
 
 ```powershell
-pwsh -File components/validation_tools/compatibility-standard_gui/task/Invoke-VanillaUiTreeConformance.ps1 -Target 26.3-neoforge -BaseUri http://127.0.0.1:25582 -TokenFile validations/feature-runtime_probe/instance/26.3-neoforge/client/minecraft-protocol/token
-pwsh -File components/validation_tools/compatibility-standard_gui/task/Invoke-VanillaRenderedUiConformance.ps1 -Target 26.3-neoforge -BaseUri http://127.0.0.1:25582 -TokenFile validations/feature-runtime_probe/instance/26.3-neoforge/client/minecraft-protocol/token -Cases all
+pwsh -File components/validation_tools/compatibility-standard_gui/task/Invoke-VanillaUiTreeConformance.ps1 -Target 26.3-neoforge -BaseUri http://127.0.0.1:25582 -TokenFile validations/feature-runtime_probe/instance/26.3-neoforge/client/mine_craft_protocol/token
+pwsh -File components/validation_tools/compatibility-standard_gui/task/Invoke-VanillaRenderedUiConformance.ps1 -Target 26.3-neoforge -BaseUri http://127.0.0.1:25582 -TokenFile validations/feature-runtime_probe/instance/26.3-neoforge/client/mine_craft_protocol/token -Cases all
 ```
 
 工具复用 feature-runtime_probe 专用实例；不创建或改写世界。通过标准为实际检查成功、
@@ -41,7 +41,7 @@ Fabric 消费者专项在 Rendered 专项通过后运行；要求网页已连接
 
 ```powershell
 $env:MCP_MINECRAFT_BASE_URL='http://127.0.0.1:25583'
-$env:MCP_MINECRAFT_TOKEN_FILE=(Resolve-Path validations/feature-runtime_probe/instance/26.3-fabric/client/minecraft-protocol/token).Path
+$env:MCP_MINECRAFT_TOKEN_FILE=(Resolve-Path validations/feature-runtime_probe/instance/26.3-fabric/client/mine_craft_protocol/token).Path
 node components/companion/scripts/live-vanilla-ui.mjs
 ```
 

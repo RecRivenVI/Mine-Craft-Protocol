@@ -10,7 +10,7 @@ authors="${mod_authors}"
 description="${mod_description} validation-only fixtures"
 
 [[mixins]]
-config="minecraft_protocol_probe.validation.mixins.json"
+config="mine_craft_protocol.validation.mixins.json"
 
 [[dependencies.${mod_id}_probe]]
 modId="${mod_id}"

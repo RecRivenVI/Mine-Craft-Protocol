@@ -10,21 +10,21 @@ function Assert-True([bool]$Condition, [string]$Message) {
 }
 
 $targets = @(
-    @{ Name = '1.20.1-forge'; Source = 'src\main\java'; Runtime = 'ForgeProbeRuntime.java' },
-    @{ Name = '1.21.1-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeProbeRuntime.java' },
-    @{ Name = '26.1.2-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeProbeRuntime.java' },
-    @{ Name = '26.3-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeProbeRuntime.java' },
-    @{ Name = '26.3-fabric'; Source = 'src\client\java'; Runtime = 'FabricProbeRuntime.java' }
+    @{ Name = '1.20.1-forge'; Source = 'src\main\java'; Runtime = 'ForgeRuntime.java' },
+    @{ Name = '1.21.1-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeRuntime.java' },
+    @{ Name = '26.1.2-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeRuntime.java' },
+    @{ Name = '26.3-neoforge'; Source = 'src\main\java'; Runtime = 'NeoForgeRuntime.java' },
+    @{ Name = '26.3-fabric'; Source = 'src\client\java'; Runtime = 'FabricRuntime.java' }
 )
 
 $normalizedHashes = @{}
 foreach ($target in $targets) {
-    $runtimeDirectory = Join-Path $root "versions\$($target.Name)\$($target.Source)\io\github\recrivenvi\minecraftprotocol\probe\runtime"
+    $runtimeDirectory = Join-Path $root "versions\$($target.Name)\$($target.Source)\io\github\recrivenvi\minecraftprotocol\runtime"
     $automation = Get-Content -LiteralPath (Join-Path $runtimeCore 'AutomationEngine.java') -Raw
     $protocol = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProtocolState.java') -Raw
     $events = Get-Content -LiteralPath (Join-Path $runtimeCore 'EventHub.java') -Raw
     $recording = Get-Content -LiteralPath (Join-Path $runtimeCore 'RecordingEngine.java') -Raw
-    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+    $transport = Get-Content -LiteralPath (Join-Path $runtimeCore 'RuntimeTransport.java') -Raw
     $conditions = Get-Content -LiteralPath (Join-Path $runtimeCore 'ConditionEngine.java') -Raw
     $security = Get-Content -LiteralPath (Join-Path $runtimeCore 'SecurityGate.java') -Raw
     $runtime = Get-Content -LiteralPath (Join-Path $runtimeDirectory $target.Runtime) -Raw

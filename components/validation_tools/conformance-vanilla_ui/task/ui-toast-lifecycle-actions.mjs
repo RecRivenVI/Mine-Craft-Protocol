@@ -129,7 +129,7 @@ export async function uiToastLifecycleActions({target, api, tree, wait, nodes, u
     if (opened) {
       try {
         await boundary(); await button('Clear Lifecycle Toasts'); await empty(); await button('Done');
-        await wait(value => value.screenClass.endsWith('AutomationProbeScreen'), 'return from the owned Toast fixture');
+        await wait(value => value.screenClass.endsWith('AutomationDiagnosticScreen'), 'return from the owned Toast fixture');
         await clean();
       } catch (error) {if (primary) primary.cleanupFailure = error.message; else throw error;}
     }

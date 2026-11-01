@@ -83,7 +83,7 @@ public final class UiRecoveryFixtureScreen extends Screen {
                             return new FileFixerProgressScreen(progress);
                         },
                         () ->
-                                UiRecoveryGraphicsProbeInvoker.minecraftProtocolProbe$create(
+                                UiRecoveryGraphicsProbeInvoker.mineCraftProtocol$create(
                                         Component.literal("Graphics Warning (Fixture)"),
                                         List.of(
                                                 Component.literal(

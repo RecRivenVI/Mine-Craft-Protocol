@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSchemaRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

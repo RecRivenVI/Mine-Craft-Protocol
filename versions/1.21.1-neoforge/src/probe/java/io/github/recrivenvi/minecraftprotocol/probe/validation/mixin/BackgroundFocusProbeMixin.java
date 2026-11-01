@@ -14,7 +14,7 @@ public abstract class BackgroundFocusProbeMixin {
     @Redirect(
             method = "isWindowActive",
             at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;windowActive:Z"))
-    private boolean minecraftProtocolProbe$nativeFocus(Minecraft client) {
+    private boolean mineCraftProtocol$nativeFocus(Minecraft client) {
         if (!"true".equals(System.getenv("MCP_VALIDATION_BACKGROUND_WINDOW")))
             return this.windowActive;
         // A never-focused test window need not deliver the callback that initializes this cache.

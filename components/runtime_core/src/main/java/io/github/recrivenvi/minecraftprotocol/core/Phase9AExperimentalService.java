@@ -5,7 +5,7 @@ import io.github.recrivenvi.minecraftprotocol.safety.AgentControlSession;
 import java.util.concurrent.CompletableFuture;
 
 /** Optional diagnostics implemented only by Targets that expose the existing spike routes. */
-public interface Phase9AExperimentalService extends ProbeService {
+public interface Phase9AExperimentalService extends RuntimeService {
     CompletableFuture<JsonObject> phase9aObserve(JsonObject request);
 
     CompletableFuture<JsonObject> phase9aDebugAttribute(

@@ -7,5 +7,5 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(SavedDataStorage.class)
 public interface UiWorldRecoverySavedDataProbeAccessor {
     @Accessor("closed")
-    boolean minecraftProtocolProbe$closed();
+    boolean mineCraftProtocol$closed();
 }

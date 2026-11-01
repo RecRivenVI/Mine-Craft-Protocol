@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public abstract class UiWorldRecoveryClientProbeMixin {
     @Inject(method = "tick", at = @At("HEAD"))
-    private void minecraftProtocolProbe$observeOwnedSourceWorld(CallbackInfo callback) {
+    private void mineCraftProtocol$observeOwnedSourceWorld(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeClientTick();
     }
 }

@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.minecraftprotocol.extensions.exposure",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge"
+  ],
+  "mods": {},
+  "inputPrefix": "exposure",
+  "support": true,
+  "entrySides": [
+    "client"
+  ],
+  "capabilities": [
+    "exposure:camera"
+  ],
+  "requestedScopes": [
+    "read",
+    "debug.world.read"
+  ],
+  "targetMods": {
+    "1.20.1-forge": {
+      "exposure": "1.9.22"
+    },
+    "1.21.1-neoforge": {
+      "exposure": "1.9.19"
+    }
+  },
+  "entrypoint": "ExposureExtension",
+  "title": "Exposure",
+  "description": "相片与相机界面的语义操作。"
+}

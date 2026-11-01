@@ -57,7 +57,7 @@ try {
 
     $runtimeRoot = 'components\runtime_core\src\main\java\io\github\recrivenvi\minecraftprotocol\core'
     $automation = Read-RemoteFile "$runtimeRoot\AutomationEngine.java"
-    $transport = Read-RemoteFile "$runtimeRoot\ProbeTransport.java"
+    $transport = Read-RemoteFile "$runtimeRoot\RuntimeTransport.java"
     $protocol = Read-RemoteFile "$runtimeRoot\ProtocolState.java"
     $events = Read-RemoteFile "$runtimeRoot\EventHub.java"
     $conditions = Read-RemoteFile "$runtimeRoot\ConditionEngine.java"
@@ -177,7 +177,7 @@ try {
         'components/validation_tools/regression-v1_release/task/Invoke-Phase8HardeningStaticGate.ps1',
         'components/runtime_core/src/test/java/io/github/recrivenvi/minecraftprotocol/core/RecordingEngineTest.java',
         "$($runtimeRoot.Replace('\','/'))/AutomationEngine.java",
-        "$($runtimeRoot.Replace('\','/'))/ProbeTransport.java",
+        "$($runtimeRoot.Replace('\','/'))/RuntimeTransport.java",
         "$($runtimeRoot.Replace('\','/'))/ProtocolState.java",
         "$($runtimeRoot.Replace('\','/'))/EventHub.java",
         "$($runtimeRoot.Replace('\','/'))/ConditionEngine.java",

@@ -16,7 +16,7 @@ public final class RuntimeToken {
             configured = System.getenv("MCP_RUNTIME_TOKEN");
         }
         String token = configured == null || configured.isBlank() ? generate() : configured;
-        Path tokenFile = gameDirectory.resolve("minecraft-protocol").resolve("token");
+        Path tokenFile = gameDirectory.resolve("mine_craft_protocol").resolve("token");
         try {
             Files.createDirectories(tokenFile.getParent());
             Files.writeString(tokenFile, token, StandardCharsets.UTF_8);

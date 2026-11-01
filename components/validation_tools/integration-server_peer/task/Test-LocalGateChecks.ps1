@@ -46,7 +46,7 @@ foreach($gate in $gatePaths){
  Run-Gate $gate $true 'current-products-five-targets'
  foreach($target in $targets){
   $source=if($target-eq'26.3-fabric'){'client'}else{'main'}
-  $file=if($gate.Contains('ServerPeer')){"versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/peer/DedicatedPeerServer.java"}else{"versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java"}
+  $file=if($gate.Contains('ServerPeer')){"versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/peer/DedicatedPeerServer.java"}else{"versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/gui/AutomationDiagnosticScreen.java"}
   With-Missing $file {Run-Gate $gate $false "missing-source-$target" $target}
  }
  $schema='components/protocol_schema/src/main/openapi/minecraft-control-v0.json'
@@ -58,11 +58,11 @@ foreach($gate in $gatePaths){
   With-Text 'gradle.properties' {param($s)$s.Replace('mod_server_side=optional','mod_server_side=true')} {Run-Gate $gate $false 'mandatory-server-regression' 'optional contract'}
   With-Text 'versions/26.3-neoforge/build.gradle.kts' {param($s)$s.Replace('net.neoforged.moddev','removedLoader')} {Run-Gate $gate $false 'wrong-source-contract' 'native Loader launch model'}
  }else{
-  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/gui/AutomationProbeScreen.java' {param($s)$s.Replace('Compatibility Text','removed text')} {Run-Gate $gate $false 'wrong-source-contract' 'Compatibility Text'}
-  With-Text 'versions/26.3-neoforge/src/main/resources/minecraft_protocol_probe.mixins.json' {param($s)$j=$s|ConvertFrom-Json -AsHashtable;$j.required=$false;$j|ConvertTo-Json -Depth 20} {Run-Gate $gate $false 'wrong-hook-contract' 'required Hook'}
-  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java' {param($s)$s.Replace('ordinal = 0','ordinal = 1')} {Run-Gate $gate $false 'wrong-cursor-argument-guard' 'exact host cursor argument guard'}
-  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/mixin/WindowMixin.java' {param($s)$s+"`n@ModifyVariable(method = `"other`", at = @At(`"HEAD`"))`n"} {Run-Gate $gate $false 'unreviewed-variable-replacement' 'unreviewed replacement mechanisms'}
-  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/NeoForgeProbeRuntime.java' {param($s)$s.Replace('MIXIN_MODIFY_VARIABLE','MIXIN_REDIRECT')} {Run-Gate $gate $false 'mislabelled-cursor-argument-hook' 'must disclose its host cursor argument replacement'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/gui/AutomationDiagnosticScreen.java' {param($s)$s.Replace('Compatibility Text','removed text')} {Run-Gate $gate $false 'wrong-source-contract' 'Compatibility Text'}
+  With-Text 'versions/26.3-neoforge/src/main/resources/mine_craft_protocol.mixins.json' {param($s)$j=$s|ConvertFrom-Json -AsHashtable;$j.required=$false;$j|ConvertTo-Json -Depth 20} {Run-Gate $gate $false 'wrong-hook-contract' 'required Hook'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/WindowMixin.java' {param($s)$s.Replace('ordinal = 0','ordinal = 1')} {Run-Gate $gate $false 'wrong-cursor-argument-guard' 'exact host cursor argument guard'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/WindowMixin.java' {param($s)$s+"`n@ModifyVariable(method = `"other`", at = @At(`"HEAD`"))`n"} {Run-Gate $gate $false 'unreviewed-variable-replacement' 'unreviewed replacement mechanisms'}
+  With-Text 'versions/26.3-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java' {param($s)$s.Replace('MIXIN_MODIFY_VARIABLE','MIXIN_REDIRECT')} {Run-Gate $gate $false 'mislabelled-cursor-argument-hook' 'must disclose its host cursor argument replacement'}
  }
  foreach($target in $targets){$jarName=Get-JarName $target;With-Missing "versions/$target/build/libs/$jarName" {Run-Gate $gate $false "missing-artifact-$target" 'artifact must exist'}}
  $jarName=Get-JarName '26.3-neoforge'

@@ -4,4 +4,4 @@ targets = ["1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge"
 [instances.client]
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]

@@ -82,7 +82,7 @@ public final class UiNativeConfirmationFixtureScreen extends Screen {
         List<Supplier<Screen>> factories =
                 List.of(
                         () ->
-                                UiNativePopupProbeAccessor.minecraftProtocolProbe$create(
+                                UiNativePopupProbeAccessor.mineCraftProtocol$create(
                                         Component.literal("Popup (Fixture)"),
                                         List.of(Component.literal("Native popup acknowledgement")),
                                         ImmutableList.of(
@@ -189,7 +189,7 @@ public final class UiNativeConfirmationFixtureScreen extends Screen {
 
     private Screen experiments() {
         preparePacks();
-        return UiNativeExperimentsProbeAccessor.minecraftProtocolProbe$create(
+        return UiNativeExperimentsProbeAccessor.mineCraftProtocol$create(
                 this,
                 draftPacks,
                 selected -> {

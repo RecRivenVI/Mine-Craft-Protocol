@@ -58,7 +58,7 @@ export async function commandCollaborationActions({api,repo,instance,target,fixt
       await clickNode(worlds[0]);await click('selectWorld.select','Play Selected World');await wait(value=>!value.screenClass,'command collaboration fixed world entered',150000);
       await handBack();await mode('OPERATE');
       const fixture=await api('POST','/v0/diagnostics/ui/test-screen',{});assert.equal(fixture.evidenceContaminated,true);
-      await wait(value=>value.screenClass.endsWith('AutomationProbeScreen'),'command collaboration probe screen');probeOpen=true;
+      await wait(value=>value.screenClass.endsWith('AutomationDiagnosticScreen'),'command collaboration probe screen');probeOpen=true;
       const controls=nodes(await api('GET','/v0/ui/tree'));
       for(const label of ['Revoke Commands (Fixture)','Restore Commands (Fixture)'])assert.equal(controls.filter(value=>value.label===label).length,1,'Launch requires -Dminecraft.protocol.commandCollaborationFixture=true');
       await clean();

@@ -19,9 +19,9 @@ foreach($target in $targets) {
     $base=Join-Path $root "versions\$($target.Id)\$($target.Src)\io\github\recrivenvi\minecraftprotocol\probe"
     $tracker=Get-Content (Join-Path $runtimeCore 'ObservationRevisionTracker.java') -Raw
     $provider=Get-Content (Join-Path $runtimeCore 'ProviderExecutionEngine.java') -Raw
-    $registry=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/MinecraftProtocolProvidersV2.java') -Raw
-    $schema=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/api/ProviderSchemaRegistry.java') -Raw
-    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/Phase9ASpikeEngine.java") -Raw
+    $registry=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/api/MinecraftProtocolProvidersV2.java') -Raw
+    $schema=Get-Content (Join-Path $root 'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/api/ProviderSchemaRegistry.java') -Raw
+    $engine=Get-Content (Join-Path $root "versions/$($target.Id)/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java") -Raw
     foreach($marker in @('DEFAULT_MAX_ENTRIES','LinkedHashMap','nextGeneration','canonicalize','evictedResourceReobservation')) {
         A ($tracker.Contains($marker)) "$($target.Id) tracker $marker"
     }
@@ -41,7 +41,7 @@ foreach($target in $targets) {
     A ($engine.Contains('canonicalResourceRevisions(canonicalSnapshot)') -and
             $engine.IndexOf('canonicalResourceRevisions(canonicalSnapshot)') -lt
             $engine.IndexOf('applyProjection(visible, request)') -and
-            $engine.Contains('minecraft-protocol-observation-revisions')) "$($target.Id) canonical before projection on detached revision worker"
+            $engine.Contains('mine_craft_protocol-observation-revisions')) "$($target.Id) canonical before projection on detached revision worker"
     A ($engine.Contains('block_entity_serialized') -and $engine -match 'providerExecution\s*\.execute') "$($target.Id) formal hardening route"
 }
 [pscustomobject]@{

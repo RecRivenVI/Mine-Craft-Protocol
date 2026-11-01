@@ -19,7 +19,7 @@ try {
 
     $javaArgs = @(
         ':version:26.3-neoforge:test',
-        '--tests', 'io.github.recrivenvi.minecraftprotocol.probe.runtime.PersistentWriteSafetyFoundationTest',
+        '--tests', 'io.github.recrivenvi.minecraftprotocol.runtime.PersistentWriteSafetyFoundationTest',
         '--no-daemon'
     )
     if ($Offline) { $javaArgs += '--offline' }

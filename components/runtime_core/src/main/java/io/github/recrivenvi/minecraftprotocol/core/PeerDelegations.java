@@ -21,14 +21,14 @@ final class PeerDelegations implements AutoCloseable {
     }
 
     private final ProtocolState owner;
-    private final ProbeService service;
+    private final RuntimeService service;
     private final Mutation mutation;
     private final SecurityGate security;
     private final ConcurrentHashMap<String, Grant> grants = new ConcurrentHashMap<>();
     private volatile boolean closed;
 
     PeerDelegations(
-            ProtocolState owner, ProbeService service, Mutation mutation, SecurityGate security) {
+            ProtocolState owner, RuntimeService service, Mutation mutation, SecurityGate security) {
         this.owner = owner;
         this.service = service;
         this.mutation = mutation;

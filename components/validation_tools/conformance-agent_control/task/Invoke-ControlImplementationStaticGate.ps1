@@ -16,15 +16,15 @@ $hooks=& (Join-Path $PSScriptRoot '../../compatibility-standard_gui/task/Invoke-
 Require ($hooks.Result-eq'PASS') 'Hook source/manifest mismatch'
 foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')){
  $source=if($target-eq'26.3-fabric'){'client'}else{'main'}
- $name=if($target-eq'1.20.1-forge'){'ForgeProbeRuntime'}elseif($target-eq'26.3-fabric'){'FabricProbeRuntime'}else{'NeoForgeProbeRuntime'}
- $directory=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe"
+ $name=if($target-eq'1.20.1-forge'){'ForgeRuntime'}elseif($target-eq'26.3-fabric'){'FabricRuntime'}else{'NeoForgeRuntime'}
+ $directory=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol"
  $runtime=Get-Content (Join-Path $directory "runtime/$name.java") -Raw
  $keyboard=Get-Content (Join-Path $directory 'mixin/KeyboardHandlerMixin.java') -Raw
  $mouse=Get-Content (Join-Path $directory 'mixin/MouseHandlerMixin.java') -Raw
  $constants=Get-Content (Join-Path $directory 'mixin/InputConstantsMixin.java') -Raw
  $engine=Get-Content (Join-Path $runtimeCore 'AutomationEngine.java') -Raw
  $state=Get-Content (Join-Path $runtimeCore 'ProtocolState.java') -Raw
- $transport=Get-Content (Join-Path $runtimeCore 'ProbeTransport.java') -Raw
+ $transport=Get-Content (Join-Path $runtimeCore 'RuntimeTransport.java') -Raw
  Require ($state-match'AgentTaskLifecycle'-and$state-match'this::expireTaskIfNeeded'-and$state-match'leaseTaskId'-and$state-match'inputCleanupBarrier.thenApply') "$target bounded task/attached input cleanup missing"
  Require ($transport-match'path.equals\("/v0/control/task"\)'-and$transport-match'protocolState.agentActivity\(\)'-and-not$transport.Contains('presenceChannels')) "$target presence is still bound to TCP channel lifetime"
  Require ($runtime-match'logicalPointer.viewport\('-and$runtime-match'gui\s*\? this.logicalPointer.x\(\)') "$target page/viewport pointer continuity missing"

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(IntegratedServer.class)
 public abstract class UiSavingServerTickProbeMixin {
     @Inject(method = "tickServer", at = @At("HEAD"))
-    private void minecraftProtocolProbe$observeNativePauseState(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativePauseState(CallbackInfo callback) {
         UiSavingIndicatorFixture.observeServerTick((IntegratedServer) (Object) this);
     }
 
@@ -21,7 +21,7 @@ public abstract class UiSavingServerTickProbeMixin {
                             value = "INVOKE",
                             target =
                                     "Lnet/minecraft/client/server/IntegratedServer;saveEverything(ZZZ)Z"))
-    private void minecraftProtocolProbe$selectNativePauseSave(CallbackInfo callback) {
+    private void mineCraftProtocol$selectNativePauseSave(CallbackInfo callback) {
         UiSavingIndicatorFixture.beforeNativePauseSave((IntegratedServer) (Object) this);
     }
 }

@@ -105,7 +105,7 @@ public final class ProtocolState implements AutoCloseable {
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
-                            Thread thread = new Thread(runnable, "minecraft-protocol-control");
+                            Thread thread = new Thread(runnable, "mine_craft_protocol-control");
                             thread.setDaemon(true);
                             return thread;
                         });

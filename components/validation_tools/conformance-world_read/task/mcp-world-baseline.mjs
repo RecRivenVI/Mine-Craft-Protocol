@@ -80,7 +80,7 @@ export async function mcpWorldBaseline({api, repo, instance, target, check, acti
       await owned.client.connect(owned.transport, {timeout: remaining()});
       const startupMillis = now() - startupStarted;
       const initializeServerInfo = owned.client.getServerVersion();
-      assert.equal(initializeServerInfo?.name, 'minecraft-protocol-companion'); assert.equal(initializeServerInfo.version, pkg.version);
+      assert.equal(initializeServerInfo?.name, 'mine-craft-protocol-companion'); assert.equal(initializeServerInfo.version, pkg.version);
       const call = async (name, args) => {
         const value = await owned.client.callTool({name, arguments: args}, {timeout: remaining()});
         assert(!value.isError, JSON.stringify(value)); assert(value.structuredContent?.data, JSON.stringify(value));

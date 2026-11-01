@@ -23,7 +23,7 @@
 -Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console
 ```
 
-启动后从该服务器目录的 minecraft-protocol/endpoint.json 发现自动分配端口，token 在同目录的 token 文件，不能复制到聊天或证据。
+启动后从该服务器目录的 mine_craft_protocol/endpoint.json 发现自动分配端口，token 在同目录的 token 文件，不能复制到聊天或证据。
 Companion 设置 MCP_MINECRAFT_INSTANCE_DIR 为此实例目录，并可设 MCP_MINECRAFT_ROLE=DEDICATED_SERVER 防止选错客户端。
 控制台授权不开放玩家输入、DEBUG、存档或全部管理命令；完整初始目录见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)。
 

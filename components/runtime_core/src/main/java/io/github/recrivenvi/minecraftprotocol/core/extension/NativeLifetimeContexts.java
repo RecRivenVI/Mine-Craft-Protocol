@@ -1,7 +1,7 @@
 package io.github.recrivenvi.minecraftprotocol.core.extension;
 
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Lifetime;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.LifetimeContexts;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.Lifetime;
+import io.github.recrivenvi.minecraftprotocol.api.extension.LifetimeContexts;
 import java.lang.ref.WeakReference;
 import java.util.EnumMap;
 import java.util.Map;

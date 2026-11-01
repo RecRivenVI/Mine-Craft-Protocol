@@ -6,10 +6,10 @@ function Require([bool]$Condition,[string]$Reason){if(-not $Condition){throw "Co
 $targets=@('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')
 foreach($target in $targets){
     $source=if($target -eq '26.3-fabric'){'client'}else{'main'}
-    $runtimeName=if($target -eq '1.20.1-forge'){'ForgeProbeRuntime'}elseif($target -eq '26.3-fabric'){'FabricProbeRuntime'}else{'NeoForgeProbeRuntime'}
-    $base=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol/probe"
+    $runtimeName=if($target -eq '1.20.1-forge'){'ForgeRuntime'}elseif($target -eq '26.3-fabric'){'FabricRuntime'}else{'NeoForgeRuntime'}
+    $base=Join-Path $root "versions/$target/src/$source/java/io/github/recrivenvi/minecraftprotocol"
     $runtime=Get-Content (Join-Path $base "runtime/$runtimeName.java") -Raw
-    $storage=Get-Content (Join-Path $root "versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/probe/runtime/PersistentStorageAdapter.java") -Raw
+    $storage=Get-Content (Join-Path $root "versions/$target/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentStorageAdapter.java") -Raw
     $mouse=Get-Content (Join-Path $base 'mixin/MouseHandlerMixin.java') -Raw
     $window=Get-Content (Join-Path $base 'mixin/WindowMixin.java') -Raw
     $frame=Get-Content (Join-Path $base 'mixin/MinecraftMixin.java') -Raw

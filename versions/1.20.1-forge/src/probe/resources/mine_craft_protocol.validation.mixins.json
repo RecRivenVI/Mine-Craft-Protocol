@@ -1,0 +1,43 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "io.github.recrivenvi.minecraftprotocol.probe.validation.mixin",
+    "compatibilityLevel": "JAVA_17",
+    "client": [
+        "UiWorldRecoveryOptimizeProbeAccessor",
+        "UiWorldRecoveryWorkerProbeAccessor",
+        "UiWorldRecoveryWorkerProbeMixin",
+        "UiWorldRecoveryOptimizeProbeMixin",
+        "UiWorldRecoveryClientProbeMixin",
+        "UiWorldRecoveryEntryProbeMixin",
+        "UiNativeConfirmationProbeMixin",
+        "UiNativePopupProbeAccessor",
+        "UiNativeExperimentsProbeAccessor",
+        "UiPlayerListProbeMixin",
+        "UiRecoveryProbeMixin",
+        "UiSavingIndicatorProbeMixin",
+        "UiSavingServerTickProbeMixin",
+        "UiSavingServerFlagProbeMixin",
+        "UiSavingHudScopeProbeMixin",
+        "UiSavingTextProbeMixin",
+        "UiSavingServerPauseProbeAccessor",
+        "CommandsReplayMixin",
+        "CommandCollaborationPermissionProbeMixin",
+        "CommandCollaborationProbeMixin",
+        "WorldItemLootProbeMixin",
+        "WorldDebugBoundaryProbeMixin",
+        "WorldTransferProbeMixin",
+        "WorldUserCatalogProbeMixin",
+        "WorldSeatFixtureProbeMixin",
+        "WorldSeatListenerProbeMixin",
+        "ChunkPacketReplayMixin",
+        "CommandConfigurationProbeMixin",
+        "UiPresentationContentProbeMixin",
+        "UiToastContentProbeMixin",
+        "ShowcaseToastProbeMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    },
+    "refmap": "mine_craft_protocol.validation.refmap.json"
+}

@@ -1,6 +1,6 @@
+import { listenFetch } from './listen-fetch.js';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { once } from 'node:events';
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
@@ -20,19 +20,19 @@ async function fixture() {
     response.setHeader('content-type', 'application/json');
     response.end(JSON.stringify({ target: 'test-target', runtimeConnection: { runtimeInstanceId: servedId } }));
   });
-  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  await listenFetch(server);
   const address = server.address(); assert(address && typeof address !== 'string');
   mkdirSync('build/discovery-tests', { recursive: true });
   const directory = realpathSync(mkdtempSync(resolve('build/discovery-tests/instance-')));
-  mkdirSync(resolve(directory, 'minecraft-protocol'));
+  mkdirSync(resolve(directory, 'mine_craft_protocol'));
   const record = {
     schemaVersion: 1, runtimeInstanceId: id, target: 'test-target', gameDirectory: directory,
     port: address.port, baseUrl: `http://127.0.0.1:${address.port}`, pid: process.pid,
     startedAt: new Date().toISOString(), processStartedAt: new Date(Date.now() - process.uptime() * 1000).toISOString(),
     tokenFile: 'token', state: 'RUNNING'
   };
-  const write = () => writeFileSync(resolve(directory, 'minecraft-protocol/endpoint.json'), JSON.stringify(record));
-  write(); writeFileSync(resolve(directory, 'minecraft-protocol/token'), 'discovery-test-token');
+  const write = () => writeFileSync(resolve(directory, 'mine_craft_protocol/endpoint.json'), JSON.stringify(record));
+  write(); writeFileSync(resolve(directory, 'mine_craft_protocol/token'), 'discovery-test-token');
   const env = { MCP_MINECRAFT_INSTANCE_DIR: directory, MCP_MINECRAFT_TARGET: 'test-target' };
   return { id, record, write, env, calls, served: (value: string) => { servedId = value; }, close: async () => { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); } };
 }
@@ -98,7 +98,7 @@ test('discovery rejects mixed authorities, wrong Target, stale PID, foreign dire
       assert.throws(() => loadConfig(runtime.env));
       Object.assign(runtime.record, { [key]: previous }); runtime.write();
     }
-    writeFileSync(resolve(runtime.env.MCP_MINECRAFT_INSTANCE_DIR, 'minecraft-protocol/endpoint.json'), 'x'.repeat(16385));
+    writeFileSync(resolve(runtime.env.MCP_MINECRAFT_INSTANCE_DIR, 'mine_craft_protocol/endpoint.json'), 'x'.repeat(16385));
     assert.throws(() => loadConfig(runtime.env), /16 KiB/);
     assert.equal(runtime.calls.length, 0);
   } finally { await runtime.close(); }

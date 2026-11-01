@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(ExperimentsScreen.class)
 public interface UiNativeExperimentsProbeAccessor {
     @Invoker("<init>")
-    static ExperimentsScreen minecraftProtocolProbe$create(
+    static ExperimentsScreen mineCraftProtocol$create(
             Screen previous, PackRepository packs, Consumer<PackRepository> output) {
         throw new AssertionError();
     }

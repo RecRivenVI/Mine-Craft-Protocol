@@ -42,7 +42,7 @@ try{
     if($owner.owner-ne'extension-platform'-or$owner.target-ne$Target){throw 'Unknown host instance identity'}
     if($Action-eq'prepare'){
         if($plan.Role-ne'client'){throw 'Server creation is owned by the registered verify workflow'}
-        & (Join-Path $repo 'gradlew.bat') ':runtime_core:extensionSdkJar' ':extension_packages:assemble' ':companion:assemble' '--offline' '--console=plain'
+        & (Join-Path $repo 'gradlew.bat') ':runtime_core:extensionSdkJar' ':extensionpacks:assemble' ':companion:assemble' '--offline' '--console=plain'
         if($LASTEXITCODE-ne0){throw 'SDK/package build failed'}
         & node (Join-Path $PSScriptRoot 'install-platform-probe.mjs') "--target=$Target" "--installed=$($plan.Installed.ToString().ToLowerInvariant())"
         if($LASTEXITCODE-ne0){throw 'Platform package installation failed'}

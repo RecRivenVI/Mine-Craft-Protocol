@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.UiAdapter;
+import io.github.recrivenvi.minecraftprotocol.api.extension.UiAdapter;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;

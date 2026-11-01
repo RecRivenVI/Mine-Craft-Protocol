@@ -134,7 +134,7 @@ $fixture = Invoke-Json -Method POST -Path '/v0/diagnostics/ui/test-screen' -Head
 Assert-True ($fixture.mechanism -eq 'DIRECT') 'test screen Arrange mechanism must be DIRECT'
 Assert-True ([bool]$fixture.evidenceContaminated) 'test screen Arrange must mark evidence contamination'
 $fixtureTree = Invoke-Json -Method GET -Path '/v0/ui/tree'
-Assert-True ($fixtureTree.screenClass -match 'AutomationProbeScreen') 'standard Mod test Screen must be active'
+Assert-True ($fixtureTree.screenClass -match 'AutomationDiagnosticScreen') 'standard Mod test Screen must be active'
 Assert-True (($fixtureTree.children | Where-Object label -eq 'Probe Action').role -eq 'button') 'Mod button must be semantic'
 
 $fixturePipeline = Start-Pipeline -LeaseHeaders $leaseHeaders -Steps @(

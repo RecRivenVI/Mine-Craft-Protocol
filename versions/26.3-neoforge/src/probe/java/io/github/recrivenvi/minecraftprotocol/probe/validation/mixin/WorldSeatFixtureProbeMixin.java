@@ -1,6 +1,6 @@
 package io.github.recrivenvi.minecraftprotocol.probe.validation.mixin;
 
-import io.github.recrivenvi.minecraftprotocol.probe.gui.AutomationProbeScreen;
+import io.github.recrivenvi.minecraftprotocol.gui.AutomationDiagnosticScreen;
 import io.github.recrivenvi.minecraftprotocol.probe.validation.WorldSeatFixture;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = AutomationProbeScreen.class, remap = false)
+@Mixin(value = AutomationDiagnosticScreen.class, remap = false)
 abstract class WorldSeatFixtureProbeMixin extends Screen {
     protected WorldSeatFixtureProbeMixin(Component title) {
         super(title);

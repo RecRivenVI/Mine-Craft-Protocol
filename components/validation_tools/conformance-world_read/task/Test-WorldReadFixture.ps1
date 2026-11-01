@@ -31,7 +31,7 @@ try{
     Write-FixtureText (Join-Path $client 'saves/World-Read-Alpha/level.dat') 'synthetic-fixture-not-a-Minecraft-save'
     Write-FixtureText (Join-Path $client 'saves/World-Read-Alpha/session.lock') 'synthetic-lock'
     Write-FixtureText (Join-Path $client 'options.txt') "soundCategory_master:0.0`n"
-    Write-FixtureText (Join-Path $client 'minecraft-protocol/token') 'must-not-copy'
+    Write-FixtureText (Join-Path $client 'mine_craft_protocol/token') 'must-not-copy'
     Write-FixtureText (Join-Path $client 'logs/latest.log') 'must-not-copy'
     Write-FixtureText $facts $baselineFacts
     Write-FixtureText $report ('{"target":"'+$target+'","status":"FAIL","cleanShutdown":true,"sourceChangedDuringRun":false}')
@@ -40,7 +40,7 @@ try{
     $manifest=Save-WorldReadFixture $root $target $facts $report
     Require ($manifest.hash-match'^[0-9a-f]{64}$') 'Baseline hash required'
     Require ($manifest.files.Count-eq4) 'Only world inputs, settings and owner are captured'
-    Require (-not(Test-Path (Join-Path $root 'baseline/minecraft-protocol'))) 'Credentials must not enter the baseline'
+    Require (-not(Test-Path (Join-Path $root 'baseline/mine_craft_protocol'))) 'Credentials must not enter the baseline'
     Refuses {Save-WorldReadFixture $root $target $facts $report} 'Baseline is immutable'
     Write-FixtureText (Join-Path $client 'saves/World-Read-Alpha/level.dat') 'changed by previous run'
     Write-FixtureText (Join-Path $client 'saves/unexpected-world/level.dat') 'extra previous world'
@@ -48,11 +48,11 @@ try{
     Require ($receipt.baselineSha256-eq$manifest.hash-and$receipt.restoredSha256-eq$manifest.hash) 'Restoration must have exact input hash'
     Require ($receipt.compatibilityBasis-ceq'target_facts_exact_match'-and$receipt.targetFactsSha256-ceq$manifest.targetFactsSha256-and$receipt.currentTargetFactsSha256-ceq$receipt.baselineTargetFactsSha256-and$receipt.targetFactsChanges.Count-eq0) 'Exact facts retain the default strict restoration contract'
     Require (-not(Test-Path (Join-Path $client 'saves/unexpected-world'))) 'Extra previous worlds cannot survive restore'
-    Require (-not(Test-Path (Join-Path $client 'minecraft-protocol/token'))) 'Old authentication cannot survive restore'
+    Require (-not(Test-Path (Join-Path $client 'mine_craft_protocol/token'))) 'Old authentication cannot survive restore'
     $again=Restore-WorldReadFixture $root $target $facts
     Require ($again.baselineSha256-eq$receipt.baselineSha256) 'Repeated runs use identical baseline'
     $checks++
-    $lock=Join-Path $client 'minecraft-protocol/instance.lock'
+    $lock=Join-Path $client 'mine_craft_protocol/instance.lock'
     Write-FixtureText $lock 'owned-lock'
     $handle=[IO.File]::Open($lock,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     try{Refuses {Restore-WorldReadFixture $root $target $facts} 'Runtime ownership must block restore'}finally{$handle.Dispose()}

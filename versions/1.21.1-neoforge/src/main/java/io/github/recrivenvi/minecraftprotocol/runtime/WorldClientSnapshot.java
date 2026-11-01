@@ -1,0 +1,247 @@
+package io.github.recrivenvi.minecraftprotocol.runtime;
+
+import com.google.gson.JsonObject;
+import io.github.recrivenvi.minecraftprotocol.safety.WorldClientModel;
+import java.util.Iterator;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.Entity;
+
+/** Captures only this client's existing cache, synchronously on its owner thread. */
+final class WorldClientSnapshot {
+    private WorldClientSnapshot() {}
+
+    static JsonObject capture(String kind, JsonObject query, WorldTargeting targeting) {
+        try (var scope = targeting.readScope()) {
+            return captureScoped(kind, query, targeting);
+        }
+    }
+
+    private static JsonObject captureScoped(
+            String kind, JsonObject query, WorldTargeting targeting) {
+        Minecraft client = Minecraft.getInstance();
+        JsonObject result =
+                WorldClientModel.capture(
+                        kind,
+                        query,
+                        new WorldClientModel.View() {
+                            public boolean available() {
+                                return client.level != null && client.player != null;
+                            }
+
+                            public JsonObject player() {
+                                var player = client.player;
+                                JsonObject value = new JsonObject();
+                                value.addProperty("x", player.getX());
+                                value.addProperty("y", player.getY());
+                                value.addProperty("z", player.getZ());
+                                value.addProperty("yaw", player.getYRot());
+                                value.addProperty("pitch", player.getXRot());
+                                var velocity = player.getDeltaMovement();
+                                value.addProperty("velocityX", velocity.x);
+                                value.addProperty("velocityY", velocity.y);
+                                value.addProperty("velocityZ", velocity.z);
+                                value.addProperty("health", player.getHealth());
+                                var mode =
+                                        client.gameMode == null
+                                                ? null
+                                                : client.gameMode.getPlayerMode();
+                                value.addProperty(
+                                        "gameMode", mode == null ? "unknown" : mode.getName());
+                                value.addProperty("onGround", player.onGround());
+                                value.addProperty(
+                                        "pose",
+                                        player.getPose().name().toLowerCase(java.util.Locale.ROOT));
+                                value.addProperty("crouching", player.isCrouching());
+                                value.addProperty("sprinting", player.isSprinting());
+                                value.addProperty("swimming", player.isSwimming());
+                                value.addProperty("fallFlying", player.isFallFlying());
+                                value.addProperty("inWater", player.isInWater());
+                                value.addProperty("underWater", player.isUnderWater());
+                                value.addProperty("inLava", player.isInLava());
+                                value.addProperty("onFire", player.isOnFire());
+                                value.addProperty("sleeping", player.isSleeping());
+                                value.addProperty("deadOrDying", player.isDeadOrDying());
+                                value.addProperty("eyeHeight", player.getEyeHeight());
+                                value.addProperty("maxAir", player.getMaxAirSupply());
+                                value.addProperty("experienceLevel", player.experienceLevel);
+                                value.addProperty("experienceProgress", player.experienceProgress);
+                                value.addProperty(
+                                        "cameraType",
+                                        client.options
+                                                .getCameraType()
+                                                .name()
+                                                .toLowerCase(java.util.Locale.ROOT));
+                                value.addProperty(
+                                        "cameraIsPlayer", client.getCameraEntity() == player);
+                                value.addProperty("flying", player.getAbilities().flying);
+                                value.addProperty("maxHealth", player.getMaxHealth());
+                                value.addProperty("absorption", player.getAbsorptionAmount());
+                                value.addProperty("food", player.getFoodData().getFoodLevel());
+                                value.addProperty("air", player.getAirSupply());
+                                value.addProperty("usingItem", player.isUsingItem());
+                                value.addProperty(
+                                        "usingHand",
+                                        player.isUsingItem()
+                                                ? player.getUsedItemHand()
+                                                                == net.minecraft.world
+                                                                        .InteractionHand.OFF_HAND
+                                                        ? "off_hand"
+                                                        : "main_hand"
+                                                : "none");
+                                Entity vehicle = player.getVehicle();
+                                value.addProperty("riding", vehicle != null);
+                                if (vehicle != null) {
+                                    value.addProperty(
+                                            "vehicleType",
+                                            BuiltInRegistries.ENTITY_TYPE
+                                                    .getKey(vehicle.getType())
+                                                    .toString());
+                                    value.addProperty(
+                                            "vehicleControllerIsPlayer",
+                                            vehicle.getControllingPassenger() == player);
+                                }
+                                value.addProperty("useTicks", player.getTicksUsingItem());
+                                value.addProperty("selectedSlot", player.getInventory().selected);
+                                value.addProperty(
+                                        "dimension",
+                                        client.level.dimension().location().toString());
+                                return value;
+                            }
+
+                            public JsonObject block(int x, int y, int z) {
+                                JsonObject value = new JsonObject();
+                                // Required=false is essential: neither the empty fallback nor
+                                // loading establishes client knowledge.
+                                var chunk =
+                                        client.level
+                                                .getChunkSource()
+                                                .getChunk(
+                                                        x >> 4,
+                                                        z >> 4,
+                                                        net.minecraft.world.level.chunk.status
+                                                                .ChunkStatus.FULL,
+                                                        false);
+                                value.addProperty("available", chunk != null);
+                                if (chunk == null) {
+                                    value.addProperty("reason", "chunk_not_loaded");
+                                    return value;
+                                }
+                                var state = chunk.getBlockState(new BlockPos(x, y, z));
+
+                                value.addProperty(
+                                        "block",
+                                        BuiltInRegistries.BLOCK
+                                                .getKey(state.getBlock())
+                                                .toString());
+                                value.addProperty("state", state.toString());
+                                value.addProperty("x", x);
+                                value.addProperty("y", y);
+                                value.addProperty("z", z);
+                                targeting.block(value, chunk, new BlockPos(x, y, z), state);
+                                return value;
+                            }
+
+                            public Iterator<JsonObject> entities() {
+                                Iterator<Entity> source =
+                                        com.google.common.collect.Iterators.concat(
+                                                client.level.entitiesForRendering().iterator(),
+                                                client.level.getPartEntities().iterator());
+                                return new Iterator<>() {
+                                    public boolean hasNext() {
+                                        return source.hasNext();
+                                    }
+
+                                    public JsonObject next() {
+                                        Entity entity = source.next();
+                                        JsonObject value = new JsonObject();
+                                        value.addProperty(
+                                                "type",
+                                                BuiltInRegistries.ENTITY_TYPE
+                                                        .getKey(entity.getType())
+                                                        .toString());
+                                        value.addProperty("name", entity.getName().getString());
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.boss.EnderDragonPart
+                                                        part)
+                                            value.addProperty("partName", part.name);
+                                        value.addProperty("x", entity.getX());
+                                        value.addProperty("y", entity.getY());
+                                        value.addProperty("z", entity.getZ());
+                                        value.addProperty("yaw", entity.getYRot());
+                                        value.addProperty("pitch", entity.getXRot());
+                                        value.addProperty("invisible", entity.isInvisible());
+                                        value.addProperty("onGround", entity.onGround());
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.item.ItemEntity
+                                                        dropped) {
+                                            var stack = dropped.getItem();
+                                            if (!stack.isEmpty()) {
+                                                value.addProperty(
+                                                        "itemId",
+                                                        BuiltInRegistries.ITEM
+                                                                .getKey(stack.getItem())
+                                                                .toString());
+                                                value.addProperty("itemCount", stack.getCount());
+                                            }
+                                        }
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.decoration.ItemFrame
+                                                        frame) {
+                                            var stack = frame.getItem();
+                                            value.addProperty(
+                                                    "displayedItemId",
+                                                    BuiltInRegistries.ITEM
+                                                            .getKey(stack.getItem())
+                                                            .toString());
+                                            value.addProperty(
+                                                    "displayedItemCount", stack.getCount());
+                                            value.addProperty(
+                                                    "displayedRotation", frame.getRotation());
+                                        }
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.LivingEntity living) {
+                                            value.addProperty("hurtAnimation", living.hurtTime > 0);
+                                            value.addProperty("baby", living.isBaby());
+                                        }
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.TamableAnimal animal) {
+                                            value.addProperty("tamed", animal.isTame());
+                                            value.addProperty("sitting", animal.isInSittingPose());
+                                        }
+                                        if (entity
+                                                instanceof
+                                                net.minecraft.world.entity.Leashable leashable) {
+                                            // Only resolve the ClientLevel cache; absence means
+                                            // unknown, not proof of another owner.
+                                            Entity holder = leashable.getLeashHolder();
+                                            // Resolution can populate Vanilla's cached holder.
+                                            value.addProperty("leashed", leashable.isLeashed());
+                                            value.addProperty("leashHolderKnown", holder != null);
+                                            if (holder != null)
+                                                value.addProperty(
+                                                        "leashHeldByPlayer",
+                                                        holder == client.player);
+                                        }
+                                        targeting.entity(
+                                                value,
+                                                entity,
+                                                query.has("radius")
+                                                        ? query.get("radius").getAsDouble()
+                                                        : kind.equals("scene") ? 4 : 16);
+                                        return value;
+                                    }
+                                };
+                            }
+                        });
+        if (kind.equals("scene"))
+            result.add("aimPresentation", WorldPresentationSnapshot.capture());
+        return result;
+    }
+}

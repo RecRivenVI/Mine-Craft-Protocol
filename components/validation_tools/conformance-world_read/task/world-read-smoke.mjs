@@ -88,7 +88,7 @@ if(args['shutdown-only']!=='true'){
     assert.match(args['fixture-hash'],/^[0-9a-f]{64}$/);assert.equal(fixtureInput.baselineSha256,args['fixture-hash']);assert.equal(fixtureInput.restoredSha256,args['fixture-hash']);assert.equal(fixtureInput.credentialsCopied,false);
   }else assert.equal(fixtureInput,null,'Stale fixture receipt cannot be used as bootstrap preparation');
 }
-const token = (await readFile(resolve(instance, 'minecraft-protocol/token'), 'utf8')).trim();
+const token = (await readFile(resolve(instance, 'mine_craft_protocol/token'), 'utf8')).trim();
 const connection = await connectRuntime(instance, target);
 const base = connection.base;
 let lease, renew, failure, debugArm;
@@ -632,7 +632,7 @@ try {
   await consumerHitFeedback({api,repo,instance,target,acquire,release,leaseId:()=>lease,check,actionSamples});
   await consumerRateActions({api,connection,repo,instance,acquire,release,leaseHeaders:()=>({'x-mcp-control-lease':lease}),check,actionSamples});
   await check('Actual MCP stdio world/UI consumers and correctly classified Debug batch waits',async()=>{
-    const worldConsumers=await worldReadConsumers(repo,base,resolve(instance,'minecraft-protocol/token'),target);
+    const worldConsumers=await worldReadConsumers(repo,base,resolve(instance,'mine_craft_protocol/token'),target);
     assert.equal(worldConsumers.length,9);assert.equal(commandConsumerChecks.length,4);
     consumerChecks=[...commandConsumerChecks,...worldConsumers];
   });

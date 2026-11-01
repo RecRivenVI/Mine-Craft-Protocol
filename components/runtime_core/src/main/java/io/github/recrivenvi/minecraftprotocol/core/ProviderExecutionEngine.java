@@ -3,10 +3,10 @@ package io.github.recrivenvi.minecraftprotocol.core;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.MinecraftProtocolProvidersV2;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSchemaRegistry;
-import io.github.recrivenvi.minecraftprotocol.probe.api.ProviderSource;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.MinecraftProtocolProvidersV2;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSchemaRegistry;
+import io.github.recrivenvi.minecraftprotocol.api.ProviderSource;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,14 +55,14 @@ public final class ProviderExecutionEngine implements AutoCloseable {
         this.revisions = revisions;
         this.worker =
                 new BoundedTaskExecutor(
-                        "minecraft-protocol-provider-worker",
+                        "mine_craft_protocol-provider-worker",
                         WORKER_THREADS,
                         WORKER_QUEUE_CAPACITY);
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
                             Thread thread =
-                                    new Thread(runnable, "minecraft-protocol-provider-timeouts");
+                                    new Thread(runnable, "mine_craft_protocol-provider-timeouts");
                             thread.setDaemon(true);
                             return thread;
                         });

@@ -21,11 +21,11 @@ final class WorldRegionEngineTest {
                 String action, JsonObject query, String owner, Runnable authorization);
     }
 
-    private static ProbeService service(NativeRegion read) {
-        return (ProbeService)
+    private static RuntimeService service(NativeRegion read) {
+        return (RuntimeService)
                 Proxy.newProxyInstance(
-                        ProbeService.class.getClassLoader(),
-                        new Class<?>[] {ProbeService.class},
+                        RuntimeService.class.getClassLoader(),
+                        new Class<?>[] {RuntimeService.class},
                         (proxy, method, arguments) -> {
                             assertEquals("clientWorldRegion", method.getName());
                             return read.read(

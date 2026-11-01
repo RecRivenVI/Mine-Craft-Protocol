@@ -136,10 +136,10 @@ public final class UiReconfigurationFixture {
         State owner = state;
         if (!enabled() || owner == null || !owner.switchRequested) return;
         var nativeState = (UiReconfigurationScreenProbeAccessor) screen;
-        if (nativeState.minecraftProtocolProbe$connection() != owner.clientConnection) return;
+        if (nativeState.mineCraftProtocol$connection() != owner.clientConnection) return;
         owner.nativeScreen = screen;
-        int ticks = nativeState.minecraftProtocolProbe$delayTicker();
-        boolean active = nativeState.minecraftProtocolProbe$disconnectButton().active;
+        int ticks = nativeState.mineCraftProtocol$delayTicker();
+        boolean active = nativeState.mineCraftProtocol$disconnectButton().active;
         boolean changed = false;
         if (!owner.nativeScreenObserved) {
             owner.connectionIdentityBound = true;

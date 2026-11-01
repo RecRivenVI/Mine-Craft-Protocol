@@ -23,7 +23,7 @@ function Get-ShowcaseGradleArguments([string]$TargetId,[string]$Directory,[strin
     return $arguments
 }
 function Invoke-ShowcaseApi([string]$Method,[string]$Path,[object]$Body=$null,[hashtable]$Headers=$script:auth) {
-    $request=@{Uri=$script:base+$Path;Method=$Method;Headers=$Headers;TimeoutSec=30}
+    $request=@{Uri=$script:base+$Path;Method=$Method;Headers=$Headers;TimeoutSec=30;NoProxy=$true;MaximumRedirection=0}
     if($null-ne$Body){$request.ContentType='application/json';$request.Body=$Body|ConvertTo-Json -Depth 40 -Compress}
     try {Invoke-RestMethod @request}
     catch {

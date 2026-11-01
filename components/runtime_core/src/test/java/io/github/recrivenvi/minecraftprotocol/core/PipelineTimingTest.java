@@ -17,7 +17,7 @@ class PipelineTimingTest {
     void userReadbackIsAnOrderedResultSegmentWithoutInventingAnotherInputCallback()
             throws Exception {
         AtomicInteger cleanups = new AtomicInteger();
-        ProbeService service = service(cleanups);
+        RuntimeService service = service(cleanups);
         try (var state = new ProtocolState(java.util.Set.of("read"), "reader", reason -> {});
                 var engine = new AutomationEngine(service)) {
             engine.setObservationEngine(
@@ -146,11 +146,11 @@ class PipelineTimingTest {
                     lightweight = new AtomicInteger(),
                     callbacks = new AtomicInteger(),
                     cleanups = new AtomicInteger();
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getName().equals("gestureEvent")) return null;
                                         JsonObject state = new JsonObject();
@@ -250,11 +250,11 @@ class PipelineTimingTest {
                 .getAsJsonObject();
     }
 
-    private static ProbeService service(AtomicInteger cleanups) {
-        return (ProbeService)
+    private static RuntimeService service(AtomicInteger cleanups) {
+        return (RuntimeService)
                 Proxy.newProxyInstance(
-                        ProbeService.class.getClassLoader(),
-                        new Class<?>[] {ProbeService.class},
+                        RuntimeService.class.getClassLoader(),
+                        new Class<?>[] {RuntimeService.class},
                         (proxy, method, args) -> {
                             if (method.getName().equals("gestureEvent")) return null;
                             JsonObject result = new JsonObject();

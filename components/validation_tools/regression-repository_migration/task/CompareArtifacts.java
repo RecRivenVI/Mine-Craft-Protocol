@@ -69,8 +69,8 @@ class CompareArtifacts {
         List<String> rows = new ArrayList<>();
         for (String target : List.of("1.20.1-forge", "1.21.1-neoforge", "26.1.2-neoforge", "26.3-neoforge", "26.3-fabric")) {
             Path relative = Path.of("versions", target, "build", "libs");
-            Map<String, byte[]> before = entries(oldRoot.resolve(relative).resolve("minecraft_protocol_probe-0.0.1-phase8.jar"));
-            Map<String, byte[]> after = entries(newRoot.resolve(relative).resolve("minecraft_protocol_probe-" + target + "-0.0.1-phase8.jar"));
+            Map<String, byte[]> before = entries(oldRoot.resolve(relative).resolve("mine_craft_protocol-1.0.0-alpha.jar"));
+            Map<String, byte[]> after = entries(newRoot.resolve(relative).resolve("mine_craft_protocol-" + target + "-1.0.0-alpha.jar"));
             List<String> classes = new ArrayList<>(), resources = new ArrayList<>(), added = new ArrayList<>(), removed = new ArrayList<>();
             List<String> debugOnly = new ArrayList<>();
             List<String> annotationOrDebugOnly = new ArrayList<>();

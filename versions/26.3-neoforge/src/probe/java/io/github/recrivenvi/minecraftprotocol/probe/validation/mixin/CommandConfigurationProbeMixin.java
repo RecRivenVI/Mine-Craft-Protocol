@@ -19,49 +19,49 @@ public abstract class CommandConfigurationProbeMixin {
     // HEAD observes admitted packets even when a native handler subsequently fails.
     // The probe counts only the server-thread re-entry, not Netty's initial dispatch.
     @Inject(method = "handleSetTestBlock", at = @At("HEAD"))
-    private void minecraftProtocolProbe$testBlock(
+    private void mineCraftProtocol$testBlock(
             ServerboundSetTestBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.testBlock(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleTestInstanceBlockAction", at = @At("HEAD"))
-    private void minecraftProtocolProbe$testAction(
+    private void mineCraftProtocol$testAction(
             ServerboundTestInstanceBlockActionPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.testAction(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetStructureBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$structure(
+    private void mineCraftProtocol$structure(
             ServerboundSetStructureBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.structure(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetJigsawBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$jigsaw(
+    private void mineCraftProtocol$jigsaw(
             ServerboundSetJigsawBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.jigsaw(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleJigsawGenerate", at = @At("RETURN"))
-    private void minecraftProtocolProbe$generate(
+    private void mineCraftProtocol$generate(
             ServerboundJigsawGeneratePacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.generate(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetCommandBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$block(
+    private void mineCraftProtocol$block(
             ServerboundSetCommandBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.block(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetCommandMinecart", at = @At("RETURN"))
-    private void minecraftProtocolProbe$minecart(
+    private void mineCraftProtocol$minecart(
             ServerboundSetCommandMinecartPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.minecart(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);

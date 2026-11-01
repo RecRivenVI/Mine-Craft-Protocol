@@ -45,7 +45,7 @@ try {
             -RedirectStandardOutput (Join-Path $directory 'phase9d0-five-target-stdout.log') `
             -RedirectStandardError (Join-Path $directory 'phase9d0-five-target-stderr.log') `
             -PassThru -WindowStyle Hidden
-        $tokenFile = Join-Path $directory 'minecraft-protocol\token'
+        $tokenFile = Join-Path $directory 'mine_craft_protocol\token'
         $deadline = (Get-Date).AddMinutes(6)
         $session = $null
         $connection=Wait-RuntimeConnection $directory $run.Target $process.StartTime.ToUniversalTime() $process

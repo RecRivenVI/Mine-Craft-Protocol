@@ -49,7 +49,7 @@ final class WorldRegionTransportTest {
                             return thread;
                         });
         final HttpClient http = HttpClient.newHttpClient();
-        final ProbeTransport transport;
+        final RuntimeTransport transport;
         final int port;
         volatile Gate gate;
         volatile String trustedOwner;
@@ -61,11 +61,11 @@ final class WorldRegionTransportTest {
 
         Fixture(String scopes) throws Exception {
             System.setProperty("minecraft.protocol.scopes", scopes);
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getReturnType() == void.class) return null;
                                         if (method.getName().equals("artifactRoot"))
@@ -101,7 +101,7 @@ final class WorldRegionTransportTest {
                                             inputCalls.incrementAndGet();
                                         return CompletableFuture.completedFuture(new JsonObject());
                                     });
-            transport = new ProbeTransport(service, TOKEN, 0, "region-test-target");
+            transport = new RuntimeTransport(service, TOKEN, 0, "region-test-target");
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;

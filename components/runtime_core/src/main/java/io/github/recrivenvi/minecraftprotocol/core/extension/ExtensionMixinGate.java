@@ -17,10 +17,13 @@ public abstract class ExtensionMixinGate implements IMixinConfigPlugin {
 
     protected abstract ExtensionPlatform.Environment environment();
 
+    protected void prepareInstallation() {}
+
     protected void prepareLibrary(Path library) throws Exception {}
 
     protected final ExtensionEarlyBootstrap initializeBridge() {
         if (bootstrap == null) {
+            prepareInstallation();
             bootstrap =
                     ExtensionEarlyBootstrap.boot(
                             gameDirectory(),
@@ -58,9 +61,9 @@ public abstract class ExtensionMixinGate implements IMixinConfigPlugin {
     @Override
     public final boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         String sdk =
-                io.github.recrivenvi.minecraftprotocol.probe.extension.PackageContext.class
+                io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionContext.class
                         .getPackageName();
-        String coreNamespace = sdk.substring(0, sdk.lastIndexOf('.')) + ".mixin";
+        String coreNamespace = sdk.substring(0, sdk.indexOf(".api.extension")) + ".mixin";
         if (coreNamespace.equals(namespace)) return true;
         return bootstrap != null && bootstrap.allows(namespace, mixinClassName, targetClassName);
     }

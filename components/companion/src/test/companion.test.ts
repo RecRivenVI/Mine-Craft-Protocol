@@ -1,3 +1,4 @@
+import { listenFetch } from './listen-fetch.js';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -539,8 +540,7 @@ async function startRuntime(operationEvidence: Record<string,unknown> = {}): Pro
     if (path.startsWith('/v0/debug/')) return json(response, 200, { ...base, type: 'debug', debugArmId: 'mock-arm', mode: 'DEBUG_PRIVILEGED', evidenceContaminated: true });
     json(response, 404, { error: 'NOT_FOUND', message: `mock missing ${path}`, requestId: 'mock-request' });
   });
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
+  await listenFetch(server);
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Mock Runtime did not bind');
   return {
@@ -640,7 +640,7 @@ test('MCP UI and pipeline forward explicit revision headers, not body hints or i
     await client.connect(transport);
     await client.callTool({name:'minecraft_control',arguments:{action:'acquire'}});
     const ui=await client.callTool({name:'minecraft_interact_ui',arguments:{selector:{label:'safe'},expectedScreenRevision:3,expectedMenuRevision:1}});
-    assert.notEqual(ui.isError,true);
+    assert.notEqual(ui.isError,true,JSON.stringify(ui));
     for(const [name,args] of [['minecraft_interact_ui',{selector:{label:'safe'}}],['minecraft_run_input_pipeline',{steps:[{type:'delay',durationMs:1}],waitForCompletion:false}]] as const){
       const result=await client.callTool({name,arguments:{...args,expectedScreenRevision:3,expectedMenuRevision:1}});
       assert.notEqual(result.isError,true);
@@ -800,7 +800,7 @@ test('MCP Companion exposes static tools/resources and preserves data-plane trus
         perspective: 'server_authoritative',
         domains: ['providers'],
         includeProviderData: true,
-        providerIds: ['minecraft_protocol_probe:timeout'],
+        providerIds: ['mine_craft_protocol:timeout'],
         providerQuery: { probe: 'cancel' }
       }
     }, { signal: deepController.signal });

@@ -11,7 +11,7 @@ $mutex=[Threading.Mutex]::new($false,'Local\RavenTemplateClientSmoke')
 try {
  foreach($target in $targets){
   $held=$false;$launcher=$null;$client=$null;$readyAt=$null;$start=$null
-  $row=[ordered]@{target=$target;result='UNVERIFIED';command=":version:${target}:runValidationFeatureRuntimeProbeClient --offline --no-daemon";modId='minecraft_protocol_probe';mutex='Local\RavenTemplateClientSmoke';uiAutomation=$false;worldEntered=$false;shutdown='NOT_STARTED'}
+  $row=[ordered]@{target=$target;result='UNVERIFIED';command=":version:${target}:runValidationFeatureRuntimeProbeClient --offline --no-daemon";modId='mine_craft_protocol';mutex='Local\RavenTemplateClientSmoke';uiAutomation=$false;worldEntered=$false;shutdown='NOT_STARTED'}
   try {
    Write-Host "WAIT_MUTEX $target"
    try{$held=$mutex.WaitOne([TimeSpan]::FromSeconds($MutexTimeoutSeconds))}catch [Threading.AbandonedMutexException]{$held=$true}

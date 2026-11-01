@@ -1,0 +1,34 @@
+package io.github.recrivenvi.minecraftprotocol.extensions.littletiles.mixin;
+
+import io.github.recrivenvi.minecraftprotocol.extensions.littletiles.bridge.NativeHooks;
+import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Pseudo
+@Mixin(
+        targets = "team.creative.littletiles.common.structure.type.animation.LittleDoor",
+        remap = false)
+public abstract class DoorUseMixin1_21_1NeoForge {
+    @Inject(method = "use", at = @At("HEAD"))
+    private void minecraftProtocol$enter(
+            @Coerce Object level,
+            @Coerce Object focus,
+            @Coerce Object pos,
+            @Coerce Object player,
+            @Coerce Object hit,
+            CallbackInfoReturnable<Object> result) {
+        NativeHooks.record("enter", level, this, focus, null);
+    }
+
+    @Inject(method = "use", at = @At("RETURN"))
+    private void minecraftProtocol$return(
+            @Coerce Object level,
+            @Coerce Object focus,
+            @Coerce Object pos,
+            @Coerce Object player,
+            @Coerce Object hit,
+            CallbackInfoReturnable<Object> result) {
+        NativeHooks.record("return", level, this, focus, result.getReturnValue());
+    }
+}

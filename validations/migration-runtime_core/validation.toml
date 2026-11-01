@@ -7,7 +7,7 @@ memory-max = "4G"
 player-name = "CoreMoveTest"
 width = 1920
 height = 1080
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
 
 [instances.server]
 memory-min = "1G"

@@ -230,7 +230,7 @@ export async function uiNavigationCompletionActions({api,target,command,key,tree
       else await button(exitKeys,screen==='ConfirmLinkScreen'?'Cancel':screen==='DialogScreen$WarningScreen'?'Back':'Done');
       await page('UiNavigationFixtureScreen');
     }
-    await button(['gui.done'],'Done');await page('AutomationProbeScreen');await button([],'Close Probe');await wait(value=>!value.screenClass,'probe navigation closed');await clean();
+    await button(['gui.done'],'Done');await page('AutomationDiagnosticScreen');await button([],'Close Probe');await wait(value=>!value.screenClass,'probe navigation closed');await clean();
     record('navigation_dialog_variants',visited,{arrange:'explicit_probe_native_screens',externalNavigationUsed:false,realExternalServiceAvailabilityTested:false,worldMutationUsed:false});
   });
   }else unavailable('native_dialogs',[

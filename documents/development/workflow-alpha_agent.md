@@ -58,7 +58,7 @@ E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受�
 旧版单人世界社交入口缺席或禁用只证明环境限制，不计社交页操作通过。游戏模式菜单的hover不提交，正常释放修饰键才提交；强停止取消Agent持有的菜单，不提交所选模式。
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 
-扩展平台批次必须另有同候选五端原生/成品客户端和独服平台证明、双包故障恢复、包替换、有上游包的具名业务及原版UI/世界/输入上下文回归。extensions/sdk提供公共SDK，extensions/packages提供七个分别审批的包；它们不是额外Loader模组。companion中保留同批运行代码、作者资源和锁文件，先npm ci --omit=dev，再运行dist/index.js；不混用旧Companion。静态规则可离线查阅，游戏数据仍逐项授权，安装见[扩展作者规程](procedure-author_extension.md)。原生Loader早期hook与复杂UI/运动部件仍按预览面解释，未闭合业务见该批extensionPlatform.limitations。
+扩展平台批次必须另有同候选五端原生/成品客户端和独服平台证明、双包故障恢复、包替换、有上游包的具名业务及原版UI/世界/输入上下文回归。extensions/sdk提供公共SDK，extensions/extensionpacks提供七个分别审批的包；它们不是额外Loader模组。companion中保留同批运行代码、作者资源和锁文件，先npm ci --omit=dev，再运行dist/index.js；不混用旧Companion。静态规则可离线查阅，游戏数据仍逐项授权，安装见[扩展作者规程](procedure-author_extension.md)。原生Loader早期hook与复杂UI/运动部件仍按预览面解释，未闭合业务见该批extensionPlatform.limitations。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 
 原版配方按钮会轮播多个物品。需要稳定悬停或右键展开时，可通过正常输入持有Control暂停轮播，确认held后重新读取语义目标；
@@ -91,7 +91,7 @@ dirty=true 表示包含未提交源码，不能仅凭 HEAD 判断构建相同；
 每个线程使用独立 checkout/worktree、实例目录、测试世界与 Companion。worktree 只隔离文件，不隔离 TCP 端口。
 Runtime 默认请求端口 0，由操作系统在实际 bind 时选择空闲 loopback 端口，不预扫描或“检查后再抢占”。
 自动分配遇到[标准Fetch禁止端口](https://fetch.spec.whatwg.org/#port-blocking)时关闭该监听并有限重选，只有可连接的最终监听才发布；不会绕过Node或浏览器的端口限制。
-五个 Target 使用同一合同，端口和启动身份写入本实例的 minecraft-protocol/endpoint.json；记录不包含 token。
+五个 Target 使用同一合同，端口和启动身份写入本实例的 mine_craft_protocol/endpoint.json；记录不包含 token。
 
 同一个 game directory 使用 OS 文件锁拒绝第二个 Runtime，且在生成/写入 token 之前取得锁。
 它不等于 Minecraft 世界的 session.lock，也不授予 scope、Control Lease、Debug Arm 或存档写入权。
@@ -109,7 +109,7 @@ Runtime 默认请求端口 0，由操作系统在实际 bind 时选择空闲 loo
 
 ### 固定端口与其他服务
 
-确有需要时仍支持 Minecraft JVM 属性 -Dminecraft.protocol.probe.port=28631；0 表示自动，1–65535 表示固定。
+确有需要时仍支持 Minecraft JVM 属性 -Dmine_craft_protocol.port=28631；0 表示自动，1–65535 表示固定。
 固定端口被占用或属于标准Fetch禁止端口时拒绝启动 Runtime，不静默改端口，也不接管已有监听。
 日常实例可在自己 local.toml 对应 Target/variant 的 jvm-args 中合并该参数；数组整体替换，保留未知参数。
 不要把参数只传给 Gradle 守护进程，以为它必然会传给游戏。
@@ -216,7 +216,7 @@ Invoke-RestMethod "$($connection.BaseUri)/v0/capabilities" -Headers $connection.
 Runtime 正常关闭后移除自己的连接记录，崩溃可能留下旧记录；客户端拒绝无进程或握手不符的记录。
 重启生成新 UUID；已有 Companion/Runner 不自动跟随，即使端口相同也拒绝旧身份。
 需要明确重新连接正确实例，绝不自动重放操作、重建 Lease、清除人工撤销或替用户重新同意。
-token 留在本实例 minecraft-protocol/token，默认随机；不写进报告、聊天、提交或浏览器。
+token 留在本实例 mine_craft_protocol/token，默认随机；不写进报告、聊天、提交或浏览器。
 实例目录及本机文件是受信任本地输入，本机制不防御已能改写文件/进程的宿主恶意程序。
 
 ## WebSocket 事件与输入时序
@@ -456,7 +456,7 @@ Companion握手serverInfo.version直接读取同源package.json，当前实际st
 不能将 INSTANCE_DIR 与旧 URL/token 变量混用；会明确报错，防止两套配置指向不同实例。
 显式模式不提供实例发现/重启隔离保证，推荐所有新使用者采用 INSTANCE_DIR。
 
-可选网页使用同一实例发现变量，设置 MCP_WEB_UI_PORT 后运行 npm --prefix components/companion run web。
+网页仅为本仓源码环境里的接口体验工具，不属于Alpha交付，不承载扩展包配置。需要开发体验时使用同一实例发现变量，设置 MCP_WEB_UI_PORT 后运行 npm --prefix components/companion run web。
 网页默认 4317，不自动寻找空闲端口，不把网页地址误当 Runtime 地址。
 
 ## 模式、类别和权限

@@ -94,7 +94,7 @@ if(scenario==='full'){
  for(const target of targets){
   const path=`validations/conformance-world_read/result/${target}-continuous-input.json`,bytes=await readFile(resolve(repo,path)),result=JSON.parse(bytes.toString('utf8'));
   const proof=continuousInputProof(result,target),hashes=canonicalSourceHashes(result.sourceHashes??{});
-  const required=['components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java','components/companion/src/server.ts','components/protocol_schema/src/main/openapi/minecraft-control-v0.json','components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs','components/validation_tools/conformance-world_read/task/world-read-smoke.mjs','components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1','components/validation_tools/conformance-world_read/task/WorldReadFixture.ps1',`versions/${target}/target.properties`];
+  const required=['components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/AutomationEngine.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProtocolState.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java','components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ConditionEngine.java','components/companion/src/server.ts','components/protocol_schema/src/main/openapi/minecraft-control-v0.json','components/validation_tools/conformance-world_read/task/continuous-input-actions.mjs','components/validation_tools/conformance-world_read/task/world-read-smoke.mjs','components/validation_tools/conformance-world_read/task/Invoke-WorldReadSmoke.ps1','components/validation_tools/conformance-world_read/task/WorldReadFixture.ps1',`versions/${target}/target.properties`];
   required.push('components/companion/package.json','components/companion/package-lock.json');
   if(Object.keys(hashes).length<100||required.some(source=>!/^[0-9a-f]{64}$/.test(hashes[source]??'')))throw new Error('Missing continuous input production/tool bindings: '+target);
   await verifyEvidenceSources(repo,result);
@@ -148,9 +148,9 @@ for(const artifact of artifacts){
   const target=artifact.target;
   const properties=Object.fromEntries((await readFile(resolve(repo,'versions',target,'target.properties'),'utf8')).split(/\r?\n/).filter(line=>line.includes('=')&&!line.startsWith('#')).map(line=>{const i=line.indexOf('=');return[line.slice(0,i).trim(),line.slice(i+1).trim()];}));
   const fabric=target.endsWith('-fabric');
-  const runtime=target.endsWith('-forge')?'ForgeProbeRuntime':fabric?'FabricProbeRuntime':'NeoForgeProbeRuntime';
-  const source=await readFile(resolve(repo,'versions',target,'src',fabric?'client':'main','java/io/github/recrivenvi/minecraftprotocol/probe/runtime',runtime+'.java'),'utf8');
-  if(!source.replace(/\s/g,'').includes('ProbeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+target+'")'))throw new Error('Target does not use instance discovery: '+target);
+  const runtime=target.endsWith('-forge')?'ForgeRuntime':fabric?'FabricRuntime':'NeoForgeRuntime';
+  const source=await readFile(resolve(repo,'versions',target,'src',fabric?'client':'main','java/io/github/recrivenvi/minecraftprotocol/runtime',runtime+'.java'),'utf8');
+  if(!source.replace(/\s/g,'').includes('RuntimeTransport.forInstance(this,minecraft.gameDirectory.toPath(),"'+target+'")'))throw new Error('Target does not use instance discovery: '+target);
   const endpointSource=await readFile(resolve(repo,'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeEndpoint.java'),'utf8');
   const port=endpointSource.match(/DEFAULT_PORT\s*=\s*(\d+)/)?.[1];
   if(port!=='0')throw new Error('Runtime automatic port default must be authoritative: '+target);

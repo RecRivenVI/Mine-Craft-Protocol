@@ -9,22 +9,25 @@
     ],
     "license": "${mod_license}",
     "environment": "${fabric_environment}",
-    "accessWidener": "minecraft_protocol_probe.accesswidener",
+    "accessWidener": "mine_craft_protocol.accesswidener",
     "entrypoints": {
         "main": [
-            "${mod_group}.probe.FabricProbeMod"
+            "${mod_group}.FabricProtocolMod"
         ],
         "client": [
-            "${mod_group}.probe.FabricClientProbeMod"
+            "${mod_group}.FabricClientProtocolMod"
         ],
         "preLaunch": [
-            "${mod_group}.probe.loader.ExtensionPreLaunch"
+            "${mod_group}.loader.ExtensionPreLaunch"
+        ],
+        "modmenu": [
+            "${mod_group}.client.ProtocolModMenu"
         ]
     },
     "mixins": [
-        "minecraft_protocol_probe.server.mixins.json",
+        "mine_craft_protocol.server.mixins.json",
         {
-            "config": "minecraft_protocol_probe.client.mixins.json",
+            "config": "mine_craft_protocol.client.mixins.json",
             "environment": "client"
         }
     ],
@@ -33,5 +36,8 @@
         "fabric-api": "*",
         "minecraft": "~${minecraft_version}",
         "java": ">=${java_version}"
+    },
+    "suggests": {
+        "modmenu": "*"
     }
 }

@@ -1,24 +1,24 @@
 # 本地扩展平台接口
 
-SDK API 1 与清单格式 1 处于实装阶段。稳定候选与预览面最终由用户确认；不代表对外长期兼容承诺。公共 SDK 不依赖 Minecraft，Loader 适配与包代码分别编译。
+SDK API 2 与清单格式 1 处于实装阶段。稳定候选与预览面最终由用户确认；不代表对外长期兼容承诺。公共 SDK 不依赖 Minecraft，Loader 适配与包代码分别编译。
 
 ## 包与内容身份
 
-实例安装根为 minecraft-protocol/extensions。packages 下的目录或 ZIP 包含 extension.json，清单 files 索引除清单本身以外的全部文件。contentIdentity 是清单原始 UTF-8 字节的 SHA-256；文件索引将其绑定到完整内容。禁止重复键、路径逃逸、符号链接、未索引文件及超预算内容。
+扩展包位于实例根的 extensionpacks/；本地批准与派生缓存位于 mine_craft_protocol/extensions/。扩展包目录或 ZIP 包含 extensionpack.json，清单 files 索引除清单本身以外的全部文件。contentIdentity 是清单原始 UTF-8 字节的 SHA-256；文件索引将其绑定到完整内容。禁止重复键、路径逃逸、符号链接、未索引文件及超预算内容。
 
-approvals.json 格式为 formatVersion=1，packages 对象按包 ID 记录 contentIdentity 与 scopes。审批是本地完整 JVM 信任，不是签名或沙箱。代码替换必须重启，无远程上传或自动补依赖。
+approvals.json 格式为 formatVersion=1，packages 对象按包 ID 记录 contentIdentity、scopes 与 enabled。启用选择重启生效，当前装载不热更新。审批是本地完整 JVM 信任，不是签名或沙箱。代码替换必须重启，无远程上传或自动补依赖。
 
 ## 清单格式1
 
-下面是普通目录/ZIP的完整结构示例。counter只是作者自行拥有的包ID；Entry实现公共PackageExtension。64个0必须替换成对应文件真实SHA-256，extension.json本身不进入files。代码JAR不包含SDK、Minecraft、Loader类或另一包私有类。
+下面是普通目录/ZIP的完整结构示例。counter只是作者自行拥有的包ID；CounterExtension实现公共Extension。64个0必须替换成对应文件真实SHA-256，extensionpack.json本身不进入files。代码JAR不包含SDK、Minecraft、Loader类或另一包私有类。
 
 ```json
 {
   "formatVersion": 1,
-  "sdkApi": 1,
+  "sdkApi": 2,
   "id": "counter",
   "version": "1.0.0",
-  "javaNamespace": "io.github.example.counter",
+  "javaNamespace": "io.github.recrivenvi.minecraftprotocol.extensions.counter",
   "files": {
     "code/adapter.jar": "0000000000000000000000000000000000000000000000000000000000000000",
     "docs/overview.md": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -27,7 +27,7 @@ approvals.json 格式为 formatVersion=1，packages 对象按包 ID 记录 conte
     "1.21.1-neoforge": {
       "javaVersion": 21,
       "code": ["code/adapter.jar"],
-      "entrypoints": {"common": ["io.github.example.counter.Entry"]},
+      "entrypoints": {"common": ["io.github.recrivenvi.minecraftprotocol.extensions.counter.CounterExtension"]},
       "mixins": [],
       "mods": {}
     }
@@ -55,15 +55,21 @@ capabilities是包的声明，实际已注册ID另列，二者不能混淆。Pro
   "packages": {
     "counter": {
       "contentIdentity": "0000000000000000000000000000000000000000000000000000000000000000",
-      "scopes": ["read", "debug.world.read", "debug.provider"]
+      "scopes": ["read", "debug.world.read", "debug.provider"],
+      "enabled": true
     }
   }
 }
 ```
 
+## 本地启用与批准
+
+初次启用仅由游戏的物理输入触发，批准绑定固定哈希与声明权限。Agent路由或直接DEBUG回调不能创建批准；Agent可禁用以及重新启用已批准且依赖有效的同一份包，完成按钮可正常操作。修改内容需要重新批准，打开文件夹与文件拖入不是Agent操作。
+扩展界面使用原版两列资源包界面，自然升序且不可重排。待重启的选择用黄色，缺少模组或版本不匹配用红色并拒绝启用；启动发现失效依赖时自动保存禁用，不改其他包的批准。图标取包内已索引的pack.png，没有时使用原版默认图标。
+
 ## 注册与执行
 
-PackageExtension.initialize(PackageContext) 暂存 schema、Provider、UI/世界投影和逻辑输入适配，入口全部成功后原子发布；失败回收整包注册。ProviderSource 按 Runtime 隔离，既有全局 SPI 保持原合同。公开数据和 schema 回调不在注册表锁内执行。
+Extension.initialize(ExtensionContext) 暂存 schema、Provider、UI/世界投影和逻辑输入适配，入口全部成功后原子发布；失败回收整包注册。ProviderSource 按 Runtime 隔离，既有全局 SPI 保持原合同。公开数据和 schema 回调不在注册表锁内执行。
 
 ExtensionException 是公共SDK的本地错误基类，code 返回稳定机器码。作者不依赖Runtime实现类或异常文本；HTTP/MCP继续由既有协议错误映射处理，SDK异常不授予恢复权限。
 
@@ -85,7 +91,7 @@ UI 注册需清单声明 ui，轮询适配需 input，审批不代替每次请�
 
 WorldAdapter 只观察有界客户端父方块/实体，需包声明 read；Provider V2 的服务器内部数据仍为 DEBUG。每个 Projection 绑定 Runtime、世界/维度、父目标与原生身份，部分数据使用稳定 key/revision、有限世界 AABB、内部 aimPoint、最多1/32格的显式变换容差及有界字符串属性。客户端 owner 同步返回就绪快照，不加载区块或等待其他线程；每次读取最多256个部件、128KiB，每适配64个、回调10ms。不可用或预算拒绝进入 extensionLimitations，不静默伪造完整覆盖。
 
-原生世界读取在 extensionParts 中返回 DTO 和独立 targetRef；适配包不能自己签发可执行引用。Native WorldTargeting 复用原父对象的世界/玩家/相机、已加载 chunk、方块历史或实体生命周期及15秒有效期。每次瞄准/操作前重捕获并核对原始版本、父身份和几何，误差始终相对最初快照，不逐步漂移。失效返回 WORLD_PART_STALE 或原有 WORLD_TARGET_STALE，不刷新后重放。
+原生世界读取在 extensionParts 中返回 DTO 和独立 targetRef；扩展包不能自己签发可执行引用。Native WorldTargeting 复用原父对象的世界/玩家/相机、已加载 chunk、方块历史或实体生命周期及15秒有效期。每次瞄准/操作前重捕获并核对原始版本、父身份和几何，误差始终相对最初快照，不逐步漂移。失效返回 WORLD_PART_STALE 或原有 WORLD_TARGET_STALE，不刷新后重放。
 
 动作仍是现有 world.action，需 TAKEOVER/Lease，由 Vanilla sensitivity/inversion 处理相对视角；实际原生 pick 既须命中父目标，也须位于当前部件范围。包没有 dispatch、业务 setter、直接写 yaw/pitch 或绕过距离的入口。部件自带瞄准点，不混用 face/entityHit 显式坐标；此类请求须重新发现普通父目标。原生父 pick 不支持的运动部件仍不可操作，不能把 DEBUG 几何或计数当作 USER Act 成功。
 
@@ -101,7 +107,7 @@ MCP_COMPANION_AUTHORING_ONLY=true 显式启用离线作者模式，不解析端�
 
 ## 生命周期
 
-PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT、INPUT_LEASE 分别表达资源所有权。PackageContext 的 lifetimeContexts 返回脱离原生对象的上下文身份，contextResources 接受 WORLD、CONNECTION、SCREEN、INPUT_LEASE；不可用返回 EXTENSION_CONTEXT_UNAVAILABLE，不创建假上下文。PROCESS 使用 processResources，DEBUG_GRANT 只能使用已授权 DebugContext 的 resources。身份不是操作许可。
+PROCESS、WORLD、CONNECTION、SCREEN、DEBUG_GRANT、INPUT_LEASE 分别表达资源所有权。ExtensionContext 的 lifetimeContexts 返回脱离原生对象的上下文身份，contextResources 接受 WORLD、CONNECTION、SCREEN、INPUT_LEASE；不可用返回 EXTENSION_CONTEXT_UNAVAILABLE，不创建假上下文。PROCESS 使用 processResources，DEBUG_GRANT 只能使用已授权 DebugContext 的 resources。身份不是操作许可。
 
 客户端原生 owner 更新世界、连接和 Screen/layout 身份，读取线程不访问游戏对象。换维度/世界不冒充断线，普通 GUI 换页不改变玩家输入世代；仅相应资源组失效。INPUT_LEASE 绑定已有控制会话与接管世代，Lease 或真人 Esc 不顺带撤销独立 Debug。独服只有自己的 WORLD，没有虚构的客户端连接、Screen 或输入 Lease。Arm renew 不更换持续任务身份；撤销、过期或换世界使该 grant 失效。
 
@@ -111,7 +117,7 @@ Scope 的 requireActive/publish 在调用时检查当前身份，失效后立即
 
 ## 早期 hook（预览）
 
-包内 Mixin 由已审批清单选择 Target 与物理运行端，不注册额外的 Loader 模组。停机工具派生 mods/minecraft-protocol-extension-libraries.jar；它是可再生成的本地库，不是需要作者手工修改的包，也不进入本体发行 JAR。
+包内 Mixin 由已审批清单选择 Target 与物理运行端，不注册额外的 Loader 模组。停机工具派生 mods/mine_craft_protocol-extension-libraries.jar；它是可再生成的本地库，不是需要作者手工修改的包，也不进入本体发行 JAR。
 
 Forge/NeoForge 使用原生 GAMELIBRARY 与 manifest 配置发现。生成配置没有作者 Mixin 类列表，由本体插件核对完整内容身份、依赖、运行端、资源路由与目标尚未加载后提供。Fabric 在固定 Loader 的早期入口添加同一已核验库，并在配置遍历之外提交配置。不替换 Loader 的全局 fallback，也不在普通 mod initializer 中补装晚到 hook。
 

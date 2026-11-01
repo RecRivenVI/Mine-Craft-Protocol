@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerCommonPacketListenerImpl.class)
 public abstract class CustomActionProbeMixin {
     @Inject(method = "handleCustomClickAction", at = @At("HEAD"))
-    private void minecraftProtocolProbe$received(
+    private void mineCraftProtocol$received(
             ServerboundCustomClickActionPacket packet, CallbackInfo ci) {
         CommandConfigurationProbe.customAction();
     }

@@ -213,3 +213,10 @@ version = "2.13.52"
 description = "扩展平台隔离验证输入，不进入本体发行JAR"
 source = "https://modrinth.com/mod/creativecore/version/JS0K93bG"
 sha256 = ["c24e1f6602315ab34f8f01c87760d3a4a682e6d77a6b4880b73cd7e6c80338b9"]
+
+[modmenu]
+version = "21.0.0"
+mod-id = "modmenu"
+description = "Fabric 扩展配置入口的可选 Mod Menu；仅界面验证与人工体验实例安装，不随产品打包"
+source = "https://modrinth.com/mod/modmenu/version/kyy7dbrZ"
+sha256 = ["837812c6c98d66141db7b5dcae668f27fb78d557e8f4c0c89912985fc26a5e6f"]

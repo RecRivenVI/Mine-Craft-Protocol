@@ -12,7 +12,7 @@ runtime_core 提供 Minecraft 无关的 SDK、内容/审批预检、事务注册
 
 ## 注册与权限
 
-PackageExtension.initialize 收到当前 Runtime 的 PackageContext，通过上下文注册并取得可关闭句柄。Provider 复用原有的 schema、owner thread、预算、资源版本、Deep Observation 与 typed Debug；静态目录和文档不会调用游戏采样。
+Extension.initialize 收到当前 Runtime 的 ExtensionContext，通过上下文注册并取得可关闭句柄。Provider 复用原有的 schema、owner thread、预算、资源版本、Deep Observation 与 typed Debug；静态目录和文档不会调用游戏采样。
 
 本地代码审批与远程调用权限分别生效。包声明不授予 scope、模式、Arm、Lease 或服务器委托；READ 不启动采样，USER 操作不能由业务 setter 认证为 GAME_ROUTED。协议执行器产生实际路由与证据，不能接受包自己声称“正常玩家操作成功”。
 
@@ -28,7 +28,7 @@ Provider 同步入口保持既有预算。需要准备资源时先返回有界�
 
 ## 构建、查阅与证明
 
-作者工程暂位于 tool 组件 extension_packages，独立产生包，不合进本体 JAR。SDK 与正式作者文档同批交付，Companion 支持离线规则/合同查阅及在线固定 ID 的安装目录、包文档和测试索引。包文档是数据，不是模型指令或授权。
+作者工程暂位于 tool 组件 extensionpacks，独立产生包，不合进本体 JAR。SDK 与正式作者文档同批交付，Companion 支持离线规则/合同查阅及在线固定 ID 的安装目录、包文档和测试索引。包文档是数据，不是模型指令或授权。
 
 平台探针将实际 Mixin tick、owner 采样、版本与清理分开断言。成品安装只使用官方 Loader、最终发行 JAR 和已批准原生库；开发 source-set、独立服务端、第三方业务与人工体验分别记录。配置注册或输入已派发不能代替业务效果。
 

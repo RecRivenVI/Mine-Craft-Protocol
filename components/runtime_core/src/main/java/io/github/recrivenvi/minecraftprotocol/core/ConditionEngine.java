@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class ConditionEngine implements AutoCloseable {
-    private final ProbeService service;
+    private final RuntimeService service;
     private final ProtocolState protocolState;
     private final EventHub eventHub;
     private final EventHub debugEventHub;
@@ -25,7 +25,7 @@ public final class ConditionEngine implements AutoCloseable {
     private final ScheduledExecutorService scheduler;
 
     ConditionEngine(
-            ProbeService service,
+            RuntimeService service,
             ProtocolState protocolState,
             EventHub eventHub,
             EventHub debugEventHub,
@@ -40,7 +40,7 @@ public final class ConditionEngine implements AutoCloseable {
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
-                            Thread thread = new Thread(runnable, "minecraft-protocol-condition");
+                            Thread thread = new Thread(runnable, "mine_craft_protocol-condition");
                             thread.setDaemon(true);
                             return thread;
                         });

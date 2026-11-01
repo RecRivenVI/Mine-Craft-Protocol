@@ -32,7 +32,7 @@ try {
         $build = 'PASS'
     }
 
-    $javaArgs = @(':version:26.3-neoforge:test', '--tests', 'io.github.recrivenvi.minecraftprotocol.probe.runtime.PersistentStorageAdapterTest', '--no-daemon')
+    $javaArgs = @(':version:26.3-neoforge:test', '--tests', 'io.github.recrivenvi.minecraftprotocol.runtime.PersistentStorageAdapterTest', '--no-daemon')
     if ($Offline) { $javaArgs += '--offline' }
     & '.\gradlew.bat' @javaArgs | ForEach-Object { Write-Host $_ }
     Assert-True ($LASTEXITCODE -eq 0) 'PersistentStorageAdapter deterministic tests failed'

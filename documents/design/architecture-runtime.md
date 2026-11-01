@@ -13,7 +13,7 @@ Mine-Craft-Protocol 是 Agent-native Minecraft Autonomous Testing Platform 的�
 | runtime_core（product） | [共享协议执行与策略](architecture-runtime_core.md)、Provider SPI/注册、资源版本、录制与通用服务接口 |
 | protocol_schema（tool） | 未冻结 V0 OpenAPI 与生成 Java/TypeScript models，生成输出不冒充已接入 Runtime 依赖 |
 | companion（tool） | 独立 MCP stdio surface、协议客户端、有界流读取、static descriptions 与注入隔离；可选本机网页界面工作台复用认证 Native 客户端 |
-| extension_packages（tool） | [独立扩展包作者工程](architecture-extension_platform.md)，SDK 编译、包生成与离线原生库暂存，不进入产品 JAR |
+| extensionpacks（tool） | [独立扩展包作者工程](architecture-extension_platform.md)，SDK 编译、包生成与离线原生库暂存，不进入产品 JAR |
 | validation_tools（tool） | 现有验证驱动、Showcase、报告与迁移 JAR 对照，不合并进产品 |
 
 两个产品组件按模板 product 机制直接合并进每个最终 JAR，开发运行由正规 Loader classpath 接入；

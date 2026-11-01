@@ -38,7 +38,7 @@ function showcaseResult(){
   cases[2].evidence=[{contents:{checksumsVerified:4,dataCategory:'USER'},operatorUiPixelAssertion:'NOT_PERFORMED'}];
   cases[3].evidence=['world','player','chunk'].map(domain=>({domain,dataSource:'PERSISTED',consistency:'last_saved_state',writeImplemented:false}));
   cases[4].evidence=[{case:'cancel-cleanup',terminal:'cancelled',mode:'READ',postCleanupInputDispatch:0}];
-  return {target,purpose:'CORE_SHOWCASE_SMOKE',runtime:'loader_development_source_sets',result:'PASS',sourceChangedDuringRun:false,cleanup:'CLEAN_SHUTDOWN_PORT_RELEASED',maximumHeapBytes:4294967296,persistentWriteInvocations:0,visualAcceptance:'NOT_PERFORMED',unifiedAcceptance:'NOT_PERFORMED',cases,sourceHashes:{'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/ProbeTransport.java':hash,[`versions/${target}/target.properties`]:hash}};
+  return {target,purpose:'CORE_SHOWCASE_SMOKE',runtime:'loader_development_source_sets',result:'PASS',sourceChangedDuringRun:false,cleanup:'CLEAN_SHUTDOWN_PORT_RELEASED',maximumHeapBytes:4294967296,persistentWriteInvocations:0,visualAcceptance:'NOT_PERFORMED',unifiedAcceptance:'NOT_PERFORMED',cases,sourceHashes:{'components/runtime_core/src/main/java/io/github/recrivenvi/minecraftprotocol/core/RuntimeTransport.java':hash,[`versions/${target}/target.properties`]:hash}};
 }
 test('alpha accepts bounded Core Showcase only as scoped development evidence, never full Native or MCP',()=>{
   const proof=coreShowcaseProof(showcaseResult(),'26.3-neoforge');

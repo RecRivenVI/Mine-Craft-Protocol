@@ -19,7 +19,7 @@ class ServerProviderContractTest {
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.setProperty("minecraft.protocol.scopes", "read,event,server_console");
         try (var service = new ServerConsoleService(directory, "26.3-neoforge", host());
-                var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
             JsonObject descriptors = json(call(port, "GET", "/v0/providers", null));
@@ -102,7 +102,7 @@ class ServerProviderContractTest {
         String previous = System.getProperty("minecraft.protocol.scopes");
         System.setProperty("minecraft.protocol.scopes", "read,event");
         try (var service = new ServerConsoleService(directory, "26.3-neoforge", host());
-                var transport = new ProbeTransport(service, "test-token", 0, "26.3-neoforge")) {
+                var transport = new RuntimeTransport(service, "test-token", 0, "26.3-neoforge")) {
             transport.startAsync();
             int port = transport.boundPort().get(5, TimeUnit.SECONDS);
             var response =

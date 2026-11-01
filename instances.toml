@@ -3,11 +3,11 @@ width = 2560
 height = 1440
 
 [client]
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
 mods = ["customskinloader-bootstrap"]
 
 [client-multiplayer]
-jvm-args = ["-Dminecraft.protocol.probe.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
 mods = ["customskinloader-bootstrap"]
 
 [targets."1.20.1-forge".client]

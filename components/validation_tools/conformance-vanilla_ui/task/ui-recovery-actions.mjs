@@ -138,7 +138,7 @@ export async function recoveryUiActions({api, repo, target, tree, wait, nodes, u
     if (!(await tree()).screenClass.endsWith('TitleScreen')) {
       await page('UiRecoveryFixtureScreen'); await button(['gui.done']);
       if (target === REFERENCE) {await page('UiNavigationFixtureScreen'); await button(['gui.done']);}
-      await page('AutomationProbeScreen'); await button([], 'Close Probe'); await page('TitleScreen');
+      await page('AutomationDiagnosticScreen'); await button([], 'Close Probe'); await page('TitleScreen');
     }
     await clean();
   });

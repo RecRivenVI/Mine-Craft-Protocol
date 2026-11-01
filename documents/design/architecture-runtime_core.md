@@ -15,7 +15,7 @@ Companion 按明确实例目录发现并固定身份；重启后必须明确重�
 
 组件包含 Provider SPI 与注册表、HTTP/WebSocket 传输、认证预算、Control Lease/Debug Arm 与操作状态、
 Pipeline/Wait/Assert、观察与资源版本、Provider 执行、录制和 Artifact，以及内置诊断 Provider。
-共享执行器通过 `ProbeService` 调用 Target 原生适配器；游戏、渲染与服务端线程调度留在各 Target。
+共享执行器通过 `RuntimeService` 调用 Target 原生适配器；游戏、渲染与服务端线程调度留在各 Target。
 
 独立服务端复用同一ProbeTransport、ProtocolState、RuntimeEndpoint与认证预算。
 ServerConsoleService以HeadlessProbeService显式拒绝没有实现的客户端表面；ServerConsole只持有有界JSON输出和MC无关Host接口，
@@ -45,11 +45,11 @@ PlayerCommandGate 在方法入口和最终包边界复验权限、控制世代�
 原生客户端缓存读取、轮廓提交和相机上下文留在 Target；WorldClientModel 共享字段白名单、查询/扫描/输出预算，
 不持有 Minecraft 对象。world USER 不依赖像素可见性，UI USER 仍受呈现过滤；所有消费者通过 WorldReadEngine。
 
-`probe.api` 的公开类名、方法与 JSON 合同保持不变。内部执行器使用独立的 `core` 包，
+`api` 的公开类名、方法与 JSON 合同保持不变。内部执行器使用独立的 `core` 包，
 避免开发运行中产品组件与 Target 的包内访问或模块包冲突。只公开原生适配器和原生契约测试所需边界；
 可见性不是额外授权，HTTP 请求仍由现有认证、scope、mode、Lease、Arm 与前置条件检查。
 
-正式服务接口为 `ProbeService`。现有实验能力通过 `Phase9AExperimentalService` 显式接入，
+正式服务接口为 `RuntimeService`。现有实验能力通过 `Phase9AExperimentalService` 显式接入，
 仅 Forge 1.20.1、NeoForge 26.3 和 Fabric 26.3 实现；另外两端对应实验路由继续不存在。
 通用传输的 Target 身份由原生构造处传入，Provider namespace 使用 Target 生成的 `ProtocolIdentity.MOD_ID`，
 组件不生成第二份模组身份，也不硬编码产品 ID。

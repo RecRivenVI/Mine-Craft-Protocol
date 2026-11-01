@@ -2,8 +2,8 @@ package io.github.recrivenvi.minecraftprotocol.core.extension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources;
-import io.github.recrivenvi.minecraftprotocol.probe.extension.ExtensionResources.Lifetime;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources;
+import io.github.recrivenvi.minecraftprotocol.api.extension.ExtensionResources.Lifetime;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;

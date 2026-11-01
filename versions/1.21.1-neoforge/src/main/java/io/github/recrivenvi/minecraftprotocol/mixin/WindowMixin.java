@@ -1,0 +1,47 @@
+package io.github.recrivenvi.minecraftprotocol.mixin;
+
+import com.mojang.blaze3d.platform.Window;
+import io.github.recrivenvi.minecraftprotocol.runtime.NeoForgeRuntime;
+import org.lwjgl.glfw.GLFWImage;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(Window.class)
+abstract class WindowMixin {
+    @Redirect(
+            method = "setTitle",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lorg/lwjgl/glfw/GLFW;glfwSetWindowTitle(JLjava/lang/CharSequence;)V",
+                            remap = false))
+    private void mineCraftProtocol$title(long window, CharSequence title) {
+        NeoForgeRuntime.onVanillaWindowTitle(window, title);
+    }
+
+    @Redirect(
+            method = "setIcon",
+            at =
+                    @At(
+                            value = "INVOKE",
+                            target =
+                                    "Lorg/lwjgl/glfw/GLFW;glfwSetWindowIcon(JLorg/lwjgl/glfw/GLFWImage$Buffer;)V",
+                            remap = false))
+    private void mineCraftProtocol$rememberActualIcons(long window, GLFWImage.Buffer icons) {
+        NeoForgeRuntime.onVanillaWindowIcon(window, icons);
+    }
+
+    @Inject(method = "onFocus", at = @At("HEAD"))
+    private void mineCraftProtocol$focus(long window, boolean focused, CallbackInfo ci) {
+        NeoForgeRuntime.onHostFocus(focused);
+    }
+
+    @Inject(method = "close", at = @At("HEAD"))
+    private void mineCraftProtocol$restoreBeforeDestroy(CallbackInfo ci) {
+        NeoForgeRuntime.beforeWindowClose();
+    }
+}

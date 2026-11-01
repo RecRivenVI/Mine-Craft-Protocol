@@ -24,14 +24,14 @@ public abstract class BackgroundWindowProbeMixin {
                             target =
                                     "Lcom/mojang/renderpearl/api/device/GpuBackend;createWindow(Ljava/lang/String;IIJ)J"),
             index = 3)
-    private long minecraftProtocolProbe$backgroundCreation(long flags) {
+    private long mineCraftProtocol$backgroundCreation(long flags) {
         return "true".equals(System.getenv("MCP_VALIDATION_BACKGROUND_WINDOW"))
                 ? flags | SDLVideo.SDL_WINDOW_NOT_FOCUSABLE
                 : flags;
     }
 
     @Inject(method = "isFocused", at = @At("HEAD"), cancellable = true)
-    private void minecraftProtocolProbe$nativeFocus(CallbackInfoReturnable<Boolean> callback) {
+    private void mineCraftProtocol$nativeFocus(CallbackInfoReturnable<Boolean> callback) {
         if (!"true".equals(System.getenv("MCP_VALIDATION_BACKGROUND_WINDOW"))) return;
         // A never-focused SDL window need not emit FOCUS_LOST. Read native flags
         // rather than pretending the game's initially-true cache is an OS event.

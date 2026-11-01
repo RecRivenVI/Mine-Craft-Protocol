@@ -47,7 +47,7 @@ public final class AutomationEngine implements AutoCloseable {
                     Map.entry("state.read", List.of("read")),
                     Map.entry("world.action", List.of()));
 
-    private final ProbeService service;
+    private final RuntimeService service;
     private final Consumer<JsonObject> authorizeStep;
     private final ScheduledExecutorService scheduler;
     private final Set<PipelineExecution> activeExecutions = ConcurrentHashMap.newKeySet();
@@ -58,17 +58,17 @@ public final class AutomationEngine implements AutoCloseable {
     private volatile boolean closed;
     private final InteractionPacing pacing = new InteractionPacing();
 
-    public AutomationEngine(ProbeService service) {
+    public AutomationEngine(RuntimeService service) {
         this(service, step -> {});
     }
 
-    AutomationEngine(ProbeService service, Consumer<JsonObject> authorizeStep) {
+    AutomationEngine(RuntimeService service, Consumer<JsonObject> authorizeStep) {
         this.service = service;
         this.authorizeStep = authorizeStep;
         this.scheduler =
                 Executors.newSingleThreadScheduledExecutor(
                         runnable -> {
-                            Thread thread = new Thread(runnable, "minecraft-protocol-automation");
+                            Thread thread = new Thread(runnable, "mine_craft_protocol-automation");
                             thread.setDaemon(true);
                             return thread;
                         });

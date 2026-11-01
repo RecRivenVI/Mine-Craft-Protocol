@@ -27,11 +27,11 @@ class UiDebugBatchDeadlineTest {
             CompletableFuture<DebugMutationAuthorization> dispatched = new CompletableFuture<>();
             CompletableFuture<JsonObject> child = new CompletableFuture<>();
             AtomicInteger mutations = new AtomicInteger();
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getName().equals("phase9cDebugMutation")) {
                                             dispatched.complete(
@@ -90,11 +90,11 @@ class UiDebugBatchDeadlineTest {
     void queuedClientMutationCannotEnterAfterBatchDeadline() throws Exception {
         CompletableFuture<DebugMutationAuthorization> dispatched = new CompletableFuture<>();
         CompletableFuture<JsonObject> child = new CompletableFuture<>();
-        ProbeService service =
-                (ProbeService)
+        RuntimeService service =
+                (RuntimeService)
                         Proxy.newProxyInstance(
-                                ProbeService.class.getClassLoader(),
-                                new Class<?>[] {ProbeService.class},
+                                RuntimeService.class.getClassLoader(),
+                                new Class<?>[] {RuntimeService.class},
                                 (proxy, method, args) -> {
                                     if (method.getName().equals("phase9cDebugMutation")) {
                                         dispatched.complete((DebugMutationAuthorization) args[1]);

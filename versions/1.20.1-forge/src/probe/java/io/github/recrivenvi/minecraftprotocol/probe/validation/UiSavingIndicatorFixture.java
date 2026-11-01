@@ -265,7 +265,7 @@ public final class UiSavingIndicatorFixture {
     }
 
     private static boolean nativePaused(IntegratedServer server) {
-        return ((UiSavingServerPauseProbeAccessor) server).minecraftProtocolProbe$paused();
+        return ((UiSavingServerPauseProbeAccessor) server).mineCraftProtocol$paused();
     }
 
     private static final class State {

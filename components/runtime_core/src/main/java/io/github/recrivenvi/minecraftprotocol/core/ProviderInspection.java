@@ -2,7 +2,7 @@ package io.github.recrivenvi.minecraftprotocol.core;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.github.recrivenvi.minecraftprotocol.probe.api.AgentDataProviderV2;
+import io.github.recrivenvi.minecraftprotocol.api.AgentDataProviderV2;
 
 /**
  * Public declaration, not current authorization or a substitute for provider payload documentation.

@@ -7,7 +7,7 @@ import java.util.List;
 /** Fixed-family HUD draw observations, not player statistics or general render inspection. */
 public final class UiHudIcons {
     public interface Source {
-        UiHudIcons minecraftProtocolProbe$hudIcons();
+        UiHudIcons mineCraftProtocol$hudIcons();
     }
 
     public enum Kind {

@@ -19,7 +19,7 @@ public abstract class UiSavingServerFlagProbeMixin {
                             opcode = Opcodes.PUTFIELD,
                             ordinal = 0,
                             shift = At.Shift.AFTER))
-    private void minecraftProtocolProbe$afterActualSavingFlag(
+    private void mineCraftProtocol$afterActualSavingFlag(
             boolean suppressLog,
             boolean flush,
             boolean forced,
@@ -29,7 +29,7 @@ public abstract class UiSavingServerFlagProbeMixin {
     }
 
     @Inject(method = "saveEverything", at = @At("RETURN"))
-    private void minecraftProtocolProbe$afterNativeSaveReturned(
+    private void mineCraftProtocol$afterNativeSaveReturned(
             boolean suppressLog,
             boolean flush,
             boolean forced,

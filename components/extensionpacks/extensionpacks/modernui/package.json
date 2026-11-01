@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "javaNamespace": "io.github.recrivenvi.minecraftprotocol.extensions.modernui",
+  "targets": [
+    "1.20.1-forge",
+    "1.21.1-neoforge",
+    "26.1.2-neoforge"
+  ],
+  "mods": {},
+  "requestedScopes": [
+    "ui",
+    "input"
+  ],
+  "capabilities": [
+    "modernui:visible_views",
+    "modernui:logical_input"
+  ],
+  "exports": [
+    "io.github.recrivenvi.minecraftprotocol.extensions.modernui.bridge"
+  ],
+  "mixins": [
+    {
+      "config": "mixins/modernui.mixins.json",
+      "side": "client"
+    }
+  ],
+  "resources": {
+    "mixins/modernui.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.modernui.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "FrameMixin1_20_1ForgeAnd1_21_1NeoForge",
+        "PointerIconMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/modernui-1.20.1-forge.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.modernui.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "CompilerMixin1_20_1Forge",
+        "FrameMixin1_20_1ForgeAnd1_21_1NeoForge",
+        "PointerIconMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    },
+    "mixins/modernui-26.1.2-neoforge.mixins.json": {
+      "required": true,
+      "minVersion": "0.8",
+      "package": "io.github.recrivenvi.minecraftprotocol.extensions.modernui.mixin",
+      "compatibilityLevel": "JAVA_17",
+      "client": [
+        "ManagerMixin",
+        "FrameMixin26_1_2NeoForge",
+        "PointerIconMixin"
+      ],
+      "injectors": {
+        "defaultRequire": 1
+      }
+    }
+  },
+  "targetMixins": {
+    "1.20.1-forge": [
+      {
+        "config": "mixins/modernui-1.20.1-forge.mixins.json",
+        "side": "client"
+      }
+    ],
+    "26.1.2-neoforge": [
+      {
+        "config": "mixins/modernui-26.1.2-neoforge.mixins.json",
+        "side": "client"
+      }
+    ]
+  },
+  "targetMods": {
+    "1.20.1-forge": {
+      "modernui": "3.12.0.1"
+    },
+    "1.21.1-neoforge": {
+      "modernui": "3.13.0.1"
+    },
+    "26.1.2-neoforge": {
+      "modernui": "3.13.0.5"
+    }
+  },
+  "entrypoint": "ModernUiExtension",
+  "title": "Modern UI",
+  "description": "界面、文本、滚动、拖拽及逻辑输入适配。"
+}

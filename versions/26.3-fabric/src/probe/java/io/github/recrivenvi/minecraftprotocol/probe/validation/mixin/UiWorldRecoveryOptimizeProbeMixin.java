@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(OptimizeWorldScreen.class)
 public abstract class UiWorldRecoveryOptimizeProbeMixin {
     @Inject(method = "removed", at = @At("TAIL"))
-    private void minecraftProtocolProbe$observeNativeOptimizerRemoved(CallbackInfo callback) {
+    private void mineCraftProtocol$observeNativeOptimizerRemoved(CallbackInfo callback) {
         UiWorldRecoveryFixtureScreen.observeNativeRemoved((OptimizeWorldScreen) (Object) this);
     }
 }

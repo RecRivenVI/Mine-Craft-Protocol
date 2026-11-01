@@ -2,7 +2,7 @@
 
 当前 Core 是 **Agent-native Minecraft Autonomous Testing Platform**：让 Agent
 通过 Minecraft 自身的 Runtime 完成 Arrange → Act → Observe / Wait / Assert → Evidence。
-产品显示名仍为 Minecraft Protocol Probe；E1/E2/E3 是非阻塞的可选扩展，Wire Protocol v1 未冻结。
+产品显示名仍为 Mine Craft Protocol；E1/E2/E3 是非阻塞的可选扩展，Wire Protocol v1 未冻结。
 
 ## Target
 

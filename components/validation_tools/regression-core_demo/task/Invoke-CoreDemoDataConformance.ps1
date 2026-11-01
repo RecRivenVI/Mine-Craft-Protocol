@@ -67,7 +67,7 @@ foreach($domain in @('world','player','chunk')){
 $currentControl=Json GET '/v0/control/status'
 Set-AgentMode $base $auth OPERATE $currentControl.leaseId|Out-Null
 Json POST '/v0/diagnostics/ui/test-screen'|Out-Null
-Json POST '/v0/wait/until' @{condition=@{type='screen';classContains='AutomationProbeScreen'};timeoutMs=5000}|Out-Null
+Json POST '/v0/wait/until' @{condition=@{type='screen';classContains='AutomationDiagnosticScreen'};timeoutMs=5000}|Out-Null
 Set-AgentMode $base $auth READ|Out-Null
 $previous=ImageSamples (Capture 'reference-0.png')
 $reference=$null

@@ -2,11 +2,11 @@ function Get-ExtensionHostPlan {
     param([string]$Repository,[string]$Target,[string]$Adapter,[string]$Profile)
     $registered=[regex]::Matches([IO.File]::ReadAllText((Join-Path $Repository 'settings.gradle.kts')),'register\("([0-9.]+-(?:forge|neoforge|fabric))"\)')|ForEach-Object {$_.Groups[1].Value}
     if($Target-notin$registered){throw 'Registered Target required'}
-    $adapters=@('platform_probe')+@(Get-Content (Join-Path $Repository 'components/extension_packages/packages/index.json') -Raw|ConvertFrom-Json)
+    $adapters=@('platform_probe')+@(Get-Content (Join-Path $Repository 'components/extensionpacks/extensionpacks/index.json') -Raw|ConvertFrom-Json)
     if($Adapter-notin$adapters){throw 'Registered adapter/fixture ID required'}
     if($Profile-notin@('native-client','installed-client','installed-server')){throw 'Registered host profile required'}
     if($Adapter-ne'platform_probe'){
-        $spec=Get-Content (Join-Path $Repository "components/extension_packages/packages/$Adapter/package.json") -Raw|ConvertFrom-Json
+        $spec=Get-Content (Join-Path $Repository "components/extensionpacks/extensionpacks/$Adapter/package.json") -Raw|ConvertFrom-Json
         if($Target-notin$spec.targets){throw 'No pinned adapter variant for this Target'}
     }
     $role=if($Profile-eq'installed-server'){'server'}else{'client'}
@@ -32,7 +32,7 @@ function Assert-ExtensionHostStopped {
     param($Plan)
     if(-not$IsWindows){throw 'Native host process and lock verification requires Windows'}
     [void](Assert-ExtensionHostPath $Plan.Base $Plan.Game)
-    if(Test-Path -LiteralPath (Join-Path $Plan.Game 'minecraft-protocol/endpoint.json')){throw 'Endpoint still present; use normal Runtime shutdown/owned cleanup before host changes'}
+    if(Test-Path -LiteralPath (Join-Path $Plan.Game 'mine_craft_protocol/endpoint.json')){throw 'Endpoint still present; use normal Runtime shutdown/owned cleanup before host changes'}
     $processes=Get-CimInstance Win32_Process -Filter "name='java.exe'"
     if($processes|Where-Object {$_.CommandLine-and$_.CommandLine.Contains($Plan.Game,[StringComparison]::OrdinalIgnoreCase)}){throw 'Game process still uses registered instance'}
     Assert-RuntimeInstanceStopped $Plan.Game
@@ -74,7 +74,7 @@ function Get-ExtensionHostFacts {
 function Retire-ExtensionHostEndpoint {
     param($Plan)
     if(-not$IsWindows){throw 'Endpoint process/port retirement requires Windows'}
-    $path=Join-Path $Plan.Game 'minecraft-protocol/endpoint.json'
+    $path=Join-Path $Plan.Game 'mine_craft_protocol/endpoint.json'
     [void](Assert-ExtensionHostPath $Plan.Base $path)
     if(-not(Test-Path -LiteralPath $path)){return}
     if((Get-Item -LiteralPath $path).Length-gt16384){throw 'Oversized endpoint retained'}

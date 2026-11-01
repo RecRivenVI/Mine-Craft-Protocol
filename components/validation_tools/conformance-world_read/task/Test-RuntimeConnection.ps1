@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $root=Join-Path $repo ('components/validation_tools/build/discovery-tests/'+[guid]::NewGuid().ToString('N'))
 $game=Join-Path $root 'client'
-$directory=Join-Path $game 'minecraft-protocol'
+$directory=Join-Path $game 'mine_craft_protocol'
 [IO.Directory]::CreateDirectory($directory)|Out-Null
 $self=Get-Process -Id $PID
 $script:record=@{schemaVersion=1;runtimeInstanceId=[guid]::NewGuid().ToString();target='test-target';gameDirectory=$game;pid=$PID;processStartedAt=$self.StartTime.ToUniversalTime().ToString('o');startedAt=[DateTime]::UtcNow.ToString('o');tokenFile='token';port=12345;baseUrl='http://127.0.0.1:12345';state='RUNNING'}

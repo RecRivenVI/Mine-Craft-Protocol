@@ -19,7 +19,7 @@ const target=process.argv.find(arg=>arg.startsWith('--target='))?.slice(9);
 const worldDebug=process.argv.includes('--world-debug');
 const extensionPlatform=process.argv.includes('--extension-platform');
 const extensionAdapter=process.argv.find(arg=>arg.startsWith('--extension-adapter='))?.slice(20)??'platform_probe';
-assert(['platform_probe','computercraft','modern_ui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
+assert(['platform_probe','computercraft','modernui','emi','ae2','create','exposure','littletiles'].includes(extensionAdapter));
 assert(extensionPlatform||extensionAdapter==='platform_probe');
 assert(!(worldDebug&&extensionPlatform),'Separate explicit server acceptance groups');
 assert(['26.3-neoforge','26.1.2-neoforge','1.21.1-neoforge','1.20.1-forge','26.3-fabric'].includes(target),'Explicit registered Target required');
@@ -35,7 +35,7 @@ await writeFile(resultPath,JSON.stringify({target,status:'IN_PROGRESS',stage:'in
 const ownerFile=join(game,'console-owner.json');
 function alive(pid){if(!pid)return false;assert(Number.isSafeInteger(pid)&&pid>0,'Invalid owned process identity');try{process.kill(pid,0);return true;}catch(error){if(error.code==='ESRCH')return false;throw error;}}
 if(await exists(ownerFile)){const owner=JSON.parse(await readFile(ownerFile,'utf8'));assert.equal(owner.owner,'server-console-smoke');assert.equal(owner.target,target);assert(!alive(owner.pid)&&!alive(owner.serverPid),'Owned server smoke or its surviving server is still running; directory left untouched');}
-const endpointFile=join(game,'minecraft-protocol/endpoint.json');
+const endpointFile=join(game,'mine_craft_protocol/endpoint.json');
 if(await exists(endpointFile)){const old=JSON.parse(await readFile(endpointFile,'utf8'));assert.equal(old.target,target);assert(!alive(old.pid),'A Runtime still owns this directory; no configuration or JAR will be overwritten');}
 await writeFile(ownerFile,JSON.stringify({owner:'server-console-smoke',target,pid:process.pid}));
 assert(/^eula\s*=\s*true\s*$/m.test(await readFile(join(repo,'local.toml'),'utf8')),'Explicit preexisting EULA consent required');
@@ -80,7 +80,7 @@ if(loader==='fabric'){
 const jarName=`${product.mod_id}-${target}-${product.mod_version}.jar`,jar=join(repo,'versions',target,'build/libs',jarName);
 await mkdir(join(game,'mods'),{recursive:true});
 const extensionInputs=extensionPlatform?new Set([...await readFile(join(repo,'inputs.toml'),'utf8') .then(text=>text.matchAll(/^\[([^\]]+)\]/gm))].map(match=>'extension-input-'+match[1]+'.jar')):new Set();
-assert((await readdir(join(game,'mods'))).every(name=>name===jarName||(extensionPlatform&&(name==='minecraft-protocol-extension-libraries.jar'||extensionInputs.has(name)))),'Only product and explicit declared extension inputs/library');
+assert((await readdir(join(game,'mods'))).every(name=>name===jarName||(extensionPlatform&&(name==='mine_craft_protocol-extension-libraries.jar'||name==='mine_craft_protocol-extension-discovery.jar'||extensionInputs.has(name)))),'Only product and explicit declared extension inputs/library');
 await copyFile(jar,join(game,'mods',jarName));
 const extensionStage=extensionPlatform?await (await import('../../integration-extension_platform/task/installed-package.mjs')).preparePlatformPackage({repo,target,game,role:'server',adapter:extensionAdapter}):undefined;
 await writeFile(join(game,'eula.txt'),'eula=true\n');
@@ -98,7 +98,7 @@ if(extensionPlatform){
   report.sourceHashes=await candidateSource(repo,[target]);report.toolHashes={};
   for(const path of ['components/validation_tools/integration-server_peer/task/server-console-smoke.mjs','components/validation_tools/integration-server_peer/task/server-world-fixture.mjs','components/validation_tools/integration-server_peer/task/server-installation.mjs','components/validation_tools/integration-extension_platform/task/installed-package.mjs','components/validation_tools/integration-packaged_runtime/task/installed-launcher.mjs'])report.toolHashes[path]=digest(await readFile(join(repo,path)));
 }
-report.fixture=await prepareServerWorld({repo,game,world:fixtureWorld,target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),...(extensionPlatform?{baselineId:'fixture-baseline-'+extensionAdapter+(fixtureBlock?extensionAdapter==='littletiles'?'-machine-v3':'-machine-v1':''),fixtureIdentity:{adapter:extensionAdapter,upstream:await extensionInputArtifacts(game)}}:{}),
+const fixtureOptions={repo,game,world:fixtureWorld,target,validation:extensionPlatform?'integration-extension_platform':'integration-server_peer',facts:join(repo,'versions',target,'target.properties'),...(extensionPlatform?{baselineId:'fixture-baseline-'+extensionAdapter+(fixtureBlock?extensionAdapter==='littletiles'?'-machine-v3':'-machine-v1':''),fixtureIdentity:{adapter:extensionAdapter,upstream:await extensionInputArtifacts(game)}}:{}),
   start:async()=>{
     const output=createWriteStream(join(game,'fixture-preparation.log'));
     const native=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false',...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
@@ -136,7 +136,13 @@ report.fixture=await prepareServerWorld({repo,game,world:fixtureWorld,target,val
     native.stdin.write('stop\n');let timer;
     try{assert.equal(await Promise.race([exit,new Promise((_,fail)=>{timer=setTimeout(()=>fail(Error('Fixture stop deadline')),45000);})]),0);}
     catch(error){native.kill();await exit;throw error;}finally{clearTimeout(timer);output.end();}
-  }}).catch(async error=>{await writeFile(resultPath,JSON.stringify({...report,status:'FAIL',stage:'fixture',error:String(error.stack??error)},null,2)+'\n');throw error;});
+  }};
+if(extensionPlatform&&loader!=='fabric'&&!await exists(join(game,'mods/mine_craft_protocol-extension-discovery.jar'))){
+  const warmup=await fixtureOptions.start();await fixtureOptions.stop(warmup);
+  assert(await exists(join(game,'mods/mine_craft_protocol-extension-discovery.jar')),'First ordinary server startup must prepare the discovery bridge');
+  report.discoveryWarmup={normalStartup:true,cleanShutdown:true};
+}
+report.fixture=await prepareServerWorld(fixtureOptions).catch(async error=>{await writeFile(resultPath,JSON.stringify({...report,status:'FAIL',stage:'fixture',error:String(error.stack??error)},null,2)+'\n');throw error;});
 const log=createWriteStream(join(game,'console-smoke.log'));
 const child=spawn(java,['-Xms512M','-Xmx2G','-Dfile.encoding=UTF-8','-Dterminal.jline=false','-Dminecraft.protocol.scopes=read,event,control,command,diagnostics,server_console'+(worldDebug||extensionPlatform?',storage.read,server_peer,debug,debug.world.read,debug.write,debug.world,debug.entity,debug.block_entity,debug.player,debug.menu,debug.provider':''),...launchArgs],{cwd:game,windowsHide:true,stdio:['pipe','pipe','pipe']});
 report.pid=child.pid;report.gamePort=gamePort;child.stdout.pipe(log,{end:false});child.stderr.pipe(log,{end:false});
@@ -154,8 +160,8 @@ async function nativeCommand(command){
   const terminal=await until(()=>call('GET','/v0/operations/'+operation.operationId),value=>['completed','failed','cancelled'].includes(value.state),'console Operation terminal');assert.equal(terminal.state,'completed',JSON.stringify(terminal));return terminal.result;
 }
 try{
-  endpoint=await until(async()=>await exists(join(game,'minecraft-protocol/endpoint.json'))?JSON.parse(await readFile(join(game,'minecraft-protocol/endpoint.json'),'utf8')):null,value=>value?.pid===child.pid&&value?.target===target,'dedicated endpoint for this owned process',120000);
-  assert.equal(endpoint.deploymentRole,'DEDICATED_SERVER');token=(await readFile(join(game,'minecraft-protocol/token'),'utf8')).trim();report.runtimeInstanceId=endpoint.runtimeInstanceId;report.runtimePort=endpoint.port;
+  endpoint=await until(async()=>await exists(join(game,'mine_craft_protocol/endpoint.json'))?JSON.parse(await readFile(join(game,'mine_craft_protocol/endpoint.json'),'utf8')):null,value=>value?.pid===child.pid&&value?.target===target,'dedicated endpoint for this owned process',120000);
+  assert.equal(endpoint.deploymentRole,'DEDICATED_SERVER');token=(await readFile(join(game,'mine_craft_protocol/token'),'utf8')).trim();report.runtimeInstanceId=endpoint.runtimeInstanceId;report.runtimePort=endpoint.port;
   report.session=await call('GET','/v0/session');assert.equal(report.session.deploymentRole,'DEDICATED_SERVER');assert.equal(report.session.inputSurfaceAvailable,false);
   await call('GET','/v0/session',undefined,401,{Authorization:'Bearer wrong'});await call('GET','/v0/session',undefined,409,{'X-MCP-Runtime-Instance':'00000000-0000-0000-0000-000000000000'});report.checks.authAndInstancePin=true;
   const mode=await call('GET','/v0/control/mode');assert(mode.availableTransitions.every(item=>item.mode!=='TAKEOVER'));
@@ -202,7 +208,7 @@ try{
   if(worldDebug)report.worldDebug=await checkServerWorldDebug({call,mcp,child,until});
   await mcp.close();mcp=undefined;await mcpTransport.close();
   child.stdin.write('stop\n');assert.equal(await Promise.race([exit,sleep(30000).then(()=>{throw Error('normal stop deadline');})]),0);
-  assert(!await exists(join(game,'minecraft-protocol/endpoint.json')));report.checks.normalShutdownRemovesEndpoint=true;
+  assert(!await exists(join(game,'mine_craft_protocol/endpoint.json')));report.checks.normalShutdownRemovesEndpoint=true;
   if(extensionPlatform){assert.deepEqual(await candidateSource(repo,[target]),report.sourceHashes);for(const [path,hash]of Object.entries(report.toolHashes))assert.equal(digest(await readFile(join(repo,path))),hash,'Server test source changed: '+path);}
   report.status='PASS';
   console.log(target+(worldDebug?' dedicated world DEBUG + console PASS':' dedicated console PASS'));

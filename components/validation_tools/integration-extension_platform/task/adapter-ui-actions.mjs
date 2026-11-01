@@ -31,7 +31,7 @@ export async function adapterUiActions({adapter,api,tree,screen:readScreen,nodes
             observations.push({case:'computercraft_terminal_roundtrip',used,hovered,terminal,act:'GAME_ROUTED',oracle:'client_visible_terminal',directBusinessCall:false,fixtureCommands:true});
             await key(256);await screen(value=>!value.screenClass);await api('POST','/v0/control/release');
         });
-    } else if(adapter==='modern_ui') {
+    } else if(adapter==='modernui') {
         await check('Modern UI framework tree and logical input navigate real configuration',async()=>{
             await acquire();await key(256);
             const pause=await screen(value=>nodes(value).some(node=>['menu.disconnect','menu.returnToMenu'].includes(node.translationKey)));
@@ -45,47 +45,47 @@ export async function adapterUiActions({adapter,api,tree,screen:readScreen,nodes
             await ui(row,'click');current=await tree();
             const config=nodes(current).find(node=>node.translationKey==='fml.menu.mods.config'&&node.active!==false);assert(config);
             await ui(config,'click');
-            current=await screen(value=>nodes(value).some(node=>node.capabilitySource==='modern_ui:visible_views'),20000);
-            const initial=nodes(current).filter(node=>node.capabilitySource==='modern_ui:visible_views');
-            observations.push({case:'modern_ui_visible_initial',nodes:initial});
+            current=await screen(value=>nodes(value).some(node=>node.capabilitySource==='modernui:visible_views'),20000);
+            const initial=nodes(current).filter(node=>node.capabilitySource==='modernui:visible_views');
+            observations.push({case:'modernui_visible_initial',nodes:initial});
             const candidates=initial.filter(node=>node.role==='checkbox'&&typeof node.value==='boolean'&&node.label);
             assert(candidates.length>=2,JSON.stringify(initial));
             const selected=candidates.find(node=>node.value===true),other=candidates.find(node=>node.value===false);assert(selected&&other);
             observations.push({beforeHover:await tree()});await ui(other,'hover');observations.push({afterHover:await tree()});const result=await ui(other,'click');
             current=await screen(value=>nodes(value).some(node=>node.nodeId===other.nodeId&&node.value===true),10000);
-            observations.push({case:'modern_ui_real_navigation',from:selected,to:other,result,nodes:nodes(current).filter(node=>node.capabilitySource==='modern_ui:visible_views')});
+            observations.push({case:'modernui_real_navigation',from:selected,to:other,result,nodes:nodes(current).filter(node=>node.capabilitySource==='modernui:visible_views')});
             await ui(nodes(current).find(node=>node.nodeId===selected.nodeId),'click');
             current=await screen(value=>nodes(value).some(node=>node.nodeId===selected.nodeId&&node.value===true),10000);
-            const preference=nodes(current).find(node=>node.capabilitySource==='modern_ui:visible_views'&&node.label==='Preferences');
+            const preference=nodes(current).find(node=>node.capabilitySource==='modernui:visible_views'&&node.label==='Preferences');
             if(preference?.value!==true){await ui(preference,'click');current=await screen(value=>nodes(value).some(node=>node.role==='slider'),10000);}
             // The framework animates the panel layout after navigation. Observe settled geometry;
             // the Runtime must keep rejecting a target which moves during pointer travel.
             let previousLayout='',stableSamples=0;
             current=await screen(value=>{
-                const layout=JSON.stringify(nodes(value).filter(node=>node.capabilitySource==='modern_ui:visible_views'&&['slider','text_field'].includes(node.role)).map(node=>[node.nodeId,node.x,node.y,node.width,node.height]));
+                const layout=JSON.stringify(nodes(value).filter(node=>node.capabilitySource==='modernui:visible_views'&&['slider','text_field'].includes(node.role)).map(node=>[node.nodeId,node.x,node.y,node.width,node.height]));
                 stableSamples=layout===previousLayout?stableSamples+1:0;previousLayout=layout;
                 return stableSamples>=5&&nodes(value).some(node=>node.role==='slider');
             },10000);
-            const slider=nodes(current).find(node=>node.capabilitySource==='modern_ui:visible_views'&&node.role==='slider');assert(slider);
-            const editor=nodes(current).find(node=>node.capabilitySource==='modern_ui:visible_views'&&node.role==='text_field');assert(editor);
+            const slider=nodes(current).find(node=>node.capabilitySource==='modernui:visible_views'&&node.role==='slider');assert(slider);
+            const editor=nodes(current).find(node=>node.capabilitySource==='modernui:visible_views'&&node.role==='text_field');assert(editor);
             const originalText=editor.value;
             const adjusted=await ui(slider,'set_value',{value:.5});
             current=await screen(value=>nodes(value).some(node=>node.nodeId===slider.nodeId&&node.value===50),10000);
             const edited=await ui(nodes(current).find(node=>node.nodeId===editor.nodeId),'type_text',{text:originalText,replace:true});
             await key(258);
             current=await screen(value=>nodes(value).some(node=>node.nodeId===slider.nodeId&&node.value===slider.value),10000);
-            observations.push({case:'modern_ui_slider_text_restore',original:{slider,editor},adjusted,edited,nodes:nodes(current).filter(node=>[slider.nodeId,editor.nodeId].includes(node.nodeId)),directBusinessCall:false});
-            const scrollable=nodes(current).filter(node=>node.capabilitySource==='modern_ui:visible_views'&&node.canPanY&&typeof node.scrollY==='number').sort((a,b)=>b.width*b.height-a.width*a.height)[0];assert(scrollable);
+            observations.push({case:'modernui_slider_text_restore',original:{slider,editor},adjusted,edited,nodes:nodes(current).filter(node=>[slider.nodeId,editor.nodeId].includes(node.nodeId)),directBusinessCall:false});
+            const scrollable=nodes(current).filter(node=>node.capabilitySource==='modernui:visible_views'&&node.canPanY&&typeof node.scrollY==='number').sort((a,b)=>b.width*b.height-a.width*a.height)[0];assert(scrollable);
             const scrolled=await ui(scrollable,'scroll',{yOffset:-3});
             current=await screen(value=>nodes(value).some(node=>node.nodeId===scrollable.nodeId&&node.scrollY!==scrollable.scrollY),10000);
             const scrollState=nodes(current).find(node=>node.nodeId===scrollable.nodeId);
             await ui(scrollState,'scroll',{yOffset:3});
             await screen(value=>nodes(value).some(node=>node.nodeId===scrollable.nodeId&&node.scrollY===scrollable.scrollY),10000);
-            observations.push({case:'modern_ui_native_scroll_restore',before:scrollable,after:scrollState,scrolled,directBusinessCall:false});
+            observations.push({case:'modernui_native_scroll_restore',before:scrollable,after:scrollState,scrolled,directBusinessCall:false});
             const dragStep={type:'ui.drag',fromSelector:{nodeId:slider.nodeId},toSelector:{nodeId:slider.nodeId},fromOffset:{x:.25,y:.5},toOffset:{x:.75,y:.5},durationMs:500,segments:12};
             const dragged=await operation(await api('POST','/v0/pipelines',{steps:[dragStep],timeoutMs:12000}));
             current=await screen(value=>nodes(value).some(node=>node.nodeId===slider.nodeId&&node.value!==slider.value),10000);
-            observations.push({case:'modern_ui_native_drag',operation:dragged,after:nodes(current).find(node=>node.nodeId===slider.nodeId),directBusinessCall:false});
+            observations.push({case:'modernui_native_drag',operation:dragged,after:nodes(current).find(node=>node.nodeId===slider.nodeId),directBusinessCall:false});
             await ui(nodes(current).find(node=>node.nodeId===editor.nodeId),'type_text',{text:originalText,replace:true});await key(258);
             await screen(value=>nodes(value).some(node=>node.nodeId===slider.nodeId&&node.value===slider.value),10000);
             const active=await api('POST','/v0/pipelines',{steps:[{...dragStep,durationMs:6000,segments:100}],timeoutMs:14000});
@@ -94,7 +94,7 @@ export async function adapterUiActions({adapter,api,tree,screen:readScreen,nodes
             const terminal=await api('POST',`/v0/operations/${active.operationId}/wait`,{timeoutMs:8000});assert.equal(terminal.state,'cancelled',JSON.stringify(terminal));
             const clean=await until(async()=>{const input=await api('GET','/v0/input/state');return input.pressedKeyCount===0&&input.pressedButtonCount===0&&!input.inputCleanupPending?input:false;},'Framework revoke did not release input',8000);
             const sequence=clean.inputDispatchSequence;await new Promise(resolve=>setTimeout(resolve,350));assert.equal((await api('GET','/v0/input/state')).inputDispatchSequence,sequence);
-            observations.push({case:'modern_ui_active_drag_mode_exit',terminal,clean,postCancelDispatch:0,physicalEsc:false});
+            observations.push({case:'modernui_active_drag_mode_exit',terminal,clean,postCancelDispatch:0,physicalEsc:false});
             await acquire();current=await tree();
             await ui(nodes(current).find(node=>node.nodeId===editor.nodeId),'type_text',{text:originalText,replace:true});await key(258);
             await screen(value=>nodes(value).some(node=>node.nodeId===slider.nodeId&&node.value===slider.value),10000);

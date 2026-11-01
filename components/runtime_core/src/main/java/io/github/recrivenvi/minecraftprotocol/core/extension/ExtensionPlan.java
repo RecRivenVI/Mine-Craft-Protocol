@@ -32,7 +32,7 @@ final class ExtensionPlan {
                             inspection.status(),
                             inspection.detail());
             statuses.add(status);
-            if (source == null) continue;
+            if (source == null || !inspection.status().equals("verified")) continue;
             var manifest = source.manifest();
             if (counts.get(manifest.id()) != 1 || manifest.id().equals(environment.productId())) {
                 status.fail(
@@ -129,12 +129,14 @@ final class ExtensionPlan {
     }
 
     static final class Candidate {
-        final ExtensionStore.VerifiedPackage source;
+        final ExtensionStore.VerifiedExtensionPack source;
         final Status status;
         final ExtensionClassSpace loader;
 
         Candidate(
-                ExtensionStore.VerifiedPackage source, Status status, ExtensionClassSpace loader) {
+                ExtensionStore.VerifiedExtensionPack source,
+                Status status,
+                ExtensionClassSpace loader) {
             this.source = source;
             this.status = status;
             this.loader = loader;

@@ -22,7 +22,7 @@ class WorldReadTransportTest {
 
     private final class Fixture implements AutoCloseable {
         private final String oldScopes = System.getProperty("minecraft.protocol.scopes");
-        private final ProbeTransport transport;
+        private final RuntimeTransport transport;
         private final AtomicInteger internalReads = new AtomicInteger();
         private final AtomicInteger commandSubmissions = new AtomicInteger();
         private final AtomicInteger commandDiscoveries = new AtomicInteger();
@@ -50,11 +50,11 @@ class WorldReadTransportTest {
 
         Fixture(String scopes, CompletableFuture<JsonObject> scene) throws Exception {
             System.setProperty("minecraft.protocol.scopes", scopes);
-            ProbeService service =
-                    (ProbeService)
+            RuntimeService service =
+                    (RuntimeService)
                             Proxy.newProxyInstance(
-                                    ProbeService.class.getClassLoader(),
-                                    new Class<?>[] {ProbeService.class},
+                                    RuntimeService.class.getClassLoader(),
+                                    new Class<?>[] {RuntimeService.class},
                                     (proxy, method, args) -> {
                                         if (method.getName().equals("attachPlayerCommandGate"))
                                             commandGate = (PlayerCommandGate) args[0];
@@ -107,7 +107,7 @@ class WorldReadTransportTest {
                                                             (String) args[3],
                                                             (Runnable) args[2],
                                                             (index, command, guard) ->
-                                                                    ((ProbeService) proxy)
+                                                                    ((RuntimeService) proxy)
                                                                             .nativePlayerCommand(
                                                                                     command,
                                                                                     work,
@@ -340,7 +340,7 @@ class WorldReadTransportTest {
                                         raw.addProperty("x", 1.23456789);
                                         return CompletableFuture.completedFuture(raw);
                                     });
-            transport = new ProbeTransport(service, "world-read-http-test", 0, "test-target");
+            transport = new RuntimeTransport(service, "world-read-http-test", 0, "test-target");
             transport.startAsync();
             port = transport.boundPort().get(5, TimeUnit.SECONDS);
             boolean ready = false;

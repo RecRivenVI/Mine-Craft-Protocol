@@ -15,35 +15,35 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class CommandConfigurationProbeMixin {
     @Inject(method = "handleSetStructureBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$structure(
+    private void mineCraftProtocol$structure(
             ServerboundSetStructureBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.structure(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetJigsawBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$jigsaw(
+    private void mineCraftProtocol$jigsaw(
             ServerboundSetJigsawBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.jigsaw(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleJigsawGenerate", at = @At("RETURN"))
-    private void minecraftProtocolProbe$generate(
+    private void mineCraftProtocol$generate(
             ServerboundJigsawGeneratePacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.generate(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetCommandBlock", at = @At("RETURN"))
-    private void minecraftProtocolProbe$block(
+    private void mineCraftProtocol$block(
             ServerboundSetCommandBlockPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.block(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);
     }
 
     @Inject(method = "handleSetCommandMinecart", at = @At("RETURN"))
-    private void minecraftProtocolProbe$minecart(
+    private void mineCraftProtocol$minecart(
             ServerboundSetCommandMinecartPacket packet, CallbackInfo callbackInfo) {
         CommandConfigurationProbe.minecart(
                 ((ServerGamePacketListenerImpl) (Object) this).player, packet);

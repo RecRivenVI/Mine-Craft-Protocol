@@ -49,7 +49,7 @@ assert(!checkPrefix||args.scenario&&args.scenario!=='all','Specific checks canno
 const target=args.target;
 assert(['1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric'].includes(target));
 const instance=resolve(repo,'validations/conformance-vanilla_ui/instance',target,'client');
-const token=(await readFile(resolve(instance,'minecraft-protocol/token'),'utf8')).trim();
+const token=(await readFile(resolve(instance,'mine_craft_protocol/token'),'utf8')).trim();
 const connection=await connectRuntime(instance,target);
 const uiDebugAuthorized=(await (await connection.fetch('/v0/security/context')).json()).grantedScopes?.includes('debug.ui')===true;
 if(['ui-debug-scroll','ui-debug-hud','ui-debug-toast','ui-debug-advancement','ui-completion','ui-local','ui-navigation','ui-native-pages','ui-world-pages','ui-breadth','hud-camera','hud-camera-variants','hud-toast','hud-variants','hud-late','hud-saving','hud-player-list'].includes(args.scenario))assert(uiDebugAuthorized,args.scenario+' requires actual Runtime DebugUi authorization');
@@ -431,7 +431,7 @@ async function editorHandoff(kind,expected,control){
  await api('POST','/v0/control/task',{action:'end',taskId});taskId=undefined;
  let consumerFailure;
  try{
-  editorSamples.push(...await editorConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),kind,expected,target,debugEnabled,control));
+  editorSamples.push(...await editorConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token'),kind,expected,target,debugEnabled,control));
  }catch(error){
   consumerFailure=error;failure??=error;console.error('Editor consumer failed: '+kind,error);throw error;
  }finally{
@@ -771,7 +771,7 @@ try{
    }catch(error){toastFailure=error;throw error;}
    finally{const errors=[];
     try{if(debugArm)await api('POST','/v0/debug/disarm');}catch(error){errors.push(error);}finally{debugArm=undefined;}
-    try{if((await tree()).screenClass.endsWith('AutomationProbeScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast fixture closes');}}catch(error){errors.push(error);}
+    try{if((await tree()).screenClass.endsWith('AutomationDiagnosticScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast fixture closes');}}catch(error){errors.push(error);}
     try{hudCompletionSamples.push(await restoreMusicToast());}catch(error){errors.push(error);}
     if(errors.length){if(toastFailure)toastFailure.cleanupErrors=errors.map(error=>error.message);else throw new AggregateError(errors,'Native music option cleanup failed');}}
   }
@@ -850,8 +850,8 @@ try{
    });
    for(const key of ['hud.playerlist.header','hud.playerlist.footer'])await editorHandoff('debug_'+key,undefined,{selector:{controlKey:key},presentation:true,field:'value',operation:'ui.text.set',privateField:true});
   });
-  if(!args.scenario||['all','hud','hud-vitals'].includes(args.scenario))await hudVitalActions({target,api,command,wait,tree,key,check,samples:vitalSamples,serverTicksAfter,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target),readOnly:readOnlyHud});
-  if(!args.scenario||['all','special-menus'].includes(args.scenario))await specialMenuActions({target,api,command,wait,tree,nodes,ui,key,use,fixtureVisible,shiftItem,check,samples:specialMenuSamples,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target)});
+  if(!args.scenario||['all','hud','hud-vitals'].includes(args.scenario))await hudVitalActions({target,api,command,wait,tree,key,check,samples:vitalSamples,serverTicksAfter,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token'),target),readOnly:readOnlyHud});
+  if(!args.scenario||['all','special-menus'].includes(args.scenario))await specialMenuActions({target,api,command,wait,tree,nodes,ui,key,use,fixtureVisible,shiftItem,check,samples:specialMenuSamples,readConsumers:()=>toastConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token'),target)});
   await check('HUD: visible title, subtitle and actionbar; no queued Toast content in USER',async()=>{
    await command('title @s times 0 200 0');await command('title @s subtitle {"text":"UI subtitle fixture"}');
    await command('title @s title {"text":"UI title fixture"}');await command('title @s actionbar {"text":"UI actionbar fixture"}');
@@ -921,7 +921,7 @@ try{
    const proof=JSON.parse(await readFile(resolve(repo,'validations/conformance-vanilla_ui/result',target+'-toast-content-probe.json'),'utf8'));
    assert.equal(proof.status,'PASS',JSON.stringify(proof));assert.equal(proof.probeOnly,true);assert.equal(proof.target,target);assert.equal(proof.processId,connection.pid);assert.equal(proof.checks,9);
    assert.equal(proof.nativeTickVersionStable,true);assert.equal(proof.sameValueResetInvalidates,true);assert.equal(proof.resetGenerationChecks,2);
-   const endpoint=JSON.parse(await readFile(resolve(instance,'minecraft-protocol/endpoint.json'),'utf8'));
+   const endpoint=JSON.parse(await readFile(resolve(instance,'mine_craft_protocol/endpoint.json'),'utf8'));
    assert.equal(endpoint.pid,connection.pid);assert.equal(proof.playerInputUsed,false);assert.equal(proof.worldMutationUsed,false);
    assert(Date.parse(proof.testedAt)>=Date.parse(endpoint.processStartedAt)&&Date.parse(proof.testedAt)<=Date.now()+1000,'Toast guard proof must belong to this Runtime');
    uiDebugSamples.push({case:'native_toast_content_guard_probe',...proof,processStartedAt:endpoint.processStartedAt});
@@ -1010,7 +1010,7 @@ try{
    await command('advancement revoke @s only minecraft:end/find_end_city');
   });
   await check('Toast: recipe unlock text comes from native render, not an invented clickable control',async()=>{
-   const consumers=target==='26.3-fabric'?await toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target):null;
+   const consumers=target==='26.3-fabric'?await toastConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token'),target):null;
    try{
    await command('recipe take @s minecraft:oak_planks');await command('recipe give @s minecraft:oak_planks');
    const t=await wait(t=>t.presentation.children.some(n=>n.class?.endsWith('RecipeToast')&&n.textPhase==='static'),'recipe notification rendered');
@@ -1027,7 +1027,7 @@ try{
    await uiToastLifecycleActions({target,api,tree,wait,nodes,ui,check,samples:hudCompletionSamples,
     openFixture:async()=>{const mode=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:mode.modeVersion});lease=undefined;
      await api('POST','/v0/diagnostics/ui/test-screen',{});lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;}});
-   if((await tree()).screenClass.endsWith('AutomationProbeScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast lifecycle fixture closes');}
+   if((await tree()).screenClass.endsWith('AutomationDiagnosticScreen')){await ui({label:'Close Probe'});await wait(value=>!value.screenClass,'native Toast lifecycle fixture closes');}
   }
   await check('HUD: player list uses native visibility and decorated names, not hidden profile or score facts',async()=>{
    const list=t=>t.presentation.children.filter(n=>n.controlKey.startsWith('hud.playerlist.'));
@@ -1094,7 +1094,7 @@ try{
     if(target==='26.3-fabric'){
      await api('POST','/v0/control/release');lease=undefined;
      await api('POST','/v0/control/task',{action:'end',taskId});taskId=undefined;
-     spectatorSamples.push(...await spectatorConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token')));
+     spectatorSamples.push(...await spectatorConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token')));
      taskId=(await api('POST','/v0/control/task',{action:'begin',ttlMs:60000,budgetMs:300000})).taskId;
      lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;taskStarted=Date.now();
     }
@@ -1136,7 +1136,7 @@ try{
      await command('effect give @s minecraft:strength 600 0 false');
      await wait(t=>icons(t).some(n=>n.effect==='minecraft:strength'&&n.opacity===1),'steady icon for read-only consumers');
      const m=await api('GET','/v0/control/mode');await api('POST','/v0/control/mode',{mode:'READ',expectedModeVersion:m.modeVersion});lease=undefined;
-     const consumers=await toastConsumers(repo,base,token,resolve(instance,'minecraft-protocol/token'),target);
+     const consumers=await toastConsumers(repo,base,token,resolve(instance,'mine_craft_protocol/token'),target);
      try{effectSamples.push(...await consumers.verifyEffect('minecraft:strength'));}finally{await consumers.close();}
      assert.equal((await api('GET','/v0/control/mode')).mode,'READ');
      lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;

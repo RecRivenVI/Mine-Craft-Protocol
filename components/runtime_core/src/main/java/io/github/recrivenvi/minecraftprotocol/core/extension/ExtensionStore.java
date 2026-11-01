@@ -17,27 +17,33 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/** Read-only discovery. Local installation/approval is a separate offline operation. */
+/**
+ * Read-only discovery. Only explicit local human approval may authorize previously unseen content.
+ */
 public final class ExtensionStore {
     public static final long MAX_PACKAGE_BYTES = 256L * 1024 * 1024;
     public static final int MAX_CODE_BYTES = 64 * 1024 * 1024;
     public static final int MAX_PACKAGES = 128;
 
-    public record Approval(String contentIdentity, Set<String> scopes) {
+    public record Approval(String contentIdentity, Set<String> scopes, boolean enabled) {
         public Approval {
             scopes = Set.copyOf(scopes);
+        }
+
+        public Approval(String contentIdentity, Set<String> scopes) {
+            this(contentIdentity, scopes, true);
         }
     }
 
     public record Inspection(
-            String candidate, String status, String detail, VerifiedPackage verified) {}
+            String candidate, String status, String detail, VerifiedExtensionPack verified) {}
 
-    public static final class VerifiedPackage {
+    public static final class VerifiedExtensionPack {
         private final Path source;
         private final boolean zipped;
         private final ExtensionManifest manifest;
 
-        private VerifiedPackage(Path source, boolean zipped, ExtensionManifest manifest) {
+        private VerifiedExtensionPack(Path source, boolean zipped, ExtensionManifest manifest) {
             this.source = source;
             this.zipped = zipped;
             this.manifest = manifest;
@@ -65,17 +71,20 @@ public final class ExtensionStore {
     }
 
     private final Path directory;
+    private final Path packs;
 
     public ExtensionStore(Path directory) {
-        this.directory = directory.toAbsolutePath().normalize();
+        Path game = directory.toAbsolutePath().normalize();
+        this.directory = game.resolve("mine_craft_protocol/extensions");
+        this.packs = game.resolve("extensionpacks");
     }
 
     public List<Inspection> inspect() {
-        if (!Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) return List.of();
+        if (!Files.exists(packs, LinkOption.NOFOLLOW_LINKS)) return List.of();
         List<Inspection> results = new ArrayList<>();
         try {
-            regular(directory, true);
-            Path packages = directory.resolve("packages");
+            if (Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) regular(directory, true);
+            Path packages = packs;
             if (!Files.exists(packages, LinkOption.NOFOLLOW_LINKS)) return List.of();
             regular(packages, true);
             Map<String, Approval> approvals = approvals(directory.resolve("approvals.json"));
@@ -89,18 +98,37 @@ public final class ExtensionStore {
             for (Path candidate : candidates) {
                 String name = candidate.getFileName().toString();
                 try {
-                    VerifiedPackage verified = inspect(candidate);
+                    VerifiedExtensionPack verified = inspect(candidate);
                     Approval approval = approvals.get(verified.manifest.id());
                     if (approval == null
                             || !approval.contentIdentity()
-                                    .equals(verified.manifest.contentIdentity()))
-                        throw new ExtensionFailure(
-                                "EXTENSION_APPROVAL_REQUIRED",
-                                "Approve this exact package content locally before restart");
-                    if (!approval.scopes().containsAll(verified.manifest.requestedScopes()))
-                        throw new ExtensionFailure(
-                                "EXTENSION_APPROVAL_SCOPE_MISSING",
-                                "Local approval does not cover the declared remote capability scopes");
+                                    .equals(verified.manifest.contentIdentity())) {
+                        results.add(
+                                new Inspection(
+                                        name,
+                                        "EXTENSION_APPROVAL_REQUIRED",
+                                        "Approve this exact extensionpack content locally before restart",
+                                        verified));
+                        continue;
+                    }
+                    if (!approval.scopes().containsAll(verified.manifest.requestedScopes())) {
+                        results.add(
+                                new Inspection(
+                                        name,
+                                        "EXTENSION_APPROVAL_SCOPE_MISSING",
+                                        "Approval does not cover requested scopes",
+                                        verified));
+                        continue;
+                    }
+                    if (!approval.enabled()) {
+                        results.add(
+                                new Inspection(
+                                        name,
+                                        "disabled",
+                                        "Disabled for the next startup",
+                                        verified));
+                        continue;
+                    }
                     results.add(new Inspection(name, "verified", "", verified));
                 } catch (ExtensionFailure failure) {
                     results.add(new Inspection(name, failure.code(), failure.getMessage(), null));
@@ -129,7 +157,7 @@ public final class ExtensionStore {
     }
 
     /** Inspection does not execute classes and does not mean local approval has been granted. */
-    public static VerifiedPackage inspect(Path source) {
+    public static VerifiedExtensionPack inspect(Path source) {
         try {
             boolean directory = Files.isDirectory(source, LinkOption.NOFOLLOW_LINKS);
             regular(source, directory);
@@ -145,7 +173,7 @@ public final class ExtensionStore {
                             readFile(
                                     source,
                                     zipped,
-                                    "extension.json",
+                                    "extensionpack.json",
                                     ExtensionManifest.MAX_MANIFEST_BYTES));
             Map<String, String> actual = new LinkedHashMap<>();
             long[] total = {0};
@@ -196,13 +224,13 @@ public final class ExtensionStore {
                     }
                 }
             }
-            String manifestHash = actual.remove("extension.json");
+            String manifestHash = actual.remove("extensionpack.json");
             if (!manifest.contentIdentity().equals(manifestHash)
                     || !manifest.files().equals(actual))
                 throw new ExtensionFailure(
                         "EXTENSION_CONTENT_MISMATCH",
                         "Every file must match the manifest; missing, extra or changed content is rejected");
-            return new VerifiedPackage(source.toAbsolutePath().normalize(), zipped, manifest);
+            return new VerifiedExtensionPack(source.toAbsolutePath().normalize(), zipped, manifest);
         } catch (ExtensionFailure known) {
             throw known;
         } catch (IOException unreadable) {
@@ -232,7 +260,7 @@ public final class ExtensionStore {
             Map<String, Approval> result = new LinkedHashMap<>();
             for (var entry : root.getAsJsonObject("packages").entrySet()) {
                 JsonObject item = entry.getValue().getAsJsonObject();
-                ExtensionManifest.keys(item, Set.of("contentIdentity", "scopes"));
+                ExtensionManifest.keys(item, Set.of("contentIdentity", "scopes", "enabled"));
                 String hash = ExtensionManifest.string(item, "contentIdentity");
                 if (!hash.matches("[0-9a-f]{64}"))
                     throw new ExtensionFailure(
@@ -240,12 +268,75 @@ public final class ExtensionStore {
                 result.put(
                         entry.getKey(),
                         new Approval(
-                                hash, ExtensionManifest.strings(item.getAsJsonArray("scopes"))));
+                                hash,
+                                ExtensionManifest.strings(item.getAsJsonArray("scopes")),
+                                !item.has("enabled") || item.get("enabled").getAsBoolean()));
             }
             return Map.copyOf(result);
         } catch (IOException | RuntimeException invalid) {
             throw new ExtensionFailure(
                     "EXTENSION_APPROVAL_INVALID", "Local approval metadata is invalid", invalid);
+        }
+    }
+
+    public Path directory() {
+        return packs;
+    }
+
+    public synchronized void select(
+            VerifiedExtensionPack expected, boolean enabled, boolean physicalHuman) {
+        var fresh = inspect(expected.source);
+        if (!fresh.manifest().contentIdentity().equals(expected.manifest().contentIdentity()))
+            throw new ExtensionFailure(
+                    "EXTENSION_CONTENT_CHANGED", "Reopen the list after content changes");
+        var records = new LinkedHashMap<>(approvals(directory.resolve("approvals.json")));
+        var previous = records.get(fresh.manifest().id());
+        boolean approved =
+                previous != null
+                        && previous.contentIdentity().equals(fresh.manifest().contentIdentity())
+                        && previous.scopes().containsAll(fresh.manifest().requestedScopes());
+        if (enabled && !approved && !physicalHuman)
+            throw new ExtensionFailure(
+                    "EXTENSION_HUMAN_APPROVAL_REQUIRED",
+                    "First enable requires physical human input for this exact content hash");
+        // Disabling an unapproved candidate must never create an approval.
+        if (!approved && (!physicalHuman || !enabled)) return;
+        records.put(
+                fresh.manifest().id(),
+                new Approval(
+                        fresh.manifest().contentIdentity(),
+                        fresh.manifest().requestedScopes(),
+                        enabled));
+        JsonObject entries = new JsonObject();
+        records.forEach(
+                (id, value) -> {
+                    var entry = new JsonObject();
+                    entry.addProperty("contentIdentity", value.contentIdentity());
+                    var scopes = new com.google.gson.JsonArray();
+                    value.scopes().stream().sorted().forEach(scopes::add);
+                    entry.add("scopes", scopes);
+                    entry.addProperty("enabled", value.enabled());
+                    entries.add(id, entry);
+                });
+        var root = new JsonObject();
+        root.addProperty("formatVersion", 1);
+        root.add("packages", entries);
+        try {
+            Files.createDirectories(directory);
+            regular(directory, true);
+            Path output = directory.resolve("approvals.json");
+            if (Files.exists(output, LinkOption.NOFOLLOW_LINKS)) regular(output, false);
+            Path pending = Files.createTempFile(directory, "approvals-", ".pending");
+            Files.writeString(
+                    pending, root.toString() + "\n", java.nio.charset.StandardCharsets.UTF_8);
+            Files.move(
+                    pending,
+                    output,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException error) {
+            throw new ExtensionFailure(
+                    "EXTENSION_STORAGE_UNAVAILABLE", "Cannot save extensionpack selection", error);
         }
     }
 

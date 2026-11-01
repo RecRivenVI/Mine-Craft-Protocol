@@ -21,7 +21,7 @@ $platformCleanup={param($path)Clear-TestDirectory $path}
 function New-Fixture([string]$Name){
     $parent=Join-Path $fixtureRoot ($Name+'/'+('p'*70))
     $root=Join-Path $parent '26.3-neoforge'
-    [IO.Directory]::CreateDirectory((Join-Path $root 'client/minecraft-protocol'))|Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $root 'client/mine_craft_protocol'))|Out-Null
     [IO.File]::WriteAllText((Join-Path $root 'owner.json'),'{"owner":"packaged-runtime-clean-install","target":"26.3-neoforge"}')
     $payload=Join-Path $root ('installation/libraries/'+('n'*50)+'/'+('v'*50)+'/fixture.txt')
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($payload))|Out-Null
@@ -72,15 +72,15 @@ try{
     }
 
     $live=New-Fixture 'live'
-    $held=[IO.File]::Open((Join-Path $live.Root 'client/minecraft-protocol/instance.lock'),[IO.FileMode]::Create,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    $held=[IO.File]::Open((Join-Path $live.Root 'client/mine_craft_protocol/instance.lock'),[IO.FileMode]::Create,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     try{
         $denied=$false
         try{Retire-Fixture $live {throw 'must not reach recycling'}}catch{$denied=$true}
         Assert-True ($denied-and(Test-Path -LiteralPath $live.Payload)) 'Open Runtime ownership lock must reject retirement'
     }finally{$held.Dispose()}
     $server=New-Fixture 'live-server'
-    [IO.Directory]::CreateDirectory((Join-Path $server.Root 'server/minecraft-protocol'))|Out-Null
-    $held=[IO.File]::Open((Join-Path $server.Root 'server/minecraft-protocol/instance.lock'),[IO.FileMode]::Create,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    [IO.Directory]::CreateDirectory((Join-Path $server.Root 'server/mine_craft_protocol'))|Out-Null
+    $held=[IO.File]::Open((Join-Path $server.Root 'server/mine_craft_protocol/instance.lock'),[IO.FileMode]::Create,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
     try{
         $denied=$false
         try{Retire-Fixture $server {throw 'must not reach recycling'}}catch{$denied=$true}

@@ -12,11 +12,11 @@ import java.util.function.Supplier;
 
 /** Authenticated client-model boundary, independent of USER UI and player input contracts. */
 final class WorldReadEngine {
-    private final ProbeService service;
+    private final RuntimeService service;
     private final ProtocolState state;
     private final AtomicBoolean regionInFlight = new AtomicBoolean();
 
-    WorldReadEngine(ProbeService service, ProtocolState state) {
+    WorldReadEngine(RuntimeService service, ProtocolState state) {
         this.service = service;
         this.state = state;
     }
