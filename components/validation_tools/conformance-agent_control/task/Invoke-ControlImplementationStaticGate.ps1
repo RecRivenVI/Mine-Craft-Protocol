@@ -31,7 +31,7 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
  Require ($runtime-match'logicalPointer.gameCapture\('-and$runtime-match'logicalPointer.gameRequest\('-and$runtime-match'logicalPointer.gameCursorVisible\('-and$constants-match'onGameCursorRequest') "$target effective game positioning/visibility path missing"
  Require ($runtime-match'Game cursor changed during pointer dispatch'-and$engine-match'"gameCursorRevision"') "$target stale game cursor gesture guard missing"
  if($target.StartsWith('26.3-')){Require ($mouse-match'method = "resyncMousePosition"'-and$runtime-match'handleMouseResync'-and$runtime-match'restoreAgentPointer\(client\)') "$target host resync must not overwrite Agent coordinates"}
- Require ($runtime-match'operatorChrome.textWidth\(this.minecraft.font::width\)'-and$runtime-match'operatorChrome.text\('-and$runtime-match'graphics.enableScissor\('-and$runtime-match'graphics.disableScissor\(') "$target continuous shared text weights/native dynamic clip missing"
+ Require ($runtime-match'operatorChrome.textWidth\('-and$runtime-match'Component.translatable\(\s*ProtocolIdentity.MOD_ID'-and$runtime-notmatch'Component.literal\(message\)'-and$runtime-match'operatorChrome.text\('-and$runtime-match'graphics.enableScissor\('-and$runtime-match'graphics.disableScissor\(') "$target localized shared text measurement/native dynamic clip missing"
  Require ($keyboard-match'AgentInputContext.consume'-and$keyboard-match'charTyped') "$target keyboard/character origin missing"
  if($target.StartsWith('26.3-')){
   $sdl=Get-Content (Join-Path $directory 'mixin/SDLEventHandlerMixin.java') -Raw
@@ -70,5 +70,20 @@ foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-ne
 }
 $chrome=Get-Content (Join-Path $root 'components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java') -Raw
 Require ($chrome-match'!textVisible\(fade\)'-and$chrome-match'if \(textVisible\(opacity\)\)'-and$chrome-match'(?s)finally\s*\{\s*renderer.disableScissor\(\)') 'shared zero-alpha Vanilla text flash guard/native clip restoration missing'
-foreach($message in @('智能体正在读取您的实例','智能体正在操控您的实例','智能体已接管您的实例 · Esc 以退出')){Require ($chrome.Contains($message)) 'mode copy mismatch'}
+$modId=[regex]::Match((Get-Content (Join-Path $root 'gradle.properties') -Raw),'(?m)^mod_id=([^\r\n]+)').Groups[1].Value
+foreach($target in @('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')){
+ $languages=Join-Path $root "versions/$target/src/main/resources/assets/$modId/lang"
+ $english=Get-Content (Join-Path $languages 'en_us.json') -Raw|ConvertFrom-Json
+ $chinese=Get-Content (Join-Path $languages 'zh_cn.json') -Raw|ConvertFrom-Json
+ Require (-not(Compare-Object @($english.PSObject.Properties.Name|Sort-Object) @($chinese.PSObject.Properties.Name|Sort-Object))) "$target language keys differ"
+ foreach($key in @('control.read','control.operate','control.takeover','window.read','window.operate','window.takeover','options.extensionpacks','extensionpacks.title','extensionpacks.permissions','extensionpacks.pending_restart')){
+  $name=$modId+'.'+$key
+  Require ([bool]$english.$name-and[bool]$chinese.$name) "$target missing player translation: $name"
+ }
+ foreach($property in $english.PSObject.Properties){
+  Require ($property.Value-notmatch'\p{IsCJKUnifiedIdeographs}') "$target English player text includes Chinese: $($property.Name)"
+  Require (([regex]::Matches($property.Value,'%s')).Count-eq([regex]::Matches($chinese.($property.Name),'%s')).Count) "$target translation placeholders differ: $($property.Name)"
+ }
+}
+foreach($key in @('control.read','control.operate','control.takeover')){Require ($chrome.Contains($key)) 'mode language key mismatch'}
 [pscustomobject]@{Result='PASS';Targets=5;HttpOperations=$mode.ClassifiedHttpOperations;McpTools=$mode.ClassifiedMcpTools;ImplementationScope='EXCLUSIVE_INPUT_LOGICAL_POINTER_PIXEL_CHROME';UnifiedAcceptance='PENDING';HumanDesktopEvents='NOT_SIMULATED';WireProtocolV1='NOT_FROZEN'}

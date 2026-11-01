@@ -365,7 +365,7 @@ $results = foreach ($target in $targets) {
     $cancellableCount = ([regex]::Matches($combined, 'cancellable\s*=\s*true')).Count
     $redirectCount = ([regex]::Matches($combined, '@Redirect')).Count
     $replacementCount = $redirectCount + $cursorArgumentCount
-    $expectedCancellable=if($target.Name.StartsWith('26.3-')){32}elseif($target.Name.StartsWith('26.')){29}else{27}
+    $expectedCancellable=if($target.Name.StartsWith('26.3-')){33}elseif($target.Name.StartsWith('26.')){30}else{28}
     $operatorRedirectCount = $redirectCount - $passiveDrawCount - $passiveWorldCount
     $operatorReplacementCount = $operatorRedirectCount + $cursorArgumentCount
     $expectedOperatorRedirect=if($target.Name.StartsWith('1.')){8}elseif($target.Name.StartsWith('26.3-')){6}else{7}

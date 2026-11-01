@@ -24,27 +24,38 @@ public final class ExtensionPackageCli {
         String target = args[1], role = args[2], layout = args[3];
         if (!target.matches("[0-9]+(?:\\.[0-9]+){1,2}-(?:forge|neoforge|fabric)")
                 || !java.util.Set.of("client", "server").contains(role)
-                || !java.util.Set.of("native", "installed").contains(layout))
+                || !java.util.Set.of("native", "installed", "showcase").contains(layout)
+                || layout.equals("showcase") && !role.equals("client"))
             throw new IllegalArgumentException("Registered Target and role required");
         if (!Files.readString(repository.resolve("settings.gradle.kts"))
                 .contains("register(\"" + target + "\")"))
             throw new IllegalArgumentException("Target not registered");
         Path game =
                 repository
-                        .resolve("validations/integration-extension_platform/instance")
+                        .resolve(
+                                layout.equals("showcase")
+                                        ? "validations/feature-control_ui_showcase/instance"
+                                        : "validations/integration-extension_platform/instance")
                         .resolve(layout.equals("installed") ? "installed" : "")
                         .resolve(target)
                         .resolve(role)
                         .normalize();
         if (!game.startsWith(
-                repository.resolve("validations/integration-extension_platform/instance")))
+                repository.resolve(
+                        layout.equals("showcase")
+                                ? "validations/feature-control_ui_showcase/instance"
+                                : "validations/integration-extension_platform/instance")))
             throw new IllegalArgumentException("Instance escapes the registered validation");
         for (Path at = game; at != null && at.startsWith(repository); at = at.getParent())
             if (Files.isSymbolicLink(at)
                     || Files.exists(at, LinkOption.NOFOLLOW_LINKS)
                             && !Files.isDirectory(at, LinkOption.NOFOLLOW_LINKS))
                 throw new IllegalStateException("Instance ancestors must be real directories");
-        if (!Files.isRegularFile(game.resolve("extension-platform-owner.json")))
+        if (!Files.isRegularFile(
+                game.resolve(
+                        layout.equals("showcase")
+                                ? "showcase-instance.json"
+                                : "extension-platform-owner.json")))
             throw new IllegalStateException("Owned validation instance required");
         if (Files.exists(game.resolve("mine_craft_protocol/endpoint.json")))
             throw new IllegalStateException(

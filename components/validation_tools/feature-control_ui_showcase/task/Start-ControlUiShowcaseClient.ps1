@@ -2,7 +2,8 @@
     [Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
     [Parameter(Mandatory)][string]$InstanceDirectory,
     [ValidateSet('client','client-multiplayer')][string]$Role='client',
-    [switch]$Offline
+    [switch]$Offline,
+    [switch]$Extensions
 )
 # Internal child process. No desktop automation or host input injection.
 $ErrorActionPreference='Stop'
@@ -12,5 +13,6 @@ if([IO.Path]::GetFullPath($InstanceDirectory)-ne$expected){throw 'Only the dedic
 Set-Location -LiteralPath $repo
 . (Join-Path $PSScriptRoot 'ControlUiShowcase.Helpers.ps1')
 $arguments=Get-ShowcaseGradleArguments $Target $InstanceDirectory (Join-Path $PSScriptRoot 'showcase-runs.init.gradle') $Offline.IsPresent $Role
+if($Extensions){$arguments+='-Dshowcase.extensions=true'}
 & ./gradlew.bat @arguments
 exit $LASTEXITCODE

@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
+import io.github.recrivenvi.minecraftprotocol.ProtocolIdentity;
 import io.github.recrivenvi.minecraftprotocol.core.AutomationEngine;
 import io.github.recrivenvi.minecraftprotocol.core.DebugMutationAuthorization;
 import io.github.recrivenvi.minecraftprotocol.core.DeepObservationRequestContext;
@@ -916,7 +917,10 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                 io.github.recrivenvi.minecraftprotocol.safety.WindowDecoration.title(
                         this.vanillaWindowTitle,
                         this.controlPresence.mode(),
-                        decorate && this.agentPresent());
+                        decorate && this.agentPresent(),
+                        key ->
+                                net.minecraft.client.resources.language.I18n.get(
+                                        ProtocolIdentity.MOD_ID + "." + key));
         if (desired.equals(this.appliedWindowTitle)) return true;
         GLFW.glfwSetWindowTitle(window, desired);
         this.appliedWindowTitle = desired;
@@ -1034,7 +1038,13 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                 this.operatorChrome.edgeAlpha(),
                 this.operatorChrome.edgeWidth(),
                 this.minecraft.getWindow().getGuiScale());
-        int textWidth = Math.round(this.operatorChrome.textWidth(this.minecraft.font::width));
+        int textWidth =
+                Math.round(
+                        this.operatorChrome.textWidth(
+                                key ->
+                                        this.minecraft.font.width(
+                                                Component.translatable(
+                                                        ProtocolIdentity.MOD_ID + "." + key))));
         int barWidth = textWidth + 20, barHeight = 23;
         int left = Math.max(4, (width - barWidth) / 2), top = 8;
         io.github.recrivenvi.minecraftprotocol.safety.ControlChrome.panel(
@@ -1052,7 +1062,7 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                     public void text(String message, int x, int y, int color) {
                         graphics.drawString(
                                 ForgeRuntime.this.minecraft.font,
-                                Component.literal(message),
+                                Component.translatable(ProtocolIdentity.MOD_ID + "." + message),
                                 x,
                                 y,
                                 color,
@@ -1884,7 +1894,7 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                     JsonObject json = base("diagnostics.hook_manifest");
                     json.addProperty("policy", "capability_fidelity_first");
                     json.addProperty("overwriteCount", 0);
-                    json.addProperty("cancellableInjectionCount", 27);
+                    json.addProperty("cancellableInjectionCount", 28);
                     JsonObject extensionSettings =
                             hook(
                                     "extensionpack_settings",
@@ -1897,7 +1907,7 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                     extensionSettings.addProperty("plane", "LOCAL_EXTENSION_SETTINGS");
                     extensionSettings.addProperty("cancellable", true);
                     extensionSettings.addProperty("replacement", true);
-                    extensionSettings.addProperty("cancellableInjectionCount", 5);
+                    extensionSettings.addProperty("cancellableInjectionCount", 6);
                     extensionSettings.addProperty("nonCancellableInjectionCount", 1);
                     extensionSettings.addProperty("replacementInjectionCount", 1);
                     extensionSettings.addProperty("intentionalControlFlow", true);

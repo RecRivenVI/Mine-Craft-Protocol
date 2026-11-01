@@ -12,6 +12,7 @@
 ./gradlew.bat :extensionpacks:assemble :companion:assemble
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge -Settings
+pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge -Settings -Language zh_cn
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge -Settings -SettingsPhase disabled-restart
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 26.3-neoforge -Settings -SettingsPhase enabled-restart
 pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1 -Target 1.21.1-neoforge -Adapter modernui
@@ -37,6 +38,7 @@ Runner 只使用本验证的隔离实例，1920×1080静音、最大4GiB，以�
 每个已运行Target的固定result/Target-client.json记录当批源码/包身份与实际Runtime，目录为active，公开SDK共享类身份成立；真实Provider返回owner线程采样，未Arm/READ修改被拒绝，Arm显式start/stop与到期均清理、无Lease副作用。MCP静态资源可查阅，采样不是玩家玩法证据。输入归零、正常关闭、无崩溃和Persistent Write调用0。
 
 扩展包配置组先执行initial，再在同一隔离实例依次执行disabled-restart和enabled-restart；后两次不重装包或重写批准记录。要求Loader原生配置入口、Agent语义和原始点击均不能首次批准、无效依赖自动禁用、已批准开关跨实际进程重启生效、无热卸载、完成后held为0。权限工具提示按屏幕宽度换行，测试截图写入外置Previews；真人首次批准和最终体验留待集中验收。
+Language分别选择en_us和zh_cn，验证实际控件翻译、三种模式窗口标题及状态变化；参考端可选探针从最终游戏帧输出包含Operator UI的开发预览，并核对原生行说明。此预览不进入默认Capture/Recording，不随产品发布。中文结果单独保存，不覆盖英文三阶段必需门禁。七包真人流程见[集中验收清单](../../documents/development/testing-cooperative_acceptance.md#原生扩展包配置补充)，自动组不能替代初次人工批准。
 
 成品客户端使用官方 Loader、全新游戏目录、最终发行 JAR 与已批准包集合，首次正常启动准备发现桥后再启动自动生成加载库，不带开发 classpath；独立服务器为零玩家原生运行，不借客户端类或输入 Lease。结果分别写为 Target.json、Target-installed-client.json、Target-installed-server.json 和 Target-installed-server-lifecycle.json，记录真实 JAR/包身份与正常退出。
 

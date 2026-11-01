@@ -8,9 +8,9 @@ public final class ControlChrome {
     public static final long POINTER_FADE_NANOS = 440_000_000L;
     public static final long BREATH_LEG_NANOS = 1_500_000_000L;
     public static final int POINTER_DIAMETER = 24;
-    public static final String READ_MESSAGE = "智能体正在读取您的实例";
-    public static final String OPERATE_MESSAGE = "智能体正在操控您的实例";
-    public static final String MESSAGE = "智能体已接管您的实例 · Esc 以退出";
+    public static final String READ_MESSAGE = "control.read";
+    public static final String OPERATE_MESSAGE = "control.operate";
+    public static final String MESSAGE = "control.takeover";
     private long previousNanos, modeChangedAt, breathStartedAt;
     private boolean wasPresent;
     private final Fade presence = new Fade(0, FADE_NANOS);

@@ -35,7 +35,9 @@ public abstract class ExtensionPackFolderMixin {
                                     "Lnet/minecraft/client/gui/screens/packs/PackSelectionScreen;DRAG_AND_DROP:Lnet/minecraft/network/chat/Component;"))
     private net.minecraft.network.chat.Component mineCraftProtocol$hint() {
         return (Object) this instanceof ExtensionPacksScreen
-                ? net.minecraft.network.chat.Component.literal("启用状态将在重启后生效")
+                ? net.minecraft.network.chat.Component.translatable(
+                        io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                                + ".extensionpacks.restart_hint")
                 : DRAG_AND_DROP;
     }
 }

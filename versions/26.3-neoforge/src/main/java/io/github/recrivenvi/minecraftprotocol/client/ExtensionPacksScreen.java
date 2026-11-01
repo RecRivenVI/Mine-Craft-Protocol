@@ -31,7 +31,9 @@ public final class ExtensionPacksScreen extends PackSelectionScreen {
                 repository(selection),
                 ignored -> Minecraft.getInstance().gui.setScreen(parent),
                 selection.directory(),
-                Component.literal("扩展包"));
+                Component.translatable(
+                        io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                                + ".extensionpacks.title"));
         this.selection = selection;
     }
 
@@ -48,10 +50,10 @@ public final class ExtensionPacksScreen extends PackSelectionScreen {
                                                 Optional.empty());
                                 var metadata =
                                         new Pack.Metadata(
-                                                Component.literal(
-                                                        entry.description()
-                                                                + "\n"
-                                                                + entry.detail()),
+                                                description(entry)
+                                                        .copy()
+                                                        .append("\n")
+                                                        .append(detail(entry)),
                                                 PackCompatibility.COMPATIBLE,
                                                 FeatureFlagSet.of(),
                                                 List.of());
@@ -110,6 +112,28 @@ public final class ExtensionPacksScreen extends PackSelectionScreen {
 
     public ExtensionPackSelection.Entry entry(String id) {
         return selection.current(id);
+    }
+
+    public static Component description(ExtensionPackSelection.Entry entry) {
+        return Component.translatableWithFallback(
+                io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                        + ".extensionpack."
+                        + entry.id()
+                        + ".description",
+                entry.description());
+    }
+
+    public static Component detail(ExtensionPackSelection.Entry entry) {
+        String state =
+                !entry.available()
+                        ? "incompatible"
+                        : !entry.approved()
+                                ? "approval_required"
+                                : entry.pending() ? "pending_restart" : "approved";
+        return Component.translatable(
+                io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                        + ".extensionpacks."
+                        + state);
     }
 
     public boolean toggle(String id, boolean enabled) {

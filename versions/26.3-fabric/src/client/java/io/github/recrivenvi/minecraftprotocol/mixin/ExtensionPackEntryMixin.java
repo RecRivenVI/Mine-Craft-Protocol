@@ -10,6 +10,21 @@ import org.spongepowered.asm.mixin.injection.callback.*;
 
 @Mixin(targets = "net.minecraft.client.gui.screens.packs.PackSelectionModel$EntryBase")
 public abstract class ExtensionPackEntryMixin implements PackSelectionModel.Entry {
+    @Inject(method = "getDescription", at = @At("RETURN"), cancellable = true)
+    private void mineCraftProtocol$currentDescription(
+            CallbackInfoReturnable<net.minecraft.network.chat.Component> ci) {
+        if (Minecraft.getInstance().gui.screen() instanceof ExtensionPacksScreen screen) {
+            var entry = (PackSelectionModel.Entry) (Object) this;
+            var state = screen.entry(entry.getId());
+            if (state != null)
+                ci.setReturnValue(
+                        ExtensionPacksScreen.description(state)
+                                .copy()
+                                .append("\n")
+                                .append(ExtensionPacksScreen.detail(state)));
+        }
+    }
+
     @Inject(method = "toggleSelection", at = @At("HEAD"), cancellable = true)
     private void mineCraftProtocol$selection(CallbackInfo ci) {
         if (Minecraft.getInstance().gui.screen() instanceof ExtensionPacksScreen screen) {

@@ -54,14 +54,22 @@ public abstract class ExtensionPackRowMixin {
                         Minecraft.getInstance()
                                 .font
                                 .split(
-                                        net.minecraft.network.chat.Component.literal(
-                                                state.detail()
-                                                        + "\n权限："
-                                                        + String.join(
-                                                                ", ",
-                                                                state.source()
-                                                                        .manifest()
-                                                                        .requestedScopes())),
+                                        ExtensionPacksScreen.detail(state)
+                                                .copy()
+                                                .append("\n")
+                                                .append(
+                                                        net.minecraft.network.chat.Component
+                                                                .translatable(
+                                                                        io.github.recrivenvi
+                                                                                        .minecraftprotocol
+                                                                                        .ProtocolIdentity
+                                                                                        .MOD_ID
+                                                                                + ".extensionpacks.permissions",
+                                                                        String.join(
+                                                                                ", ",
+                                                                                state.source()
+                                                                                        .manifest()
+                                                                                        .requestedScopes()))),
                                         Math.min(260, Math.max(1, screen.width - 24))),
                         mx,
                         my);

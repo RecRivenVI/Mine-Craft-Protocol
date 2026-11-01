@@ -14,15 +14,18 @@ public final class WindowDecoration {
         return pixels;
     }
 
-    public static String title(String original, AgentControlSession.Mode mode, boolean present) {
+    public static String title(
+            String original,
+            AgentControlSession.Mode mode,
+            boolean present,
+            java.util.function.Function<String, String> translate) {
         return original
                 + (!present
                         ? ""
-                        : switch (mode) {
-                            case READ -> " - 智能体读取中";
-                            case OPERATE -> " - 智能体操控中";
-                            case TAKEOVER -> " - 由智能体接管";
-                        });
+                        : " - "
+                                + translate.apply(
+                                        "window."
+                                                + mode.name().toLowerCase(java.util.Locale.ROOT)));
     }
 
     /** Straight-alpha RGBA; nearest-neighbor orb pixels confined to the bottom-right quadrant. */

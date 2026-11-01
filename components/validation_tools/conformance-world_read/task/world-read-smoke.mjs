@@ -323,10 +323,10 @@ try {
   assert.equal((await api('GET','/v0/session')).target,target);
   await check('capability truth and unavailable client world at title',async()=>{
     const capability=await api('GET','/v0/capabilities');assert.equal(capability.worldContract.implementationStage,'bounded_client_world_model');assert.deepEqual(capability.worldContract.userSemanticActions,['aim','attack','use','mine','use_hold','place']);assert.equal(capability.worldContract.userMaxHoldMs,10000);assert.equal(capability.worldContract.userHeldHands,'main_hand_or_off_hand_empty_main');assert.equal(capability.worldContract.userMiningCompletion,'bounded_synchronous_native_destroy_including_fluid');assert.equal(capability.worldContract.readConsumerIsolationComplete,true);assert.equal(capability.worldContract.consumerIsolationComplete,false);assert.equal(capability.worldContract.milestoneComplete,false);
-    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,(target.startsWith('26.3-')?27:target.startsWith('26.')?24:22)+5);
+    const hooks=await api('GET','/v0/diagnostics/hooks');assert.equal(hooks.cancellableInjectionCount,(target.startsWith('26.3-')?27:target.startsWith('26.')?24:22)+6);
     const settingsHook=hooks.hooks.find(hook=>hook.id==='extensionpack_settings');assert(settingsHook);
     assert.equal(settingsHook.plane,'LOCAL_EXTENSION_SETTINGS');assert.equal(settingsHook.cancellable,true);
-    assert.equal(settingsHook.cancellableInjectionCount,5);assert.equal(settingsHook.replacementInjectionCount,1);
+    assert.equal(settingsHook.cancellableInjectionCount,6);assert.equal(settingsHook.replacementInjectionCount,1);
     if(target==='1.20.1-forge'||target==='1.21.1-neoforge')assert.equal(settingsHook.nonCancellableInjectionCount,1);
     for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true),'Actual Hook manifest must include '+id);
     assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'),'Native reset generation is passive observation, not an input cancellation Hook');

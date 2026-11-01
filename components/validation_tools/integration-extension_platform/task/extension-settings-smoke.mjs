@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
 import {connectRuntime,automaticTakeoverRequest} from '../../runtime-connection.mjs';
 import {candidateSource,sha256} from '../../regression-v1_release/task/alpha-candidate.mjs';
@@ -9,7 +10,11 @@ const connection=await connectRuntime(instance,target),sourceHashes=await candid
 const checks=[],report={target,scope:'extensionpack_settings',sourceHashes,runtimeInstanceId:connection.instanceId,checks,persistentWriteCalls:0};
 const phase=process.argv.find(a=>a.startsWith('--phase='))?.slice(8)??'initial';
 assert(['initial','disabled-restart','enabled-restart'].includes(phase));report.phase=phase;
-let lease;
+const language=process.argv.find(a=>a.startsWith('--language='))?.slice(11)??'en_us';
+assert(['en_us','zh_cn'].includes(language));report.language=language;
+const messages=JSON.parse(await readFile(resolve(repo,'versions',target,'src/main/resources/assets/mine_craft_protocol/lang',language+'.json'),'utf8'));
+const text=key=>messages['mine_craft_protocol.'+key];
+let lease,taskId;
 const nodes=t=>(t.children??[]).flatMap(n=>[n,...nodes(n)]);
 async function api(method,path,body,expectedError){
  const response=await connection.fetch(path,{method,headers:{...(lease?{'x-mcp-control-lease':lease}:{}),...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
@@ -19,10 +24,9 @@ async function api(method,path,body,expectedError){
 const tree=()=>api('GET','/v0/ui/tree');
 async function preview(stage){
  const response=await connection.fetch('/v0/capture');assert(response.ok,'Extension settings screenshot');
- const root=resolve(process.env.MCP_EXTENSION_PREVIEW_ROOT??'D:/Workspaces/Artifacts/MineCraftProtocol/Previews/2026-11-01-extensionpacks');
+ const root=resolve(process.env.MCP_EXTENSION_PREVIEW_ROOT??'D:/Workspaces/Artifacts/MineCraftProtocol/Previews/2026-11-02-localization');
  await mkdir(root,{recursive:true});const png=Buffer.from(await response.arrayBuffer());
- await writeFile(resolve(root,target+'-'+phase+'-'+stage+'.png'),png);
- if(stage==='overview')await writeFile(resolve(root,target+'.png'),png);
+ await writeFile(resolve(root,target+'-'+phase+'-'+language+'-'+stage+'.png'),png);
 }
 async function click(predicate,error){const ui=await tree(),found=nodes(ui).find(predicate);assert(found,'Expected semantic target: '+JSON.stringify(nodes(ui).map(n=>[n.label,n.controlKey])));
  const response=await api('POST','/v0/ui/action',{selector:{nodeId:found.nodeId},action:'click'},error);
@@ -32,13 +36,19 @@ async function click(predicate,error){const ui=await tree(),found=nodes(ui).find
 async function check(name,run){await run();checks.push({name,status:'PASS'});console.log('PASS: '+name);}
 try{
  const readyUntil=Date.now()+120000;while(true){const view=await tree();if(view.screenClass.endsWith('TitleScreen')&&!view.overlayIdentity&&nodes(view).some(n=>n.label==='Mods'||n.translationKey==='fml.menu.mods'))break;assert(Date.now()<readyUntil,'Title readiness');await new Promise(done=>setTimeout(done,200));}
- lease=(await api('POST','/v0/control/acquire',automaticTakeoverRequest(await api('GET','/v0/control/mode'),{ttlMs:60000}))).leaseId;
+ taskId=(await api('POST','/v0/control/task',{action:'begin',ttlMs:60000,budgetMs:60000})).taskId;
+ lease=(await api('POST','/v0/control/acquire',automaticTakeoverRequest(await api('GET','/v0/control/mode'),{ttlMs:60000,taskId}))).leaseId;
  await check('native Loader configuration opens the in-game extensionpack page',async()=>{
   await click(n=>n.translationKey==='fml.menu.mods'||n.translationKey==='modmenu.title'||n.label==='Mods');
   await click(n=>n.role==='list_item'&&n.label?.includes('Mine Craft Protocol')&&!n.label.includes('Validation'));
   await click(n=>n.active!==false&&n.role==='button'&&/config|配置/i.test(n.translationKey??n.label??''));
   assert((await tree()).screenClass.endsWith('ProtocolConfigScreen'));
-  await click(n=>n.label==='扩展包…');assert((await tree()).screenClass.endsWith('ExtensionPacksScreen'));
+  const config=await tree();assert.equal(nodes(config).find(n=>n.translationKey==='mine_craft_protocol.options.extensionpacks')?.label,text('options.extensionpacks'));
+  await preview('config');
+  await click(n=>n.translationKey==='mine_craft_protocol.options.extensionpacks');
+  const packs=await tree();assert(packs.screenClass.endsWith('ExtensionPacksScreen'));
+  assert.equal(packs.title,text('extensionpacks.title'));
+  if(language==='en_us')for(const node of nodes(packs))for(const key of ['label','description'])assert(!/\p{Script=Han}/u.test(node[key]??''),'Untranslated player text: '+node[key]);
  });
  await check('Agent cannot first-approve content or enable an invalid dependency',async()=>{
   const t=await tree();report.settingsTree=t;
@@ -82,11 +92,39 @@ try{
   const row=nodes(report.afterSelection).find(n=>n.packId==='platform_probe'&&n.role==='container');assert(row);assert.equal(row.restartRequired,phase!=='enabled-restart');
   await preview('selection');
  });
+ await check('localized presence keeps native titles and final-frame previews in all three modes',async()=>{
+  report.localizedPresentation=[];
+  for(const mode of ['READ','OPERATE','TAKEOVER']){
+   if(lease){await api('POST','/v0/control/release');lease=undefined;}
+   const state=await api('GET','/v0/control/mode');
+   if(mode==='TAKEOVER')lease=(await api('POST','/v0/control/acquire',automaticTakeoverRequest(state,{ttlMs:60000,taskId}))).leaseId;
+   else if(state.mode!==mode)await api('POST','/v0/control/mode',{mode,expectedModeVersion:state.modeVersion});
+   await new Promise(done=>setTimeout(done,750));
+   const session=await api('GET','/v0/session');assert.equal(session.windowTitle,session.windowBaseTitle+' - '+text('window.'+mode.toLowerCase()));
+   const observation={mode,windowTitle:session.windowTitle,message:text('control.'+mode.toLowerCase())};
+   if(target==='26.3-neoforge'){
+    const root=resolve(instance,'mine_craft_protocol/locale-preview');await mkdir(root,{recursive:true});
+    const name=language+'-'+mode,nonce=randomUUID();
+    await writeFile(resolve(root,'request.json'),JSON.stringify({name,nonce}));
+    const end=Date.now()+15000;let result;
+    while(Date.now()<end){result=await readFile(resolve(root,name+'.json'),'utf8').then(JSON.parse,()=>null);if(result?.nonce===nonce)break;await new Promise(done=>setTimeout(done,100));}
+    assert.equal(result?.nonce,nonce,'Native final-frame preview');
+    assert(result.captions?.platform_probe?.includes(text(phase==='enabled-restart'?'extensionpacks.approved':'extensionpacks.pending_restart')),'Actual native description follows current selection: '+JSON.stringify(result));
+    observation.nativeCaptions=result.captions;
+    const probe='versions/26.3-neoforge/src/probe/java/io/github/recrivenvi/minecraftprotocol/probe/validation/mixin/UiLocalizationPreviewMixin.java';
+    report.previewProbe={path:probe,sha256:sha256(await readFile(resolve(repo,probe)))};
+    const destination=resolve(process.env.MCP_EXTENSION_PREVIEW_ROOT??'D:/Workspaces/Artifacts/MineCraftProtocol/Previews/2026-11-02-localization');await mkdir(destination,{recursive:true});
+    observation.preview=resolve(destination,target+'-'+name+'.png');await copyFile(resolve(root,name+'.png'),observation.preview);
+   }
+   report.localizedPresentation.push(observation);
+  }
+ });
  await check('Done returns normally without held input or manual revocation',async()=>{
   await click(n=>n.translationKey==='gui.done');assert((await tree()).screenClass.endsWith('ProtocolConfigScreen'));
   await click(n=>n.translationKey==='gui.done');
   await click(n=>['gui.back','gui.done'].includes(n.translationKey)&&n.active!==false);assert((await tree()).screenClass.endsWith('TitleScreen'));
   await api('POST','/v0/control/release');lease=undefined;
+  await api('POST','/v0/control/task',{action:'end',taskId});taskId=undefined;
   assert.equal((await api('GET','/v0/control/mode')).reconsentRequired,false);
   const input=await api('GET','/v0/input/state');report.finalInput=input;
   assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);
@@ -96,6 +134,7 @@ try{
 }catch(error){report.status='FAIL';report.error=String(error);try{report.failureTree=await tree();}catch{}throw error;}
 finally{
  if(lease)try{await api('POST','/v0/control/release');}catch{}
- const path=resolve(repo,'validations/integration-extension_platform/result',target+'-client-settings'+(phase==='initial'?'':'-'+phase)+'.json');await mkdir(resolve(path,'..'),{recursive:true});
+ if(taskId)try{await api('POST','/v0/control/task',{action:'end',taskId});}catch{}
+ const path=resolve(repo,'validations/integration-extension_platform/result',target+'-client-settings'+(phase==='initial'?'':'-'+phase)+(language==='en_us'?'':'-'+language)+'.json');await mkdir(resolve(path,'..'),{recursive:true});
  report.testedAt=new Date().toISOString();report.toolSha256=sha256(await readFile(new URL(import.meta.url)));await writeFile(path,JSON.stringify(report,null,2)+'\n');
 }

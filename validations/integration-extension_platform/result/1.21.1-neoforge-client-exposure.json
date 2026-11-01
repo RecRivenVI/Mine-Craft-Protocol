@@ -2,11 +2,11 @@
   "target": "1.21.1-neoforge",
   "role": "client",
   "adapter": "exposure",
-  "runtimeInstanceId": "b9698653-4840-44ad-8e0b-e853a150c156",
+  "runtimeInstanceId": "c0b72b3f-6aba-4b11-b2aa-a294fd308624",
   "developmentClasspath": true,
   "finalJarInstall": false,
   "toolFiles": {
-    "components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1": "188405beee775a0b7732e3f52737f087fd13fbc3594879b6f5c7c082789d389a",
+    "components/validation_tools/integration-extension_platform/task/Invoke-ExtensionPlatformSmoke.ps1": "1883ffb253f54ef7cb4b2bef22176e95f01b3ce336856468d09f1f0b91657a53",
     "components/validation_tools/integration-extension_platform/task/extension-platform-smoke.mjs": "33c877c6907b9def1d77a54922eaa9153e8fcdcbd217f35ccebcd47486a770cd",
     "components/validation_tools/integration-extension_platform/task/install-platform-probe.mjs": "5377e3c7ec7d2f6777f8a111446ff3f82e1139fe297041978b55359aad86b813",
     "components/validation_tools/integration-extension_platform/task/adapter-ui-actions.mjs": "a01c770151084fee49f7e2fdfeb4579575fb815808d51c726ceebf1fa7917301",
@@ -81,7 +81,7 @@
     "components/extensionpacks/scripts/prepare-lifecycle-fixtures.mjs": "49811afe7905c82ec72da7a910912c25973e1cadfc33a5ad54d7064c2b89a139",
     "components/extensionpacks/scripts/prepare-replacement.mjs": "a0b99c766ae4add051eda4369ee632870ad65c5864c17c44cffbc86034b91687",
     "components/extensionpacks/settings.gradle.kts": "6e496b63515632e62634d122bf9a48d888e1282e6ff3c3848d32336c132ab7a9",
-    "components/extensionpacks/src/main/java/io/github/recrivenvi/minecraftprotocol/packaging/ExtensionPackageCli.java": "0de558bd2de3eb327dfa9de3303bf8c4244fc9433993ab06caa13ffe2ffa0ee8"
+    "components/extensionpacks/src/main/java/io/github/recrivenvi/minecraftprotocol/packaging/ExtensionPackageCli.java": "4436cc87d161e8c0b23c2a879beabdc76525a35c0ca42ad87277096f40dcf51c"
   },
   "upstreamArtifacts": {
     "extension-input-exposure-1-21-1-neoforge.jar": "c3579a314f77a9368c8312a1ace1dc8d510590869f7589b8ab3df24c42adca2f"
@@ -225,7 +225,7 @@
             }
           }
         ],
-        "requestId": "59d23399-aef3-4ae8-9956-5835606b5293",
+        "requestId": "771266f0-8439-46f3-b481-d090101fd7a1",
         "protocolVersion": "v0"
       },
       "document": {
@@ -236,40 +236,40 @@
         "sha256": "ea78bd9c219adaa673215c9ef08242038fe38ed6f9f2fa2b8f6330ff2231f6ec",
         "text": "# Platform probe\n\nOwner-thread sampling of a managed DEBUG grant. Passive physical-JVM MinecraftServer tick hook counter and explicit managed sampling are separate. Shared native helper identity is required. No world mutation or user input. Runtime read and typed Debug authorize separately.\n",
         "contentIsData": true,
-        "requestId": "c2324db0-b53c-4f5a-9108-182aec1ed936",
+        "requestId": "41cf44a5-a8fa-40a7-bf92-03ed0e387341",
         "protocolVersion": "v0"
       }
     },
     {
       "nativeUiEnrichment": {
-        "coverage": "native_with_extension_semantics",
-        "width": 200,
-        "y": 99,
-        "x": 140,
         "boundsAvailable": true,
-        "interactionY": 109,
-        "interactionX": 240,
-        "nodeRevision": 2,
-        "active": true,
-        "role": "button",
-        "label": "Singleplayer",
-        "visible": true,
-        "translationKey": "menu.singleplayer",
-        "nodeId": "ui:2:5",
-        "hovered": false,
-        "elementIdentity": 5,
-        "class": "net.minecraft.client.gui.components.Button",
-        "focused": false,
-        "capabilitySource": "platform_probe:native_ui",
-        "acquisition": "installed_extension",
-        "height": 20,
+        "x": 140,
+        "y": 99,
+        "width": 200,
+        "coverage": "native_with_extension_semantics",
         "actions": [
           "hover",
           "click",
           "double_click",
           "mouse_down",
           "mouse_up"
-        ]
+        ],
+        "height": 20,
+        "acquisition": "installed_extension",
+        "capabilitySource": "platform_probe:native_ui",
+        "focused": false,
+        "class": "net.minecraft.client.gui.components.Button",
+        "elementIdentity": 5,
+        "hovered": false,
+        "nodeId": "ui:2:5",
+        "translationKey": "menu.singleplayer",
+        "visible": true,
+        "label": "Singleplayer",
+        "role": "button",
+        "active": true,
+        "nodeRevision": 2,
+        "interactionX": 240,
+        "interactionY": 109
       }
     },
     {
@@ -296,8 +296,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "1f53d179-2c0a-4770-9695-247655121dbc",
-        "auditReference": "1f53d179-2c0a-4770-9695-247655121dbc",
+        "debugOperationId": "6aaaedc4-8f20-43e5-9be7-aaefa55dd195",
+        "auditReference": "6aaaedc4-8f20-43e5-9be7-aaefa55dd195",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -309,8 +309,8 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:1be8257b-b8af-3dc0-ba30-bcebbbba27d7",
-        "debugArmId": "43e9a8b2-5620-4a2d-b227-322b5f7068e3",
+        "principalId": "token:eacc1ad6-e2d5-3ae7-8a7c-c519829d768a",
+        "debugArmId": "9c770dec-95d3-4f2e-ad06-6c126ee1620f",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
@@ -318,7 +318,7 @@
           "adapterRevision": "managed_async_preparation_v3",
           "sampledAtNanos": 0,
           "ownerThread": "",
-          "passiveNativeHookCalls": 29,
+          "passiveNativeHookCalls": 27,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
@@ -330,13 +330,13 @@
           "adapterRevision": "managed_async_preparation_v3",
           "sampledAtNanos": 0,
           "ownerThread": "",
-          "passiveNativeHookCalls": 29,
+          "passiveNativeHookCalls": 27,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -346,7 +346,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -355,8 +355,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 42714,
-        "requestId": "1f53d179-2c0a-4770-9695-247655121dbc",
+        "durationMicros": 40529,
+        "requestId": "6aaaedc4-8f20-43e5-9be7-aaefa55dd195",
         "protocolVersion": "v0"
       },
       "sampled": {
@@ -368,19 +368,19 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
-        "capturedAt": 1793526724328,
+        "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
+        "capturedAt": 1793571555303,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.21.1-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "808a5300-1920-4f30-b485-f3d09c5afcbf",
-          "snapshotSequence": 30,
-          "capturedAtMillis": 1793526724328,
+          "snapshotId": "e5724a98-2ae1-4035-9ceb-13e7b0192791",
+          "snapshotSequence": 27,
+          "capturedAtMillis": 1793571555303,
           "clientTick": -1,
-          "serverTick": 30,
+          "serverTick": 27,
           "consistency": "server_thread_bounded",
           "perspective": "server_authoritative",
           "acquisition": "public_api_plus_internal_projection",
@@ -403,7 +403,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 34,
+          "ownerThreadCaptureMicros": 39,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -413,28 +413,28 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793526724328,
-          "snapshotId": "dfd105b4-8d42-4b9c-b17a-2f7b34b9905d",
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "capturedAt": 1793571555303,
+          "snapshotId": "4e2efaee-55f8-4c40-8c35-626a316cc26c",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "clientTick": -1,
-          "serverTick": 30,
+          "serverTick": 27,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
-            "entryCount": 102,
+            "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
+            "entryCount": 110,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 163,
+            "generationHighWatermark": 171,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
-          "revisionComputationMicros": 6,
+          "revisionComputationMicros": 3,
           "revisionThread": "detached_revision_worker",
           "revisionQueueDepth": 0
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+            "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -513,9 +513,9 @@
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
               "samples": 1,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 622132562387700,
+              "sampledAtNanos": 666963559061300,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 30,
+              "passiveNativeHookCalls": 28,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
@@ -523,17 +523,17 @@
             "providerRevision": 1,
             "bytes": 471,
             "entryDurationMicros": 34,
-            "validationDurationMicros": 152,
-            "durationMicros": 4544
+            "validationDurationMicros": 122,
+            "durationMicros": 44743
           }
         ],
-        "responseBytes": 4325,
+        "responseBytes": 4326,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "bf45e446-c8d1-4162-a678-bd1ceaa7934c",
+        "requestId": "3548becf-14e6-4e70-b806-c8035ea8c009",
         "protocolVersion": "v0"
       }
     },
@@ -541,8 +541,8 @@
       "stopped": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "0d070a5e-9d50-4f28-9ebc-64e3c438d6da",
-        "auditReference": "0d070a5e-9d50-4f28-9ebc-64e3c438d6da",
+        "debugOperationId": "bff658ab-a480-4063-b72e-7546815cc5ed",
+        "auditReference": "bff658ab-a480-4063-b72e-7546815cc5ed",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -554,16 +554,16 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:1be8257b-b8af-3dc0-ba30-bcebbbba27d7",
-        "debugArmId": "43e9a8b2-5620-4a2d-b227-322b5f7068e3",
+        "principalId": "token:eacc1ad6-e2d5-3ae7-8a7c-c519829d768a",
+        "debugArmId": "9c770dec-95d3-4f2e-ad06-6c126ee1620f",
         "before": {
           "running": true,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
-          "samples": 16,
+          "samples": 17,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 622133332914300,
+          "sampledAtNanos": 666964365046100,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 45,
+          "passiveNativeHookCalls": 43,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
@@ -571,17 +571,17 @@
         "after": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
-          "samples": 16,
+          "samples": 17,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 622133332914300,
+          "sampledAtNanos": 666964365046100,
           "ownerThread": "Server thread",
-          "passiveNativeHookCalls": 45,
+          "passiveNativeHookCalls": 43,
           "passiveNativeHookThread": "Server thread",
           "passiveNativeHookScope": "physical_jvm",
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -591,7 +591,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -600,8 +600,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 6014,
-        "requestId": "0d070a5e-9d50-4f28-9ebc-64e3c438d6da",
+        "durationMicros": 7261,
+        "requestId": "bff658ab-a480-4063-b72e-7546815cc5ed",
         "protocolVersion": "v0"
       }
     },
@@ -609,8 +609,8 @@
       "started": {
         "type": "debug.mutation.result",
         "schemaVersion": "phase9c-debug-v0",
-        "debugOperationId": "fa1e5dec-4975-4583-9914-78b1457d168c",
-        "auditReference": "fa1e5dec-4975-4583-9914-78b1457d168c",
+        "debugOperationId": "b6aa217a-4f3d-4503-b125-32117015bfec",
+        "auditReference": "b6aa217a-4f3d-4503-b125-32117015bfec",
         "operation": "provider.mutate",
         "namespace": "provider",
         "providerId": "platform_probe:sampling",
@@ -622,14 +622,14 @@
         "gameplayEvidence": false,
         "evidenceContaminated": true,
         "storageAccessed": false,
-        "principalId": "token:1be8257b-b8af-3dc0-ba30-bcebbbba27d7",
-        "debugArmId": "d8850663-0f76-4550-824c-887e58319ac9",
+        "principalId": "token:eacc1ad6-e2d5-3ae7-8a7c-c519829d768a",
+        "debugArmId": "46c00720-ddcb-46c7-aaac-f6f51e019624",
         "before": {
           "running": false,
           "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
-          "samples": 16,
+          "samples": 17,
           "adapterRevision": "managed_async_preparation_v3",
-          "sampledAtNanos": 622133332914300,
+          "sampledAtNanos": 666964365046100,
           "ownerThread": "Server thread",
           "passiveNativeHookCalls": 69,
           "passiveNativeHookThread": "Server thread",
@@ -649,7 +649,7 @@
           "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
         },
         "beforeResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -659,7 +659,7 @@
           "mutationPreconditionEligible": true
         },
         "afterResourceVersion": {
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "resourceType": "provider",
           "resourceKey": "platform_probe:sampling",
           "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -668,8 +668,8 @@
           "revisionScope": "resource",
           "mutationPreconditionEligible": true
         },
-        "durationMicros": 3305,
-        "requestId": "fa1e5dec-4975-4583-9914-78b1457d168c",
+        "durationMicros": 1111,
+        "requestId": "b6aa217a-4f3d-4503-b125-32117015bfec",
         "protocolVersion": "v0"
       },
       "stopped": {
@@ -681,17 +681,17 @@
         "schemaVersion": "phase9b-observation-v0",
         "formal": true,
         "perspective": "server_authoritative",
-        "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
-        "capturedAt": 1793526726614,
+        "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
+        "capturedAt": 1793571557749,
         "server": {
           "type": "deep_observation.server_snapshot",
           "target": "1.21.1-neoforge",
           "phase": "9A",
           "experimental": true,
           "wireProtocolFrozen": false,
-          "snapshotId": "76841b90-74e1-4849-addc-6528cb8103bc",
+          "snapshotId": "d85ad460-bab6-43de-9d70-4a507c18d5d7",
           "snapshotSequence": 76,
-          "capturedAtMillis": 1793526726613,
+          "capturedAtMillis": 1793571557749,
           "clientTick": -1,
           "serverTick": 76,
           "consistency": "server_thread_bounded",
@@ -716,7 +716,7 @@
               "providers"
             ]
           },
-          "ownerThreadCaptureMicros": 23,
+          "ownerThreadCaptureMicros": 24,
           "ownerThreadSoftBudgetMicros": 4000,
           "ownerThreadHardBudgetMicros": 12000
         },
@@ -726,18 +726,18 @@
           "completeness": "projected",
           "readEffects": "none",
           "consistency": "owner_thread_snapshot",
-          "capturedAt": 1793526726614,
-          "snapshotId": "cef5fec5-61c2-4d6c-b0b3-0702df8942e7",
-          "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+          "capturedAt": 1793571557749,
+          "snapshotId": "8b11e52e-c6a4-47e2-baa6-b640d481d2e8",
+          "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
           "clientTick": -1,
           "serverTick": 76,
           "alignmentQuality": "single_perspective",
           "revisionTracker": {
-            "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
-            "entryCount": 102,
+            "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
+            "entryCount": 110,
             "entryBound": 4096,
             "evictionCount": 0,
-            "generationHighWatermark": 163,
+            "generationHighWatermark": 171,
             "evictedResourceReobservation": "allocates_new_session_unique_generation",
             "arraySemantics": "ordered_by_default"
           },
@@ -747,7 +747,7 @@
         },
         "resourceRevisionRefs": [
           {
-            "sessionEpoch": "951e6ab7-d15c-40fb-bd08-c5e520e0928b",
+            "sessionEpoch": "db46cbaf-e16d-43d6-b4a1-c0d9682d3179",
             "resourceType": "provider",
             "resourceKey": "platform_probe:sampling",
             "lifecycleId": "provider:platform_probe:sampling@runtime_registration",
@@ -824,41 +824,41 @@
             "data": {
               "running": false,
               "nativeOwnerType": "net.minecraft.client.server.IntegratedServer",
-              "samples": 7,
+              "samples": 6,
               "adapterRevision": "managed_async_preparation_v3",
-              "sampledAtNanos": 622134830835500,
+              "sampledAtNanos": 666965915616900,
               "ownerThread": "Server thread",
-              "passiveNativeHookCalls": 76,
+              "passiveNativeHookCalls": 77,
               "passiveNativeHookThread": "Server thread",
               "passiveNativeHookScope": "physical_jvm",
               "nativeHelperClassLoader": "cpw.mods.modlauncher.TransformingClassLoader"
             },
             "providerRevision": 4,
             "bytes": 473,
-            "entryDurationMicros": 22,
-            "validationDurationMicros": 69,
-            "durationMicros": 8233
+            "entryDurationMicros": 23,
+            "validationDurationMicros": 121,
+            "durationMicros": 11858
           }
         ],
-        "responseBytes": 4325,
+        "responseBytes": 4327,
         "maxResponseBytes": 524288,
         "domain": "WORLD",
         "dataCategory": "DEBUG",
         "perceptionFiltered": false,
         "completeGameData": false,
-        "requestId": "0843f577-82a4-4141-b115-a7c779928408",
+        "requestId": "e5bc9307-2503-45f4-bdde-dd47ec07e473",
         "protocolVersion": "v0"
       },
       "cleanup": {
         "type": "extensions.resources",
-        "runtimeInstanceId": "b9698653-4840-44ad-8e0b-e853a150c156",
+        "runtimeInstanceId": "c0b72b3f-6aba-4b11-b2aa-a294fd308624",
         "activeScopes": 2,
         "cleanup": [
           {
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "43e9a8b2-5620-4a2d-b227-322b5f7068e3",
+            "contextId": "9c770dec-95d3-4f2e-ad06-6c126ee1620f",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -880,7 +880,7 @@
             "complete": true,
             "packageId": "platform_probe",
             "lifetime": "DEBUG_GRANT",
-            "contextId": "d8850663-0f76-4550-824c-887e58319ac9",
+            "contextId": "46c00720-ddcb-46c7-aaac-f6f51e019624",
             "reason": "grant_invalidated",
             "released": true,
             "resources": [
@@ -900,7 +900,7 @@
           }
         ],
         "inputCleanup": [],
-        "requestId": "dc1e4726-4a7a-4fd1-840b-2c0729d730c1",
+        "requestId": "00a3f15c-0b83-4340-9ad9-d757b0a48058",
         "protocolVersion": "v0"
       }
     },
@@ -929,12 +929,12 @@
         "attributes": {
           "nativeParent": "minecraft:chest"
         },
-        "targetRef": "world:09b2a739-184a-431c-9a7d-deaae982d2a2",
+        "targetRef": "world:12fabe87-af79-48e7-b4f4-c13d9eb279b6",
         "targetTtlMs": 15000
       },
       "result": {
         "type": "operation",
-        "operationId": "a9c7e4ae-6bf5-4abf-b265-f7baec6952c9",
+        "operationId": "3826f848-3971-4a01-a3e1-8825033b63f1",
         "status": "completed",
         "state": "completed",
         "received": true,
@@ -946,25 +946,25 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793526730477,
-        "acceptedAtMillis": 1793526730477,
-        "scheduledAtMillis": 1793526730477,
-        "startedAtMillis": 1793526730477,
-        "completedAtMillis": 1793526730638,
+        "receivedAtMillis": 1793571561613,
+        "acceptedAtMillis": 1793571561613,
+        "scheduledAtMillis": 1793571561613,
+        "startedAtMillis": 1793571561613,
+        "completedAtMillis": 1793571561778,
         "commandSubmissionsComplete": true,
         "result": {
           "type": "pipeline.result",
-          "gestureId": "91fbaf57-c5d3-45ae-9ff5-c7cfb6c31c3d",
+          "gestureId": "423ec4de-107c-40a9-b10e-b4035bd97100",
           "status": "completed",
           "stepCount": 1,
-          "durationMillis": 161,
+          "durationMillis": 170,
           "cleanupOnComplete": true,
           "steps": [
             {
               "index": 0,
               "stepType": "world.action",
               "status": "completed",
-              "elapsedMillis": 148.41,
+              "elapsedMillis": 154.3431,
               "result": {
                 "actualHit": {
                   "dataCategory": "USER",
@@ -994,9 +994,9 @@
                 "input": {
                   "type": "input.result",
                   "target": "1.21.1-neoforge",
-                  "clientTick": 550,
+                  "clientTick": 554,
                   "entryLayer": "GAME_ROUTED_RAW",
-                  "gestureId": "91fbaf57-c5d3-45ae-9ff5-c7cfb6c31c3d",
+                  "gestureId": "423ec4de-107c-40a9-b10e-b4035bd97100",
                   "inputOrigin": "AGENT_ROUTED",
                   "hostCursorUsed": false,
                   "screenObserved": false,
@@ -1024,49 +1024,49 @@
                 "entryLayer": "GAME_ROUTED_RAW",
                 "directMutationUsed": false,
                 "action": "use",
-                "targetRef": "world:09b2a739-184a-431c-9a7d-deaae982d2a2"
+                "targetRef": "world:12fabe87-af79-48e7-b4f4-c13d9eb279b6"
               }
             }
           ],
           "timing": {
             "timeSource": "monotonic_elapsed",
             "scope": "automation_pipeline_not_http_or_server_effect",
-            "queueMillis": 0.0283,
-            "totalMillis": 160.8952,
+            "queueMillis": 0.0285,
+            "totalMillis": 170.0686,
             "requestedDelayMillis": 130,
             "inputCallbackCount": 5,
             "stages": {
               "inputState": {
-                "elapsedMillis": 3.4512,
+                "elapsedMillis": 3.824,
                 "calls": 1
               },
               "nativeCall": {
-                "elapsedMillis": 15.5451,
+                "elapsedMillis": 21.8944,
                 "calls": 6
               },
               "delay": {
-                "elapsedMillis": 131.0391,
+                "elapsedMillis": 130.6447,
                 "calls": 2
               },
               "cleanup": {
-                "elapsedMillis": 8.8964,
+                "elapsedMillis": 7.8144,
                 "calls": 1
               }
             },
-            "firstInputCallbackOffsetMillis": 11.8102,
-            "lastInputCallbackOffsetMillis": 151.1363
+            "firstInputCallbackOffsetMillis": 16.1382,
+            "lastInputCallbackOffsetMillis": 161.4835
           },
           "cleanup": {
             "type": "input.release_all",
             "target": "1.21.1-neoforge",
-            "clientTick": 552,
+            "clientTick": 556,
             "reason": "pipeline_completed",
             "releasedKeys": 0,
             "releasedButtons": 0,
             "inputDispatchSequence": 241
           }
         },
-        "requestId": "ffb0c856-24f1-4319-8ac4-cfd9c0a7a71f",
+        "requestId": "5b008641-58fb-4dc4-822e-20eddde08871",
         "protocolVersion": "v0"
       },
       "actualNativeScreen": "net.minecraft.client.gui.screens.inventory.ContainerScreen",
@@ -1076,7 +1076,7 @@
     {
       "stalePartRejected": {
         "type": "operation",
-        "operationId": "387bfc0c-777d-43fe-9395-952043947b5c",
+        "operationId": "f4c46ecb-54b9-4d7c-904e-91f67b4f1b63",
         "status": "failed",
         "state": "failed",
         "received": true,
@@ -1088,15 +1088,15 @@
         "cancelled": false,
         "timedOut": false,
         "leaseBound": true,
-        "receivedAtMillis": 1793526731654,
-        "acceptedAtMillis": 1793526731654,
-        "scheduledAtMillis": 1793526731654,
-        "startedAtMillis": 1793526731654,
-        "completedAtMillis": 1793526731678,
+        "receivedAtMillis": 1793571562810,
+        "acceptedAtMillis": 1793571562810,
+        "scheduledAtMillis": 1793571562810,
+        "startedAtMillis": 1793571562810,
+        "completedAtMillis": 1793571562838,
         "commandSubmissionsComplete": true,
         "error": "Block/chunk identity or bounded history changed; rediscover target",
         "errorCode": "WORLD_TARGET_STALE",
-        "requestId": "8b09a8a1-ffa9-4b49-85f4-e6ca6734b9f9",
+        "requestId": "a126560c-6fe1-425b-aac2-8aa7253db701",
         "protocolVersion": "v0"
       },
       "cleanupCounterAdvanced": 1,
@@ -1107,7 +1107,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 574,
+        "clientTick": 577,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1123,14 +1123,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "e6b90177-1d3d-4327-b133-a561b8a11953",
+        "gestureId": "cb4c20a6-7b43-4b56-b02c-44d13e06a650",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "e6b90177-1d3d-4327-b133-a561b8a11953",
+        "requestId": "cb4c20a6-7b43-4b56-b02c-44d13e06a650",
         "protocolVersion": "v0"
       }
     },
@@ -1139,7 +1139,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 585,
+        "clientTick": 589,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1155,14 +1155,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "3bc48987-198b-4b8e-95e1-ce952ff02472",
+        "gestureId": "4a79fba9-ffb7-4415-ba32-1e3e376d439e",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "3bc48987-198b-4b8e-95e1-ce952ff02472",
+        "requestId": "4a79fba9-ffb7-4415-ba32-1e3e376d439e",
         "protocolVersion": "v0"
       }
     },
@@ -1171,7 +1171,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 596,
+        "clientTick": 600,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1187,14 +1187,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "1a7e0aab-51a0-428b-baab-5c30e6fdac7f",
+        "gestureId": "ed3f33bc-41f6-478b-a173-a6e97185d877",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "1a7e0aab-51a0-428b-baab-5c30e6fdac7f",
+        "requestId": "ed3f33bc-41f6-478b-a173-a6e97185d877",
         "protocolVersion": "v0"
       }
     },
@@ -1203,7 +1203,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 607,
+        "clientTick": 611,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1219,14 +1219,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "320c7f47-a636-4e2a-9689-37e457e44ce3",
+        "gestureId": "3e291e3f-aaaa-4ec9-9bf6-399a2e3ecbbb",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "320c7f47-a636-4e2a-9689-37e457e44ce3",
+        "requestId": "3e291e3f-aaaa-4ec9-9bf6-399a2e3ecbbb",
         "protocolVersion": "v0"
       }
     },
@@ -1235,7 +1235,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 618,
+        "clientTick": 623,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1251,14 +1251,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "3bfec9f0-52f9-4629-89b4-2c316ee6cf57",
+        "gestureId": "45a493a5-9410-4684-9ea1-5720d40dbe90",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "3bfec9f0-52f9-4629-89b4-2c316ee6cf57",
+        "requestId": "45a493a5-9410-4684-9ea1-5720d40dbe90",
         "protocolVersion": "v0"
       }
     },
@@ -1267,7 +1267,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 630,
+        "clientTick": 634,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1283,14 +1283,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "79de624c-be58-456c-97e6-684f6975b837",
+        "gestureId": "f33cf621-0eaf-4fca-a8b5-01d00d24d4a0",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "79de624c-be58-456c-97e6-684f6975b837",
+        "requestId": "f33cf621-0eaf-4fca-a8b5-01d00d24d4a0",
         "protocolVersion": "v0"
       }
     },
@@ -1299,7 +1299,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 641,
+        "clientTick": 645,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1315,14 +1315,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "cb6371e4-867f-45ee-8090-6472f5c3cd0a",
+        "gestureId": "2e980587-7b86-44d2-920e-8a8560ae2336",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "cb6371e4-867f-45ee-8090-6472f5c3cd0a",
+        "requestId": "2e980587-7b86-44d2-920e-8a8560ae2336",
         "protocolVersion": "v0"
       }
     },
@@ -1331,7 +1331,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 652,
+        "clientTick": 657,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1347,14 +1347,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "628007cb-a4c4-4495-b884-db43775f0358",
+        "gestureId": "cf9d057c-cb53-4e9f-8ac1-7aed0cd31448",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "628007cb-a4c4-4495-b884-db43775f0358",
+        "requestId": "cf9d057c-cb53-4e9f-8ac1-7aed0cd31448",
         "protocolVersion": "v0"
       }
     },
@@ -1363,7 +1363,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 664,
+        "clientTick": 668,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1379,14 +1379,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "09bcf0bb-70f3-48b7-87dd-4d5333c8cdfd",
+        "gestureId": "c73a44d4-68ed-4f8a-8aec-45821a5df584",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "09bcf0bb-70f3-48b7-87dd-4d5333c8cdfd",
+        "requestId": "c73a44d4-68ed-4f8a-8aec-45821a5df584",
         "protocolVersion": "v0"
       }
     },
@@ -1395,7 +1395,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 675,
+        "clientTick": 679,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1411,14 +1411,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "409ff857-fa22-4c22-bcef-b52991214435",
+        "gestureId": "52912352-f1c6-433f-a2f6-94dd24724b97",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "409ff857-fa22-4c22-bcef-b52991214435",
+        "requestId": "52912352-f1c6-433f-a2f6-94dd24724b97",
         "protocolVersion": "v0"
       }
     },
@@ -1427,7 +1427,7 @@
       "result": {
         "type": "command.player.submission",
         "target": "1.21.1-neoforge",
-        "clientTick": 686,
+        "clientTick": 691,
         "accepted": true,
         "perspective": "current_player",
         "mode": "DEBUG_PRIVILEGED",
@@ -1443,14 +1443,14 @@
         "evidenceContaminated": true,
         "contaminationReason": "player_command_state_mutation",
         "submissionStatus": "submitted_unconfirmed",
-        "gestureId": "2db7ed43-9db6-4828-8082-c40be2faf8b6",
+        "gestureId": "54ec6266-9da3-499d-b84e-cdb29fe9bcf1",
         "route": "NATIVE",
         "dataCategory": "USER",
         "requiresControlLease": false,
         "inputDispatched": false,
         "feedbackAvailable": false,
         "feedbackReason": "native_submission_without_chat_sampling",
-        "requestId": "2db7ed43-9db6-4828-8082-c40be2faf8b6",
+        "requestId": "54ec6266-9da3-499d-b84e-cdb29fe9bcf1",
         "protocolVersion": "v0"
       }
     },
@@ -1467,7 +1467,7 @@
         {
           "shutter": {
             "type": "operation",
-            "operationId": "e74a0a40-482a-4642-b928-02d8c7c8edae",
+            "operationId": "9ce21599-d6ec-4096-9f69-6ef2567535d2",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -1479,15 +1479,15 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1793526741066,
-            "acceptedAtMillis": 1793526741066,
-            "scheduledAtMillis": 1793526741066,
-            "startedAtMillis": 1793526741066,
-            "completedAtMillis": 1793526741177,
+            "receivedAtMillis": 1793571572190,
+            "acceptedAtMillis": 1793571572190,
+            "scheduledAtMillis": 1793571572190,
+            "startedAtMillis": 1793571572190,
+            "completedAtMillis": 1793571572301,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "bf0bb11d-c9d0-4491-96fe-0ab9c31879b3",
+              "gestureId": "57a0ae15-0521-4678-aeb4-fd97d8547381",
               "status": "completed",
               "stepCount": 3,
               "durationMillis": 111,
@@ -1497,13 +1497,13 @@
                   "index": 0,
                   "stepType": "mouse.button",
                   "status": "completed",
-                  "elapsedMillis": 9.0641,
+                  "elapsedMillis": 9.9531,
                   "result": {
                     "type": "input.result",
                     "target": "1.21.1-neoforge",
-                    "clientTick": 761,
+                    "clientTick": 764,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "bf0bb11d-c9d0-4491-96fe-0ab9c31879b3",
+                    "gestureId": "57a0ae15-0521-4678-aeb4-fd97d8547381",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1522,7 +1522,7 @@
                   "index": 1,
                   "stepType": "delay",
                   "status": "completed",
-                  "elapsedMillis": 80.4918,
+                  "elapsedMillis": 80.5964,
                   "result": {
                     "type": "delay"
                   }
@@ -1531,13 +1531,13 @@
                   "index": 2,
                   "stepType": "mouse.button",
                   "status": "completed",
-                  "elapsedMillis": 6.231,
+                  "elapsedMillis": 5.5588,
                   "result": {
                     "type": "input.result",
                     "target": "1.21.1-neoforge",
-                    "clientTick": 763,
+                    "clientTick": 766,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "bf0bb11d-c9d0-4491-96fe-0ab9c31879b3",
+                    "gestureId": "57a0ae15-0521-4678-aeb4-fd97d8547381",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1556,46 +1556,46 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.0253,
-                "totalMillis": 110.8827,
+                "queueMillis": 0.0229,
+                "totalMillis": 110.6456,
                 "requestedDelayMillis": 80,
                 "inputCallbackCount": 2,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 6.4283,
+                    "elapsedMillis": 6.5018,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 8.5284,
+                    "elapsedMillis": 9.4292,
                     "calls": 3
                   },
                   "nativeCall": {
-                    "elapsedMillis": 6.615,
+                    "elapsedMillis": 5.9165,
                     "calls": 2
                   },
                   "delay": {
-                    "elapsedMillis": 80.4301,
+                    "elapsedMillis": 80.5212,
                     "calls": 1
                   },
                   "cleanup": {
-                    "elapsedMillis": 8.5355,
+                    "elapsedMillis": 7.9117,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 15.0892,
-                "lastInputCallbackOffsetMillis": 102.0027
+                "firstInputCallbackOffsetMillis": 16.0534,
+                "lastInputCallbackOffsetMillis": 102.2741
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "1.21.1-neoforge",
-                "clientTick": 763,
+                "clientTick": 766,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 305
               }
             },
-            "requestId": "3b2abe61-d8f4-494d-8bb4-80dee012ae2b",
+            "requestId": "eb6cbfad-15a4-478f-aa1f-8462a1fc662f",
             "protocolVersion": "v0"
           },
           "after": {
@@ -1615,7 +1615,7 @@
         {
           "shutter": {
             "type": "operation",
-            "operationId": "83473c1a-063b-4f89-92d7-c83657940249",
+            "operationId": "593d18d0-e132-4a71-8bd6-c69c368673fd",
             "status": "completed",
             "state": "completed",
             "received": true,
@@ -1627,31 +1627,31 @@
             "cancelled": false,
             "timedOut": false,
             "leaseBound": true,
-            "receivedAtMillis": 1793526741598,
-            "acceptedAtMillis": 1793526741598,
-            "scheduledAtMillis": 1793526741598,
-            "startedAtMillis": 1793526741598,
-            "completedAtMillis": 1793526741706,
+            "receivedAtMillis": 1793571572684,
+            "acceptedAtMillis": 1793571572684,
+            "scheduledAtMillis": 1793571572684,
+            "startedAtMillis": 1793571572684,
+            "completedAtMillis": 1793571572789,
             "commandSubmissionsComplete": true,
             "result": {
               "type": "pipeline.result",
-              "gestureId": "70f87073-8630-4d5f-8e0b-78f7295c565d",
+              "gestureId": "517d0007-ed5a-45a4-938c-2ce39eeec258",
               "status": "completed",
               "stepCount": 3,
-              "durationMillis": 108,
+              "durationMillis": 104,
               "cleanupOnComplete": true,
               "steps": [
                 {
                   "index": 0,
                   "stepType": "mouse.button",
                   "status": "completed",
-                  "elapsedMillis": 11.0617,
+                  "elapsedMillis": 8.6465,
                   "result": {
                     "type": "input.result",
                     "target": "1.21.1-neoforge",
-                    "clientTick": 772,
+                    "clientTick": 774,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "70f87073-8630-4d5f-8e0b-78f7295c565d",
+                    "gestureId": "517d0007-ed5a-45a4-938c-2ce39eeec258",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1661,7 +1661,7 @@
                     "directBusinessCallUsed": false,
                     "directMutationUsed": false,
                     "screenRevision": 13,
-                    "menuRevision": 17,
+                    "menuRevision": 18,
                     "inputDispatchSequence": 315,
                     "normalMenuProcessingObserved": false
                   }
@@ -1670,7 +1670,7 @@
                   "index": 1,
                   "stepType": "delay",
                   "status": "completed",
-                  "elapsedMillis": 80.3009,
+                  "elapsedMillis": 80.7133,
                   "result": {
                     "type": "delay"
                   }
@@ -1679,13 +1679,13 @@
                   "index": 2,
                   "stepType": "mouse.button",
                   "status": "completed",
-                  "elapsedMillis": 2.166,
+                  "elapsedMillis": 2.3069,
                   "result": {
                     "type": "input.result",
                     "target": "1.21.1-neoforge",
-                    "clientTick": 773,
+                    "clientTick": 776,
                     "entryLayer": "GAME_ROUTED_RAW",
-                    "gestureId": "70f87073-8630-4d5f-8e0b-78f7295c565d",
+                    "gestureId": "517d0007-ed5a-45a4-938c-2ce39eeec258",
                     "inputOrigin": "AGENT_ROUTED",
                     "hostCursorUsed": false,
                     "screenObserved": false,
@@ -1695,7 +1695,7 @@
                     "directBusinessCallUsed": false,
                     "directMutationUsed": false,
                     "screenRevision": 13,
-                    "menuRevision": 17,
+                    "menuRevision": 19,
                     "inputDispatchSequence": 316,
                     "normalMenuProcessingObserved": false
                   }
@@ -1704,46 +1704,46 @@
               "timing": {
                 "timeSource": "monotonic_elapsed",
                 "scope": "automation_pipeline_not_http_or_server_effect",
-                "queueMillis": 0.0224,
-                "totalMillis": 107.7369,
+                "queueMillis": 0.0198,
+                "totalMillis": 104.9964,
                 "requestedDelayMillis": 80,
                 "inputCallbackCount": 2,
                 "stages": {
                   "inputState": {
-                    "elapsedMillis": 5.01,
+                    "elapsedMillis": 5.0871,
                     "calls": 1
                   },
                   "pointerState": {
-                    "elapsedMillis": 10.6325,
+                    "elapsedMillis": 8.2523,
                     "calls": 3
                   },
                   "nativeCall": {
-                    "elapsedMillis": 2.4104,
+                    "elapsedMillis": 2.5061,
                     "calls": 2
                   },
                   "delay": {
-                    "elapsedMillis": 80.2437,
+                    "elapsedMillis": 80.6567,
                     "calls": 1
                   },
                   "cleanup": {
-                    "elapsedMillis": 8.9895,
+                    "elapsedMillis": 8.0715,
                     "calls": 1
                   }
                 },
-                "firstInputCallbackOffsetMillis": 15.8542,
-                "lastInputCallbackOffsetMillis": 98.3427
+                "firstInputCallbackOffsetMillis": 13.5188,
+                "lastInputCallbackOffsetMillis": 96.5696
               },
               "cleanup": {
                 "type": "input.release_all",
                 "target": "1.21.1-neoforge",
-                "clientTick": 773,
+                "clientTick": 776,
                 "reason": "pipeline_completed",
                 "releasedKeys": 0,
                 "releasedButtons": 0,
                 "inputDispatchSequence": 317
               }
             },
-            "requestId": "dffa7d58-b01d-4fd4-acce-fbf54f557229",
+            "requestId": "f8df1360-6822-46f3-9b99-faee84e61a38",
             "protocolVersion": "v0"
           },
           "after": {
@@ -1758,7 +1758,7 @@
                 "identifier": "Id: ExtensionTest_366"
               },
               {
-                "identifier": "Id: ExtensionTest_377"
+                "identifier": "Id: ExtensionTest_376"
               }
             ]
           }
@@ -1776,7 +1776,7 @@
             "identifier": "Id: ExtensionTest_366"
           },
           {
-            "identifier": "Id: ExtensionTest_377"
+            "identifier": "Id: ExtensionTest_376"
           }
         ]
       },
@@ -1787,8 +1787,8 @@
       "case": "native_act_receipt",
       "started": {
         "type": "debug.evidence.gameplay_act",
-        "actId": "de716712-6770-4a42-a220-9438fae049fa",
-        "startedAtMillis": 1793526737999,
+        "actId": "bc1576dd-1538-4b16-804e-0d5884bd786f",
+        "startedAtMillis": 1793571569189,
         "debugSequenceAtStart": 3,
         "lastDebugMutationSequence": 3,
         "debugMutationCount": 0,
@@ -1800,14 +1800,14 @@
         "contaminated": false,
         "gameplayEvidence": "gameplay",
         "status": "active",
-        "requestId": "8231b387-1fbc-481a-80d1-49ce34c35d81",
+        "requestId": "8c5cd684-aeb0-4b15-a619-35e47a8b1fbf",
         "protocolVersion": "v0"
       },
       "finished": {
         "type": "debug.evidence.gameplay_act",
-        "actId": "de716712-6770-4a42-a220-9438fae049fa",
-        "startedAtMillis": 1793526737999,
-        "completedAtMillis": 1793526741831,
+        "actId": "bc1576dd-1538-4b16-804e-0d5884bd786f",
+        "startedAtMillis": 1793571569189,
+        "completedAtMillis": 1793571572909,
         "debugSequenceAtStart": 3,
         "lastDebugMutationSequence": 3,
         "debugMutationCount": 0,
@@ -1819,7 +1819,7 @@
         "contaminated": false,
         "gameplayEvidence": "gameplay",
         "status": "completed",
-        "requestId": "fcf673a0-fa4a-4e5d-9207-cce83f659da8",
+        "requestId": "1ec29848-d266-4019-b0f0-de2710f24877",
         "protocolVersion": "v0"
       }
     },
@@ -1831,7 +1831,7 @@
         "before": {
           "type": "input.state",
           "target": "1.21.1-neoforge",
-          "clientTick": 781,
+          "clientTick": 783,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -1840,7 +1840,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "243af3b9-6e63-4544-bb3c-34a862719522",
+          "nativeEntityAttackContextId": "7b67e3eb-c2b6-4763-bb1d-df713372ffc8",
           "nativeEntityAttackContextGeneration": 1,
           "nativeEntityAttackControlGeneration": 21,
           "nativeEntityAttackLeaseActive": true,
@@ -1853,17 +1853,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "dc1dfaba-cb20-4994-aad4-7bb86195274d",
+            "controlSessionId": "5da3b64a-3415-4f4c-91d5-f2ec85176dd1",
             "generation": 21
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 2932,
+          "controlChromeRenderedFrames": 2898,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.6464946,
-          "controlChromeEdgeWidth": 0.9311476,
+          "controlChromeEdgeAlpha": 0.6781386,
+          "controlChromeEdgeWidth": 0.9060781,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 3081,
+          "captureFrameSequence": 3052,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -1888,7 +1888,7 @@
             "plane": "GUI_ABSOLUTE",
             "x": 240,
             "y": 135,
-            "alpha": 0.22723888,
+            "alpha": 0.22311299,
             "gameCaptured": false,
             "gameCursorVisible": true,
             "gameCursorRevision": 12,
@@ -1901,26 +1901,26 @@
           "windowIconState": "original_with_agent_pointer",
           "originalWindowIconCount": 5,
           "windowBaseTitle": "Minecraft NeoForge* 1.21.1 - Singleplayer",
-          "windowTitle": "Minecraft NeoForge* 1.21.1 - Singleplayer - 由智能体接管",
+          "windowTitle": "Minecraft NeoForge* 1.21.1 - Singleplayer - Controlled by Agent",
           "windowDecorationError": "",
           "inputGeneration": 7,
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 1,
-          "inputContextId": "243af3b9-6e63-4544-bb3c-34a862719522",
+          "inputContextId": "7b67e3eb-c2b6-4763-bb1d-df713372ffc8",
           "inputContextAvailable": true,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "7f0bff44-f7fc-422f-8f0f-3908fd5a3fe3",
+          "requestId": "bba6ee55-8d91-4a94-9496-b1bc6bbfe9e4",
           "protocolVersion": "v0"
         },
         "after": {
           "type": "input.state",
           "target": "1.21.1-neoforge",
-          "clientTick": 816,
+          "clientTick": 817,
           "pressedKeys": [],
           "pressedButtons": [],
           "pressedKeyCount": 0,
@@ -1929,7 +1929,7 @@
           "nativeEntityAttackCount": 0,
           "nativeEntityAttackScope": "native_multiplayer_game_mode_attack_return",
           "nativeEntityAttackCounterUnits": "native_entity_attack_invocations_not_damage_or_swing",
-          "nativeEntityAttackContextId": "82350c75-9f13-4998-9d13-c6cd2f612e8d",
+          "nativeEntityAttackContextId": "b3c196b7-a081-4e28-8709-23e5749c26c2",
           "nativeEntityAttackContextGeneration": 2,
           "nativeEntityAttackControlGeneration": 21,
           "nativeEntityAttackLeaseActive": false,
@@ -1942,17 +1942,17 @@
           "takeoverActive": true,
           "modeTransitionReason": "agent_control_acquired",
           "modeVersion": {
-            "controlSessionId": "dc1dfaba-cb20-4994-aad4-7bb86195274d",
+            "controlSessionId": "5da3b64a-3415-4f4c-91d5-f2ec85176dd1",
             "generation": 21
           },
           "modeContract": "explicit_intent_separate_authorization_v1",
-          "controlChromeRenderedFrames": 3161,
+          "controlChromeRenderedFrames": 3139,
           "controlChromeAlpha": 1,
-          "controlChromeEdgeAlpha": 0.9953244,
-          "controlChromeEdgeWidth": 0.9976622,
+          "controlChromeEdgeAlpha": 0.9866455,
+          "controlChromeEdgeWidth": 0.99332273,
           "operatorChromeLayer": "after_content_capture_before_present",
           "captureExcludesOperatorChrome": true,
-          "captureFrameSequence": 3310,
+          "captureFrameSequence": 3293,
           "capturePending": 0,
           "captureReadbacks": 0,
           "nativeRevocations": 0,
@@ -1990,20 +1990,20 @@
           "windowIconState": "original_with_agent_pointer",
           "originalWindowIconCount": 5,
           "windowBaseTitle": "Minecraft NeoForge* 1.21.1",
-          "windowTitle": "Minecraft NeoForge* 1.21.1 - 由智能体接管",
+          "windowTitle": "Minecraft NeoForge* 1.21.1 - Controlled by Agent",
           "windowDecorationError": "",
           "inputGeneration": 8,
           "inputCleanupPending": false,
           "inputCleanupFailed": false,
           "inputContextGeneration": 2,
-          "inputContextId": "82350c75-9f13-4998-9d13-c6cd2f612e8d",
+          "inputContextId": "b3c196b7-a081-4e28-8709-23e5749c26c2",
           "inputContextAvailable": false,
           "inputQueueDepth": 0,
           "inputQueueCapacity": 16,
           "inputSequenceActive": false,
           "inputQueuePoisoned": false,
           "inputQueueRecovery": "not_required",
-          "requestId": "f5bb5c59-d833-4e33-aabb-0b13f0a2bc2b",
+          "requestId": "3aea1e61-9bf5-4431-afc2-98eeeb691c30",
           "protocolVersion": "v0"
         },
         "screenClass": "net.minecraft.client.gui.screens.TitleScreen",
@@ -2015,7 +2015,7 @@
             "message": "unknown",
             "executionOutcome": "not_confirmed",
             "retrySafe": false,
-            "requestId": "e815d2fb-aae7-4fd1-bf6c-6b9c417a3a20",
+            "requestId": "abba0c5a-5373-4e32-a2fd-12bed2cceb92",
             "protocolVersion": "v0"
           }
         },
@@ -2031,7 +2031,7 @@
             "pressedButtonCount": 0
           },
           "waited": true,
-          "requestId": "21729383-2384-4115-807c-116f856f60df",
+          "requestId": "0920db08-2ba8-4d6f-abd1-297efb9d6e96",
           "protocolVersion": "v0"
         }
       }
@@ -2147,7 +2147,7 @@
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentPointer.java": "10526dcb9a7e5f1e33cc8bf855600e8c730961a5fb0dcc25b8f5bfc9c0f9a66b",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/AgentTaskLifecycle.java": "6bdfd5ec9e3545169a5be4806bb922bf3948ca54ba7d31f3788f92cbcb11b199",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/CancellableWork.java": "cadae999ef0a8a9bd59fb446d936b5c26ba926a6949c868ddd35969a62e279fa",
-    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java": "ecbeeb070c71e167d0b5766afe203733d8004b6696b700b0a49c4e3007bed0b3",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ControlChrome.java": "872cdb6febf99ed858a29f7efb31854cc9be3a45aeee0fd34df08efc5b0c1f27",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/DeepObservationSelector.java": "28efafb3da64cf5fd3abcfc7e529e2e34cd33178403036c471fb3f2ab6b964a0",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/ExclusiveInputPolicy.java": "a596eeb81f740050f2206d33cd30252d6cc76110771955cb56fa49e5b91145f1",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/FrameCaptureQueue.java": "83ace4bd92643157b46ecce844c2d12b589fc2885b47f451cfb51348a7b3489f",
@@ -2161,7 +2161,7 @@
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiInteractionIdentities.java": "6c22411de2b36545c5e2e68abe0793f8cf12634d48ca71ffde17fd2ce6b51f86",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedIcons.java": "7ccfe254f89fb6217899f52e171a4f1430af98408a4edbd29e37295bce93dc58",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/UiRenderedText.java": "8a732c95f541af59f6e569405daf46615a488b6b3ef68d6c35f940331462a689",
-    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WindowDecoration.java": "da9e6f2339f04f69f65b8b6f22b05d03cf9060257935719f855913d675ff7313",
+    "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WindowDecoration.java": "f92f66caf8420d53f9d5ef6f641542cc24125a47e3610e666bed9db48fd58ea2",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldActionRequest.java": "41f5d91ba2a1acdff6e55a15956686ddfd33d9da99b4011d179fa2a8f770b6de",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldAim.java": "bba66367bc6204b7c50ff93583f22c018d39da9ab7dc8cdd9a480c11457a15a6",
     "components/runtime_safety/src/main/java/io/github/recrivenvi/minecraftprotocol/safety/WorldBlockChanges.java": "60ea667f0df45d42e78ace19e628f20b25e2a7d55dd836549454efa5e8741e34",
@@ -2178,9 +2178,9 @@
     "versions/1.21.1-neoforge/build.gradle.kts": "13de2153e603365e8aa85a059dede32fbc5588d2e64ad795850d17b8bdc69551",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/NeoForgeProtocolMod.java": "21c68074f785c68c10ea7dc0e27b959f86017b0f694d825597b11bc0a1e17370",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/client/ClientConfigRegistration.java": "9862c3608763cee191b07910044ffe6604a3182948a7a6edbbfbc4b5604f7811",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/client/ExtensionPacksScreen.java": "0fb1453d6f7fe9ed11d8afb9d67036ce2d1c42b7c4ca0ceb5755afd05d59e198",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/client/ProtocolConfigScreen.java": "a05b5ba3c4152826cb9cea036d4125916e9e934dab7144b9eb1474c0e666f070",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/gui/AutomationDiagnosticScreen.java": "25f1339e98e4bf282e898b896c6781bf198dba3ef48d8a6ef93aead3c976b304",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/client/ExtensionPacksScreen.java": "ffaab8c8d779b1702acf7dc1bcb07de445df8290f027e20a010e35322a0c8df5",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/client/ProtocolConfigScreen.java": "7cc31aaccff20772fd6f7cdfc3a72725bd5a668629477e0d832232df0715abf2",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/gui/AutomationDiagnosticScreen.java": "24d1cc4deedea952af349a1dc91489485716b01cf5985cc05e5e6a330b7fe11c",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/loader/LoaderExtensionBridge.java": "c1dd9490ef35406b09e69c05a7ce7930cfb8c5b5c53cde9285aaf104c516838d",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/AbstractContainerScreenMixin.java": "268523a7770e69e698168c9c20681c902dbedeae915968645aca60c35bc2b40c",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/AdvancementTabUiAccessor.java": "dbe2b25d8efbc17802953f0075811218fbc296a5d307debe76cf1a20dbe9de50",
@@ -2216,10 +2216,10 @@
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/DistanceManagerAccessor.java": "307793cdfb6ffa5cfc834a8ea96492e16c42e2fe8c60b8c477213fe5429264c5",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/EffectIconRenderMixin.java": "aa8f59759bf6fa176d19aecc9ad1f277a1ef2b9cf25e8c013377edd991d36482",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/EffectsInventoryPresentationMixin.java": "2baebd81d4f49c64d9f215768eaed6fccab4acc1042cd3524425618f45475c4e",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackEntryMixin.java": "b5275e3b918ac10477230649951612b661f1b0ff9065d0c828f9c3974989e2db",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackFolderMixin.java": "490671d51d75151703c32db7a4d71326bb9fbb526ba958c24bdb9c257a92f87b",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackEntryMixin.java": "1d9f5f972870f2c4d32382ae4af714ab89d8b4787b76cf1802fce18a7204548f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackFolderMixin.java": "af194d2bcb641610d294b4203c64502a955c8c392c775862ef247440d5570529",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackModelMixin.java": "986a2a6337acd89bd0cb9ff7fd7d064a2e6be367cecc4e3ffb6f06727255343d",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackRowMixin.java": "c764ef7a937e958ebef4491c4ad57a4c6b7dfed9eb1bdf1384ff4c3c4e15f2ba",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/ExtensionPackRowMixin.java": "59aa9c2151d1b4c9cb34ff289ea3b2ebb230f812f3ee5626ae759f5152d9b724",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/GameModeScreenRenderMixin.java": "8e1f73f159a629e43a17144d498daa47e02bee8457e837059b03f170d3f5a1de",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/GameModeSlotUiAccessor.java": "65bb42dee44c2ce388ee230943f3610b004b7327e0899ff7d6c4df2a1f8ffc1e",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/mixin/GameModeSwitcherUiAccessor.java": "096030ad956d35a1b9570ad018283df26b490534478fc35e0bd10a38898e5742",
@@ -2293,7 +2293,7 @@
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NativeCommandPayloads.java": "1406f3bd8b761de627f55ea1f546ed4760e254a4eb74ea49cc53f78763972e45",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NativeCommandSuggestions.java": "9b4e4334c4b1e114c1548ba76bd1d72bad6a2857a6c45f8235904617e1a48554",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NativePlayerCommands.java": "aa229ef3292893e9bda8190a642c1905e8023ee27379075bb415ec552cf741a4",
-    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java": "125c688ca068241f2289c3fe2f3b1ce45b647927008755eabfe83a08f0945a8f",
+    "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/NeoForgeRuntime.java": "1bc41f64c05b7f7e4a35d0ea607a489b5cab5aa558037761ee88308b6d18ff37",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/PersistentStorageAdapter.java": "cc6745717d51be0206921c489462675864cf85145c1b03e1dfe93053f1af01f3",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/Phase9ASpikeEngine.java": "eef1ba0e10a249f46ee8f34804f3ab472aa25bfbe884bc9c7f87818718de5e32",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/RenderedUiAdapter.java": "1a22aad8724fe86fa7cbc9cd6a3bf5a021ffb2cb92c1ebedfd697b5afce61852",
@@ -2317,6 +2317,8 @@
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/runtime/WorldTargeting.java": "02e796f7a29f4ffce51fbba20256de2333dc5de84afd6d60382fb4b57eaa94db",
     "versions/1.21.1-neoforge/src/main/java/io/github/recrivenvi/minecraftprotocol/server/DedicatedServerRuntime.java": "2699d8cceda88fdef01ad572b4dc96bf662355ab0e9f73ecffb2cfb43ae50ed3",
     "versions/1.21.1-neoforge/src/main/resources/META-INF/neoforge.mods.toml": "8a803bfa27fde3d8c990f4db553fee464eb2b7d4d96e896b978500c20ee13312",
+    "versions/1.21.1-neoforge/src/main/resources/assets/mine_craft_protocol/lang/en_us.json": "8a2f9976f66670f90357290aa8e04816f7397a4fa04729faff6bf504db07d608",
+    "versions/1.21.1-neoforge/src/main/resources/assets/mine_craft_protocol/lang/zh_cn.json": "8b9abb36433cac0b9ef4bf7b5ebe29fa455e54f5df7556773528bfc3907a698d",
     "versions/1.21.1-neoforge/src/main/resources/mine_craft_protocol.mixins.json": "7ee02bc551fa1447d06c867458e4fd1feb161a7b7faa2ec0748dd01f7e3adf42",
     "versions/1.21.1-neoforge/src/main/resources/pack.mcmeta": "9752022e24bceca17b681f78a10e7fa25e7680280f786fb6026cc96ffd7010b5",
     "versions/1.21.1-neoforge/src/main/templates/io/github/recrivenvi/minecraftprotocol/ProtocolIdentity.java": "9591e968857a12542504984cc735a06bafac8edeea46817b4adad1da237d2ad3",
@@ -2328,14 +2330,14 @@
   "expectedCleanupFailures": [],
   "debugCleanupBeforeShutdown": {
     "type": "extensions.resources",
-    "runtimeInstanceId": "b9698653-4840-44ad-8e0b-e853a150c156",
+    "runtimeInstanceId": "c0b72b3f-6aba-4b11-b2aa-a294fd308624",
     "activeScopes": 2,
     "cleanup": [
       {
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "43e9a8b2-5620-4a2d-b227-322b5f7068e3",
+        "contextId": "9c770dec-95d3-4f2e-ad06-6c126ee1620f",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -2357,7 +2359,7 @@
         "complete": true,
         "packageId": "platform_probe",
         "lifetime": "DEBUG_GRANT",
-        "contextId": "d8850663-0f76-4550-824c-887e58319ac9",
+        "contextId": "46c00720-ddcb-46c7-aaac-f6f51e019624",
         "reason": "grant_invalidated",
         "released": true,
         "resources": [
@@ -2377,9 +2379,9 @@
       }
     ],
     "inputCleanup": [],
-    "requestId": "f7c43d2f-094f-4fa3-bbaf-184d48fd0dc8",
+    "requestId": "9091e46e-2313-44a4-924a-a6f47fb9ee21",
     "protocolVersion": "v0"
   },
-  "completedAt": "2026-11-01T09:52:25.609Z",
+  "completedAt": "2026-11-01T22:19:36.84Z",
   "cleanShutdown": true
 }

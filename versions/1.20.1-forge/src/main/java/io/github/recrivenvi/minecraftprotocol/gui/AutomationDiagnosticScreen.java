@@ -10,73 +10,74 @@ public final class AutomationDiagnosticScreen extends Screen {
     private boolean dynamicControlAdded;
 
     public AutomationDiagnosticScreen(Screen parent) {
-        super(Component.literal("Mine-Craft-Protocol Automation Probe"));
+        super(
+                Component.translatable(
+                        io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                                + ".diagnostic.title",
+                        io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.DISPLAY_NAME));
         this.parent = parent;
+    }
+
+    private static Component label(String key) {
+        return Component.translatable(
+                io.github.recrivenvi.minecraftprotocol.ProtocolIdentity.MOD_ID
+                        + ".diagnostic."
+                        + key);
     }
 
     @Override
     protected void init() {
         int left = this.width / 2 - 100;
         int top = this.height / 2 - 88;
-        EditBox text =
-                new EditBox(this.font, left, top, 200, 20, Component.literal("Compatibility Text"));
+        EditBox text = new EditBox(this.font, left, top, 200, 20, label("text"));
         text.setValue("phase7");
         this.addRenderableWidget(text);
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Probe Action"),
-                                button ->
-                                        button.setMessage(
-                                                Component.literal("Probe Action Complete")))
+                                label("action"),
+                                button -> button.setMessage(label("action_complete")))
                         .bounds(left, top + 28, 200, 20)
                         .build());
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Add Dynamic Control"),
+                                label("add_dynamic"),
                                 button -> {
                                     if (!this.dynamicControlAdded) {
                                         this.dynamicControlAdded = true;
                                         this.addRenderableWidget(
                                                 Button.builder(
-                                                                Component.literal(
-                                                                        "Dynamic Control"),
+                                                                label("dynamic"),
                                                                 dynamic ->
                                                                         dynamic.setMessage(
-                                                                                Component.literal(
-                                                                                        "Dynamic Control Complete")))
+                                                                                label(
+                                                                                        "dynamic_complete")))
                                                         .bounds(left, top + 140, 200, 20)
                                                         .build());
                                     }
-                                    button.setMessage(Component.literal("Dynamic Control Added"));
+                                    button.setMessage(label("dynamic_added"));
                                 })
                         .bounds(left, top + 56, 200, 20)
                         .build());
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Duplicate Action"),
-                                button ->
-                                        button.setMessage(
-                                                Component.literal(
-                                                        "Duplicate Action First Complete")))
+                                label("duplicate"),
+                                button -> button.setMessage(label("duplicate_first")))
                         .bounds(left, top + 84, 98, 20)
                         .build());
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Duplicate Action"),
-                                button ->
-                                        button.setMessage(
-                                                Component.literal(
-                                                        "Duplicate Action Second Complete")))
+                                label("duplicate"),
+                                button -> button.setMessage(label("duplicate_second")))
                         .bounds(left + 102, top + 84, 98, 20)
                         .build());
         Button disabled =
-                Button.builder(Component.literal("Disabled Action"), button -> {})
+                Button.builder(label("disabled"), button -> {})
                         .bounds(left, top + 112, 98, 20)
                         .build();
         disabled.active = false;
         this.addRenderableWidget(disabled);
         this.addRenderableWidget(
-                Button.builder(Component.literal("Close Probe"), button -> this.onClose())
+                Button.builder(label("close"), button -> this.onClose())
                         .bounds(left + 102, top + 112, 98, 20)
                         .build());
         // Opt-in diagnostic fixture, not an Agent UI or a public Toast capability.

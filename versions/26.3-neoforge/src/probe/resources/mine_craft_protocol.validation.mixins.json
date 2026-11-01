@@ -4,6 +4,7 @@
     "package": "io.github.recrivenvi.minecraftprotocol.probe.validation.mixin",
     "compatibilityLevel": "JAVA_25",
     "client": [
+        "UiLocalizationPreviewMixin",
         "UiSavingIndicatorProbeMixin",
         "UiSavingServerTickProbeMixin",
         "UiSavingServerFlagProbeMixin",

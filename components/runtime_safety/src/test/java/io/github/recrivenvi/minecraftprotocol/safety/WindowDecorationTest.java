@@ -6,16 +6,33 @@ import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 final class WindowDecorationTest {
+    private static String chinese(String key) {
+        return switch (key) {
+            case "window.read" -> "智能体读取中";
+            case "window.operate" -> "智能体操控中";
+            case "window.takeover" -> "由智能体接管";
+            default -> throw new AssertionError(key);
+        };
+    }
+
     @Test
     void latestGameTitleIsPreservedInEveryModeIncludingSuffixLikeText() {
         String original = "Minecraft · Demo - 智能体读取中";
         for (var mode : AgentControlSession.Mode.values()) {
-            assertEquals(original, WindowDecoration.title(original, mode, false));
-            assertTrue(WindowDecoration.title(original, mode, true).startsWith(original));
+            assertEquals(
+                    original,
+                    WindowDecoration.title(original, mode, false, WindowDecorationTest::chinese));
+            assertTrue(
+                    WindowDecoration.title(original, mode, true, WindowDecorationTest::chinese)
+                            .startsWith(original));
         }
         assertEquals(
                 "New world - 由智能体接管",
-                WindowDecoration.title("New world", AgentControlSession.Mode.TAKEOVER, true));
+                WindowDecoration.title(
+                        "New world",
+                        AgentControlSession.Mode.TAKEOVER,
+                        true,
+                        WindowDecorationTest::chinese));
     }
 
     @Test
@@ -23,17 +40,59 @@ final class WindowDecorationTest {
         for (int cycle = 0; cycle < 20; cycle++) {
             assertEquals(
                     "Minecraft - 智能体读取中",
-                    WindowDecoration.title("Minecraft", AgentControlSession.Mode.READ, true));
+                    WindowDecoration.title(
+                            "Minecraft",
+                            AgentControlSession.Mode.READ,
+                            true,
+                            WindowDecorationTest::chinese));
             assertEquals(
                     "Minecraft - 智能体操控中",
-                    WindowDecoration.title("Minecraft", AgentControlSession.Mode.OPERATE, true));
+                    WindowDecoration.title(
+                            "Minecraft",
+                            AgentControlSession.Mode.OPERATE,
+                            true,
+                            WindowDecorationTest::chinese));
             assertEquals(
                     "Minecraft - 由智能体接管",
-                    WindowDecoration.title("Minecraft", AgentControlSession.Mode.TAKEOVER, true));
+                    WindowDecoration.title(
+                            "Minecraft",
+                            AgentControlSession.Mode.TAKEOVER,
+                            true,
+                            WindowDecorationTest::chinese));
             assertEquals(
                     "Minecraft",
-                    WindowDecoration.title("Minecraft", AgentControlSession.Mode.READ, false));
+                    WindowDecoration.title(
+                            "Minecraft",
+                            AgentControlSession.Mode.READ,
+                            false,
+                            WindowDecorationTest::chinese));
         }
+    }
+
+    @Test
+    void currentLanguageIsResolvedEachTimeAndNotConsultedForRestoration() {
+        var language = new java.util.concurrent.atomic.AtomicReference<>("en_us");
+        java.util.function.Function<String, String> translate =
+                key -> language.get().equals("en_us") ? "Controlled by Agent" : chinese(key);
+        assertEquals(
+                "Minecraft - Controlled by Agent",
+                WindowDecoration.title(
+                        "Minecraft", AgentControlSession.Mode.TAKEOVER, true, translate));
+        language.set("zh_cn");
+        assertEquals(
+                "Minecraft - 由智能体接管",
+                WindowDecoration.title(
+                        "Minecraft", AgentControlSession.Mode.TAKEOVER, true, translate));
+        assertEquals(
+                "Minecraft",
+                WindowDecoration.title(
+                        "Minecraft",
+                        AgentControlSession.Mode.TAKEOVER,
+                        false,
+                        key -> {
+                            throw new AssertionError(
+                                    "Restoration must not depend on client language resources");
+                        }));
     }
 
     @Test

@@ -14,13 +14,19 @@ extensionpacks 是 tool 组件，保存可独立交付的包作者工程，不�
 
 ## 暂存加载库
 
-正式安装后，游戏会准备Loader发现桥；有early hook的包在重启发现阶段由当前产品JAR自动校验并生成派生库。Fabric在Mixin配置装载前处理。本节的停机暂存只服务开发source-set验证。当前受控命令只接受本验证的登记 Target、client/server 与 native/installed 布局，不对 Runtime 令牌开放路径或 shell。
+正式安装后，游戏会准备Loader发现桥；有early hook的包在重启发现阶段由当前产品JAR自动校验并生成派生库。Fabric在Mixin配置装载前处理。本节的停机暂存只服务开发source-set验证。当前受控命令只接受登记 Target、client/server 与 native/installed 布局，以及Showcase验证的client布局，不对 Runtime 令牌开放路径或 shell。
 
 ```powershell
 ./gradlew.bat :extensionpacks:stageValidationLibrary -PextensionTarget=26.3-neoforge -PextensionRole=client
 ```
 
 验证 Runner 在持有实例锁、确认 Runtime 已关闭后调用此任务，将 pending 库替换为正式库；旧库送回收站。它不是远程安装 API。清单/内容身份变化必须重新审批、暂存并重启。Java SDK 可以跨版本编译，不表示原生 hook 和上游模组 API 可以跨 Target 通用。
+
+七包人工验收使用已有Showcase client，运行以下工具准备并启动；加上PrepareOnly只准备不启动。它安装七包及声明的上游、Custom Skin Loader/Zume，保留世界与批准记录。没有批准的包不会装载；真人批准后，正常退出，再运行相同工具暂存实际批准集合并重启，不以主机预写批准代替真人。
+
+```powershell
+pwsh -NoProfile -File components/validation_tools/integration-extension_platform/task/Prepare-ExtensionpackAcceptance.ps1
+```
 
 ## 普通实例的离线安装与移除
 

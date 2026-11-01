@@ -59,6 +59,7 @@ E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受�
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 
 扩展平台批次必须另有同候选五端原生/成品客户端和独服平台证明、双包故障恢复、包替换、有上游包的具名业务及原版UI/世界/输入上下文回归。extensions/sdk提供公共SDK，extensions/extensionpacks提供七个分别审批的包；它们不是额外Loader模组。companion中保留同批运行代码、作者资源和锁文件，先npm ci --omit=dev，再运行dist/index.js；不混用旧Companion。静态规则可离线查阅，游戏数据仍逐项授权，安装见[扩展作者规程](procedure-author_extension.md)。原生Loader早期hook与复杂UI/运动部件仍按预览面解释，未闭合业务见该批extensionPlatform.limitations。
+原生扩展包配置已有NeoForge1.21.1七包合作验收记录，包括真人初次批准、重启生效、禁用/再启用、依赖拒绝及内容更新重新批准；其范围见[集中验收清单](testing-cooperative_acceptance.md#原生扩展包配置补充)。这不等于原版合作、真实IME、全部扩展业务与整体视觉验收完成；清单中的humanAcceptance仍按完整验收解释。
 Forge EMI曾在首次搜索时返回UI_TARGET_INVALIDATED，同批有界完整复测通过，根因未确认；Forge AE2也有首次只读入口超预算后复测通过的记录。遇到目标失效先重新读取，不自动重放可能已经生效的点击或修改；原失败与复测范围见[交付记录](../project/phase-1-core_delivery.md#2026-11-01命名与原生扩展包配置检查点)。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 

@@ -7,7 +7,7 @@ memory-max = "4G"
 player-name = "ExtensionTest"
 width = 1920
 height = 1080
-jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true"]
+jvm-args = ["-Dmine_craft_protocol.disablePauseOnLostFocus=true", "-Dmine_craft_protocol.localizationPreview=true"]
 game-args = ["--mixin", "mine_craft_protocol.validation.mixins.json"]
 
 [instances.server]

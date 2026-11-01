@@ -458,10 +458,10 @@ try{
  await check('window: final-output title and original icon badge across modes',async()=>{
    const hooks=await api('GET','/v0/diagnostics/hooks');
    // A Hook descriptor may aggregate several injected callbacks, not one row per site.
-   assert.equal(hooks.cancellableInjectionCount,(target.startsWith('26.3-')?27:target.startsWith('26.')?24:22)+5);
+   assert.equal(hooks.cancellableInjectionCount,(target.startsWith('26.3-')?27:target.startsWith('26.')?24:22)+6);
     const settingsHook=hooks.hooks.find(hook=>hook.id==='extensionpack_settings');assert(settingsHook);
     assert.equal(settingsHook.plane,'LOCAL_EXTENSION_SETTINGS');assert.equal(settingsHook.cancellable,true);
-    assert.equal(settingsHook.cancellableInjectionCount,5);assert.equal(settingsHook.replacementInjectionCount,1);
+    assert.equal(settingsHook.cancellableInjectionCount,6);assert.equal(settingsHook.replacementInjectionCount,1);
     if(target==='1.20.1-forge'||target==='1.21.1-neoforge')assert.equal(settingsHook.nonCancellableInjectionCount,1);
    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
@@ -479,15 +479,15 @@ try{
      assert(s.originalWindowIconCount>0);assert.equal(s.windowDecorationError,'');
      assert.equal(s.windowTitle,s.windowBaseTitle+suffix);return s;
    }
-   const first=await presentation('TAKEOVER','original_with_agent_pointer',' - 由智能体接管');
+   const first=await presentation('TAKEOVER','original_with_agent_pointer',' - Controlled by Agent');
    for(let repeat=0;repeat<2;repeat++){
      await api('POST','/v0/control/release');lease=undefined;
-     await presentation('READ','original_minecraft',' - 智能体读取中');
+     await presentation('READ','original_minecraft',' - Agent reading');
      const m=await api('GET','/v0/control/mode');
      await api('POST','/v0/control/mode',{mode:'OPERATE',expectedModeVersion:m.modeVersion});
-     await presentation('OPERATE','original_minecraft',' - 智能体操控中');
+     await presentation('OPERATE','original_minecraft',' - Agent operating');
      lease=(await api('POST','/v0/control/acquire',{ttlMs:60000,taskId})).leaseId;
-     const again=await presentation('TAKEOVER','original_with_agent_pointer',' - 由智能体接管');
+     const again=await presentation('TAKEOVER','original_with_agent_pointer',' - Controlled by Agent');
      assert.equal(again.originalWindowIconCount,first.originalWindowIconCount);
    }
  });
@@ -718,7 +718,7 @@ try{
   const input=await api('GET','/v0/input/state');assert.equal(input.pressedKeyCount,0);assert.equal(input.pressedButtonCount,0);
   sample.status='PASS';sample.worldEntered=true;sample.noHeldInput=true;
  });
- await check('world fixture: GUI entry and deterministic Arrange',async()=>{await enterWorld();const window=await api('GET','/v0/session');assert.equal(window.windowTitle,window.windowBaseTitle+' - 由智能体接管');assert.equal(window.windowIconState,'original_with_agent_pointer');for(const [old,current,value] of [['doDaylightCycle','advance_time','false'],['doWeatherCycle','advance_weather','false'],['doMobSpawning','spawn_mobs','false'],['randomTickSpeed','random_tick_speed','0']])await command('gamerule '+(target.startsWith('1.')?old:'minecraft:'+current)+' '+value);await command('time set day');await command('weather clear');await command('kill @e[type=!minecraft:player]');await command('fill -2 79 -2 2 79 2 minecraft:stone');await command('tp @s 0.5 80 0.5 0 0');});
+ await check('world fixture: GUI entry and deterministic Arrange',async()=>{await enterWorld();const window=await api('GET','/v0/session');assert.equal(window.windowTitle,window.windowBaseTitle+' - Controlled by Agent');assert.equal(window.windowIconState,'original_with_agent_pointer');for(const [old,current,value] of [['doDaylightCycle','advance_time','false'],['doWeatherCycle','advance_weather','false'],['doMobSpawning','spawn_mobs','false'],['randomTickSpeed','random_tick_speed','0']])await command('gamerule '+(target.startsWith('1.')?old:'minecraft:'+current)+' '+value);await command('time set day');await command('weather clear');await command('kill @e[type=!minecraft:player]');await command('fill -2 79 -2 2 79 2 minecraft:stone');await command('tp @s 0.5 80 0.5 0 0');});
  if(args.phase!=='prepare'){
   await check('Toast: native movement tutorial completes through routed jump and look',async()=>{
    const visible=await wait(t=>t.presentation.children.some(n=>n.class?.endsWith('TutorialToast')&&n.textSupported===true&&n.label?.trim()),'native movement tutorial fully shown');

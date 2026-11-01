@@ -17,6 +17,17 @@ gradle.projectsEvaluated {
     def catalog = new groovy.json.JsonSlurper().parse(gradle.rootProject.file('validations/feature-control_ui_showcase/task/acceptance-mods.json'))
     def inputs = role == 'client' ? catalog[target] : []
     if (!(inputs instanceof List)) throw new GradleException('Missing acceptance input selection')
+    if (Boolean.getBoolean('showcase.extensions')) {
+        if (target != '1.21.1-neoforge' || role != 'client') throw new GradleException('Seven-extension acceptance uses the registered 1.21.1 client')
+        def ids = new groovy.json.JsonSlurper().parse(gradle.rootProject.file('components/extensionpacks/extensionpacks/index.json'))
+        inputs = inputs + ids.collectMany { id ->
+            def spec = new groovy.json.JsonSlurper().parse(gradle.rootProject.file("components/extensionpacks/extensionpacks/${id}/package.json"))
+            if (!spec.targets.contains(target)) throw new GradleException("Unsupported acceptance extension ${id}")
+            ([id] + (spec.dependencyPrefixes ?: [])).collect { prefix -> "${prefix}-${target.replace('.', '-')}".toString() }
+        }
+        inputs = inputs.unique().sort()
+        run.jvmArguments.set(run.jvmArguments.get().findAll { !it.startsWith('-Dminecraft.protocol.scopes=') } + ['-Dminecraft.protocol.scopes=read,ui,input,capture,event,diagnostics,control,command,fixture,debug,debug.world.read,debug.write,debug.world,debug.ui,debug.ui.read,debug.provider'])
+    }
     candidate.tasks.named("prepareValidationFeatureControlUiShowcase${suffix}Instance") { mods.set(inputs) }
     gradle.rootProject.tasks.register('verifyShowcaseConfiguration') {
         group = 'verification'

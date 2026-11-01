@@ -18,7 +18,10 @@ public final class ProtocolConfigScreen extends Screen {
     protected void init() {
         addRenderableWidget(
                 Button.builder(
-                                Component.literal("扩展包…"),
+                                Component.translatable(
+                                        io.github.recrivenvi.minecraftprotocol.ProtocolIdentity
+                                                        .MOD_ID
+                                                + ".options.extensionpacks"),
                                 button -> minecraft.gui.setScreen(new ExtensionPacksScreen(this)))
                         .bounds(width / 2 - 100, height / 2 - 24, 200, 20)
                         .build());

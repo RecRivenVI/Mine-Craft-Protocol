@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][ValidateSet('1.20.1-forge','1.21.1-neoforge','26.1.2-neoforge','26.3-neoforge','26.3-fabric')][string]$Target,
-    [ValidateSet('platform_probe','computercraft','modernui','emi','ae2','create','exposure','littletiles')][string]$Adapter='platform_probe',[switch]$LifetimeFaults,[switch]$Settings,[ValidateSet('initial','disabled-restart','enabled-restart')][string]$SettingsPhase='initial')
+    [ValidateSet('platform_probe','computercraft','modernui','emi','ae2','create','exposure','littletiles')][string]$Adapter='platform_probe',[switch]$LifetimeFaults,[switch]$Settings,[ValidateSet('initial','disabled-restart','enabled-restart')][string]$SettingsPhase='initial',
+    [ValidateSet('en_us','zh_cn')][string]$Language='en_us')
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 . (Join-Path $PSScriptRoot '../../RuntimeConnection.ps1')
@@ -38,7 +39,9 @@ try {
     Copy-Item -LiteralPath $stage -Destination (Join-Path $client 'mods/mine_craft_protocol-extension-libraries.jar')
     $options=Join-Path $client 'options.txt'
     $original=if(Test-Path $options){[IO.File]::ReadAllText($options)}else{''}
-    [IO.File]::WriteAllText($options,(Get-InstanceProfileOptions $original),[Text.UTF8Encoding]::new($false))
+    $profile=Get-InstanceProfileOptions $original
+    $profile=[regex]::Replace($profile,'(?m)^lang:.*$',('lang:'+$Language))
+    [IO.File]::WriteAllText($options,$profile,[Text.UTF8Encoding]::new($false))
     # Loader fatal dialogs have no Runtime yet; CI + no splash keeps startup failures in logs.
     $fml=Join-Path $client 'config/fml.toml'
     [IO.Directory]::CreateDirectory((Split-Path $fml))|Out-Null
@@ -51,7 +54,7 @@ try {
     $connection=$null;$failure=$null
     try {
         $connection=Wait-RuntimeConnection $client $Target -NotBefore $process.StartTime.ToUniversalTime() -Launcher $process
-        if($Settings){& node (Join-Path $PSScriptRoot 'extension-settings-smoke.mjs') "--target=$Target" "--phase=$SettingsPhase"}else{& node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter" "--lifetime-faults=$($LifetimeFaults.ToString().ToLowerInvariant())"}
+        if($Settings){& node (Join-Path $PSScriptRoot 'extension-settings-smoke.mjs') "--target=$Target" "--phase=$SettingsPhase" "--language=$Language"}else{& node (Join-Path $PSScriptRoot 'extension-platform-smoke.mjs') "--target=$Target" "--adapter=$Adapter" "--lifetime-faults=$($LifetimeFaults.ToString().ToLowerInvariant())"}
         if($LASTEXITCODE-ne0){throw 'Extension platform assertions failed'}
     } catch {$failure=$_}
     finally {
@@ -59,7 +62,7 @@ try {
         $stopped=$process.WaitForExit(60000)
         $clean=$stopped-and$process.ExitCode-eq0-and-not(Test-Path (Join-Path $client 'mine_craft_protocol/endpoint.json'))
         if($clean-and$connection-and(Get-NetTCPConnection -State Listen -LocalPort $connection.Port -ErrorAction SilentlyContinue)){$clean=$false}
-        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter})$(if($LifetimeFaults){'-lifetimes'})$(if($Settings){'-settings'+$(if($SettingsPhase-ne'initial'){'-'+$SettingsPhase})}).json"
+        $result=Join-Path $repo "validations/integration-extension_platform/result/$Target-client$(if($Adapter-ne'platform_probe'){'-'+$Adapter})$(if($LifetimeFaults){'-lifetimes'})$(if($Settings){'-settings'+$(if($SettingsPhase-ne'initial'){'-'+$SettingsPhase})+$(if($Language-ne'en_us'){'-'+$Language})}).json"
         if(Test-Path $result){$report=Get-Content $result -Raw|ConvertFrom-Json;if($connection-and$report.runtimeInstanceId-eq$connection.RuntimeInstanceId){$report|Add-Member -NotePropertyName cleanShutdown -NotePropertyValue $clean -Force;if(-not$clean){$report.status='FAIL'};[IO.File]::WriteAllText($result,($report|ConvertTo-Json -Depth 40)+"`n",[Text.UTF8Encoding]::new($false))}}
         if(-not$connection){
             [IO.Directory]::CreateDirectory((Split-Path $result))|Out-Null
