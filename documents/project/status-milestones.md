@@ -8,63 +8,22 @@ Developer Preview基线4346328d已完成自动冻结与Alpha分发；其五端UI
 
 ## 当前工作与下三步
 
-当前主线为1.0扩展平台正式实现，基线develop/4346328d及Alpha 20261031-1440-d6f3a89a，开工工作树干净。研究原型不直接合入，既有DP自动证明不作为新平台证明。
-1.0与Developer Preview是内部实现质量标准，不表示决定对外发布；不新增许可证、公开支持矩阵或对外长期兼容承诺。人工验收保留待办，不阻塞本轮开发。
-由主线程连续推进；不操作Goal、不测性能、不做整合包/E1～E3/Persistent Write。允许阶段门禁通过后创建SSH签名Update检查点并推送，中途不发布Alpha；全部实现和五端完整回归通过才发布固定快照，保留旧快照，不通知使用方。
+当前授权为命名统一、原版风格扩展包配置界面、接管提示预览及远程CI收口；基线develop/ac12a43a，固定Alpha 20261101-0741-673684d2不改写。开发者预览与扩展平台集中真人验收仍待用户安排。
+本轮不做整合包、E1～E3、Persistent Write或性能基准；不使用Computer-Use，不操作Goal或子代理。中途可按惯例SSH签名Update并推送，不发Alpha；新提示框必须先展示真实游戏截图，得到用户明确确认后才定稿和统一发包。
 
-| 阶段 | 当前状态 | 完成门禁 | 当前依据 |
-| --- | --- | --- | --- |
-| EP-1 SDK与普通包纵切 | 完成 | 内容审批/依赖/运行端、事务注册、owner资源与逐项清理、Provider/probe、静态目录和离线MCP查阅；参考端实际运行及单元/合同负控 | [参考端实际结果](../../validations/integration-extension_platform/result/26.3-neoforge-client.json)：普通包/采样/MCP/Arm到期/Lease独立/正常退出；整仓check、五端verifyRelease、严格合规0失败0警告通过 |
-| EP-2 五端早期加载桥 | 完成 | 五端原生/最终单JAR与独立服务端实测；包内Mixin真实目标计数、错误/重复/错端诊断、两版本包在同一本体替换；不覆盖其他Loader资源查找 | [本轮五端成品矩阵](../../validations/integration-extension_platform/result/bridge-matrix.json)：实际Mixin tick、原生helper、客户端/独服、MCP/Arm清理及正常退出；本体不变的1.0.3→1.0.4替包已重新绑定当前最终JAR，不借用前置二进制 |
-| EP-3 深层UI与逻辑输入 | 完成 | 可见投影/稳定目标/框架异步快照；真实hover、click、drag、多按钮、scroll、文本/IME入口及撤权清理；Modern UI/EMI超出单按钮/搜索子集 | SDK及五端生产接线、Java/Companion/严格合规/五端发行门禁通过；三版Modern UI完成导航/滑块/文本/滚动/真实拖拽与活动取消，EMI完成配方导航，CC完成终端回读。分项绑定各自源码/包，不替代EP-6同批冻结；真实IME/桌面待人工 |
-| EP-4 世界适配与七包 | 完成，有明确限制 | 普通目标复用、PartRef与pick/版本守卫；七包逐项正常Act+独立Assert及可用Target移植；做不通明确缺口 | 当前19个有匹配上游包的具名业务组合均已重跑：四版AE2存取/自动合成，两版Create装配/Exposure拍照/LittleTiles打开，三版Modern UI、两版EMI、四版CC。LittleTiles运动关闭未闭合，CC26.3 NeoForge上游启动受阻，不外推全部Mod功能 |
-| EP-5 统一测试与作者交付 | 完成 | 完整上下文资源组、输入适配清理具名诊断；登记ID的profile/instance/fixture主机工具、活动世界拒绝、正常停止/锁/快照；正式作者规则/MCP查阅/独立安装；跨两个包故障/恢复 | 当前双包实际故障/分别恢复及退出、六类上下文退休、34份独服详细/生命周期证明、本体不变的1.0.3→1.0.4真实换包已通过。停机38文件副本恢复及跨目录派生库校验通过；普通实例离线步骤已明确，不开放Runtime路径/shell |
-| EP-6 冻结与Alpha | 自动冻结完成 | 五端build/Java/Companion/OpenAPI/文档/严格合规/verifyRelease、适配/生命周期/安装及受影响既有矩阵；同批固定分发与集中人工清单 | 当前源码指纹673684d2的105份平台/适配/生命周期/受影响原版证明与五端纯净单JAR入世界通过，19个可用业务组合全部重新绑定当前包与JAR；完整check/Java/Companion/协议/文档/严格合规/五端发行通过。同批固定分发以外置latest及清单为准，人工仍待验 |
+| 阶段 | 状态 | 门禁 |
+| --- | --- | --- |
+| NC-1 远程CI | 进行中 | 核实失败日志；按W-03在无本地输入的远端执行checkRepository，本机保留完整check/verifyRelease；远端Check和Specification成功 |
+| NC-2 提示框预览 | 待办 | 仅验证源码提供可撤回样式；2560×1440/1920×1080 × READ/OPERATE/TAKEOVER × 世界/界面，共12张游戏内最终帧截图；正常Capture仍排除Operator UI；交用户确认后继续其他阶段 |
+| NC-3 身份与命名 | 待办 | 显示名Mine Craft Protocol、mod_id=mine_craft_protocol、1.0.0-alpha；产品去probe层，SDK api/api.extension，七包ID/类/包/资源与本机运行路径同步；五端编译、合同和迁移安全检查通过，旧快照及历史证据不重写 |
+| NC-4 原生扩展包界面 | 待办 | 两列原版资源包交互与自然排序；内容哈希批准、原生初次启用/Agent拒绝、已批准启用/禁用、重启状态、依赖红/待生效黄；五端Loader配置入口和Fabric可选Mod Menu；早期加载自动处理Mixin包与失效依赖 |
+| NC-5 冻结与验收准备 | 待办 | 完整构建/Java/Companion/协议/文档/严格合规/发行、五端成品与扩展界面正负控/生命周期及受影响原功能回归、远程CI通过；更新真人清单，网页只定位为非交付测试页 |
+| NC-6 视觉定稿与分发 | 待办 | 用户确认预览后实装同款提示框并完成受影响回归；同批提交推送和固定Alpha，latest指向新目录，旧快照保留，不通知使用方；若尚无确认则停下等待 |
 
-冻结范围为五端世界full/输入上下文/45秒连续正确性、参考端UI all、其余四端pointer/special-menus/ui-navigation；不是五端UI全量重测。
-下三步均等待用户安排：集中真人验收；最终确认SDK稳定候选/预览边界和可撤回工程取舍；再安排独立的整合包兼容性工作。不自动启动新开发或扩大七包业务。
-适配包作者工程暂放本仓tool组件components/extension_packages，按模组/Target独立产包，不合并进本体JAR、不新建远程仓库；这是可撤回工程位置选择。
-六项研究默认值已获用户批准。SDK合同按研究第11节先区分冻结候选与预览面，最终划分仍由用户在平台实现后决定。
+下三步：修好远程CI；先制作并发出提示框游戏预览；随后自主推进命名与扩展包界面。阶段门禁通过即继续，不扩展功能范围。
 
-当前上游限制：CC 1.120.3的NeoForge 26.3发行包在本项目固定Loader上因ModConfig.Type.SERVER缺失而在Runtime生成端点前失败；不降级Loader、不修补第三方JAR、不计为平台通过。Fabric 26.3及其余有包版本分别实测，不能互相推定。Modern UI只有Forge1.20.1、NeoForge1.21.1/26.1.2具名输入，EMI只有前两个；其他Target没有匹配上游包时明确不声明业务验证。
-
-运行限制：Forge AE2独服首次纯读取曾用31.985ms触发既有同步入口预算；同候选完整重跑通过，根因未定，不称为已修复。原失败见[预算记录](../../validations/integration-extension_platform/result/1.20.1-forge-installed-server-ae2-first-entry-budget.json)。预算未放宽，声明为安全纯读取的调用可有界重新读取；不能据此重放修改。
-
-以下部署与双里程碑矩阵保留DP基线4346328d的既有结论；不表示新增平台或当前build产物已通过这些运行组。
-
-合作客户端NeoForge 1.21.1已启动至标题页确认：实际2560×1440、RecRivenVI、主音量50%、音乐关闭，加载Custom Skin Loader/Zume后正常退出。两类隔离服务器的当前JAR启动证明保留；不把环境准备记作真人验收。
-
-服务端READ日志/OPERATE原生命令需独立server_console授权；不持玩家Lease，TAKEOVER不适用。
-目录和限制见[部署设计](../design/concept-deployment_scenarios.md#独立入口与原生输入)，
-五端当前单JAR控制台及世界目录证据见[服务端验证](../../validations/integration-server_peer/validation.md)的result/<target>-server-debug.json。
-服务器目录证据为同项result/<target>-server-debug.json，绑定原DP候选JAR；后续构建改变哈希时必须重新核对，不能沿用不匹配证据。
-读取不要求Arm/Lease，OPERATE修改仍需完整独立授权；本轮具名运行组不替代五端全部组合的穷尽验收。
-修改回执需要DEBUG读取scope，在执行前检查，不借server_console；旧版本/原值/非法原生属性及未加载拒绝、批次恢复和disarm均已实测。
-服务器适用目录复用原生引擎，显式维度/真实玩家；当前实测包含环境、实体创建/移除、容器物品恢复、State Frame和Persistent Read。
-Peer已实测未委托/非OP拒绝、所有者issue/attach、原生读写/恢复、错误连接/旧版本/撤销/deop拒绝，不取得输入Lease。
-共享生产引擎测试覆盖排队撤销、发布时权限重查与无迟到修改；不冒充真人Esc、全部资源分支或第三方组合验收。
-DP基线的build/check/verifyRelease、协议/文档及严格合规已通过；原固定快照与冻结证明一致，不被新构建改写。
-本轮四项审查回归另由真实HTTP与MCP验证：expected保留递归JSON，数组完整比较；控制台支持USER，内部Provider要求显式DEBUG。
-本地UI目录不借服务器委托；worldDiscovery明确保留远端失败原因，取消/shutdown/未知异常不伪装成部分成功。
-
-可选安装互通使用官方原版/Loader和最终单JAR，无开发classpath或probe。下列结果已逐哈希核对原DP候选发行JAR，
-包含真实入服、USER读取/背包输入、无Peer拒绝、双端委托/版本/撤权与断线清理；有限具名组不代表穷尽全部资源与并发组合。
-默认未授予服务端控制台权限，TAKEOVER在独立服务器明确不适用；安装不授予OP、scope或Arm。
-产品客户端及服务器正常退出；真正原版客户端无Runtime退出入口，在服务器正常保存关闭后终止自有已断线进程，未记作正常客户端退出。
-
-| Target | 仅客户端 | 仅服务端 | 双端委托组 | 证据 |
-| --- | --- | --- | --- | --- |
-| Forge 1.20.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.20.1-forge-optional-install.json) |
-| NeoForge 1.21.1 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/1.21.1-neoforge-optional-install.json) |
-| NeoForge 26.1.2 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.1.2-neoforge-optional-install.json) |
-| NeoForge 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-neoforge-optional-install.json) |
-| Fabric 26.3 | PASS | PASS | PASS | [当前JAR](../../validations/integration-server_peer/result/26.3-fabric-optional-install.json) |
-
-此前集成服补充场景为conformance-world_read/result/<target>-integrated-peer.json，原候选五端均正常退出、端口释放、源码未在运行中变化。
-本轮按冻结矩阵逐端核对或补跑该组，是否属于当前候选以原始结果的源码绑定为准。
-这是既有同进程序列化诊断：复用房主入口，不证明独立principal；独立主体由上述真实双端单JAR组合证明。
-该组另实测USER目标方块变化事件和“实际背包按键→USER Provider读回”分段结果；Agent Esc未触发人工撤销。
-正常保存退出有输入上下文切换导致的未确认回执，工具独立核验新原生上下文、标题页和held清零，未重放点击；未记作已确认点击回执。
+已交付平台基线的SDK、五端加载桥、七包19个具名业务组合、双包故障恢复和五端原样安装证明见[阶段记录](phase-1-core_delivery.md)。该基线不作为本轮新身份或新界面的运行证明。
+适配包工程保留在本仓tool组件，平台自测包与生命周期夹具只用于验证；普通SDK和预览面的最终划分仍待用户决定。
 
 ## 双里程碑五端矩阵
 

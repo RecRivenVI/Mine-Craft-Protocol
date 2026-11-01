@@ -29,11 +29,8 @@ jobs:
       - name: Install Companion dependencies
         working-directory: components/companion
         run: npm ci --include=dev
-      - name: Check
-        shell: pwsh
-        run: |
-          ./components/validation_tools/feature-control_ui_showcase/task/Prepare-AcceptanceInputs.ps1 -CacheDirectory "$env:RUNNER_TEMP/acceptance-inputs"
-          ./gradlew check verifyRelease --continue
+      - name: Check repository without local validation inputs
+        run: ./gradlew checkRepository
       - name: Upload compliance report
         if: always()
         uses: actions/upload-artifact@v7
