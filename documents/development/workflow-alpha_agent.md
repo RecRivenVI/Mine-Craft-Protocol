@@ -59,6 +59,7 @@ E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受�
 旧矩阵只作为历史范围说明，不算更新候选的新完整矩阵或人工验收；这些profile均不宣称完整领域里程碑完成。
 
 扩展平台批次必须另有同候选五端原生/成品客户端和独服平台证明、双包故障恢复、包替换、有上游包的具名业务及原版UI/世界/输入上下文回归。extensions/sdk提供公共SDK，extensions/extensionpacks提供七个分别审批的包；它们不是额外Loader模组。companion中保留同批运行代码、作者资源和锁文件，先npm ci --omit=dev，再运行dist/index.js；不混用旧Companion。静态规则可离线查阅，游戏数据仍逐项授权，安装见[扩展作者规程](procedure-author_extension.md)。原生Loader早期hook与复杂UI/运动部件仍按预览面解释，未闭合业务见该批extensionPlatform.limitations。
+Forge EMI曾在首次搜索时返回UI_TARGET_INVALIDATED，同批有界完整复测通过，根因未确认；Forge AE2也有首次只读入口超预算后复测通过的记录。遇到目标失效先重新读取，不自动重放可能已经生效的点击或修改；原失败与复测范围见[交付记录](../project/phase-1-core_delivery.md#2026-11-01命名与原生扩展包配置检查点)。
 在提供 Test 方块的 26.1.2/26.3 中，Agent 不执行 Test 管理操作；UI Debug 也不能以文本 responder 绕过此边界。
 
 原版配方按钮会轮播多个物品。需要稳定悬停或右键展开时，可通过正常输入持有Control暂停轮播，确认held后重新读取语义目标；
@@ -73,6 +74,8 @@ E的世界试用绑定M-05/M-06的适用原生行为目录、CF-022分页、受�
 
 核对同一固定快照中的 JAR、生成手册与 alpha-manifest.json；安装与 Minecraft/Loader 完全匹配的一个 JAR。
 不要同时安装两个 Target JAR，也不要另外安装 runtime_core/runtime_safety；共享产品组件已经随最终 JAR 合并。
+本批使用mine_craft_protocol身份和SDK API 2。升级已有实例时先停机，将旧本体minecraft_protocol_probe开头的JAR及旧minecraft-protocol-extension-libraries.jar送回收站，不与新本体并存；不移动世界或其他模组。SDK API 1的扩展需要以同批SDK重新编译、安装到extensionpacks并重新批准。派生发现桥变化时也先停机退休旧mine_craft_protocol-extension-discovery.jar，再启动生成。不要复制旧派生库来绕过新内容核验。
+
 通过安装门禁的快照**原样安装即可，不需要补依赖**。旧端缺少的Netty HTTP随Jar-in-Jar交付且匹配原版Netty；
 26.1.2/26.3使用原版自带HTTP，不注入4.1.x。Fabric既有必需Fabric API通过Loom include交付。
 使用方自行移除旧的临时HTTP类路径补丁，再在自己的独立实例复验；本线程不改其他线程的实例。

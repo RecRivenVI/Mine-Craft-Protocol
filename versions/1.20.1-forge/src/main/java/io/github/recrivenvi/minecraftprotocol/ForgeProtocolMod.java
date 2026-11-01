@@ -21,15 +21,7 @@ public final class ForgeProtocolMod {
         PeerNetworking.initialize();
         if (net.minecraftforge.fml.loading.FMLLoader.getDist()
                 == net.minecraftforge.api.distmarker.Dist.CLIENT)
-            net.minecraftforge.fml.ModLoadingContext.get()
-                    .registerExtensionPoint(
-                            net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory.class,
-                            () ->
-                                    new net.minecraftforge.client.ConfigScreenHandler
-                                            .ConfigScreenFactory(
-                                            (minecraft, parent) ->
-                                                    new io.github.recrivenvi.minecraftprotocol
-                                                            .client.ProtocolConfigScreen(parent)));
+            io.github.recrivenvi.minecraftprotocol.client.ClientConfigRegistration.register();
         LOGGER.info(
                 "{} {} Runtime loaded ({})",
                 ProtocolIdentity.DISPLAY_NAME,

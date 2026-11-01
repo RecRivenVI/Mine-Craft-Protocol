@@ -2745,3 +2745,17 @@ EP-4/5阶段检查点a17f51b9已SSH签名推送：19个有匹配上游包的业�
 早期自动加载在成品试跑中发现并修复Forge原生提示绘制位置差异、无元数据库文件进入依赖扫描，以及服务模块和本体导出同包的冲突。派生发现服务使用独立包，ASM完整重定位lambda和自身引用；生产生成器有实际JAR及类加载负控。当前Forge最终JAR已通过首次正常启动、重启自动装载、真实hook/Provider/输入及正常关闭，不以开发source-set代替。发现桥变化时采用停机退休派生缓存再生成的可撤回做法，不覆盖使用中的JAR。
 
 完整spotlessApply/check/verifyRelease和严格合规0失败0警告通过；参考端与Fabric的配置选择经过三个真实进程验证，禁用与重新启用均在重启生效。其他Target和受影响原功能冻结仍继续，不发布Alpha。Companion测试曾分配到Fetch禁止的6566端口而失败；夹具复用禁止端口集合后有界重新申请，不修改产品权限或网络策略。旧Forge官方安装器采用其离线选项并继续校验缓存，不禁用证书或使用开发classpath。
+
+参考端命名冻结重跑在动态漏斗菜单的重叠断言处失败：实际传输位于指针开始移动前一tick及停止后一tick，未发生要求的并发重叠，未观察到产品输入异常。测试改为最多三个不同原生tick相位的只读hover，每次保留实际轨迹和传输采样；必须真正观察到重叠才通过，不重放click、不修改漏斗冷却或指针动效。[原失败结果](../../validations/integration-extension_platform/result/26.3-neoforge-world-hopper-phase-first-failure.json)按原字节保留；执行工具身份变化后受绑定世界组重新运行，不手工更新旧结果哈希。
+
+Forge成品EMI首次打开创造背包时，搜索输入返回UI_TARGET_INVALIDATED（Pointer target no longer resolves），事后搜索框仍存在且为空。原始结果保留为first-failure具名文件；同一本体和包的完整有界复测通过搜索、收藏恢复、配方页及正常退出，根因未确认，不宣称修复。没有放宽目标守卫或自动重放输入，后续仍作为冷启动/动态投影限制记录。
+
+Fabric旧世界基线因新增Mod Menu Target事实而拒绝恢复。保留旧baseline和工作副本至同验证的retired目录，使用既有bootstrap任务重新建立当前Target基线，再从固定副本完成正式世界full、input-context、45秒continuous-correctness和受影响UI组；没有修改旧基线、放宽事实校验或手工改写结果。
+
+独服冻结先在Forge官方安装器的DOWNLOAD_MOJMAPS阶段遇到TLS握手失败，保留原日志并复用官方服务端库缓存，经原安装器校验后安装通过；没有关闭证书检查。随后首个真实独服启动暴露公共mod入口的客户端配置lambda链接Screen类，在构造反射阶段被DistCleaner拒绝。将四个Forge/NeoForge端的配置注册移到client类，公共入口只在原有Dist判断下调用无客户端描述符的注册方法；新增实际产品类字节的拒绝客户端ClassLoader构造链接测试。五端发行检查与严格合规通过，独服及新候选冻结继续；不是把安装错误或旧候选结果算作通过。
+
+源码指纹7738e116完成五端当前成品与Native平台、15组原生配置页重启、五端世界full/input-context/45秒连续正确性、参考端UI all和其余四端三项受影响UI、19个适用业务组合、双包故障恢复及同一本体1.0.3→1.0.4替包。发布侧重查120份具名证明与五端纯净单JAR入世界，生产源码、工具、包内容和JAR全部一致；不是五端UI全量重测或真人验收。
+
+NeoForge1.21.1纯净客户端安装又遇到[官方映射TLS下载失败](../../validations/integration-extension_platform/result/1.21.1-neoforge-single-jar-installer-first-failure.txt)。核对本机官方映射的Mojang SHA-1与大小后交回原安装器，一次有界复测通过，无证书关闭或开发classpath。EMI Forge当前候选完整业务通过，原首次失效仍保留，未宣称根因已修复。
+
+最终同批核对曾拒绝部分独服及Fabric CC证明：它们读取了较早的SDK作者说明。仅补跑受该文档变化影响的接口组，JAR和其他哈希一致的回归保留；没有调整门禁或旧证明，随后120份证明全部通过。提示框保持本轮基线正式版，两个预览不采用；七包的可用上游范围、CC阻断和LittleTiles完整关闭限制继续明确记录。集中真人清单待用户安排，未测整合包、性能或Persistent Write。

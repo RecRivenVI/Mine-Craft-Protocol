@@ -357,3 +357,11 @@ Modern UI 3.12 的 Arc3D 异步编译任务需要其原生 Supplier 类加载器
 Modern UI 的 View 在框架 UI 线程采样和消费事件。布局展开动画期间仍会改变目标几何，调用者须重新观察稳定目标；不能放宽守卫让旧位置点击成功。异步文本消费还重查实际焦点，框架排队确认前 Operation 不报告完成。
 
 Modern UI 3.12/1.21.1 的持续采样点为 onRenderTick(boolean)，26.1.2 为 onRenderFrame(long,int)，由各自包变体选择；关键输入与每帧 hook 要求实际命中，不能只依据类级 postApply 声称可用。普通管线清理在 UI owner 发布取消后的快照再确认完成，释放输入不造成短暂失去同一页面的观察。
+
+## 扩展包原生配置界面
+
+各端复用PackSelectionScreen与PackSelectionModel，不调用全局资源包重载。Forge 1.20.1在render读取拖放提示，较新端在init创建提示控件；两者分别在原生读取点替换本页面的重启说明。1.20.1和1.21.1的populateLists默认在已选列表为空时禁用Done，扩展页面在列表更新完成后允许空选择退出；其他资源包页面不受影响。Forge对Entry默认方法的覆盖显式实现原生接口，使SRG重映射后仍覆盖同一个方法。
+
+Forge依赖扫描包含没有modFileInfo的库，发现桥只从有真实模组元数据的文件收集版本。Forge的服务库还进入模块图；派生服务使用extension_discovery独立包并完整重定位自身引用，避免与产品loader包发生导出冲突。NeoForge沿用独立服务层，Fabric由早期Mixin/PreLaunch桥准备；三者都在实际装载前核对批准内容和运行环境。
+
+Forge/NeoForge的配置工厂lambda放在客户端注册类中，公共模组入口只在原有Dist判断下调用注册方法。仅把lambda包在Dist分支内不足以隔离：Loader反射构造方法时会链接公共类的客户端方法描述符，独服可能在执行分支之前就拒绝Screen类。

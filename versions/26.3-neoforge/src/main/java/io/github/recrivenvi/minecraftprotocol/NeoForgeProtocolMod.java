@@ -22,11 +22,8 @@ public final class NeoForgeProtocolMod {
         modBus.addListener(PeerNetworking::register);
         if (net.neoforged.fml.loading.FMLLoader.getCurrent().getDist()
                 == net.neoforged.api.distmarker.Dist.CLIENT)
-            container.registerExtensionPoint(
-                    net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
-                    (ignored, parent) ->
-                            new io.github.recrivenvi.minecraftprotocol.client.ProtocolConfigScreen(
-                                    parent));
+            io.github.recrivenvi.minecraftprotocol.client.ClientConfigRegistration.register(
+                    container);
         LOGGER.info(
                 "{} {} Runtime loaded ({})",
                 ProtocolIdentity.DISPLAY_NAME,

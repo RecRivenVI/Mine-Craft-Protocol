@@ -458,14 +458,18 @@ try{
  await check('window: final-output title and original icon badge across modes',async()=>{
    const hooks=await api('GET','/v0/diagnostics/hooks');
    // A Hook descriptor may aggregate several injected callbacks, not one row per site.
-   assert.equal(hooks.cancellableInjectionCount,target.startsWith('26.3-')?27:target.startsWith('26.')?24:22);
+   assert.equal(hooks.cancellableInjectionCount,(target.startsWith('26.3-')?27:target.startsWith('26.')?24:22)+5);
+    const settingsHook=hooks.hooks.find(hook=>hook.id==='extensionpack_settings');assert(settingsHook);
+    assert.equal(settingsHook.plane,'LOCAL_EXTENSION_SETTINGS');assert.equal(settingsHook.cancellable,true);
+    assert.equal(settingsHook.cancellableInjectionCount,5);assert.equal(settingsHook.replacementInjectionCount,1);
+    if(target==='1.20.1-forge'||target==='1.21.1-neoforge')assert.equal(settingsHook.nonCancellableInjectionCount,1);
    for(const id of ['player_command_entry_guard','player_command_packet_guard','owned_server_command_completion'])assert(hooks.hooks.some(hook=>hook.id===id&&hook.cancellable===true));
    assert(hooks.hooks.some(hook=>hook.id==='system_toast_reset_revision'&&hook.cancellable===false&&hook.behavior==='passive_native_reset_revision'));
    const drawCounts={'1.20.1-forge':[34,7],'1.21.1-neoforge':[37,7],'26.1.2-neoforge':[41,7],'26.3-neoforge':[43,6],'26.3-fabric':[43,6]}[target];
    assert.equal(hooks.passiveDrawDelegationCount,drawCounts[0]);
-   assert.equal(hooks.operatorReplacementCount,drawCounts[1]);
+   assert.equal(hooks.operatorReplacementCount,drawCounts[1]+1);
    assert.equal(hooks.passiveWorldDelegationCount,target.startsWith('1.')?1:0);
-   assert.equal(hooks.replacementInjectionCount,drawCounts[0]+drawCounts[1]+hooks.passiveWorldDelegationCount);
+   assert.equal(hooks.replacementInjectionCount,drawCounts[0]+drawCounts[1]+1+hooks.passiveWorldDelegationCount);
    if(target.startsWith('26.'))assert(hooks.hooks.some(hook=>hook.id==='host_cursor_shape_guard'&&hook.mechanism==='MIXIN_MODIFY_VARIABLE'&&hook.cancellable===false&&hook.replacement===true&&hook.behavior==='default_host_shape_during_takeover'));
    assert.equal(hooks.controlFlowPolicy,'operator_control_debug_mutation_and_exact_hud_draw_delegation');
    async function presentation(mode,icon,suffix){

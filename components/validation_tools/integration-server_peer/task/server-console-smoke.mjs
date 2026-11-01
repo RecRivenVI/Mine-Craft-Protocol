@@ -106,7 +106,7 @@ const fixtureOptions={repo,game,world:fixtureWorld,target,validation:extensionPl
     native.stdout.pipe(output,{end:false});native.stderr.pipe(output,{end:false});
     const ready=new Promise((done,fail)=>{
       let text='';const inspect=bytes=>{text=(text+bytes).slice(-65536);if(/Done \(/.test(text))done();};
-      native.stdout.on('data',inspect);native.stderr.on('data',inspect);native.once('error',fail);native.once('exit',code=>fail(Error('Fixture preparation exited '+code)));
+      native.stdout.on('data',inspect);native.stderr.on('data',inspect);native.once('error',fail);native.once('exit',code=>fail(Error('Fixture preparation exited before native readiness ('+code+'): '+(text.match(/Attempted to load class[^\r\n]*/)?.[0]??'inspect fixture-preparation.log'))));
     });
     const exit=new Promise(done=>native.once('exit',done));
     let timer;
@@ -138,9 +138,13 @@ const fixtureOptions={repo,game,world:fixtureWorld,target,validation:extensionPl
     catch(error){native.kill();await exit;throw error;}finally{clearTimeout(timer);output.end();}
   }};
 if(extensionPlatform&&loader!=='fabric'&&!await exists(join(game,'mods/mine_craft_protocol-extension-discovery.jar'))){
-  const warmup=await fixtureOptions.start();await fixtureOptions.stop(warmup);
-  assert(await exists(join(game,'mods/mine_craft_protocol-extension-discovery.jar')),'First ordinary server startup must prepare the discovery bridge');
-  report.discoveryWarmup={normalStartup:true,cleanShutdown:true};
+  try{
+    const warmup=await fixtureOptions.start();await fixtureOptions.stop(warmup);
+    assert(await exists(join(game,'mods/mine_craft_protocol-extension-discovery.jar')),'First ordinary server startup must prepare the discovery bridge');
+    report.discoveryWarmup={normalStartup:true,cleanShutdown:true};
+  }catch(error){
+    await writeFile(resultPath,JSON.stringify({...report,status:'FAIL',stage:'discovery_warmup',error:String(error.stack??error)},null,2)+'\n');throw error;
+  }
 }
 report.fixture=await prepareServerWorld(fixtureOptions).catch(async error=>{await writeFile(resultPath,JSON.stringify({...report,status:'FAIL',stage:'fixture',error:String(error.stack??error)},null,2)+'\n');throw error;});
 const log=createWriteStream(join(game,'console-smoke.log'));

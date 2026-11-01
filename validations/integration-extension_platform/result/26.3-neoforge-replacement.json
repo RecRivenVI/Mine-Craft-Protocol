@@ -1,19 +1,19 @@
 {
   "target": "26.3-neoforge",
   "status": "PASS",
-  "artifactSha256": "ac66a7e10f862ef0b643a4a2543acd67bae959991f823862efde43adf2a7f101",
+  "artifactSha256": "d26e1f5c0f3daae5609820bdc46313620a4020a8c946c9741ef386f283afa735",
   "hostJarUnchanged": true,
   "nativeRestart": true,
   "before": {
     "version": "1.0.3",
-    "identity": "e3a3da21036de226fd4c2aa0969411e9b5185607b8227bb30db0cca69edf5c2a",
-    "runtime": "ab9cd378-b13b-4b7a-bad3-a3de46ab0bc4"
+    "identity": "75a584e22ff4f5e7524257db7c9e5f41dc4315dc31e9321cecf3e1e3bb1a8ab6",
+    "runtime": "b2198129-56cf-4aef-95ce-06a889ac4975"
   },
   "after": {
     "version": "1.0.4",
-    "identity": "22d5ae561498d7a4cf8ec18502256e747ff3c60f2289cb975a5606a0be8b201e",
-    "runtime": "bf0c7ebc-6473-4357-9ece-8a4399d2999b"
+    "identity": "373b5187f1379c47754169713c6ff33f91c18b23083660335f79d101d387e54d",
+    "runtime": "b296e652-4fdc-4357-9aa9-49c3f83dd8a6"
   },
-  "completedAt": "2026-10-31T22:08:00.321Z",
+  "completedAt": "2026-11-01T09:56:55.394Z",
   "persistentWriteCalls": 0
 }

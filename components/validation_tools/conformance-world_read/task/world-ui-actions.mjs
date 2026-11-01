@@ -166,21 +166,32 @@ export async function worldUiActions({api,command,poll,start,finish,key,wait,che
       assert(candidate,'Need an actual unchanged semantic staging slot');
       await api('POST','/v0/ui/action',{selector:{nodeId:candidate.nodeId},action:'hover'});
     }
-    await stageAway(source);
-    const samples=[];let sampling=true,sampleError;
-    const monitor=(async()=>{
-      while(sampling&&samples.length<160){
-        const current=await api('GET','/v0/ui/tree'),input=await api('GET','/v0/input/state');
-        const other=nodes(current).find(n=>n.role==='slot'&&n.slot===0);
-        samples.push({clientTick:current.clientTick,menuRevision:current.menuRevision,otherCount:other?.count,x:input.agentPointer?.x,y:input.agentPointer?.y});
-        await new Promise(done=>setTimeout(done,25));
+    // Hopper transfers and pointer motion have independent native tick phases. A readonly
+    // hover may sample only boundary ticks; sweep at most three phases, never replay a click.
+    const attempts=[];let samples,overlap=false;
+    for(let attempt=0;attempt<3&&!overlap;attempt++){
+      await stageAway(source);
+      if(attempt){
+        const tick=(await api('GET','/v0/ui/tree')).clientTick;
+        await wait(t=>t.clientTick>=tick+2,'bounded native tick phase change before readonly hover',2000);
       }
-    })().catch(error=>{sampleError=error;});
-    try{await api('POST','/v0/ui/action',{selector:{nodeId:source.nodeId},action:'hover'});}
-    finally{sampling=false;await monitor;}
-    if(sampleError)throw sampleError;
-    assert(samples.length>2,'Need actual concurrent native samples');
-    assert(samples.some((sample,index)=>index>0&&sample.otherCount>samples[index-1].otherCount&&(sample.x!==samples[index-1].x||sample.y!==samples[index-1].y)),'Actual background slot transfer must overlap pointer motion: '+JSON.stringify(samples));
+      samples=[];let sampling=true,sampleError;
+      const monitor=(async()=>{
+        while(sampling&&samples.length<160){
+          const current=await api('GET','/v0/ui/tree'),input=await api('GET','/v0/input/state');
+          const other=nodes(current).find(n=>n.role==='slot'&&n.slot===0);
+          samples.push({clientTick:current.clientTick,menuRevision:current.menuRevision,otherCount:other?.count,x:input.agentPointer?.x,y:input.agentPointer?.y});
+          await new Promise(done=>setTimeout(done,25));
+        }
+      })().catch(error=>{sampleError=error;});
+      try{await api('POST','/v0/ui/action',{selector:{nodeId:source.nodeId},action:'hover'});}
+      finally{sampling=false;await monitor;}
+      if(sampleError)throw sampleError;
+      assert(samples.length>2,'Need actual concurrent native samples');
+      overlap=samples.some((sample,index)=>index>0&&sample.otherCount>samples[index-1].otherCount&&(sample.x!==samples[index-1].x||sample.y!==samples[index-1].y));
+      attempts.push({attempt:attempt+1,overlap,samples});
+    }
+    assert(overlap,'Actual background slot transfer must overlap pointer motion: '+JSON.stringify(attempts));
     tree=await api('GET','/v0/ui/tree');assert(tree.carriedStack.empty);
     await api('POST','/v0/ui/action',{selector:{nodeId:source.nodeId},action:'click'});
     await wait(t=>t.carriedStack.id==='minecraft:dirt'&&t.carriedStack.count===8,'native stable source pickup while another slot updates');
@@ -194,7 +205,7 @@ export async function worldUiActions({api,command,poll,start,finish,key,wait,che
     await stageAway(nodes(tree).find(n=>n.role==='slot'&&n.slot===1));tree=await api('GET','/v0/ui/tree');
     const strict=await api('POST','/v0/ui/action',{selector:{role:'slot',slot:1},action:'hover'},['STALE_MENU_REVISION','UI_TARGET_INVALIDATED'],{'X-MCP-Expected-Menu-Revision':String(tree.menuRevision)});
     await zero();
-    actionSamples.push({case:'dynamic_menu_independent_slots',arrangeAuthority:'diagnostic_admin_commands',actAuthority:'PLAYTEST',nativeHopper:true,semanticTargets:true,backgroundAndMotionOverlap:true,samples,actualDirtMoved:8,changedTargetRejected:rejected.error,explicitGlobalRevisionRejected:strict.error,semanticPointerStaging:true,handWrittenTargetCoordinates:false});
+    actionSamples.push({case:'dynamic_menu_independent_slots',arrangeAuthority:'diagnostic_admin_commands',actAuthority:'PLAYTEST',nativeHopper:true,semanticTargets:true,backgroundAndMotionOverlap:true,readonlyHoverAttempts:attempts,samples,actualDirtMoved:8,changedTargetRejected:rejected.error,explicitGlobalRevisionRejected:strict.error,semanticPointerStaging:true,handWrittenTargetCoordinates:false});
     await close();await arrange(feeder,'minecraft:air');await arrange(at,'minecraft:air');
   });
   await command('clear @s');

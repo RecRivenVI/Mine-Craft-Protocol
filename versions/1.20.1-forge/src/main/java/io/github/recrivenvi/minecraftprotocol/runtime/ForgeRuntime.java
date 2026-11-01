@@ -1898,6 +1898,7 @@ public final class ForgeRuntime implements Phase9AExperimentalService {
                     extensionSettings.addProperty("cancellable", true);
                     extensionSettings.addProperty("replacement", true);
                     extensionSettings.addProperty("cancellableInjectionCount", 5);
+                    extensionSettings.addProperty("nonCancellableInjectionCount", 1);
                     extensionSettings.addProperty("replacementInjectionCount", 1);
                     extensionSettings.addProperty("intentionalControlFlow", true);
                     hooks.add(extensionSettings);
