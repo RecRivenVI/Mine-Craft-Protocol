@@ -26,6 +26,7 @@ pwsh -File components/validation_tools/feature-control_ui_showcase/task/Prepare-
 
 ## 文档
 
+- [产品导览：功能、使用方式与边界](documents/project/overview-mine_craft_protocol.md)
 - [开发与验证入口](documents/development/workflow-development.md)
 - [日常开发](gradle/conventions/specification/development/workflow-daily.md)、[配置格式](gradle/conventions/specification/reference/configuration-repository.md)
 - [Core 范围](documents/project/scope-core.md)、[可选扩展](documents/project/scope-extensions.md)
